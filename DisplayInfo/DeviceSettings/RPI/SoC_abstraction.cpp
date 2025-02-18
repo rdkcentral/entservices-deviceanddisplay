@@ -29,7 +29,7 @@
 #define MEM_PROCFS "/proc/meminfo"
 #define TOTAL_MEM_PARAM_STR  "MemTotal:"
 #define FREE_MEM_PARAM_STR  "MemFree:"
-#define DEFAULT_DEVICE "/dev/dri/card0"
+#define DEFAULT_DEVICE "/dev/dri/card1"
 
 using namespace std;
 

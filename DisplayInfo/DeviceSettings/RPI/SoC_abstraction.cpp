@@ -24,12 +24,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "kms.h"
 
 #define MEM_PROCFS "/proc/meminfo"
 #define TOTAL_MEM_PARAM_STR  "MemTotal:"
 #define FREE_MEM_PARAM_STR  "MemFree:"
-#define DEFAULT_DEVICE "/dev/dri/card0"
+
+#define DEFAULT_DEVICE "/dev/dri/card1"
 
 using namespace std;
 
@@ -108,7 +110,7 @@ static void getGraphicSize(uint32_t &w, uint32_t &h)
 
     do {
         /* Setup buffer information */
-        drm_fd = open( DEFAULT_DEVICE, O_RDWR);
+        drm_fd = open( DEFAULT_DEVICE, O_RDWR | O_CLOEXEC);
 
         /* Setup KMS */
         kms = kms_setup(drm_fd);
@@ -152,6 +154,9 @@ static void getGraphicSize(uint32_t &w, uint32_t &h)
 
     cout << "[getGraphicSize] width : " << w << endl;
     cout << "[getGraphicSize] height : " << h << endl;
+    if(drm_fd >= 0){
+        close(drm_fd);
+    }
 }
 
 

@@ -179,6 +179,7 @@ namespace Plugin {
 
         void PowerManagerImplementation::Dispatch(Event event, ParamsType params)
         {
+            LOGINFO("Received event: %u",event);
             _adminLock.Lock();
 
             switch (event)
@@ -248,6 +249,7 @@ namespace Plugin {
 
         void _powerEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
+            LOGINFO("Received event %u, from IARM power manager",eventId);
             switch (eventId)
             {
                 case  IARM_BUS_PWRMGR_EVENT_MODECHANGED:
@@ -561,6 +563,7 @@ namespace Plugin {
         uint32_t errorCode = Core::ERROR_GENERAL;
         IARM_Bus_PWRMgr_SetPowerState_Param_t param = {};
 
+        LOGINFO("keyCode: %u, powerState: %u", keyCode, powerState);
         param.newState = PowerManagerImplementation::_instance->ConvertToIarmBusPowerState(powerState);
 
         if (POWER_STATE_UNKNOWN != powerState)
@@ -572,6 +575,11 @@ namespace Plugin {
             if (res == IARM_RESULT_SUCCESS)
             {
                 errorCode = Core::ERROR_NONE;
+                LOGINFO("power state updated. IARM powerState: %u, plugin powerState: %u", param.newState, powerState);
+            }
+            else
+            {
+                LOGERR("IARM error: %u", res);
             }
         }
         else
@@ -588,6 +596,7 @@ namespace Plugin {
         string sleepMode = "";
         ofstream outfile;
 
+        LOGINFO("keyCode: %u, powerState: %u", keyCode, powerState);
         if (powerState == POWER_STATE_STANDBY)
         {
             try {
@@ -644,7 +653,7 @@ namespace Plugin {
             errorCode = Core::ERROR_NONE;
         } else {
             high = critical = 0;
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
+            LOGWARN("[%s] IARM Call failed. errorcode: %u", __FUNCTION__,res);
         }
 
         return errorCode;
@@ -668,7 +677,7 @@ namespace Plugin {
             LOGINFO("Set new temperature thresholds: high: %f, critical: %f", high, critical);
             errorCode = Core::ERROR_NONE;
         } else {
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
+            LOGWARN("[%s] IARM Call failed. errorcode: %u", __FUNCTION__,res);
         }
 
         return errorCode;
@@ -690,7 +699,7 @@ namespace Plugin {
             errorCode = Core::ERROR_NONE;
         } else {
             graceInterval = 0;
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
+            LOGWARN("[%s] IARM Call failed. errorcode: %u", __FUNCTION__,res);
         }
 
         return errorCode;
@@ -711,7 +720,7 @@ namespace Plugin {
             LOGINFO("Set new overtemparature grace interval: %d", graceInterval);
             errorCode = Core::ERROR_NONE;
         } else {
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
+            LOGERR("[%s] IARM Call failed. errorcode: %u", __FUNCTION__,res);
         }
 
         return errorCode;
@@ -731,7 +740,7 @@ namespace Plugin {
                 LOGINFO("Current core temperature is : %f ",temperature);
                 errorCode = Core::ERROR_NONE;
         } else {
-                LOGERR("[%s] IARM Call failed.", __FUNCTION__);
+                LOGERR("IARM Call failed. errorcode: %u", res);
         }
 #else
         temperature = -1;
@@ -746,6 +755,9 @@ namespace Plugin {
         uint32_t errorCode = Core::ERROR_GENERAL;
         IARM_Bus_PWRMgr_SetDeepSleepTimeOut_Param_t param = {};
         param.timeout = timeOut;
+
+        LOGINFO("Deep sleep timeout: %u", param.timeout);
+
         IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
                                     IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut, (void *)&param,
                                     sizeof(param));
@@ -753,6 +765,8 @@ namespace Plugin {
         if (IARM_RESULT_SUCCESS == res)
         {
             errorCode = Core::ERROR_NONE;
+        } else {
+                LOGERR("IARM Call failed. errorcode: %u", res);
         }
         return errorCode;
     }
@@ -762,6 +776,7 @@ namespace Plugin {
         uint32_t errorCode = Core::ERROR_GENERAL;
         DeepSleep_WakeupReason_t deepSleepWakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
 
+        LOGINFO("Entering...");
         IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
 			IARM_BUS_PWRMGR_API_GetLastWakeupReason, (void *)&deepSleepWakeupReason,
 			sizeof(deepSleepWakeupReason));
@@ -770,7 +785,10 @@ namespace Plugin {
         {
             wakeupReason = PowerManagerImplementation::_instance->ConvertToDeepSleepWakeupReason(deepSleepWakeupReason);
             errorCode = Core::ERROR_NONE;
+        } else {
+                LOGERR("IARM Call failed. errorcode: %u", res);
         }
+        LOGINFO("wakeupReason: %u, errorCode: %u", wakeupReason, errorCode);
         return errorCode;
     }
 
@@ -779,6 +797,7 @@ namespace Plugin {
         uint32_t errorCode = Core::ERROR_GENERAL;
         DeepSleepMgr_WakeupKeyCode_Param_t param = {};
 
+        LOGINFO("Entering...");
         IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
                          IARM_BUS_PWRMGR_API_GetLastWakeupKeyCode, (void *)&param,
                          sizeof(param));
@@ -786,9 +805,11 @@ namespace Plugin {
         {
             errorCode = Core::ERROR_NONE;
             keycode = param.keyCode;
+        } else {
+                LOGERR("IARM Call failed. errorcode: %u", res);
         }
 
-        LOGINFO("WakeupKeyCode : %d", keycode);
+        LOGINFO("WakeupKeyCode : %d, errorcode: %u", keycode,res);
 
         return errorCode;
     }
@@ -802,6 +823,7 @@ namespace Plugin {
         string otherReason = "No other reason supplied";
         string fname = "nrdPluginApp";
 
+        LOGINFO("Entering...");
         nfxResult = Utils::killProcess(fname);
         if (true == nfxResult)
         {
@@ -870,7 +892,10 @@ namespace Plugin {
         {
             errorCode = Core::ERROR_NONE;
             m_networkStandbyModeValid = false;
+        } else {
+                LOGERR("IARM Call failed. errorcode: %u", res);
         }
+        LOGINFO("IARM error code: %u",res);
 
         return errorCode;
     }
@@ -901,8 +926,11 @@ namespace Plugin {
                 errorCode = Core::ERROR_NONE;
                 m_networkStandbyMode = standbyMode;
                 m_networkStandbyModeValid = true;
+            } else {
+                LOGERR("IARM Call failed. errorcode: %u", res);
             }
         }
+        LOGINFO("Exit, error code: %u",errorCode);
 
         return errorCode;
     }
@@ -928,7 +956,10 @@ namespace Plugin {
                                    sizeof(param));
             if (IARM_RESULT_SUCCESS == res) {
                 errorCode = Core::ERROR_NONE;
+            } else {
+                LOGERR("IARM Call failed. errorcode: %u", res);
             }
+            LOGINFO("IARM error code: %u",res);
         }
 
         return errorCode;
@@ -942,6 +973,7 @@ namespace Plugin {
                               IARM_BUS_PWRMGR_API_GetWakeupSrcConfig, (void *)&param,
                               sizeof(param));
 
+        LOGINFO("Entering...");
         if (IARM_RESULT_SUCCESS == res)
         {
             LOGINFO(" %s: %d res:%d srcType :%x  config :%x ",__FUNCTION__,__LINE__,res,param.srcType,param.config);
@@ -951,6 +983,8 @@ namespace Plugin {
             powerMode = param.pwrMode << 1;
             config = param.config << 1;
             LOGINFO(" %s: %d res:%d srcType :%x  config :%x ",__FUNCTION__,__LINE__,res,srcType,config);
+        } else {
+            LOGERR("IARM Call failed. errorcode: %u", res);
         }
         return errorCode;
     }
@@ -962,7 +996,7 @@ namespace Plugin {
 
         modeParam.oldMode = PowerManagerImplementation::_instance->ConvertToDaemonSystemMode(currentMode);
         modeParam.newMode = PowerManagerImplementation::_instance->ConvertToDaemonSystemMode(newMode);
-LOGINFO("switched to mode '%d' to '%d'",currentMode, newMode);
+       LOGINFO("switched to mode '%d' to '%d'",currentMode, newMode);
         if (IARM_RESULT_SUCCESS == IARM_Bus_Call(IARM_BUS_DAEMON_NAME,
                 "DaemonSysModeChange", &modeParam, sizeof(modeParam)))
         {
@@ -977,6 +1011,7 @@ LOGINFO("switched to mode '%d' to '%d'",currentMode, newMode);
     {
         uint32_t errorCode = Core::ERROR_GENERAL;
 
+        LOGINFO("Entering...");
         if (m_powerStateBeforeRebootValid)
         {
             powerStateBeforeReboot = m_powerStateBeforeReboot;
@@ -991,7 +1026,7 @@ LOGINFO("switched to mode '%d' to '%d'",currentMode, newMode);
                                        IARM_BUS_PWRMGR_API_GetPowerStateBeforeReboot, (void *)&param,
                                        sizeof(param));
 
-            LOGWARN("getPowerStateBeforeReboot called, current powerStateBeforeReboot is: %s",
+            LOGINFO("getPowerStateBeforeReboot called, current powerStateBeforeReboot is: %s",
                          param.powerStateBeforeReboot);
 
             if (!strcmp("ON",param.powerStateBeforeReboot))
@@ -1024,6 +1059,10 @@ LOGINFO("switched to mode '%d' to '%d'",currentMode, newMode);
                 errorCode = Core::ERROR_NONE;
                 m_powerStateBeforeReboot = powerStateBeforeReboot;
                 m_powerStateBeforeRebootValid = true;
+            }
+            else
+            {
+                LOGERR("IARM Call failed. errorcode: %u", res);
             }
         }
 

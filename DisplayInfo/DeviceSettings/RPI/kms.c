@@ -25,11 +25,10 @@
 
 void kms_setup_encoder( int fd, kms_ctx *kms )
 {
-    int crtcId = 0;
-
     for( int i = 0; i < kms->res->count_encoders; i++ ) {
 
         kms->encoder = drmModeGetEncoder(fd,kms->res->encoders[i]);
+
         if(!kms->encoder){
             return;
         }
@@ -48,7 +47,6 @@ void kms_setup_encoder( int fd, kms_ctx *kms )
                 drmModeFreeEncoder( kms->encoder );
                 kms->encoder = drmModeGetEncoder(fd, kms->res->encoders[j]);
 
-                crtcId = kms->res->crtcs[j];
                 kms->encoder->crtc_id = kms->crtc_id = j;
                 goto exit;
             }
@@ -64,8 +62,8 @@ exit:
 
 void kms_setup_connector( int fd, kms_ctx *kms )
 {
-    int i = 0, j = 0;
-    drmModeConnector *connector;
+    int i = 0;
+    drmModeConnector *connector = NULL;
 
     for( i = 0; i < kms->res->count_connectors; i++ ) {
 
@@ -153,13 +151,14 @@ uint32_t kms_get_properties(int fd, drmModeObjectProperties *props, const char *
         if ( id )
             return id;
     }
+    return id;
 }
 
 
 
 void kms_get_plane( int fd, kms_ctx *kms )
 {
-    int len = 0, n = 0, j = 0, plane_index = -1;
+    int n = 0, j = 0;
 
     drmModePlane *plane = NULL;
     drmModePlaneRes *planeRes = NULL;
@@ -187,7 +186,6 @@ void kms_get_plane( int fd, kms_ctx *kms )
                         prop = drmModeGetProperty( fd, props->props[j] );
                         if ( prop ) {
 
-                            len = strlen(prop->name);
                             if ( !strcmp( prop->name, "type") ) {
 
                                 if ( ( props->prop_values[j] == DRM_PLANE_TYPE_PRIMARY ) && ( kms->primary_plane_id == -1 ) )

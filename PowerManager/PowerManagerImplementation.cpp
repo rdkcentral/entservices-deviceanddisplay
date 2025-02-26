@@ -28,10 +28,8 @@
 #include "UtilsIarm.h"
 #include "UtilsProcess.h"
 #include "rdk/iarmmgrs-hal/pwrMgr.h"
-#include "host.hpp"
 
 
-#define STANDBY_REASON_FILE                     "/opt/standbyReason.txt"
 #define IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut	"SetDeepSleepTimeOut" /*!< Sets the timeout for deep sleep*/
 
 using namespace std;
@@ -558,7 +556,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    uint32_t PowerManagerImplementation::SetDevicePowerState(const int &keyCode, PowerState powerState)
+    uint32_t PowerManagerImplementation::SetPowerState(const int &keyCode, const PowerState &powerState,const string &standbyReason)
     {
         uint32_t errorCode = Core::ERROR_GENERAL;
         IARM_Bus_PWRMgr_SetPowerState_Param_t param = {};
@@ -585,52 +583,6 @@ namespace Plugin {
         else
         {
             LOGWARN("Invalid power state is received %u", powerState);
-        }
-
-        return errorCode;
-    }
-
-    uint32_t PowerManagerImplementation::SetPowerState(const int &keyCode, const PowerState &powerState,const string &standbyReason)
-    {
-        uint32_t errorCode = Core::ERROR_GENERAL;
-        string sleepMode = "";
-        ofstream outfile;
-
-        LOGINFO("keyCode: %u, powerState: %u", keyCode, powerState);
-        if (powerState == POWER_STATE_STANDBY)
-        {
-            try {
-                const device::SleepMode &mode = device::Host::getInstance().getPreferredSleepMode();
-                sleepMode = mode.toString();
-            } catch (...) {
-                LOGWARN("Error getting PreferredStandbyMode");
-                sleepMode = "";
-            }
-
-            LOGINFO("Output of preferredStandbyMode: '%s'", sleepMode.c_str());
-
-            if (convert("DEEP_SLEEP", sleepMode))
-            {
-                errorCode = PowerManagerImplementation::_instance->SetDevicePowerState(keyCode, POWER_STATE_STANDBY_DEEP_SLEEP);
-            }
-            else
-            {
-                errorCode = PowerManagerImplementation::_instance->SetDevicePowerState(keyCode, (PowerState)powerState);
-            }
-            outfile.open(STANDBY_REASON_FILE, std::ios::out);
-            if (outfile.is_open())
-            {
-                outfile << standbyReason;
-                outfile.close();
-            }
-            else
-            {
-                LOGERR("Can't open file '%s' for write mode", STANDBY_REASON_FILE);
-            }
-        }
-        else
-        {
-            errorCode = PowerManagerImplementation::_instance->SetDevicePowerState(keyCode, (PowerState)powerState);
         }
 
         return errorCode;

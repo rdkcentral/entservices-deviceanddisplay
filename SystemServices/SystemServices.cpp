@@ -3062,42 +3062,50 @@ namespace WPEFramework {
 	bool SystemServices::readTerritoryFromFile()
 	{
 		bool retValue = true;
-		if(Utils::fileExists(TERRITORYFILE)){
-			ifstream inFile(TERRITORYFILE);
-			string str;
-			getline (inFile, str);
-			if(str.length() > 0){
-				retValue = true;
-				m_strTerritory = str.substr(str.find(":")+1,str.length());
-				int index = m_strStandardTerritoryList.find(m_strTerritory);
-				if((m_strTerritory.length() == 3) && (index >=0 && index <= 1100) ){
-					getline (inFile, str);
-					if(str.length() > 0){
-					    m_strRegion = str.substr(str.find(":")+1,str.length());
-					    if(!isRegionValid(m_strRegion))
-					    {
-						    m_strTerritory = "";
-						    m_strRegion = "";
-						    LOGERR("Territory file corrupted  - region : %s",m_strRegion.c_str());
-						    LOGERR("Returning empty values");
-					    }
-					}
-				}
-				else{
-					m_strTerritory = "";
-					m_strRegion = "";
-					LOGERR("Territory file corrupted - territory : %s",m_strTerritory.c_str());
-					LOGERR("Returning empty values");
-				}
-			}
-			else{
-				LOGERR("Invalid territory file");
-			}
-			inFile.close();
-
-		}else{
-			LOGERR("Territory is not set");
-		}
+        try{
+		    if(Utils::fileExists(TERRITORYFILE)){
+			    ifstream inFile(TERRITORYFILE);
+			    string str;
+			    getline (inFile, str);
+			    if(str.length() > 0){
+			    	retValue = true;
+			    	m_strTerritory = str.substr(str.find(":")+1,str.length());
+			    	int index = m_strStandardTerritoryList.find(m_strTerritory);
+			    	if((m_strTerritory.length() == 3) && (index >=0 && index <= 1100) ){
+			    		getline (inFile, str);
+			    		if(str.length() > 0){
+			    		    m_strRegion = str.substr(str.find(":")+1,str.length());
+			    		    if(!isRegionValid(m_strRegion))
+			    		    {
+			    			    m_strTerritory = "";
+			    			    m_strRegion = "";
+			    			    LOGERR("Territory file corrupted  - region : %s",m_strRegion.c_str());
+			    			    LOGERR("Returning empty values");
+			    		    }
+			    		}
+			    	}
+			    	else{
+			    		m_strTerritory = "";
+			    		m_strRegion = "";
+			    		LOGERR("Territory file corrupted - territory : %s",m_strTerritory.c_str());
+			    		LOGERR("Returning empty values");
+			    	}
+			    }
+			    else{
+			    	LOGERR("Invalid territory file");
+			    }
+			    inFile.close();
+            
+		    }else{
+		    	LOGERR("Territory is not set");
+		    }
+        }
+        catch(...){
+            LOGERR("Exception caught while reading territory file");
+            retValue = false;
+            m_strTerritory = "";
+            m_strRegion = "";
+        }
 		return retValue;
 	}
 

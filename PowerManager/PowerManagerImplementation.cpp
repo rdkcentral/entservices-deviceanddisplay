@@ -757,8 +757,6 @@ namespace Plugin {
         {
             errorCode = Core::ERROR_NONE;
             keycode = param.keyCode;
-        } else {
-                LOGERR("IARM Call failed. errorcode: %u", res);
         }
 
         LOGINFO("WakeupKeyCode : %d, errorcode: %u", keycode,res);
@@ -847,7 +845,6 @@ namespace Plugin {
         } else {
                 LOGERR("IARM Call failed. errorcode: %u", res);
         }
-        LOGINFO("IARM error code: %u",res);
 
         return errorCode;
     }
@@ -908,9 +905,8 @@ namespace Plugin {
                                    sizeof(param));
             if (IARM_RESULT_SUCCESS == res) {
                 errorCode = Core::ERROR_NONE;
-            } else {
-                LOGERR("IARM Call failed. errorcode: %u", res);
             }
+
             LOGINFO("IARM error code: %u",res);
         }
 

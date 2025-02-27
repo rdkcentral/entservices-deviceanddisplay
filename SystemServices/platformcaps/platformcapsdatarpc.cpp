@@ -37,35 +37,52 @@ namespace {
 
 namespace WPEFramework {
 namespace Plugin {
+  uint32_t GetFileRegex(const char* filename, const std::regex& regex, string& response){
+    uint32_t result = Core::ERROR_GENERAL;
+    std::ifstream file(filename);
+    if (file) {
+      string line;
+      while (std::getline(file, line)) {
+        std::smatch sm;
+        if (std::regex_match(line, sm, regex)) {
+          ASSERT(sm.size() == 2);
+          response = sm[1];
+          result = Core::ERROR_NONE;
+          break;
+        }
+      }
+    }
+    return result;
+  }
 
-/**
- * RPC
- */
- 
 string PlatformCapsData::GetModel() {
   return jsonRpc.invoke(_T("org.rdk.System"),
                         _T("getDeviceInfo"), 5000)
       .Get(_T("model_number")).String();
 }
 
-#ifndef ENABLE_COMMUNITY_DEVICE_TYPE
 string PlatformCapsData::GetDeviceType() {
-  auto hex = jsonRpc.invoke(_T("org.rdk.AuthService"),
-                            _T("getDeviceInfo"), 10000)
-      .Get(_T("deviceInfo")).String();
-  auto deviceInfo = stringFromHex(hex);
+  const char* device_type;
+  string deviceType;
+  uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
+    std::regex("^deviceType(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceType);
 
-  std::smatch m;
-  std::regex_search(deviceInfo, m, std::regex("deviceType=(\\w+),"));
-  return (m.empty() ? string() : m[1]);
+  if (result != Core::ERROR_NONE) {
+
+    // If we didn't find the deviceType in authService.conf, try device.properties
+    result = GetFileRegex(_T("/etc/device.properties"),
+      std::regex("^DEVICE_TYPE(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceType);
+
+    if (result == Core::ERROR_NONE) {
+      // Perform the conversion logic if we found the deviceType in device.properties
+      // as it doesnt comply with plugin spec. See RDKEMW-276
+      device_type = deviceType.c_str();
+      deviceType = (strcmp("mediaclient", device_type) == 0) ? "IpStb" :
+        (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "TV";
+    }
+  }
+  return deviceType;
 }
-#else
-string PlatformCapsData::GetDeviceType() {
-  return jsonRpc.invoke(_T("org.rdk.System"),
-                        _T("getDeviceInfo"), 10000)
-      .Get(_T("device_type")).String();
-}
-#endif
 
 string PlatformCapsData::GetHDRCapability() {
   JsonArray hdrCaps = jsonRpc.invoke(_T("org.rdk.DisplaySettings"),

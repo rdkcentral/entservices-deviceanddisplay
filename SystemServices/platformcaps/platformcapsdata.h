@@ -21,6 +21,8 @@
 
 #include "../Module.h"
 
+#include <interfaces/IAuthService.h>
+
 namespace WPEFramework {
 namespace Plugin {
 
@@ -28,7 +30,8 @@ class PlatformCapsData {
 public:
   typedef std::tuple <string, string, string> BrowserInfo;
   
-  PlatformCapsData(PluginHost::IShell* service) : jsonRpc(service) {}
+  PlatformCapsData(PluginHost::IShell* service);
+  ~PlatformCapsData();
 
 public:
   /**
@@ -234,6 +237,7 @@ private:
 
 private:
   JsonRpc jsonRpc;
+  Exchange::IAuthService *authservicePlugin;
 };
 
 } // namespace Plugin

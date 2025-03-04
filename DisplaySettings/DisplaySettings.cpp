@@ -612,10 +612,24 @@ namespace WPEFramework {
 
         void DisplaySettings::InitializePowerManager()
         {
+            uint32_t count = 0;
             LOGINFO("Connect the COM-RPC socket\n");
-            _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
-                .withIShell(m_service)
-                .createInterface();
+            while(count<25){
+                _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
+                    .withIShell(m_service)
+                    .createInterface();
+                if (!_powerManagerPlugin)
+                {
+                    count++;
+                    usleep(200*1000);
+                    LOGINFO("retry count: %u",count);
+                }
+                else
+                {
+                    LOGINFO("PowerManager interface get succeed: %u",count);
+                    break;
+                }
+            }
             registerEventHandlers();
         }
 

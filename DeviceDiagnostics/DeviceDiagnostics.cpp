@@ -19,65 +19,13 @@
 
 #include "DeviceDiagnostics.h"
 
-#include <curl/curl.h>
-#include <time.h>
-#include <fstream>
-
-#include "UtilsJsonRpc.h"
-
-#define DEVICE_DIAGNOSTICS_METHOD_NAME_GET_CONFIGURATION  "getConfiguration"
-#define DEVICE_DIAGNOSTICS_METHOD_GET_AV_DECODER_STATUS "getAVDecoderStatus"
-#define DEVICE_DIAGNOSTICS_METHOD_GET_MILE_STONES "getMilestones"
-#define DEVICE_DIAGNOSTICS_METHOD_LOG_MILESTONE "logMilestone"
-
-#define DEVICE_DIAGNOSTICS_EVT_ON_AV_DECODER_STATUS_CHANGED "onAVDecoderStatusChanged"
-
-#define MILESTONES_LOG_FILE                     "/opt/logs/rdk_milestones.log"
-
 #define API_VERSION_NUMBER_MAJOR 1
 #define API_VERSION_NUMBER_MINOR 1
 #define API_VERSION_NUMBER_PATCH 2
 
-enum SysSrv_ErrorCode {
-    SysSrv_FileNotPresent,
-    SysSrv_FileAccessFailed
-};
-
-/**
-  * @brief : To map the error code with matching error message.
-  * @param1[in] : error code of type SysSrv_ErrorCode.
-  * @return : string; error message.
-  */
-std::string getErrorDescription(int errCode);
-
-/***
- * @brief  : Used to read file contents into a vector
- * @param1[in] : Complete file name with path
- * @param2[in] : Destination vector buffer to be filled with file contents
- * @return : <bool>; TRUE if operation success; else FALSE.
- */
-bool getFileContent(std::string fileName, std::vector<std::string> & vecOfStrs);
-
-/***
- * @brief  : Used to construct JSON response from Vector.
- * @param1[in] : Destination JSON response buffer
- * @param2[in] : JSON "Key"
- * @param3[in] : Source Vector.
- * @return : <bool>; TRUE if operation success; else FALSE.
- */
-void setJSONResponseArray(JsonObject& response, const char* key,
-        const std::vector<string>& items);
-
-/***
- * @brief   : Used to construct response with module error status.
- * @param1[in]  : Error Code
- * @param2[out]: "response" JSON Object which is returned by the API
-   with updated module error status.
- */
-void populateResponseWithError(int errorCode, JsonObject& response);
-
 namespace WPEFramework
 {
+
     namespace {
 
         static Plugin::Metadata<Plugin::DeviceDiagnostics> metadata(
@@ -94,362 +42,122 @@ namespace WPEFramework
 
     namespace Plugin
     {
-        SERVICE_REGISTRATION(DeviceDiagnostics, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
-        DeviceDiagnostics* DeviceDiagnostics::_instance = nullptr;
+    /*
+     *Register DeviceDiagnostics module as wpeframework plugin
+     **/
+    SERVICE_REGISTRATION(DeviceDiagnostics, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
-        const int curlTimeoutInSeconds = 30;
-        static const char *decoderStatusStr[] = {
-            "IDLE",
-            "PAUSED",
-            "ACTIVE",
-            NULL
-        };
+    DeviceDiagnostics::DeviceDiagnostics() : _service(nullptr), _connectionId(0), _deviceDiagnostics(nullptr), _deviceDiagnosticsNotification(this)
+    {
+        SYSLOG(Logging::Startup, (_T("DeviceDiagnostics Constructor")));
+    }
 
-        static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, std::string stream)
+    DeviceDiagnostics::~DeviceDiagnostics()
+    {
+        SYSLOG(Logging::Shutdown, (string(_T("DeviceDiagnostics Destructor"))));
+    }
+
+    const string DeviceDiagnostics::Initialize(PluginHost::IShell* service)
+    {
+        string message="";
+
+        ASSERT(nullptr != service);
+        ASSERT(nullptr == _service);
+        ASSERT(nullptr == _deviceDiagnostics);
+        ASSERT(0 == _connectionId);
+
+        SYSLOG(Logging::Startup, (_T("DeviceDiagnostics::Initialize: PID=%u"), getpid()));
+
+        _service = service;
+        _service->AddRef();
+        _service->Register(&_deviceDiagnosticsNotification);
+
+        _deviceDiagnostics = service->Root<Exchange::IDeviceDiagnostics>(_connectionId, 5000, _T("DeviceDiagnosticsImplementation"));
+
+        if(nullptr != _deviceDiagnostics)
         {
-          size_t realsize = size * nmemb;
-          std::string temp(static_cast<const char*>(ptr), realsize);
-          stream.append(temp);
-          return realsize;
+            // Register for notifications
+            _deviceDiagnostics->Register(&_deviceDiagnosticsNotification);
+            // Invoking Plugin API register to wpeframework
+            Exchange::JDeviceDiagnostics::Register(*this, _deviceDiagnostics);
         }
-
-        DeviceDiagnostics::DeviceDiagnostics()
-        : PluginHost::JSONRPC()
+        else
         {
-            DeviceDiagnostics::_instance = this;
-
-            Register(DEVICE_DIAGNOSTICS_METHOD_NAME_GET_CONFIGURATION, &DeviceDiagnostics::getConfigurationWrapper, this);
-            Register(DEVICE_DIAGNOSTICS_METHOD_GET_AV_DECODER_STATUS, &DeviceDiagnostics::getAVDecoderStatus, this);
-	    Register(DEVICE_DIAGNOSTICS_METHOD_GET_MILE_STONES, &DeviceDiagnostics::getMilestones, this);
-            Register(DEVICE_DIAGNOSTICS_METHOD_LOG_MILESTONE, &DeviceDiagnostics::logMilestones, this);
+            SYSLOG(Logging::Startup, (_T("DeviceDiagnostics::Initialize: Failed to initialise DeviceDiagnostics plugin")));
+            message = _T("DeviceDiagnostics plugin could not be initialised");
         }
+        
+        return message;
+    }
 
-        DeviceDiagnostics::~DeviceDiagnostics()
-        {
-            Unregister(DEVICE_DIAGNOSTICS_METHOD_NAME_GET_CONFIGURATION);
-            Unregister(DEVICE_DIAGNOSTICS_METHOD_GET_AV_DECODER_STATUS);
-	    Unregister(DEVICE_DIAGNOSTICS_METHOD_GET_MILE_STONES);
-            Unregister(DEVICE_DIAGNOSTICS_METHOD_LOG_MILESTONE);
-        }
+    void DeviceDiagnostics::Deinitialize(PluginHost::IShell* service)
+    {
+        ASSERT(_service == service);
 
-        /* virtual */ const string DeviceDiagnostics::Initialize(PluginHost::IShell* service)
+        SYSLOG(Logging::Shutdown, (string(_T("DeviceDiagnostics::Deinitialize"))));
+
+        // Make sure the Activated and Deactivated are no longer called before we start cleaning up..
+        _service->Unregister(&_deviceDiagnosticsNotification);
+
+        if (nullptr != _deviceDiagnostics)
         {
-#ifdef ENABLE_ERM
-            if ((m_EssRMgr = EssRMgrCreate()) == NULL)
+
+            _deviceDiagnostics->Unregister(&_deviceDiagnosticsNotification);
+            Exchange::JDeviceDiagnostics::Unregister(*this);
+
+            // Stop processing:
+            RPC::IRemoteConnection* connection = service->RemoteConnection(_connectionId);
+            VARIABLE_IS_NOT_USED uint32_t result = _deviceDiagnostics->Release();
+
+            _deviceDiagnostics = nullptr;
+
+            // It should have been the last reference we are releasing,
+            // so it should endup in a DESTRUCTION_SUCCEEDED, if not we
+            // are leaking...
+            ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
+
+            // If this was running in a (container) process...
+            if (nullptr != connection)
             {
-                LOGERR("EssRMgrCreate() failed");
-                return "EssRMgrCreate() failed";
+               // Lets trigger the cleanup sequence for
+               // out-of-process code. Which will guard
+               // that unwilling processes, get shot if
+               // not stopped friendly :-)
+               try
+               {
+                   connection->Terminate();
+                   // Log success if needed
+                   LOGWARN("Connection terminated successfully.");
+               }
+               catch (const std::exception& e)
+               {
+                   std::string errorMessage = "Failed to terminate connection: ";
+                   errorMessage += e.what();
+                   LOGWARN("%s",errorMessage.c_str());
+               }
+
+               connection->Release();
             }
-
-            m_pollThreadRun = 1;
-            m_AVPollThread = std::thread(AVPollThread, this);
-#else
-            LOGWARN("ENABLE_ERM is not defined, decoder status will "
-                    "always be reported as IDLE");
-#endif
-
-            return "";
         }
 
-        void DeviceDiagnostics::Deinitialize(PluginHost::IShell* /* service */)
-        {
-#ifdef ENABLE_ERM
-            m_AVDecoderStatusLock.lock();
-            m_pollThreadRun = 0;
-            m_AVDecoderStatusLock.unlock();
-            m_AVPollThread.join();
-            EssRMgrDestroy(m_EssRMgr);
-#endif
-            DeviceDiagnostics::_instance = nullptr;
+        _connectionId = 0;
+        _service->Release();
+        _service = nullptr;
+        SYSLOG(Logging::Shutdown, (string(_T("DeviceDiagnostics de-initialised"))));
+    }
+
+    string DeviceDiagnostics::Information() const
+    {
+       return ("This DeviceDiagnostics Plugin provides additional diagnostics information which includes device configuration and AV decoder status.");
+    }
+
+    void DeviceDiagnostics::Deactivated(RPC::IRemoteConnection* connection)
+    {
+        if (connection->Id() == _connectionId) {
+            ASSERT(nullptr != _service);
+            Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
         }
-
-        string DeviceDiagnostics::Information() const
-        {
-            return (string());
-        }
-
-        uint32_t DeviceDiagnostics::getConfigurationWrapper(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            JsonArray names = parameters["names"].Array();
-
-            JsonObject requestParams;
-            JsonArray namePairs;
-
-            JsonArray::Iterator index(names.Elements());
-
-            while (index.Next() == true)
-            {
-                if (Core::JSON::Variant::type::STRING == index.Current().Content())
-                {
-                    //JSON::String s = index.Current().String();
-                    JsonObject o;
-                    o["name"] = index.Current().String();
-                    namePairs.Add(o);
-                }
-                else
-                    LOGWARN("Unexpected variant type");
-            }
-
-            requestParams["paramList"] = namePairs;
-
-            string json;
-            requestParams.ToString(json);
-
-            if (0 == getConfiguration(json, response))
-                returnResponse(true);
-
-            returnResponse(false);
-        }
-
-        /* retrieves most active decoder status from ERM library,
-         * this library keeps state of all decoders and will give
-         * us only the most active status of any decoder */
-        int DeviceDiagnostics::getMostActiveDecoderStatus()
-        {
-            int status = 0;
-
-#ifdef ENABLE_ERM
-            EssRMgrGetAVState(m_EssRMgr, &status);
-#endif
-            return status;
-        }
-
-        /* periodically polls ERM library for changes in most
-         * active decoder and send thunder event when decoder
-         * status changes. Needs to be done via poll and separate
-         * thread because ERM doesn't support events. */
-#ifdef ENABLE_ERM
-        void *DeviceDiagnostics::AVPollThread(void *arg)
-        {
-            struct timespec poll_wait = { .tv_sec = 30, .tv_nsec = 0  };
-            int lastStatus = EssRMgrRes_idle;
-            int status;
-            DeviceDiagnostics* t = DeviceDiagnostics::_instance;
-
-            LOGINFO("AVPollThread started");
-            for (;;)
-            {
-                nanosleep(&poll_wait, NULL);
-                std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
-                if (t->m_pollThreadRun == 0)
-                    break;
-
-                status = t->getMostActiveDecoderStatus();
-                lock.unlock();
-
-                if (status == lastStatus)
-                    continue;
-
-                lastStatus = status;
-                t->onDecoderStatusChange(status);
-            }
-
-            return NULL;
-        }
-#endif
-
-        void DeviceDiagnostics::onDecoderStatusChange(int status)
-        {
-            JsonObject params;
-            params["avDecoderStatusChange"] = decoderStatusStr[status];
-            sendNotify(DEVICE_DIAGNOSTICS_EVT_ON_AV_DECODER_STATUS_CHANGED, params);
-        }
-
-        uint32_t DeviceDiagnostics::getAVDecoderStatus(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-#ifdef ENABLE_ERM
-            m_AVDecoderStatusLock.lock();
-            int status = getMostActiveDecoderStatus();
-            m_AVDecoderStatusLock.unlock();
-            response["avDecoderStatus"] = decoderStatusStr[status];
-#else
-            response["avDecoderStatus"] = decoderStatusStr[0];
-#endif
-            returnResponse(true);
-        }
-
-        int DeviceDiagnostics::getConfiguration(const std::string& postData, JsonObject& out)
-        {
-            LOGINFO("%s",__FUNCTION__);
-
-            JsonObject DeviceDiagnosticsResult;
-            int result = -1;
-
-            long http_code = 0;
-            std::string response;
-            CURL *curl_handle = NULL;
-            CURLcode res = CURLE_OK;
-            curl_handle = curl_easy_init();
-
-            LOGINFO("data: %s", postData.c_str());
-
-            if (curl_handle) {
-
-                if(curl_easy_setopt(curl_handle, CURLOPT_URL, "http://127.0.0.1:10999") != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_URL");
-                if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, postData.c_str()) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_POSTFIELDS");
-                if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, postData.size()) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_POSTFIELDSIZE");
-                if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK) //when redirected, follow the redirections
-                    LOGWARN("Failed to set curl option: CURLOPT_FOLLOWLOCATION");
-                if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_WRITEFUNCTION");
-                if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_WRITEDATA");
-                if(curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, curlTimeoutInSeconds) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_TIMEOUT");
-
-                res = curl_easy_perform(curl_handle);
-                curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
-
-                LOGWARN("Perfomed curl call : %d http response code: %ld", res, http_code);
-                curl_easy_cleanup(curl_handle);
-            }
-            else {
-                LOGWARN("Could not perform curl ");
-            }
-
-            if (res == CURLE_OK && (http_code == 0 || http_code == 200))
-             {
-                 LOGWARN("curl Response: %s", response.c_str());
-
-                 JsonObject jsonHash;
-                 jsonHash.FromString(response);
-
-                 if (jsonHash.HasLabel("paramList"))
-                 {
-                    LOGWARN("key paramList present");
-                    out["paramList"] = jsonHash["paramList"];
-                    result = 0;
-                 }
-             }
-            return result;
-        }
-
-	 /***
-         * @brief : To fetch the list of milestones.
-         * @param1[in]  : {params":{}}
-         * @param2[out] : "result":{"milestones":["<string>","<string>","<string>"],
-         *      "success":<bool>}
-         * @return      : Core::<StatusCode>
-         */
-        uint32_t DeviceDiagnostics::getMilestones(const JsonObject& parameters,
-                JsonObject& response)
-        {
-            bool retAPIStatus = false;
-	    std::vector<string> milestones;
-
-            if (Core::File(string(MILESTONES_LOG_FILE)).Exists()) {
-                retAPIStatus = getFileContent(MILESTONES_LOG_FILE, milestones);
-                if (retAPIStatus) {
-                    setJSONResponseArray(response, "milestones", milestones);
-                } else {
-                    populateResponseWithError(SysSrv_FileAccessFailed, response);
-                }
-            } else {
-                populateResponseWithError(SysSrv_FileNotPresent, response);
-            }
-            returnResponse(retAPIStatus);
-        }
-
-      /**
-       * @brief Logs marker to rdk milestones log file
-       *
-       * @param[in]  parameters   - Must include 'marker'.
-       * @param[out] response     - Success.
-       *
-       * @return                  A code indicating success.
-       */
-       uint32_t DeviceDiagnostics::logMilestones(const JsonObject& parameters, JsonObject& response)
-       {
-           LOGINFOMETHOD();
-           returnIfStringParamNotFound(parameters, "marker");
-           std::string marker = parameters["marker"].String();
- #ifdef RDK_LOG_MILESTONE
-           logMilestone(marker.c_str());
- #endif
-           returnResponse(true);
-       }
-
-    } // namespace Plugin
+    }
+} // namespace Plugin
 } // namespace WPEFramework
-
-std::map<int, std::string> ErrCodeMap = {
-    {SysSrv_FileNotPresent, "Expected file not found"},
-    {SysSrv_FileAccessFailed, "File access failed"}
-};
-
-std::string getErrorDescription(int errCode)
-{
-    std::string errMsg = "Unexpected Error";
-
-    auto it = ErrCodeMap.find(errCode);
-    if (ErrCodeMap.end() != it) {
-        errMsg = it->second;
-    }
-    return errMsg;
-}
-
-/***
- * @brief	: Used to read file contents into a vector
- * @param1[in]	: Complete file name with path
- * @param2[in]	: Destination vector buffer to be filled with file contents
- * @return	: <bool>; TRUE if operation success; else FALSE.
- */
-bool getFileContent(std::string fileName, std::vector<std::string> & vecOfStrs)
-{
-    bool retStatus = false;
-    std::ifstream inFile(fileName.c_str(), std::ios::in);
-
-    if (!inFile.is_open())
-        return retStatus;
-
-    std::string line;
-    retStatus = true;
-    while (std::getline(inFile, line)) {
-        if (line.size() > 0) {
-            vecOfStrs.push_back(line);
-        }
-    }
-    inFile.close();
-    return retStatus;
-}
-
-/***
- * @brief	: Used to construct JSON response from Vector.
- * @param1[in]	: Destination JSON response buffer
- * @param2[in]	: JSON "Key"
- * @param3[in]	: Source Vector.
- * @return	: <bool>; TRUE if operation success; else FALSE.
- */
-void setJSONResponseArray(JsonObject& response, const char* key,
-        const std::vector<string>& items)
-{
-    JsonArray arr;
-
-    for (auto& i : items) {
-        arr.Add(JsonValue(i));
-    }
-    response[key] = arr;
-}
-
-/***
- * @brief	: Used to construct response with module error status.
- * @param1[in]	: Error Code
- * @param2[out]: "response" JSON Object which is returned by the API
-   with updated module error status.
- */
-void populateResponseWithError(int errorCode, JsonObject& response)
-{
-     if (errorCode) {
-        LOGWARN("Method %s failed; reason : %s\n", __FUNCTION__,
-        getErrorDescription(errorCode).c_str());
-        response["SysSrv_Status"] = static_cast<uint32_t>(errorCode);
-        response["errorMessage"] = getErrorDescription(errorCode);
-     }
-}

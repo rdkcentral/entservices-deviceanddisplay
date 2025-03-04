@@ -19,62 +19,93 @@
 
 #pragma once
 
-#include <thread>
-#include <mutex>
-#ifdef ENABLE_ERM
-#include <essos-resmgr.h>
-#endif
-#ifdef RDK_LOG_MILESTONE
-#include "rdk_logger_milestone.h"
-#endif
-
 #include "Module.h"
+#include <interfaces/IDeviceDiagnostics.h>
+#include <interfaces/json/JDeviceDiagnostics.h>
+#include <interfaces/json/JsonData_DeviceDiagnostics.h>
+#include "UtilsLogging.h"
+#include <interfaces/IUserSettings.h>
+#include "tracing/Logging.h"
 
-namespace WPEFramework {
+namespace WPEFramework 
+{
+    namespace Plugin
+    {
+        class DeviceDiagnostics : public PluginHost::IPlugin, public PluginHost::JSONRPC 
+        {
+            private:
+                class Notification : public RPC::IRemoteConnection::INotification, public Exchange::IDeviceDiagnostics::INotification
+                {
+                    private:
+                        Notification() = delete;
+                        Notification(const Notification&) = delete;
+                        Notification& operator=(const Notification&) = delete;
 
-    namespace Plugin {
-        class DeviceDiagnostics : public PluginHost::IPlugin, public PluginHost::JSONRPC {
-        private:
-            DeviceDiagnostics(const DeviceDiagnostics&) = delete;
-            DeviceDiagnostics& operator=(const DeviceDiagnostics&) = delete;
+                    public:
+                    explicit Notification(DeviceDiagnostics* parent) 
+                        : _parent(*parent)
+                        {
+                            ASSERT(parent != nullptr);
+                        }
 
-            //Begin methods
-            uint32_t getConfigurationWrapper(const JsonObject& parameters, JsonObject& response);
-	    uint32_t getMilestones(const JsonObject& parameters, JsonObject& response);
-            uint32_t logMilestones(const JsonObject& parameters, JsonObject& response);
-            //End methods
+                        virtual ~Notification()
+                        {
+                        }
 
-            int getConfiguration(const std::string& postData, JsonObject& response);
-            uint32_t getAVDecoderStatus(const JsonObject& parameters, JsonObject& response);
-            int getMostActiveDecoderStatus();
-            void onDecoderStatusChange(int status);
-#ifdef ENABLE_ERM
-            static void *AVPollThread(void *arg);
-#endif
+                        BEGIN_INTERFACE_MAP(Notification)
+                        INTERFACE_ENTRY(Exchange::IDeviceDiagnostics::INotification)
+                        INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
+                        END_INTERFACE_MAP
 
-        private:
-#ifdef ENABLE_ERM
-            std::thread m_AVPollThread;
-            std::mutex m_AVDecoderStatusLock;
-            EssRMgr* m_EssRMgr;
-            int m_pollThreadRun;
-#endif
+                        void Activated(RPC::IRemoteConnection*) override
+                        {
+                            LOGINFO("DeviceDiagnostics Notification Activated");
+                        }
 
-        public:
-            DeviceDiagnostics();
-            virtual ~DeviceDiagnostics();
-            virtual void Deinitialize(PluginHost::IShell* service) override;
-            virtual const string Initialize(PluginHost::IShell* service) override;
-            virtual string Information() const override;
+                        void Deactivated(RPC::IRemoteConnection *connection) override
+                        {
+                            LOGINFO("DeviceDiagnostics Notification Deactivated");
+                            _parent.Deactivated(connection);
+                        }
 
-            BEGIN_INTERFACE_MAP(MODULE_NAME)
-            INTERFACE_ENTRY(PluginHost::IPlugin)
-            INTERFACE_ENTRY(PluginHost::IDispatcher)
-            END_INTERFACE_MAP
+                        void OnAVDecoderStatusChanged(const string& AVDecoderStatus ) override
+                        {
+                            LOGINFO("OnAVDecoderStatusChanged: AVDecoderStatus %s\n", AVDecoderStatus.c_str());
+                            Exchange::JDeviceDiagnostics::Event::OnAVDecoderStatusChanged(_parent, AVDecoderStatus);
+                        }
 
-        public:
-            static DeviceDiagnostics* _instance;
+                    private:
+                        DeviceDiagnostics& _parent;
+                };
 
-        };
-	} // namespace Plugin
+                public:
+                    DeviceDiagnostics(const DeviceDiagnostics&) = delete;
+                    DeviceDiagnostics& operator=(const DeviceDiagnostics&) = delete;
+
+                    DeviceDiagnostics();
+                    virtual ~DeviceDiagnostics();
+
+                    BEGIN_INTERFACE_MAP(DeviceDiagnostics)
+                    INTERFACE_ENTRY(PluginHost::IPlugin)
+                    INTERFACE_ENTRY(PluginHost::IDispatcher)
+                    INTERFACE_AGGREGATE(Exchange::IDeviceDiagnostics, _deviceDiagnostics)
+                    END_INTERFACE_MAP
+
+                    //  IPlugin methods
+                    // -------------------------------------------------------------------------------------------------------
+                    const string Initialize(PluginHost::IShell* service) override;
+                    void Deinitialize(PluginHost::IShell* service) override;
+                    string Information() const override;
+
+                private:
+                    void Deactivated(RPC::IRemoteConnection* connection);
+
+                private:
+                    PluginHost::IShell* _service{};
+                    uint32_t _connectionId{};
+                    Exchange::IDeviceDiagnostics* _deviceDiagnostics{};
+                    Core::Sink<Notification> _deviceDiagnosticsNotification;
+       };
+    } // namespace Plugin
 } // namespace WPEFramework
+

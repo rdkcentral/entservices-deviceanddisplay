@@ -154,7 +154,6 @@ namespace Plugin {
         uint32_t SetSystemMode(const SystemMode &currentMode, const SystemMode &newMode) const override;
         uint32_t GetPowerStateBeforeReboot(PowerState &powerStateBeforeReboot) override;
 
-        uint32_t SetDevicePowerState(const int &keyCode, PowerState powerState);
         PowerState ConvertToPwrMgrPowerState(IARM_Bus_PWRMgr_PowerState_t state);
         IARM_Bus_Daemon_SysMode_t ConvertToDaemonSystemMode(SystemMode sysMode);
         IARM_Bus_PWRMgr_PowerState_t ConvertToIarmBusPowerState(PowerState state);

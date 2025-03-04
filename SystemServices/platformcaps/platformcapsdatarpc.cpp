@@ -48,8 +48,9 @@ string PlatformCapsData::GetModel() {
       .Get(_T("model_number")).String();
 }
 
-#ifndef ENABLE_COMMUNITY_DEVICE_TYPE
 string PlatformCapsData::GetDeviceType() {
+  const char* device_type;
+  string deviceType;
   auto hex = jsonRpc.invoke(_T("org.rdk.AuthService"),
                             _T("getDeviceInfo"), 10000)
       .Get(_T("deviceInfo")).String();
@@ -57,15 +58,21 @@ string PlatformCapsData::GetDeviceType() {
 
   std::smatch m;
   std::regex_search(deviceInfo, m, std::regex("deviceType=(\\w+),"));
-  return (m.empty() ? string() : m[1]);
-}
-#else
-string PlatformCapsData::GetDeviceType() {
-  return jsonRpc.invoke(_T("org.rdk.System"),
+  if (!m.empty()) {
+    return m[1];
+  }
+  else {
+    deviceType = jsonRpc.invoke(_T("org.rdk.System"),
                         _T("getDeviceInfo"), 10000)
-      .Get(_T("device_type")).String();
+    .Get(_T("device_type")).String();
+    // Perform the conversion logic if we found the deviceType in device.properties
+    // as it doesnt comply with plugin spec. See RDKEMW-276
+    device_type = deviceType.c_str();
+    deviceType = (strcmp("mediaclient", device_type) == 0) ? "IpStb" :
+        (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "TV";
+  }
+  return deviceType;
 }
-#endif
 
 string PlatformCapsData::GetHDRCapability() {
   JsonArray hdrCaps = jsonRpc.invoke(_T("org.rdk.DisplaySettings"),

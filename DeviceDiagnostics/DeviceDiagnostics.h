@@ -24,10 +24,9 @@
 #include <interfaces/json/JDeviceDiagnostics.h>
 #include <interfaces/json/JsonData_DeviceDiagnostics.h>
 #include "UtilsLogging.h"
-#include <interfaces/IUserSettings.h>
 #include "tracing/Logging.h"
 
-namespace WPEFramework 
+namespace WPEFramework
 {
     namespace Plugin
     {

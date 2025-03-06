@@ -75,7 +75,8 @@ if (USE_DEVICESETTINGS)
     target_link_libraries(${MODULE_NAME} PRIVATE
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
         ${IARMBUS_LIBRARIES}
-        ${DS_LIBRARIES})
+        ${DS_LIBRARIES}
+        displayinfo-soc)
     target_sources(${MODULE_NAME}
         PRIVATE
             DeviceSettings/PlatformImplementation.cpp)
@@ -85,29 +86,6 @@ if (USE_DEVICESETTINGS)
                 DeviceSettings/RPI/SoC_abstraction.cpp
                 DeviceSettings/RPI/kms.c)
     endif()
-
-elseif (NXCLIENT_FOUND AND NEXUS_FOUND)
-    if (DISPLAYINFO_IMPLEMENTATION_PATH)
-        target_sources(${MODULE_NAME}
-            PRIVATE
-                ${DISPLAYINFO_IMPLEMENTATION_PATH}/PlatformImplementation.cpp)
-    else()
-        include(GetExternalCode)
-        set(DISPLAYINFO_IMPLEMENTATION_VERSION "master" CACHE STRING "DisplayInfo implementation version: commit_id_or_tag_or_branch_name")
-        set(DISPLAYINFO_IMPLEMENTATION_REPOSITORY "https://code.rdkcentral.com/r/soc/broadcom/components/rdkcentral/thundernanoservices/DisplayInfo" CACHE STRING "DisplayInfo implementation repository")
-        GetExternalCode(
-            GIT_REPOSITORY ${DISPLAYINFO_IMPLEMENTATION_REPOSITORY}
-            GIT_VERSION ${DISPLAYINFO_IMPLEMENTATION_VERSION}
-            SOURCE_DIR "Nexus"
-        )
-        target_sources(${MODULE_NAME}
-            PRIVATE
-                Nexus/PlatformImplementation.cpp)
-    endif()
-    target_link_libraries(${MODULE_NAME}
-        PRIVATE
-            NEXUS::NEXUS
-            NXCLIENT::NXCLIENT)
 
 elseif (BCM_HOST_FOUND)
     target_sources(${MODULE_NAME}

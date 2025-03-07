@@ -119,7 +119,9 @@ namespace WPEFramework {
         class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPC {
             private:
 
-                class PowerManagerNotification : public Exchange::IPowerManager::INotification {
+                class PowerManagerNotification : public Exchange::IPowerManager::INotification,
+                                                     public Exchange::IPowerManager::IModePreChangeNotification,
+                                                     public Exchange::IPowerManager::IModeChangedNotification {
                 private:
                     PowerManagerNotification(const PowerManagerNotification&) = delete;
                     PowerManagerNotification& operator=(const PowerManagerNotification&) = delete;
@@ -149,6 +151,13 @@ namespace WPEFramework {
                     void OnRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor) override
                     {
                         _parent.onRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
+                    }
+
+                    template <typename INTERFACE>
+                    T* baseInterface()
+                    {
+                        static_assert(std::is_base_of<T, Notification>(), "base type mismatch");
+                        return static_cast<T*>(this);
                     }
 
                     BEGIN_INTERFACE_MAP(PowerManagerNotification)

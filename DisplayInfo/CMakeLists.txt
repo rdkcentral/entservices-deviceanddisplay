@@ -84,6 +84,8 @@ if (USE_DEVICESETTINGS)
             PRIVATE
                 DeviceSettings/RPI/SoC_abstraction.cpp
                 DeviceSettings/RPI/kms.c)
+    elseif (ENABLE_DISPLAYINFO_SOC)
+        target_link_libraries(${MODULE_NAME} PRIVATE displayinfosoc)
     endif()
 
 elseif (NXCLIENT_FOUND AND NEXUS_FOUND)

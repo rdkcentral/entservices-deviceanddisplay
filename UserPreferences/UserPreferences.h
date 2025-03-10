@@ -50,6 +50,10 @@ namespace WPEFramework {
             INTERFACE_ENTRY(PluginHost::IDispatcher)
             END_INTERFACE_MAP
 
+        private:
+            Exchange::IStore2* _userSettings;
+            PluginHost::IShell* _service;
+
         public:
             static UserPreferences* _instance;
 

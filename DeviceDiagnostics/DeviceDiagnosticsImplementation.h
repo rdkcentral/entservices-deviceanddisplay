@@ -31,113 +31,108 @@
 #include "Module.h"
 #include <interfaces/Ids.h>
 #include <interfaces/IDeviceDiagnostics.h>
-#include <interfaces/IConfiguration.h>
 
 #include <com/com.h>
 #include <core/core.h>
 
-namespace WPEFramework {
-namespace Plugin {
-    class DeviceDiagnosticsImplementation : public Exchange::IDeviceDiagnostics, public Exchange::IConfiguration
+namespace WPEFramework
+{
+    namespace Plugin
     {
-        public:
-            // We do not allow this plugin to be copied !!
-            DeviceDiagnosticsImplementation();
-            ~DeviceDiagnosticsImplementation() override;
-
-            static DeviceDiagnosticsImplementation* instance(DeviceDiagnosticsImplementation *DeviceDiagnosticsImpl = nullptr);
-
-            // We do not allow this plugin to be copied !!
-            DeviceDiagnosticsImplementation(const DeviceDiagnosticsImplementation&) = delete;
-            DeviceDiagnosticsImplementation& operator=(const DeviceDiagnosticsImplementation&) = delete;
-
-            BEGIN_INTERFACE_MAP(DeviceDiagnosticsImplementation)
-            INTERFACE_ENTRY(Exchange::IDeviceDiagnostics)
-	    INTERFACE_ENTRY(Exchange::IConfiguration)
-            END_INTERFACE_MAP
-
-    public:
-        enum Event
+        class DeviceDiagnosticsImplementation : public Exchange::IDeviceDiagnostics
         {
-            ON_AVDECODER_STATUSCHANGED
-        };
+            public:
+                // We do not allow this plugin to be copied !!
+                DeviceDiagnosticsImplementation();
+                ~DeviceDiagnosticsImplementation() override;
+
+                // We do not allow this plugin to be copied !!
+                DeviceDiagnosticsImplementation(const DeviceDiagnosticsImplementation&) = delete;
+                DeviceDiagnosticsImplementation& operator=(const DeviceDiagnosticsImplementation&) = delete;
+
+                BEGIN_INTERFACE_MAP(DeviceDiagnosticsImplementation)
+                INTERFACE_ENTRY(Exchange::IDeviceDiagnostics)
+                END_INTERFACE_MAP
+
+            public:
+                enum Event
+                {
+                    ON_AVDECODER_STATUSCHANGED
+                };
  
-        class EXTERNAL Job : public Core::IDispatch {
-        protected:
-            Job(DeviceDiagnosticsImplementation* deviceDiagnosticsImplementation, Event event, JsonValue &params)
-                : _deviceDiagnosticsImplementation(deviceDiagnosticsImplementation)
-                , _event(event)
-                , _params(params) {
-                if (_deviceDiagnosticsImplementation != nullptr) {
-                    _deviceDiagnosticsImplementation->AddRef();
+            class EXTERNAL Job : public Core::IDispatch {
+            protected:
+                Job(DeviceDiagnosticsImplementation* deviceDiagnosticsImplementation, Event event, JsonValue &params)
+                    : _deviceDiagnosticsImplementation(deviceDiagnosticsImplementation)
+                    , _event(event)
+                    , _params(params) {
+                    if (_deviceDiagnosticsImplementation != nullptr) {
+                        _deviceDiagnosticsImplementation->AddRef();
+                    }
                 }
-            }
 
-       public:
-            Job() = delete;
-            Job(const Job&) = delete;
-            Job& operator=(const Job&) = delete;
-            ~Job() {
-                if (_deviceDiagnosticsImplementation != nullptr) {
-                    _deviceDiagnosticsImplementation->Release();
+            public:
+                Job() = delete;
+                Job(const Job&) = delete;
+                Job& operator=(const Job&) = delete;
+                ~Job() {
+                    if (_deviceDiagnosticsImplementation != nullptr) {
+                        _deviceDiagnosticsImplementation->Release();
+                    }
                 }
-            }
 
-       public:
-            static Core::ProxyType<Core::IDispatch> Create(DeviceDiagnosticsImplementation* deviceDiagnosticsImplementation, Event event, JsonValue  params ) {
+            public:
+                static Core::ProxyType<Core::IDispatch> Create(DeviceDiagnosticsImplementation* deviceDiagnosticsImplementation, Event event, JsonValue  params ) {
 #ifndef USE_THUNDER_R4
-                return (Core::proxy_cast<Core::IDispatch>(Core::ProxyType<Job>::Create(deviceDiagnosticsImplementation, event, params)));
+                    return (Core::proxy_cast<Core::IDispatch>(Core::ProxyType<Job>::Create(deviceDiagnosticsImplementation, event, params)));
 #else
-                return (Core::ProxyType<Core::IDispatch>(Core::ProxyType<Job>::Create(deviceDiagnosticsImplementation, event, params)));
+                    return (Core::ProxyType<Core::IDispatch>(Core::ProxyType<Job>::Create(deviceDiagnosticsImplementation, event, params)));
 #endif
-            }
+                }
 
-            virtual void Dispatch() {
-                _deviceDiagnosticsImplementation->Dispatch(_event, _params);
-            }
-            
-        private:
-            DeviceDiagnosticsImplementation *_deviceDiagnosticsImplementation;
-            const Event _event;
-            JsonValue _params;
+                virtual void Dispatch() {
+                    _deviceDiagnosticsImplementation->Dispatch(_event, _params);
+                }
+
+            private:
+                DeviceDiagnosticsImplementation *_deviceDiagnosticsImplementation;
+                const Event _event;
+                JsonValue _params;
         };
-    public:
-        virtual Core::hresult Register(Exchange::IDeviceDiagnostics::INotification *notification ) override ;
-        virtual Core::hresult Unregister(Exchange::IDeviceDiagnostics::INotification *notification ) override;
+        public:
+            virtual Core::hresult Register(Exchange::IDeviceDiagnostics::INotification *notification ) override ;
+            virtual Core::hresult Unregister(Exchange::IDeviceDiagnostics::INotification *notification ) override;
 
-        Core::hresult GetConfiguration(IStringIterator* const& names, Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator*& paramList) override;
-        Core::hresult GetMilestones(IStringIterator*& milestones) override;
-        Core::hresult LogMilestone(const string& marker) override;
-        Core::hresult GetAVDecoderStatus(string& AVDecoderStatus) override;
+            Core::hresult GetConfiguration(IStringIterator* const& names, Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator*& paramList) override;
+            Core::hresult GetMilestones(IStringIterator*& milestones) override;
+            Core::hresult LogMilestone(const string& marker) override;
+            Core::hresult GetAVDecoderStatus(string& AVDecoderStatus) override;
 
-        // IConfiguration interface
-        uint32_t Configure(PluginHost::IShell* service) override;
-
-    private:
-        mutable Core::CriticalSection _adminLock;
-        PluginHost::IShell* _service;
-        std::list<Exchange::IDeviceDiagnostics::INotification*> _deviceDiagnosticsNotification;
+        private:
+            mutable Core::CriticalSection _adminLock;
+            PluginHost::IShell* _service;
+            std::list<Exchange::IDeviceDiagnostics::INotification*> _deviceDiagnosticsNotification;
 
 #ifdef ENABLE_ERM
-        std::thread m_AVPollThread;
-        std::mutex m_AVDecoderStatusLock;
-        EssRMgr* m_EssRMgr;
-        int m_pollThreadRun;
+            std::thread m_AVPollThread;
+            std::mutex m_AVDecoderStatusLock;
+            EssRMgr* m_EssRMgr;
+            int m_pollThreadRun;
 #endif
 
-        int getMostActiveDecoderStatus();
-        void onDecoderStatusChange(int status);
-        int getConfig(const std::string& postData, JsonObject& response);
+            int getMostActiveDecoderStatus();
+            void onDecoderStatusChange(int status);
+            int getConfig(const std::string& postData, std::list<ParamList>& paramListInfo);
 
 #ifdef ENABLE_ERM
-        static void *AVPollThread(void *arg);
+            static void *AVPollThread(void *arg);
 #endif
-        void dispatchEvent(Event, const JsonValue &params);
-        void Dispatch(Event event, const JsonValue params);
-    public:
-        static DeviceDiagnosticsImplementation* _instance;
+            void dispatchEvent(Event, const JsonValue &params);
+            void Dispatch(Event event, const JsonValue params);
+        public:
+            static DeviceDiagnosticsImplementation* _instance;
 
-        friend class Job;
-    };
-} // namespace Plugin
+            friend class Job;
+        };
+    } // namespace Plugin
 } // namespace WPEFramework

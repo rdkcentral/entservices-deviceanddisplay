@@ -32,6 +32,17 @@ namespace WPEFramework {
             UserPreferences(const UserPreferences&) = delete;
             UserPreferences& operator=(const UserPreferences&) = delete;
 
+            class Notification : public Exchange::IUserSettings::INotification {
+            public:
+                explicit Notification(UserPreferences* parent) : _parent(parent) {}
+                ~Notification() override = default;
+
+                void onPresentationLanguageChanged(const string& language) override;
+
+            private:
+                UserPreferences* _parent;
+            };
+
             //Begin methods
             uint32_t getUILanguage(const JsonObject& parameters, JsonObject& response);
             uint32_t setUILanguage(const JsonObject& parameters, JsonObject& response);
@@ -53,8 +64,12 @@ namespace WPEFramework {
             END_INTERFACE_MAP
 
         private:
+
+            void OnPresentationLanguageChanged(const string& language);
+
             Exchange::IUserSettings* _userSettings;
             PluginHost::IShell* _service;
+            Notification _notification;
 
         public:
             static UserPreferences* _instance;

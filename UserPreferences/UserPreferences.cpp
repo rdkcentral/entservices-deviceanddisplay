@@ -55,10 +55,21 @@ namespace WPEFramework {
 
         UserPreferences* UserPreferences::_instance = nullptr;
 
+        static const unordered_map<string, string> presentationToUILang = {
+            {"en-US", "US_en"}, {"es-US", "US_es"}, {"en-CA", "CA_en"}, {"fr-CA", "CA_fr"},
+            {"en-GB", "GB_en"}, {"it-IT", "IT_it"}, {"de-DE", "DE_de"}, {"en-AU", "AU_en"}
+        };
+
+        static const unordered_map<string, string> uiToPresentationLang = {
+            {"US_en", "en-US"}, {"US_es", "es-US"}, {"CA_en", "en-CA"}, {"CA_fr", "fr-CA"},
+            {"GB_en", "en-GB"}, {"IT_it", "it-IT"}, {"DE_de", "de-DE"}, {"AU_en", "en-AU"}
+        };
+
         UserPreferences::UserPreferences()
                 : PluginHost::JSONRPC()
                 , _userSettings(nullptr)
-                ,_service(nullptr)
+                , _service(nullptr)
+                , _notification(this)
         {
             LOGINFO("ctor");
             UserPreferences::_instance = this;
@@ -69,6 +80,7 @@ namespace WPEFramework {
         UserPreferences::~UserPreferences()
         {
             if (_userSettings != nullptr) {
+                _userSettings->Unregister(&_notification);
                 _userSettings->Release();
                 _userSettings = nullptr;
             }
@@ -91,6 +103,55 @@ namespace WPEFramework {
                 _userSettings = _service->QueryInterfaceByCallsign<WPEFramework::Exchange::IUserSettings>("org.rdk.UserSettings");
                 if (_userSettings != nullptr) {
                     LOGINFO("Successfully connected to UserSettings plugin");
+                    _userSettings->Register(&_notification);
+                    bool requiresMigration = false;
+                    uint32_t status = _userSettings->GetMigrationState(Exchange::IUserSettingsInspector::SettingsKey::PRESENTATION_LANGUAGE, requiresMigration);
+                    if (status == Core::ERROR_NONE) {
+                        if (requiresMigration) {
+                            // Migrate value from file to UserSettings
+                            g_autoptr(GKeyFile) file = g_key_file_new();
+                            g_autoptr(GError) error = nullptr;
+                            if (g_key_file_load_from_file(file, SETTINGS_FILE_NAME, G_KEY_FILE_NONE, &error)) {
+                                g_autofree gchar *val = g_key_file_get_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, &error);
+                                if (val != nullptr) {
+                                    string uiLanguage = val;
+                                    auto it = uiToPresentationLang.find(uiLanguage);
+                                    if (it != uiToPresentationLang.end()) {
+                                        string presentationLanguage = it->second;
+                                        _userSettings->SetPresentationLanguage(presentationLanguage);
+                                        LOGINFO("Migrated language value to UserSettings: %s", presentationLanguage.c_str());
+                                    } else {
+                                        LOGERR("Failed to convert UI language to presentation language: %s", uiLanguage.c_str());
+                                    }
+                                }
+                            }
+                        } else {
+                            // Refresh file with value from UserSettings
+                            string presentationLanguage;
+                            status = _userSettings->GetPresentationLanguage(presentationLanguage);
+                            if (status == Core::ERROR_NONE) {
+                                auto it = presentationToUILang.find(presentationLanguage);
+                                if (it != presentationToUILang.end()) {
+                                    string uiLanguage = it->second;
+                                    g_autoptr(GKeyFile) file = g_key_file_new();
+                                    g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
+
+                                    g_autoptr(GError) error = nullptr;
+                                    if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
+                                        LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
+                                    } else {
+                                        LOGINFO("Refreshed file with language value: %s", uiLanguage.c_str());
+                                    }
+                                } else {
+                                    LOGERR("Failed to convert presentation language to UI language: %s", presentationLanguage.c_str());
+                                }
+                            } else {
+                                LOGERR("Failed to get presentation language from UserSettings");
+                            }
+                        }
+                    } else {
+                        LOGERR("Failed to get migration state");
+                    }
                 } else {
                     LOGERR("Failed to connect to UserSettings plugin");
                 }
@@ -107,33 +168,55 @@ namespace WPEFramework {
             UserPreferences::_instance = nullptr;
         }
 
+        void UserPreferences::Notification::onPresentationLanguageChanged(const string& language)
+        {
+            _parent->OnPresentationLanguageChanged(language);
+        }
+
+        void UserPreferences::OnPresentationLanguageChanged(const string& language)
+        {
+            LOGINFO("Presentation language changed to: %s", language.c_str());
+
+            // Convert presentation language to UI language
+            auto it = presentationToUILang.find(language);
+            if (it != presentationToUILang.end()) {
+                string uiLanguage = it->second;
+                // Update the file with the new value
+                g_autoptr(GKeyFile) file = g_key_file_new();
+                g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
+
+                g_autoptr(GError) error = nullptr;
+                if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
+                    LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
+                }
+            } else {
+                LOGERR("Failed to convert presentation language to UI language: %s", language.c_str());
+            }
+        }
+
         //Begin methods
         uint32_t UserPreferences::getUILanguage(const JsonObject& parameters, JsonObject& response)
         {
             LOGINFOMETHOD();
             string language;
             if (_userSettings != nullptr) {
-                uint32_t status = _userSettings->GetPresentationLanguage(language);
-                if (status != Core::ERROR_NONE) {
+                string presentationLanguage;
+                uint32_t status = _userSettings->GetPresentationLanguage(presentationLanguage);
+                if (status == Core::ERROR_NONE) {
+                    auto it = presentationToUILang.find(presentationLanguage);
+                    if (it != presentationToUILang.end()) {
+                        language = it->second;
+                    } else {
+                        LOGERR("Failed to convert presentation language to UI language: %s", presentationLanguage.c_str());
+                        returnResponse(false);
+                    }
+                } else {
                     LOGERR("Failed to get presentation language from UserSettings");
                     returnResponse(false);
                 }
-            }else{
-                g_autoptr(GKeyFile) file = g_key_file_new();
-                g_autoptr(GError) error = nullptr;
-                if (!g_key_file_load_from_file(file, SETTINGS_FILE_NAME, G_KEY_FILE_NONE, &error)) {
-                    LOGERR("Unable to load from file '%s': %s", SETTINGS_FILE_NAME, error->message);
-                    returnResponse(false);
-                }
-
-                g_autofree gchar *val = g_key_file_get_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, &error);
-                if (val == nullptr) {
-                    LOGERR("Unable to get key '%s' for group '%s' from file '%s': %s"
-                            , SETTINGS_FILE_KEY, SETTINGS_FILE_GROUP, SETTINGS_FILE_NAME, error->message);
-                    returnResponse(false);
-                }
-
-                language = val;
+            } else {
+                LOGERR("UserSettings plugin is not connected");
+                returnResponse(false);
             }
 
             response[SETTINGS_FILE_KEY] = language;
@@ -144,18 +227,29 @@ namespace WPEFramework {
         {
             LOGINFOMETHOD();
             returnIfStringParamNotFound(parameters, SETTINGS_FILE_KEY);
-            string language = parameters[SETTINGS_FILE_KEY].String();
+            string uiLanguage = parameters[SETTINGS_FILE_KEY].String();
 
             if (_userSettings != nullptr) {
-                uint32_t status = _userSettings->SetPresentationLanguage(language);
-                if (status != Core::ERROR_NONE) {
-                    LOGERR("Failed to set presentation language in UserSettings");
+                auto it = uiToPresentationLang.find(uiLanguage);
+                if (it != uiToPresentationLang.end()) {
+                    string presentationLanguage = it->second;
+                    uint32_t status = _userSettings->SetPresentationLanguage(presentationLanguage);
+                    if (status != Core::ERROR_NONE) {
+                        LOGERR("Failed to set presentation language in UserSettings");
+                        returnResponse(false);
+                    }
+                } else {
+                    LOGERR("Failed to convert UI language to presentation language: %s", uiLanguage.c_str());
                     returnResponse(false);
                 }
+            } else {
+                LOGERR("UserSettings plugin is not connected");
+                returnResponse(false);
             }
 
+            // Update the file with the new value
             g_autoptr(GKeyFile) file = g_key_file_new();
-            g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)language.c_str());
+            g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
 
             g_autoptr(GError) error = nullptr;
             if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
@@ -165,10 +259,6 @@ namespace WPEFramework {
 
             returnResponse(true);
         }
-        //End methods
-
-        //Begin events
-        //End events
 
     } // namespace Plugin
 } // namespace WPEFramework

@@ -21,8 +21,8 @@
 #include <time.h>
 
 #define API_VERSION_NUMBER_MAJOR 1
-#define API_VERSION_NUMBER_MINOR 0
-#define API_VERSION_NUMBER_PATCH 11
+#define API_VERSION_NUMBER_MINOR 1
+#define API_VERSION_NUMBER_PATCH 0
 
 namespace WPEFramework {
 namespace {

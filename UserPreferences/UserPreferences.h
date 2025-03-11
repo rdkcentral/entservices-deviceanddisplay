@@ -18,6 +18,8 @@
 **/
 
 #pragma once
+#include <interfaces/IStore2.h>
+#include <interfaces/IUserSettings.h>
 
 #include "Module.h"
 

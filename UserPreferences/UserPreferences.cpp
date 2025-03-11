@@ -57,8 +57,8 @@ namespace WPEFramework {
 
         UserPreferences::UserPreferences()
                 : PluginHost::JSONRPC()
-                , _service(nullptr)
                 , _userSettings(nullptr)
+                ,_service(nullptr)
         {
             LOGINFO("ctor");
             UserPreferences::_instance = this;

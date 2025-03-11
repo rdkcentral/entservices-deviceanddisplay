@@ -53,7 +53,7 @@ namespace WPEFramework {
             END_INTERFACE_MAP
 
         private:
-            Exchange::IStore2* _userSettings;
+            Exchange::IUserSettings* _userSettings;
             PluginHost::IShell* _service;
 
         public:

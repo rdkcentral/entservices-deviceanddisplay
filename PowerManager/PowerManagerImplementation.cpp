@@ -1123,10 +1123,10 @@ namespace Plugin {
 
         _adminLock.Unlock();
 
-        LOGINFO("client: \"%s\", clientId: %u", clientName.c_str(), clientId);
+        LOGINFO("client: %s, clientId: %u", clientName.c_str(), clientId);
 
         for (auto& clients : _modeChangeClients) {
-            LOGINFO("Registered client: \"%s\", clientId: %u", clients.second.c_str(), clients.first);
+            LOGINFO("Registered client: %s, clientId: %u", clients.second.c_str(), clients.first);
         }
 
         return Core::ERROR_NONE;
@@ -1153,6 +1153,7 @@ namespace Plugin {
         }
 
         _adminLock.Unlock();
+
         LOGINFO("client: \"%s\", clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
 
         return errorCode;

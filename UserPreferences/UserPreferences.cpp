@@ -187,8 +187,8 @@ namespace WPEFramework {
             _parent->OnPresentationLanguageChanged(language);
         }
 
-        void UserPreferences::OnPresentationLanguageChanged(const string& language)
-        {
+        void UserPreferences::OnPresentationLanguageChanged(const string& language)  {
+
             LOGINFO("Presentation language changed to: %s", language.c_str());
 
             // Convert presentation language to UI language
@@ -207,71 +207,65 @@ namespace WPEFramework {
                 LOGERR("Failed to convert presentation language to UI language: %s", language.c_str());
             }
         }
-        void OnAudioDescriptionChanged(const bool enabled) 
-        {
-
-        }
-        void OnPreferredAudioLanguagesChanged(const string& preferredLanguages) 
-        {
-
-        }
-        void OnCaptionsChanged(const bool enabled) 
-        {
-
-        }
-        void OnPreferredCaptionsLanguagesChanged(const string& preferredLanguages)
-        {
-
-        }
-        void OnPreferredClosedCaptionServiceChanged(const string& service) 
-        {
-
-        }
-        void OnPinControlChanged(const bool pinControl) 
-        {
-
-        }
-        void OnViewingRestrictionsChanged(const string& viewingRestrictions) 
-        {
-
-        }
-        void OnViewingRestrictionsWindowChanged(const string& viewingRestrictionsWindow) 
-        {
-
-        }
-        void OnLiveWatershedChanged(const bool liveWatershed) 
-        {
-
-        }
-        void OnPlaybackWatershedChanged(const bool playbackWatershed) 
-        {
-
-        }
-        void OnBlockNotRatedContentChanged(const bool blockNotRatedContent) 
-        {
-
-        }
-        void OnPinOnPurchaseChanged(const bool pinOnPurchase) 
-        {
-
-        }
-        void OnHighContrastChanged(const bool enabled) 
-        {
-
-        }
-        void OnVoiceGuidanceChanged(const bool enabled) 
-        {
-
-        }
-        void OnVoiceGuidanceRateChanged(const double rate) 
-        {
-
-        }
-        void OnVoiceGuidanceHintsChanged(const bool hints) 
-        {
+        void OnAudioDescriptionChanged(const bool enabled)  {
             
         }
+        void OnPreferredAudioLanguagesChanged(const string& preferredLanguages)  {
 
+        }
+       void OnCaptionsChanged(const bool enabled)  {
+
+        }
+        void OnPreferredCaptionsLanguagesChanged(const string& preferredLanguages)  {
+
+        }
+       
+        void OnPreferredClosedCaptionServiceChanged(const string& service)  {
+
+        }
+        
+        void OnPinControlChanged(const bool pinControl)  {
+
+        }
+       
+        void OnViewingRestrictionsChanged(const string& viewingRestrictions)  {
+
+        }
+       
+        void OnViewingRestrictionsWindowChanged(const string& viewingRestrictionsWindow)  {
+
+        }
+      
+        void OnLiveWatershedChanged(const bool liveWatershed)  {
+
+        }
+       
+        void OnPlaybackWatershedChanged(const bool playbackWatershed)  {
+
+        }
+       
+        void OnBlockNotRatedContentChanged(const bool blockNotRatedContent)  {
+
+        }
+      
+        void OnPinOnPurchaseChanged(const bool pinOnPurchase)  {
+
+        }
+        
+        void OnHighContrastChanged(const bool enabled)  {
+
+        }
+        void OnVoiceGuidanceChanged(const bool enabled)  {
+
+        }
+        void OnVoiceGuidanceRateChanged(const double rate)  {
+
+        }
+        
+        void OnVoiceGuidanceHintsChanged(const bool hints)  {
+
+        }
+        
         //Begin methods
         uint32_t UserPreferences::getUILanguage(const JsonObject& parameters, JsonObject& response)
         {

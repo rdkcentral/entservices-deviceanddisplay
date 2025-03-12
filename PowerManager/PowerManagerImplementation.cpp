@@ -33,7 +33,7 @@ template <>
 WPEFramework::Core::TimerType<PreModeChangeTimer> PreModeChangeTimer::timerThread(16 * 1024, "ACK TIMER");
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
-int WPEFramework::Plugin::PowerManagerImplementation::_nextClientId = 0;
+uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId = 0;
 
 #ifndef POWER_MODE_PRECHANGE_TIMEOUT_SEC
 #define POWER_MODE_PRECHANGE_TIMEOUT_SEC 3
@@ -1154,7 +1154,7 @@ namespace Plugin {
 
         _adminLock.Unlock();
 
-        LOGINFO("client: \"%s\", clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
+        LOGINFO("client: %s, clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
 
         return errorCode;
     }

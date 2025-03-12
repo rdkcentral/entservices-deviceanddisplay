@@ -233,7 +233,7 @@ namespace Plugin {
         std::list<Exchange::IPowerManager::INetworkStandbyModeChangedNotification*> _networkStandbyModeChangedNotifications;
         std::list<Exchange::IPowerManager::IThermalModeChangedNotification*> _thermalModeChangedNotifications;
         std::unique_ptr<PreModeChangeController> _modeChangeController;
-        std::unordered_map<int, std::string> _modeChangeClients;
+        std::unordered_map<uint32_t, std::string> _modeChangeClients;
 
         void dispatchPowerModeChangedEvent(const PowerState& currentState, const PowerState& newState);
         void dispatchDeepSleepTimeoutEvent(const uint32_t& timeout);
@@ -253,7 +253,7 @@ namespace Plugin {
         template <typename T>
         uint32_t Unregister(std::list<T*>& list, T* notification);
 
-        static int _nextClientId; // static counter for unique client ID generation.
+        static uint32_t _nextClientId; // static counter for unique client ID generation.
         friend class Job;
     };
 } // namespace Plugin

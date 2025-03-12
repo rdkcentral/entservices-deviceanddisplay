@@ -185,7 +185,7 @@ public:
      * @brief Adds an expectation to await an acknowledgement from the given client.
      * @param clientId The ID of the client to await acknowledgement from.
      */
-    void AckAwait(const int clientId)
+    void AckAwait(const uint32_t clientId)
     {
         _pending.insert(clientId);
         LOGINFO("Append clientId: %u, transactionId: %d, pending %d", clientId, _transactionId, int(_pending.size()));
@@ -199,7 +199,7 @@ public:
      * @return status - ERROR_INVALID_PARAMETER if the transaction ID is invalid.
      *                  ERROR_NONE on success.
      */
-    uint32_t Ack(const int clientId, const int transactionId)
+    uint32_t Ack(const uint32_t clientId, const int transactionId)
     {
         uint32_t status = WPEFramework::Core::ERROR_NONE;
 
@@ -229,7 +229,7 @@ public:
      * @return status - ERROR_INVALID_PARAMETER if the client ID is invalid.
      *                  ERROR_NONE on success.
      */
-    uint32_t Ack(const int clientId)
+    uint32_t Ack(const uint32_t clientId)
     {
         return Ack(clientId, _transactionId);
     }
@@ -256,7 +256,7 @@ public:
      * @brief Gets the set of pending client IDs.
      * @return A set of pending client IDs.
      */
-    const std::unordered_set<int>& Pending() const
+    const std::unordered_set<uint32_t>& Pending() const
     {
         return _pending;
     }
@@ -279,7 +279,7 @@ public:
 
         _handler = handler;
 
-        LOGINFO("time offset: %ldms, pending: %d", offsetInMilliseconds, int(_pending.size()));
+        LOGINFO("time offset: %lldms, pending: %d", offsetInMilliseconds, int(_pending.size()));
 
         if (_pending.empty()) {
             // no clients acks to wait for, trigger completion handler immediately
@@ -299,7 +299,7 @@ public:
      *                  ERROR_ILLEGAL_STATE if the controller is not running.
      *                  ERROR_NONE on success.
      */
-    uint32_t Reschedule(const int clientId, const int transactionId, const int offsetInMilliseconds)
+    uint32_t Reschedule(const uint32_t clientId, const int transactionId, const int offsetInMilliseconds)
     {
         uint32_t status = WPEFramework::Core::ERROR_NONE;
         ASSERT(IsRunning());
@@ -390,7 +390,7 @@ private:
     }
 
 private:
-    std::unordered_set<int> _pending;       // Set of pending acknowledgements.
+    std::unordered_set<uint32_t> _pending;       // Set of pending acknowledgements.
     int _transactionId;                     // Unique transaction ID for each AckController instance.
     AckTimer_t _timer;                      // Timer for managing completion timeouts.
     std::function<void(bool)> _handler;     // Completion handler to be called on timeout or all acknowledgements.

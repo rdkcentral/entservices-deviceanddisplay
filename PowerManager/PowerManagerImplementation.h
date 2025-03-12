@@ -202,8 +202,8 @@ namespace Plugin {
         uint32_t GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const override;
         uint32_t SetSystemMode(const SystemMode& currentMode, const SystemMode& newMode) const override;
         uint32_t GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot) override;
-        uint32_t PowerModePreChangeComplete(const int clientId, const int transactionId) override;
-        uint32_t DelayPowerModeChangeBy(const int clientId, const int transactionId, const int delayPeriod) override;
+        uint32_t PowerModePreChangeComplete(const uint32_t clientId, const int transactionId) override;
+        uint32_t DelayPowerModeChangeBy(const uint32_t clientId, const int transactionId, const int delayPeriod) override;
         uint32_t AddPowerModePreChangeClient(const string& clientName, uint32_t& clientId) override;
         uint32_t RemovePowerModePreChangeClient(const uint32_t clientId) override;
 

@@ -72,8 +72,10 @@ namespace Plugin {
     SERVICE_REGISTRATION(PowerManagerImplementation, 1, 0);
     PowerManagerImplementation* PowerManagerImplementation::_instance = nullptr;
     PowerManagerImplementation::PowerManagerImplementation()
-        : m_networkStandbyModeValid(false)
-        , m_powerStateBeforeReboot(POWER_STATE_UNKNOWN)
+        : m_powerStateBeforeReboot(POWER_STATE_UNKNOWN)
+        , m_networkStandbyMode(false)
+        , m_networkStandbyModeValid(false)
+        , m_powerStateBeforeRebootValid(false)
         , _modeChangeController(nullptr)
     {
         PowerManagerImplementation::_instance = this;
@@ -322,84 +324,84 @@ namespace Plugin {
     uint32_t PowerManagerImplementation::Register(Exchange::IPowerManager::IRebootNotification* notification)
     {
         uint32_t errorCode = Register(_rebootNotifications, notification);
-        LOGINFO("Register INotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IRebootNotification %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Unregister(Exchange::IPowerManager::IRebootNotification* notification)
     {
         uint32_t errorCode = Unregister(_rebootNotifications, notification);
-        LOGINFO("Unregister INotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IRebootNotification %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Register(Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
         uint32_t errorCode = Register(_preModeChangeNotifications, notification);
-        LOGINFO("Registering for IModePreChangeNotification %p, errorCode %d", notification, errorCode);
+        LOGINFO("IModePreChangeNotification %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
         uint32_t errorCode = Unregister(_preModeChangeNotifications, notification);
-        LOGINFO("Unregistering for IModePreChangeNotification %p, errorCode %d", notification, errorCode);
+        LOGINFO("IModePreChangeNotification %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Register(Exchange::IPowerManager::IModeChangedNotification* notification)
     {
         uint32_t errorCode = Register(_modeChangedNotifications, notification);
-        LOGINFO("Registering for IModeChangedNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IModeChangedNotification %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModeChangedNotification* notification)
     {
         uint32_t errorCode = Unregister(_modeChangedNotifications, notification);
-        LOGINFO("Unregistering for IModeChangedNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IModeChangedNotification %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Register(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
     {
         uint32_t errorCode = Register(_deepSleepTimeoutNotifications, notification);
-        LOGINFO("Registering for IDeepSleepTimeoutNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IDeepSleepTimeoutNotification %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Unregister(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
     {
         uint32_t errorCode = Unregister(_deepSleepTimeoutNotifications, notification);
-        LOGINFO("Unregistering for IDeepSleepTimeoutNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IDeepSleepTimeoutNotification %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Register(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
     {
         uint32_t errorCode = Register(_networkStandbyModeChangedNotifications, notification);
-        LOGINFO("Registering for INetworkStandbyModeChangedNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("INetworkStandbyModeChangedNotification %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Unregister(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
     {
         uint32_t errorCode = Unregister(_networkStandbyModeChangedNotifications, notification);
-        LOGINFO("Unregistering for INetworkStandbyModeChangedNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("INetworkStandbyModeChangedNotification %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Register(Exchange::IPowerManager::IThermalModeChangedNotification* notification)
     {
         uint32_t errorCode = Register(_thermalModeChangedNotifications, notification);
-        LOGINFO("Registering for IThermalModeChangedNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IThermalModeChangedNotification %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     uint32_t PowerManagerImplementation::Unregister(Exchange::IPowerManager::IThermalModeChangedNotification* notification)
     {
         uint32_t errorCode = Unregister(_thermalModeChangedNotifications, notification);
-        LOGINFO("Unregistering for IThermalModeChangedNotification %p, errorCode: %d", notification, errorCode);
+        LOGINFO("IThermalModeChangedNotification %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
@@ -611,7 +613,7 @@ namespace Plugin {
             LOGWARN("Invalid power state is received %u", powerState);
         }
 
-        LOGINFO("SetDevicePowerState keyCode: %d, powerState: %u, errorCode: %d", keyCode, powerState, errorCode);
+        LOGINFO("SetDevicePowerState keyCode: %d, powerState: %u, errorcode: %u", keyCode, powerState, errorCode);
 
         return errorCode;
     }
@@ -650,7 +652,7 @@ namespace Plugin {
                 });
         }
 
-        LOGINFO("SetPowerState keyCode: %d, powerState: %u, errorCode: %d", keyCode, powerState, errorCode);
+        LOGINFO("SetPowerState keyCode: %d, powerState: %u, errorcode: %u", keyCode, powerState, errorCode);
 
         return errorCode;
     }
@@ -672,7 +674,7 @@ namespace Plugin {
             }
         }
 
-        LOGINFO("currentState : %u, newState : %u, transactionId : %d, errorCode: %d", currentState, newState, transactionId, errorCode);
+        LOGINFO("currentState : %u, newState : %u, transactionId : %d, errorcode: %u", currentState, newState, transactionId, errorCode);
 
         return errorCode;
     }
@@ -819,7 +821,7 @@ namespace Plugin {
             wakeupReason = PowerManagerImplementation::_instance->ConvertToDeepSleepWakeupReason(deepSleepWakeupReason);
             errorCode = Core::ERROR_NONE;
         }
-        LOGINFO("WakeupReason : %d, errorCode %d", wakeupReason, errorCode);
+        LOGINFO("WakeupReason: %d, errorCode: %u", wakeupReason, errorCode);
         return errorCode;
     }
 
@@ -836,7 +838,7 @@ namespace Plugin {
             keycode = param.keyCode;
         }
 
-        LOGINFO("WakeupKeyCode : %d, errorCode: %d", keycode, errorCode);
+        LOGINFO("WakeupKeyCode : %d, errorcode: %u", keycode, errorCode);
 
         return errorCode;
     }
@@ -879,7 +881,7 @@ namespace Plugin {
             errorCode = Core::ERROR_NONE;
         }
 
-        LOGINFO("requestor %s, custom reason: %s, other reason: %s, iarmstatus: %d, errorCode: %d", rebootParam.requestor, rebootParam.reboot_reason_custom,
+        LOGINFO("requestor %s, custom reason: %s, other reason: %s, iarmstatus: %d, errorcode: %u", rebootParam.requestor, rebootParam.reboot_reason_custom,
             rebootParam.reboot_reason_other, iarmcallstatus, errorCode);
 
         return errorCode;
@@ -901,7 +903,7 @@ namespace Plugin {
             m_networkStandbyModeValid = false;
         }
 
-        LOGINFO("standbyMode : %s, errorCode: %d",
+        LOGINFO("standbyMode : %s, errorcode: %u",
             (param.bStandbyMode) ? ("Enabled") : ("Disabled"), errorCode);
 
         return errorCode;
@@ -996,7 +998,7 @@ namespace Plugin {
             errorCode = Core::ERROR_NONE;
         }
 
-        LOGINFO("switched to mode '%d', errorCode: %d", newMode, errorCode);
+        LOGINFO("switched to mode '%d', errorcode: %u", newMode, errorCode);
 
         return errorCode;
     }
@@ -1063,7 +1065,7 @@ namespace Plugin {
         _modeChangeController.reset();
     }
 
-    uint32_t PowerManagerImplementation::PowerModePreChangeComplete(const int clientId, const int transactionId)
+    uint32_t PowerManagerImplementation::PowerModePreChangeComplete(const uint32_t clientId, const int transactionId)
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
@@ -1075,12 +1077,12 @@ namespace Plugin {
 
         _adminLock.Unlock();
 
-        LOGINFO("clientId: %d, transactionId: %d, errorCode: %d", clientId, transactionId, errorCode);
+        LOGINFO("clientId: %u, transactionId: %d, errorcode: %u", clientId, transactionId, errorCode);
 
         return errorCode;
     }
 
-    uint32_t PowerManagerImplementation::DelayPowerModeChangeBy(const int clientId, const int transactionId, const int delayPeriod)
+    uint32_t PowerManagerImplementation::DelayPowerModeChangeBy(const uint32_t clientId, const int transactionId, const int delayPeriod)
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
@@ -1092,7 +1094,7 @@ namespace Plugin {
 
         _adminLock.Unlock();
 
-        LOGINFO("DelayPowerModeChangeBy clientId: %d, transactionId: %d, delayPeriod: %d, errorCode: %d", clientId, transactionId, delayPeriod, errorCode);
+        LOGINFO("DelayPowerModeChangeBy clientId: %u, transactionId: %d, delayPeriod: %d, errorcode: %u", clientId, transactionId, delayPeriod, errorCode);
 
         return errorCode;
     }
@@ -1121,10 +1123,10 @@ namespace Plugin {
 
         _adminLock.Unlock();
 
-        LOGINFO("client: \"%s\", clientId: %d", clientName.c_str(), clientId);
+        LOGINFO("client: \"%s\", clientId: %u", clientName.c_str(), clientId);
 
         for (auto& clients : _modeChangeClients) {
-            LOGINFO("Registered client: \"%s\", clientId: %d", clients.second.c_str(), clients.first);
+            LOGINFO("Registered client: \"%s\", clientId: %u", clients.second.c_str(), clients.first);
         }
 
         return Core::ERROR_NONE;
@@ -1151,7 +1153,7 @@ namespace Plugin {
         }
 
         _adminLock.Unlock();
-        LOGINFO("client: \"%s\", clientId: %d, errorCode: %d", clientName.c_str(), clientId, errorCode);
+        LOGINFO("client: \"%s\", clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
 
         return errorCode;
     }

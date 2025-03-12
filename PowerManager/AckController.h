@@ -188,7 +188,7 @@ public:
     void AckAwait(const int clientId)
     {
         _pending.insert(clientId);
-        LOGINFO("Append clientId: %d, transactionId: %d, pending %ld", clientId, _transactionId, _pending.size());
+        LOGINFO("Append clientId: %u, transactionId: %d, pending %d", clientId, _transactionId, int(_pending.size()));
     }
 
     /**
@@ -218,8 +218,8 @@ public:
             }
         } while (false);
 
-        LOGINFO("AckController::Ack: clientId: %d, transactionId: %d, status: %d, pending %ld",
-            clientId, transactionId, status, _pending.size());
+        LOGINFO("AckController::Ack: clientId: %u, transactionId: %d, status: %d, pending %d",
+            clientId, transactionId, status, int(_pending.size()));
         return WPEFramework::Core::ERROR_NONE;
     }
 
@@ -279,7 +279,7 @@ public:
 
         _handler = handler;
 
-        LOGINFO("time offset: %ldms, pending: %ld", offsetInMilliseconds, _pending.size());
+        LOGINFO("time offset: %ldms, pending: %d", offsetInMilliseconds, int(_pending.size()));
 
         if (_pending.empty()) {
             // no clients acks to wait for, trigger completion handler immediately
@@ -319,7 +319,7 @@ public:
 
             const auto it = _pending.find(clientId);
             if (it == _pending.cend()) {
-                LOGERR("Invalid clientId: %d", clientId);
+                LOGERR("Invalid clientId: %u", clientId);
                 status = WPEFramework::Core::ERROR_INVALID_PARAMETER;
                 break;
             }
@@ -330,12 +330,12 @@ public:
             if (newTimeout > _timer.Timeout()) {
                 _timer.Reschedule(newTimeout);
             } else {
-                LOGWARN("Skipping new timeout %ld is less than previous timeout %ld",
+                LOGWARN("Skipping new timeout %lld is less than previous timeout %lld",
                     newTimeout.Ticks(), _timer.Timeout().Ticks());
             }
         } while (false);
 
-        LOGINFO("clientId: %d, transactionId: %d, offset: %d, status: %d",
+        LOGINFO("clientId: %u, transactionId: %d, offset: %d, status: %d",
             clientId, transactionId, offsetInMilliseconds, status);
 
         return status;
@@ -369,7 +369,7 @@ private:
      */
     void runHandler(bool isTimedout)
     {
-        LOGINFO("isTimedout: %d, pending: %ld", isTimedout, _pending.size());
+        LOGINFO("isTimedout: %d, pending: %d", isTimedout, int(_pending.size()));
         if (!isTimedout) {
             _timer.Revoke();
         }

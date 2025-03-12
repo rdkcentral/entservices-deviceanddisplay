@@ -152,7 +152,7 @@ namespace WPEFramework {
                         _parent.onRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
                     }
 
-                    template <typename INTERFACE>
+                    template <typename T>
                     T* baseInterface()
                     {
                         static_assert(std::is_base_of<T, Notification>(), "base type mismatch");
@@ -165,7 +165,7 @@ namespace WPEFramework {
                     INTERFACE_ENTRY(Exchange::IPowerManager::IRebootNotification)
                     INTERFACE_ENTRY(Exchange::IPowerManager::IModeChangedNotification)
                     END_INTERFACE_MAP
-                
+
                 private:
                     SystemServices& _parent;
                 };

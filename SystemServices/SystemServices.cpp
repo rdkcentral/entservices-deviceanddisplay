@@ -634,24 +634,13 @@ namespace WPEFramework {
 
         void SystemServices::InitializePowerManager()
         {
-            uint32_t count = 0;
             LOGINFO("Connect the COM-RPC socket\n");
-            while(count<25){
-                _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
-                    .withIShell(m_shellService)
-                    .createInterface();
-                if (!_powerManagerPlugin)
-                {
-                    LOGINFO("retry count: %u",count);
-                    count++;
-                    usleep(200*1000);
-                }
-                else
-                {
-                    LOGINFO("PowerManager interface get succeed: %u",count);
-                    break;
-                }
-            }
+            _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
+                .withIShell(m_shellService)
+                .withRetryIntervalMS(200)
+                .withRetryCount(25)
+                .createInterface();
+
             registerEventHandlers();
         }
 
@@ -708,7 +697,10 @@ namespace WPEFramework {
 
             if(!_registeredEventHandlers && _powerManagerPlugin) {
                 _registeredEventHandlers = true;
-                _powerManagerPlugin->Register(&_pwrMgrNotification);
+                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
+                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
+                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             }
         }
 

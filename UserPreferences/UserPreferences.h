@@ -37,7 +37,23 @@ namespace WPEFramework {
                 explicit Notification(UserPreferences* parent) : _parent(parent) {}
                 ~Notification() override = default;
 
-                void onPresentationLanguageChanged(const string& language) override;
+                void OnPresentationLanguageChanged(const string& language) override;
+                void OnAudioDescriptionChanged(const bool enabled) override;
+                void OnPreferredAudioLanguagesChanged(const string& preferredLanguages) override;
+                void OnCaptionsChanged(const bool enabled) override;
+                void OnPreferredCaptionsLanguagesChanged(const string& preferredLanguages) override;
+                void OnPreferredClosedCaptionServiceChanged(const string& service) override;
+                void OnPinControlChanged(const bool pinControl) override;
+                void OnViewingRestrictionsChanged(const string& viewingRestrictions) override;
+                void OnViewingRestrictionsWindowChanged(const string& viewingRestrictionsWindow) override;
+                void OnLiveWatershedChanged(const bool liveWatershed) override;
+                void OnPlaybackWatershedChanged(const bool playbackWatershed) override;
+                void OnBlockNotRatedContentChanged(const bool blockNotRatedContent) override;
+                void OnPinOnPurchaseChanged(const bool pinOnPurchase) override;
+                void OnHighContrastChanged(const bool enabled) override;
+                void OnVoiceGuidanceChanged(const bool enabled) override;
+                void OnVoiceGuidanceRateChanged(const double rate) override;
+                void OnVoiceGuidanceHintsChanged(const bool hints) override;
 
             private:
                 UserPreferences* _parent;
@@ -68,6 +84,7 @@ namespace WPEFramework {
             void OnPresentationLanguageChanged(const string& language);
 
             Exchange::IUserSettings* _userSettings;
+            Exchange::IUserSettingsInspector* _userSettingsInspector;
             PluginHost::IShell* _service;
             Notification _notification;
 

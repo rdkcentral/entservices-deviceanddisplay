@@ -71,10 +71,10 @@ namespace WPEFramework {
                     _parent.onPowerModeChanged(currentState, newState);
                 }
 
-                template <typename INTERFACE>
+                template <typename T>
                 T* baseInterface()
                 {
-                    static_assert(std::is_base_of<T, Notification>(), "base type mismatch");
+                    static_assert(std::is_base_of<T, PowerManagerNotification>(), "base type mismatch");
                     return static_cast<T*>(this);
                 }
 

@@ -68,6 +68,7 @@ namespace WPEFramework {
         UserPreferences::UserPreferences()
                 : PluginHost::JSONRPC()
                 , _userSettings(nullptr)
+                , _userSettingsInspector(nullptr)
                 , _service(nullptr)
                 , _notification(this)
         {
@@ -105,74 +106,75 @@ namespace WPEFramework {
                     LOGINFO("Successfully connected to UserSettings plugin");
                     _userSettings->Register(&_notification);
                     _userSettingsInspector = _service->QueryInterfaceByCallsign<WPEFramework::Exchange::IUserSettingsInspector>("org.rdk.UserSettings");
-            if (_userSettingsInspector != nullptr) {
-                LOGINFO("Successfully connected to UserSettingsInspector plugin");
-
-                // Check if migration is required
-                bool requiresMigration = false;
-                uint32_t status = _userSettingsInspector->GetMigrationState(Exchange::IUserSettingsInspector::SettingsKey::PRESENTATION_LANGUAGE, requiresMigration);
-                if (status == Core::ERROR_NONE) {
-                    if (requiresMigration) {
-                        // Migrate value from file to UserSettings
-                        g_autoptr(GKeyFile) file = g_key_file_new();
-                        g_autoptr(GError) error = nullptr;
-                        if (g_key_file_load_from_file(file, SETTINGS_FILE_NAME, G_KEY_FILE_NONE, &error)) {
-                            g_autofree gchar *val = g_key_file_get_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, &error);
-                            if (val != nullptr) {
-                                string uiLanguage = val;
-                                auto it = uiToPresentationLang.find(uiLanguage);
-                                if (it != uiToPresentationLang.end()) {
-                                    string presentationLanguage = it->second;
-                                    _userSettings->SetPresentationLanguage(presentationLanguage);
-                                    LOGINFO("Migrated language value to UserSettings: %s", presentationLanguage.c_str());
-                                } else {
-                                    LOGERR("Failed to convert UI language to presentation language: %s", uiLanguage.c_str());
-                                }
-                            }
-                        }
-                    } else {
-                        // Refresh file with value from UserSettings
-                        string presentationLanguage;
-                        status = _userSettings->GetPresentationLanguage(presentationLanguage);
+                    if (_userSettingsInspector != nullptr) {
+                        LOGINFO("Successfully connected to UserSettingsInspector plugin");
+        
+                        // Check if migration is required
+                        bool requiresMigration = false;
+                        uint32_t status = _userSettingsInspector->GetMigrationState(Exchange::IUserSettingsInspector::SettingsKey::PRESENTATION_LANGUAGE, requiresMigration);
                         if (status == Core::ERROR_NONE) {
-                            auto it = presentationToUILang.find(presentationLanguage);
-                            if (it != presentationToUILang.end()) {
-                                string uiLanguage = it->second;
+                            if (requiresMigration) {
+                                // Migrate value from file to UserSettings
                                 g_autoptr(GKeyFile) file = g_key_file_new();
-                                g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
-
                                 g_autoptr(GError) error = nullptr;
-                                if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
-                                    LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
-                                } else {
-                                    LOGINFO("Refreshed file with language value: %s", uiLanguage.c_str());
+                                if (g_key_file_load_from_file(file, SETTINGS_FILE_NAME, G_KEY_FILE_NONE, &error)) {
+                                    g_autofree gchar *val = g_key_file_get_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, &error);
+                                    if (val != nullptr) {
+                                        string uiLanguage = val;
+                                        auto it = uiToPresentationLang.find(uiLanguage);
+                                        if (it != uiToPresentationLang.end()) {
+                                            string presentationLanguage = it->second;
+                                            _userSettings->SetPresentationLanguage(presentationLanguage);
+                                            LOGINFO("Migrated language value to UserSettings: %s", presentationLanguage.c_str());
+                                        } else {
+                                            LOGERR("Failed to convert UI language to presentation language: %s", uiLanguage.c_str());
+                                        }
+                                    }
                                 }
                             } else {
-                                LOGERR("Failed to convert presentation language to UI language: %s", presentationLanguage.c_str());
+                                // Refresh file with value from UserSettings
+                                string presentationLanguage;
+                                status = _userSettings->GetPresentationLanguage(presentationLanguage);
+                                if (status == Core::ERROR_NONE) {
+                                    auto it = presentationToUILang.find(presentationLanguage);
+                                    if (it != presentationToUILang.end()) {
+                                        string uiLanguage = it->second;
+                                        g_autoptr(GKeyFile) file = g_key_file_new();
+                                        g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
+        
+                                        g_autoptr(GError) error = nullptr;
+                                        if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
+                                            LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
+                                        } else {
+                                            LOGINFO("Refreshed file with language value: %s", uiLanguage.c_str());
+                                        }
+                                    } else {
+                                        LOGERR("Failed to convert presentation language to UI language: %s", presentationLanguage.c_str());
+                                    }
+                                } else {
+                                    LOGERR("Failed to get presentation language from UserSettings");
+                                }
                             }
                         } else {
-                            LOGERR("Failed to get presentation language from UserSettings");
+                            LOGERR("Failed to get migration state");
                         }
+        
+                        // Release the IUserSettingsInspector interface
+                        _userSettingsInspector->Release();
+                        _userSettingsInspector = nullptr;
+                    } else {
+                        LOGERR("Failed to connect to UserSettingsInspector plugin");
                     }
                 } else {
-                    LOGERR("Failed to get migration state");
+                    LOGERR("Failed to connect to UserSettings plugin");
                 }
-
-                // Release the IUserSettingsInspector interface
-                _userSettingsInspector->Release();
-                _userSettingsInspector = nullptr;
             } else {
-                LOGERR("Failed to connect to UserSettingsInspector plugin");
+                LOGERR("Shell is null");
             }
-        } else {
-            LOGERR("Failed to connect to UserSettings plugin");
+        
+            return {}; // Return empty string to indicate success
         }
-    } else {
-        LOGERR("Shell is null");
-    }
-
-    return {}; // Return empty string to indicate success
-}
+            
 
         void UserPreferences::Deinitialize(PluginHost::IShell* /* service */)
         {
@@ -205,22 +207,70 @@ namespace WPEFramework {
                 LOGERR("Failed to convert presentation language to UI language: %s", language.c_str());
             }
         }
-        void OnAudioDescriptionChanged(const bool enabled) {}
-        void OnPreferredAudioLanguagesChanged(const string& preferredLanguages) {}
-        void OnCaptionsChanged(const bool enabled) {}
-        void OnPreferredCaptionsLanguagesChanged(const string& preferredLanguages) {}
-        void OnPreferredClosedCaptionServiceChanged(const string& service) {}
-        void OnPinControlChanged(const bool pinControl) {}
-        void OnViewingRestrictionsChanged(const string& viewingRestrictions) {}
-        void OnViewingRestrictionsWindowChanged(const string& viewingRestrictionsWindow) {}
-        void OnLiveWatershedChanged(const bool liveWatershed) {}
-        void OnPlaybackWatershedChanged(const bool playbackWatershed) {}
-        void OnBlockNotRatedContentChanged(const bool blockNotRatedContent) {}
-        void OnPinOnPurchaseChanged(const bool pinOnPurchase) {}
-        void OnHighContrastChanged(const bool enabled) {}
-        void OnVoiceGuidanceChanged(const bool enabled) {}
-        void OnVoiceGuidanceRateChanged(const double rate) {}
-        void OnVoiceGuidanceHintsChanged(const bool hints) {}
+        void OnAudioDescriptionChanged(const bool enabled) 
+        {
+
+        }
+        void OnPreferredAudioLanguagesChanged(const string& preferredLanguages) 
+        {
+
+        }
+        void OnCaptionsChanged(const bool enabled) 
+        {
+
+        }
+        void OnPreferredCaptionsLanguagesChanged(const string& preferredLanguages)
+        {
+
+        }
+        void OnPreferredClosedCaptionServiceChanged(const string& service) 
+        {
+
+        }
+        void OnPinControlChanged(const bool pinControl) 
+        {
+
+        }
+        void OnViewingRestrictionsChanged(const string& viewingRestrictions) 
+        {
+
+        }
+        void OnViewingRestrictionsWindowChanged(const string& viewingRestrictionsWindow) 
+        {
+
+        }
+        void OnLiveWatershedChanged(const bool liveWatershed) 
+        {
+
+        }
+        void OnPlaybackWatershedChanged(const bool playbackWatershed) 
+        {
+
+        }
+        void OnBlockNotRatedContentChanged(const bool blockNotRatedContent) 
+        {
+
+        }
+        void OnPinOnPurchaseChanged(const bool pinOnPurchase) 
+        {
+
+        }
+        void OnHighContrastChanged(const bool enabled) 
+        {
+
+        }
+        void OnVoiceGuidanceChanged(const bool enabled) 
+        {
+
+        }
+        void OnVoiceGuidanceRateChanged(const double rate) 
+        {
+
+        }
+        void OnVoiceGuidanceHintsChanged(const bool hints) 
+        {
+            
+        }
 
         //Begin methods
         uint32_t UserPreferences::getUILanguage(const JsonObject& parameters, JsonObject& response)

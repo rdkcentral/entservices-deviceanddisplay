@@ -18,7 +18,7 @@
 **/
 
 #pragma once
-#include <interfaces/IStore2.h>
+
 #include <interfaces/IUserSettings.h>
 
 #include "Module.h"
@@ -76,6 +76,8 @@ namespace WPEFramework {
 
             BEGIN_INTERFACE_MAP(UserPreferences)
             INTERFACE_ENTRY(PluginHost::IPlugin)
+            INTERFACE_AGGREGATE(Exchange::IUserSettings, _userSetting)
+            INTERFACE_AGGREGATE(Exchange::IUserSettingsInspector, _userSettingsInspector)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
             END_INTERFACE_MAP
 

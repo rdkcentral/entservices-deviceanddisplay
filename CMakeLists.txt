@@ -72,9 +72,9 @@ if(PLUGIN_DEVICEDIAGNOSTICS)
     add_subdirectory(DeviceDiagnostics)
 endif()
 
-#if(PLUGIN_SYSTEMMODE)
+if(PLUGIN_SYSTEMMODE)
     add_subdirectory(SystemMode)
-    #endif()
+endif()
 
 if(WPEFRAMEWORK_CREATE_IPKG_TARGETS)
     set(CPACK_GENERATOR "DEB")

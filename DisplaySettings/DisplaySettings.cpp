@@ -532,6 +532,7 @@ namespace WPEFramework {
 
         const string DisplaySettings::Initialize(PluginHost::IShell* service)
         {
+	    Exchange::ISystemMode* _remotStoreObject = nullptr;
             ASSERT(service != nullptr);
             ASSERT(m_service == nullptr);
 
@@ -561,18 +562,59 @@ namespace WPEFramework {
                 LOGWARN("Current power state %d", m_powerState);
             }
             LOGWARN ("DisplaySettings::Initialize completes line:%d", __LINE__);
+             _remotStoreObject = service->QueryInterfaceByCallsign<Exchange::ISystemMode>("org.rdk.SystemMode");
+
+	    ASSERT (nullptr != _remotStoreObject);
+
+
+	    if(_remotStoreObject)
+	    {
+               const string& callsign = "org.rdk.DisplaySettings";
+		    const string& systemMode = "DEVICE_OPTIMIZE";
+	            _remotStoreObject->ClientActivated(callsign,systemMode);
+                    _remotStoreObject->Release();
+                    _remotStoreObject = nullptr;		    
+	    }
+            else
+            {
+                    Utils::String::updateSystemModeFile( "DEVICE_OPTIMIZE", "callsign", "org.rdk.DisplaySettings","add") ;
+            }
+
             // On success return empty, to indicate there is no error text.
             return (string());
         }
 
         void DisplaySettings::Deinitialize(PluginHost::IShell* service)
         {
+            Exchange::ISystemMode* _remotStoreObject1 = nullptr;
             LOGINFO("Enetering DisplaySettings::Deinitialize");
             if (_powerManagerPlugin) {
                 _powerManagerPlugin.Reset();
             }
 
             _registeredEventHandlers = false;
+            //During DisplaySettings plugin  activation the SystemMode may not be added .But it will be added /tmp/SystemMode.txt . If after 5 min SystemMode got activated then SystemMode fill the client map from /tmp/SystemMode.txt. In this case if we deactivate DisplaySettings then _remotStoreObject will be null here . So we try to QueryInterface the ISystemMode one more time 
+		if(_remotStoreObject1 == nullptr)
+		{
+				_remotStoreObject1 = service->QueryInterfaceByCallsign<Exchange::ISystemMode>("org.rdk.SystemMode");
+
+		}
+
+		ASSERT (nullptr != _remotStoreObject1);
+
+		if(_remotStoreObject1)
+		{
+			const string& callsign = "org.rdk.DisplaySettings";
+			const string& systemMode = "DEVICE_OPTIMIZE";
+			_remotStoreObject1->ClientDeactivated(callsign,systemMode);
+	                _remotStoreObject1->Release();
+	                _remotStoreObject1 = nullptr;		
+		}
+		else
+		{
+			Utils::String::updateSystemModeFile( "DEVICE_OPTIMIZE", "callsign", "org.rdk.DisplaySettings","delete") ;
+		}
+
             {
 
             std::unique_lock<std::mutex> lock(DisplaySettings::_instance->m_sendMsgMutex);
@@ -5747,8 +5789,17 @@ void DisplaySettings::sendMsgThread()
                 JsonObject params;
                 params["connectedVideoDisplays"] = connectedDisplays;
                 sendNotify("connectedVideoDisplaysUpdated", params);
+
             }
             previousStatus = hdmiHotPlugEvent;
+            
+	    //If HDMI hotplug event occurs, DisplaySettings  re-evaluate whether it should be signalling ALLM output of the HDMI port
+	    std::string currentAllmState = "";
+            Utils::String::getSystemModePropertyValue("DEVICE_OPTIMIZE" ,"currentstate" , currentAllmState);
+            if(currentAllmState == "VIDEO" || currentAllmState == "GAME")
+            {
+                    Request(currentAllmState);
+            }
         }
 
         void DisplaySettings::connectedAudioPortUpdated (int iAudioPortType, bool isPortConnected)
@@ -6033,5 +6084,35 @@ void DisplaySettings::sendMsgThread()
 
 	    return mode;
         }
+   void DisplaySettings::Request(const string& newState)
+	{
+		vector<string> connectedDisplays;
+		getConnectedVideoDisplaysHelper(connectedDisplays);
+		for (int i = 0; i < (int)connectedDisplays.size(); i++)
+		{
+			try
+			{
+				std::string strVideoPort = connectedDisplays.at(i);;
+				device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
+				if (isDisplayConnected(strVideoPort))
+				{
+					bool enable = (newState == "GAME") ? true : false;
+					vPort.setAllmEnabled(enable);
+				}
+				else
+				{
+					LOGWARN("failure: %s is not connected!",strVideoPort.c_str());
+				}
+			}
+			catch (const device::Exception& err)
+			{
+				LOG_DEVICE_EXCEPTION0();
+			}
+		}
+		if( 0 == (int)connectedDisplays.size())
+		{
+			LOGWARN("No display connected to device (or)device's powerstate is not ON");
+		}
+	}
     } // namespace Plugin
 } // namespace WPEFramework

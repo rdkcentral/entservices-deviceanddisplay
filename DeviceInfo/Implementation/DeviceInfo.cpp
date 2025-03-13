@@ -136,6 +136,14 @@ namespace Plugin {
                 std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), model);
     }
 
+    uint32_t DeviceInfoImplementation::Brand(string& brand) const
+    {
+        brand = "Unknown";
+        return
+            ((Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), brand)) || 
+             (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
+    }
+
     uint32_t DeviceInfoImplementation::DeviceType(string& deviceType) const
     {
         const char* device_type;

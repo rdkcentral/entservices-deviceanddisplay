@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <interfaces/IUserSettings.h>
+
 #include "Module.h"
 
 namespace WPEFramework {
@@ -29,6 +31,36 @@ namespace WPEFramework {
 
             UserPreferences(const UserPreferences&) = delete;
             UserPreferences& operator=(const UserPreferences&) = delete;
+
+            class Notification : public Exchange::IUserSettings::INotification {
+            public:
+                explicit Notification(UserPreferences* parent) : _parent(parent) {}
+                ~Notification() override = default;
+
+                void OnPresentationLanguageChanged(const string& language) override;
+                void OnAudioDescriptionChanged(const bool enabled) override;
+                void OnPreferredAudioLanguagesChanged(const string& preferredLanguages) override;
+                void OnCaptionsChanged(const bool enabled) override;
+                void OnPreferredCaptionsLanguagesChanged(const string& preferredLanguages) override;
+                void OnPreferredClosedCaptionServiceChanged(const string& service) override;
+                void OnPinControlChanged(const bool pinControl) override;
+                void OnViewingRestrictionsChanged(const string& viewingRestrictions) override;
+                void OnViewingRestrictionsWindowChanged(const string& viewingRestrictionsWindow) override;
+                void OnLiveWatershedChanged(const bool liveWatershed) override;
+                void OnPlaybackWatershedChanged(const bool playbackWatershed) override;
+                void OnBlockNotRatedContentChanged(const bool blockNotRatedContent) override;
+                void OnPinOnPurchaseChanged(const bool pinOnPurchase) override;
+                void OnHighContrastChanged(const bool enabled) override;
+                void OnVoiceGuidanceChanged(const bool enabled) override;
+                void OnVoiceGuidanceRateChanged(const double rate) override;
+                void OnVoiceGuidanceHintsChanged(const bool hints) override;
+                void AddRef() const override;
+                uint32_t Release() const override;
+                void* QueryInterface(const uint32_t interfaceNumber) override;
+
+            private:
+                UserPreferences* _parent;
+            };
 
             //Begin methods
             uint32_t getUILanguage(const JsonObject& parameters, JsonObject& response);
@@ -41,14 +73,24 @@ namespace WPEFramework {
         public:
             UserPreferences();
             virtual ~UserPreferences();
-            virtual const string Initialize(PluginHost::IShell* shell) override { return {}; }
+            virtual const string Initialize(PluginHost::IShell* shell) override ;
             virtual void Deinitialize(PluginHost::IShell* service) override;
             virtual string Information() const override { return {}; }
 
             BEGIN_INTERFACE_MAP(UserPreferences)
             INTERFACE_ENTRY(PluginHost::IPlugin)
+            INTERFACE_AGGREGATE(Exchange::IUserSettings, _userSettings)
+            INTERFACE_AGGREGATE(Exchange::IUserSettingsInspector, _userSettingsInspector)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
             END_INTERFACE_MAP
+
+        private:
+
+            void OnPresentationLanguageChanged(const string& language);
+
+            
+            PluginHost::IShell* _service;
+            Notification _notification;
 
         public:
             static UserPreferences* _instance;

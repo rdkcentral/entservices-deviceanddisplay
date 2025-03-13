@@ -122,7 +122,7 @@ PlatformCapsData::PlatformCapsData(PluginHost::IShell* service) : jsonRpc(servic
   authservicePlugin = service->QueryInterfaceByCallsign<Exchange::IAuthService>("org.rdk.AuthService");
   if (authservicePlugin)
   {
-    authservicePlugin->AddRef();
+    TRACE(Trace::Error, (_T("Got IAuthService\n")));
   }
   else
   {

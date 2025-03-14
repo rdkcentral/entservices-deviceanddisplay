@@ -620,28 +620,36 @@ namespace Plugin {
 
     uint32_t PowerManagerImplementation::SetPowerState(const int& keyCode, const PowerState& powerState, const string& standbyReason)
     {
-        uint32_t errorCode = Core::ERROR_NONE;
+        PowerState currentState = POWER_STATE_UNKNOWN;
+        PowerState prevState = POWER_STATE_UNKNOWN;
 
-        _adminLock.Lock();
+        uint32_t errorCode = GetPowerState(currentState, prevState);
 
-        if (_modeChangeController) {
-            LOGWARN("Power state change is already in progress, cancel old request");
-            _modeChangeController.reset();
+        if (Core::ERROR_NONE != errorCode) {
+            LOGERR("Failed to get current power state, errorCode: %d", errorCode);
+            return errorCode;
         }
 
-        _modeChangeController = std::unique_ptr<PreModeChangeController>(new PreModeChangeController());
-        const int transactionId = _modeChangeController->TransactionId();
+        if (currentState != powerState) {
 
-        for (const auto& client : _modeChangeClients) {
-            _modeChangeController->AckAwait(client.first);
-        }
+            _adminLock.Lock();
 
-        _adminLock.Unlock();
+            if (_modeChangeController) {
+                LOGWARN("Power state change is already in progress, cancel old request");
+                _modeChangeController.reset();
+            }
 
-        // dispatch pre power mode change notifications
-        errorCode = submitPowerModePreChangeEvent(powerState, transactionId);
+            _modeChangeController = std::unique_ptr<PreModeChangeController>(new PreModeChangeController());
+            const int transactionId = _modeChangeController->TransactionId();
 
-        if (Core::ERROR_NONE == errorCode) {
+            for (const auto& client : _modeChangeClients) {
+                _modeChangeController->AckAwait(client.first);
+            }
+
+            _adminLock.Unlock();
+
+            // dispatch pre power mode change notifications
+            submitPowerModePreChangeEvent(currentState, powerState, transactionId);
 
             // like in `Job` class we avoid impl destruction before handler is invoked
             this->AddRef();
@@ -650,33 +658,27 @@ namespace Plugin {
                 [this, keyCode, powerState](bool /*isTimedout*/) mutable {
                     PowerModePreChangeCompletionHandler(keyCode, powerState);
                 });
+        } else {
+            LOGINFO("Requested power state is same as current power state, no action required");
         }
 
-        LOGINFO("SetPowerState keyCode: %d, powerState: %u, errorcode: %u", keyCode, powerState, errorCode);
+        LOGINFO("SetPowerState keyCode: %d, currentState: %u, powerState: %u, errorCode: %d",
+                keyCode, currentState, powerState, Core::ERROR_NONE);
 
-        return errorCode;
+        return Core::ERROR_NONE;
     }
 
-    uint32_t PowerManagerImplementation::submitPowerModePreChangeEvent(const PowerState newState, const int transactionId)
+    void PowerManagerImplementation::submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId)
     {
-        PowerState currentState = POWER_STATE_UNKNOWN;
-        PowerState prevState = POWER_STATE_UNKNOWN;
-
-        uint32_t errorCode = GetPowerState(currentState, prevState);
-
-        if (Core::ERROR_NONE == errorCode) {
-            for (auto& notification : _preModeChangeNotifications) {
-                Core::IWorkerPool::Instance().Submit(
-                    PowerManagerImplementation::LambdaJob::Create(this,
-                        [notification, currentState, newState, transactionId]() {
-                            notification->OnPowerModePreChange(currentState, newState, transactionId, POWER_MODE_PRECHANGE_TIMEOUT_SEC);
-                        }));
-            }
+        for (auto& notification : _preModeChangeNotifications) {
+            Core::IWorkerPool::Instance().Submit(
+                PowerManagerImplementation::LambdaJob::Create(this,
+                    [notification, currentState, newState, transactionId]() {
+                        notification->OnPowerModePreChange(currentState, newState, transactionId, POWER_MODE_PRECHANGE_TIMEOUT_SEC);
+                    }));
         }
 
-        LOGINFO("currentState : %u, newState : %u, transactionId : %d, errorcode: %u", currentState, newState, transactionId, errorCode);
-
-        return errorCode;
+        LOGINFO("currentState : %u, newState : %u, transactionId : %d", currentState, newState, transactionId);
     }
 
     uint32_t PowerManagerImplementation::GetTemperatureThresholds(float& high, float& critical) const

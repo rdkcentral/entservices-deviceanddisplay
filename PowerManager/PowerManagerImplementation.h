@@ -245,7 +245,7 @@ namespace Plugin {
         void InitializeIARM();
         void DeinitializeIARM();
 
-        uint32_t submitPowerModePreChangeEvent(const PowerState newState, const int transactionId);
+        void submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId);
         void PowerModePreChangeCompletionHandler(const int keyCode, PowerState powerState);
 
         template <typename T>

@@ -117,6 +117,25 @@ namespace {
 namespace WPEFramework {
 namespace Plugin {
 
+PlatformCapsData::PlatformCapsData(PluginHost::IShell* service) : jsonRpc(service)
+{
+  authservicePlugin = service->QueryInterfaceByCallsign<Exchange::IAuthService>("org.rdk.AuthService");
+  if (authservicePlugin)
+  {
+    TRACE(Trace::Error, (_T("Got IAuthService\n")));
+  }
+  else
+  {
+    TRACE(Trace::Error, (_T("Failed to create link to AuthService\n")));
+  }
+}
+
+PlatformCapsData::~PlatformCapsData()
+{
+  if (authservicePlugin)
+    authservicePlugin->Release();
+}
+
 /**
  * mimeTypeExclusions
  * see xre/generic/src/protocol/xreapplication.cpp

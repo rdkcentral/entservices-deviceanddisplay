@@ -5184,7 +5184,7 @@ namespace WPEFramework {
 
             if (Utils::readPropertyFromFile(filename, propertyName, bootType))
             {
-                LOGINFO("Boot type changed to: %s\n", bootType.c_str());
+                LOGINFO("Boot type changed to: %s, current OS Class: rdke\n", bootType.c_str());
                 response["bootType"] = bootType;
                 result = true;
             }
@@ -5248,7 +5248,7 @@ namespace WPEFramework {
                 if (file.is_open()) {
                     // Write the string value to the file
                     file << value;
-                    LOGINFO("Migration Status set to %s\n", value.c_str());
+                    LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
                 } else {
                     LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
                 }

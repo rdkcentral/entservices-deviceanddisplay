@@ -58,12 +58,10 @@ namespace WPEFramework
 
                         void Activated(RPC::IRemoteConnection*) override
                         {
-                            LOGINFO("DeviceDiagnostics Notification Activated");
                         }
 
                         void Deactivated(RPC::IRemoteConnection *connection) override
                         {
-                            LOGINFO("DeviceDiagnostics Notification Deactivated");
                             _parent.Deactivated(connection);
                         }
 

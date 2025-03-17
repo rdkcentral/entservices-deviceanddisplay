@@ -56,10 +56,14 @@ namespace WPEFramework {
                 void OnVoiceGuidanceHintsChanged(const bool hints) override;
                 void AddRef() const override;
                 uint32_t Release() const override;
-                void* QueryInterface(const uint32_t interfaceNumber) override;
+                //void* QueryInterface(const uint32_t interfaceNumber) override;
 
             private:
                 UserPreferences* _parent;
+
+                BEGIN_INTERFACE_MAP(Notification)
+                INTERFACE_ENTRY(Exchange::IUserSettings::INotification)
+                END_INTERFACE_MAP
             };
 
             //Begin methods
@@ -79,8 +83,6 @@ namespace WPEFramework {
 
             BEGIN_INTERFACE_MAP(UserPreferences)
             INTERFACE_ENTRY(PluginHost::IPlugin)
-            INTERFACE_AGGREGATE(Exchange::IUserSettings, _userSettings)
-            INTERFACE_AGGREGATE(Exchange::IUserSettingsInspector, _userSettingsInspector)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
             END_INTERFACE_MAP
 

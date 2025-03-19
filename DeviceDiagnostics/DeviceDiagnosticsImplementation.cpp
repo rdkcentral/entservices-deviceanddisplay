@@ -300,16 +300,16 @@ namespace WPEFramework
 
         }
 
-        Core::hresult DeviceDiagnosticsImplementation::GetAVDecoderStatus(string& AVDecoderStatus)
+        Core::hresult DeviceDiagnosticsImplementation::GetAVDecoderStatus(AvDecoderStatusResult& AVDecoderStatus)
         {
             LOGINFO("");
 #ifdef ENABLE_ERM
             m_AVDecoderStatusLock.lock();
             int status = getMostActiveDecoderStatus();
             m_AVDecoderStatusLock.unlock();
-            AVDecoderStatus = decoderStatusStr[status];
+            AVDecoderStatus.avDecoderStatus = decoderStatusStr[status];
 #else
-            AVDecoderStatus = decoderStatusStr[0];
+            AVDecoderStatus.avDecoderStatus = decoderStatusStr[0];
 #endif
             return Core::ERROR_NONE;
         }

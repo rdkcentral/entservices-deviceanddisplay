@@ -75,7 +75,8 @@ if (USE_DEVICESETTINGS)
     target_link_libraries(${MODULE_NAME} PRIVATE
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
         ${IARMBUS_LIBRARIES}
-        ${DS_LIBRARIES})
+        ${DS_LIBRARIES}
+	displayinfo-soc)
     target_sources(${MODULE_NAME}
         PRIVATE
             DeviceSettings/PlatformImplementation.cpp)

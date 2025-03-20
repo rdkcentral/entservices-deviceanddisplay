@@ -57,7 +57,7 @@ namespace WPEFramework {
             typedef Core::JSON::String JString;
             typedef Core::JSON::ArrayType<JString> JStringArray;
             typedef Core::JSON::Boolean JBool;
-            class PowerManagerNotification : public Exchange::IPowerManager::INotification {
+            class PowerManagerNotification : public Exchange::IPowerManager::IModeChangedNotification {
             private:
                 PowerManagerNotification(const PowerManagerNotification&) = delete;
                 PowerManagerNotification& operator=(const PowerManagerNotification&) = delete;
@@ -68,20 +68,22 @@ namespace WPEFramework {
                 {
                 }
                 ~PowerManagerNotification() override = default;
-            
+
             public:
                 void OnPowerModeChanged(const PowerState &currentState, const PowerState &newState) override
                 {
                     _parent.onPowerModeChanged(currentState, newState);
                 }
-                void OnPowerModePreChange(const PowerState &currentState, const PowerState &newState) override {}
-                void OnDeepSleepTimeout(const int &wakeupTimeout) override {}
-                void OnNetworkStandbyModeChanged(const bool &enabled) override {}
-                void OnThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature) override {}
-                void OnRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor) override {}
+
+                template <typename T>
+                T* baseInterface()
+                {
+                    static_assert(std::is_base_of<T, PowerManagerNotification>(), "base type mismatch");
+                    return static_cast<T*>(this);
+                }
 
                 BEGIN_INTERFACE_MAP(PowerManagerNotification)
-                INTERFACE_ENTRY(Exchange::IPowerManager::INotification)
+                INTERFACE_ENTRY(Exchange::IPowerManager::IModeChangedNotification)
                 END_INTERFACE_MAP
             
             private:

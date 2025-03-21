@@ -75,16 +75,11 @@ if (USE_DEVICESETTINGS)
     target_link_libraries(${MODULE_NAME} PRIVATE
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
         ${IARMBUS_LIBRARIES}
-        ${DS_LIBRARIES})
+        ${DS_LIBRARIES}
+        displayinfo-soc)
     target_sources(${MODULE_NAME}
         PRIVATE
             DeviceSettings/PlatformImplementation.cpp)
-    if (BUILD_RPI)
-        target_sources(${MODULE_NAME}
-            PRIVATE
-                DeviceSettings/RPI/SoC_abstraction.cpp
-                DeviceSettings/RPI/kms.c)
-    endif()
 
 elseif (NXCLIENT_FOUND AND NEXUS_FOUND)
     if (DISPLAYINFO_IMPLEMENTATION_PATH)

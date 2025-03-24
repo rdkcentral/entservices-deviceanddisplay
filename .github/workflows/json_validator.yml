@@ -1,11 +1,13 @@
 name: json-validator
 
 on:
-  push:
-    branches: [ main, 'sprint/**', 'release/**' ]
-  pull_request:
-    branches: [ main, 'sprint/**', 'release/**' ]
-
+  workflow_call:
+    inputs:
+      env:
+        description: 'Test'
+        default: 'stage'
+        required: false
+        type: string
 jobs:
   build:
     runs-on: ubuntu-latest  

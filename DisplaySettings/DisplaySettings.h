@@ -27,6 +27,10 @@
 #include "libIARM.h"
 #include "pwrMgr.h"
 #include "rfcapi.h"
+#include <interfaces/ISystemMode.h>
+#include <interfaces/IDeviceOptimizeStateActivator.h>
+#include <iostream>
+#include <fstream>
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 
@@ -48,7 +52,7 @@ namespace WPEFramework {
 		// As the registration/unregistration of notifications is realized by the class PluginHost::JSONRPC,
 		// this class exposes a public method called, Notify(), using this methods, all subscribed clients
 		// will receive a JSONRPC message as a notification, in case this method is called.
-        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator {
         private:
             typedef Core::JSON::String JString;
             typedef Core::JSON::ArrayType<JString> JStringArray;
@@ -227,7 +231,10 @@ namespace WPEFramework {
             BEGIN_INTERFACE_MAP(DisplaySettings)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
+	    INTERFACE_ENTRY(Exchange::IDeviceOptimizeStateActivator)
             END_INTERFACE_MAP
+
+	    void Request(const string& newState);
 
         private:
             void InitializeIARM();
@@ -353,6 +360,9 @@ namespace WPEFramework {
 
         public:
             static DisplaySettings* _instance;
+
+	private: 
+	    mutable Core::CriticalSection _adminLock;
 
         };
 	} // namespace Plugin

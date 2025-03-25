@@ -51,9 +51,20 @@ string PlatformCapsData::GetModel() {
 string PlatformCapsData::GetDeviceType() {
   const char* device_type;
   string deviceType;
-  auto hex = jsonRpc.invoke(_T("org.rdk.AuthService"),
-                            _T("getDeviceInfo"), 10000)
-      .Get(_T("deviceInfo")).String();
+
+  if (authservicePlugin == nullptr)
+  {
+    TRACE(Trace::Error, (_T("No interface for AuthService\n")));
+    return string();
+  }
+  
+  std::string hex;
+  WPEFramework::Exchange::IAuthService::GetDeviceInfoResult diRes;
+  auto rc = authservicePlugin->GetDeviceInfo(diRes);
+  if (authservicePlugin != nullptr && rc == Core::ERROR_NONE) {
+    hex = diRes.deviceInfo;
+  }
+
   auto deviceInfo = stringFromHex(hex);
 
   std::smatch m;
@@ -92,28 +103,70 @@ string PlatformCapsData::GetHDRCapability() {
 }
 
 string PlatformCapsData::GetAccountId() {
-  return jsonRpc.invoke(_T("org.rdk.AuthService"),
-                        _T("getAlternateIds"), 3000)
-      .Get(_T("alternateIds")).Object().Get(_T("_xbo_account_id")).String();
+  if (authservicePlugin == nullptr)
+  {
+    TRACE(Trace::Error, (_T("No interface for AuthService\n")));
+    return string();
+  }
+
+  std::string altenateIds;
+  std::string message;
+  bool success;
+
+  auto rc = authservicePlugin->GetAlternateIds(altenateIds, message, success);
+  if (rc == Core::ERROR_NONE && success)
+  {
+    JsonObject jo;
+    jo.FromString(altenateIds);
+    return jo.Get(_T("_xbo_account_id")).String();
+  }
+  return string();
 }
 
 string PlatformCapsData::GetX1DeviceId() {
-  return jsonRpc.invoke(_T("org.rdk.AuthService"),
-                        _T("getXDeviceId"), 3000)
-      .Get(_T("xDeviceId")).String();
+  if (authservicePlugin == nullptr)
+  {
+    TRACE(Trace::Error, (_T("No interface for AuthService\n")));
+    return string();
+  }
+  
+  WPEFramework::Exchange::IAuthService::GetXDeviceIdResult xdiRes;
+  auto rc = authservicePlugin->GetXDeviceId(xdiRes);
+  if (rc == Core::ERROR_NONE)
+  {
+    return xdiRes.xDeviceId;
+  }
+
+  return string();
 }
 
 bool PlatformCapsData::XCALSessionTokenAvailable() {
-  string tkn = jsonRpc.invoke(_T("org.rdk.AuthService"),
-                              _T("getSessionToken"), 10000)
-      .Get(_T("token")).String();
-  return (!tkn.empty());
+  if (authservicePlugin == nullptr)
+  {
+    TRACE(Trace::Error, (_T("No interface for AuthService\n")));
+    return false;
+  }
+
+  WPEFramework::Exchange::IAuthService::GetSessionTokenResult stRes;
+  auto rc = authservicePlugin->GetSessionToken(stRes);
+
+  return (rc == Core::ERROR_NONE && !stRes.token.empty());
 }
 
 string PlatformCapsData::GetExperience() {
-  return jsonRpc.invoke(_T("org.rdk.AuthService"),
-                        _T("getExperience"), 3000)
-      .Get(_T("experience")).String();
+  if (authservicePlugin == nullptr)
+  {
+    TRACE(Trace::Error, (_T("No interface for AuthService\n")));
+    return string();
+  }
+
+  WPEFramework::Exchange::IAuthService::GetExpResult exRes;
+  auto rc = authservicePlugin->GetExperience(exRes);
+  if (rc == Core::ERROR_NONE)
+  {
+    return exRes.experience;
+  }
+  return string();
 }
 
 string PlatformCapsData::GetDdeviceMACAddress() {

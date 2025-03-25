@@ -208,6 +208,7 @@ public:
             if (transactionId != _transactionId) {
                 LOGERR("Invalid transactionId: %d", transactionId);
                 status = WPEFramework::Core::ERROR_INVALID_PARAMETER;
+                break;
             }
 
             _pending.erase(clientId);

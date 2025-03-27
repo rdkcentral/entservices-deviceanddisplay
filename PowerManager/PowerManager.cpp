@@ -77,7 +77,12 @@ namespace WPEFramework
         if(nullptr != _powerManager)
         {
             // Register for notifications
-            _powerManager->Register(&_powermanagersNotification);
+            _powerManager->Register(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
+            _powerManager->Register(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+            _powerManager->Register(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+            _powerManager->Register(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
+            _powerManager->Register(_powermanagersNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
+            _powerManager->Register(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
             // Invoking Plugin API register to wpeframework
             Exchange::JPowerManager::Register(*this, _powerManager);
         }
@@ -106,8 +111,13 @@ namespace WPEFramework
 
         if (nullptr != _powerManager)
         {
+            _powerManager->Unregister(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
+            _powerManager->Unregister(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+            _powerManager->Unregister(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+            _powerManager->Unregister(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
+            _powerManager->Unregister(_powermanagersNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
+            _powerManager->Unregister(_powermanagersNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
 
-            _powerManager->Unregister(&_powermanagersNotification);
             Exchange::JPowerManager::Unregister(*this);
 
             // Stop processing:

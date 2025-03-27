@@ -27,6 +27,10 @@
 #include "libIARM.h"
 #include "pwrMgr.h"
 #include "rfcapi.h"
+#include <interfaces/ISystemMode.h>
+#include <interfaces/IDeviceOptimizeStateActivator.h>
+#include <iostream>
+#include <fstream>
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 
@@ -48,12 +52,12 @@ namespace WPEFramework {
 		// As the registration/unregistration of notifications is realized by the class PluginHost::JSONRPC,
 		// this class exposes a public method called, Notify(), using this methods, all subscribed clients
 		// will receive a JSONRPC message as a notification, in case this method is called.
-        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator {
         private:
             typedef Core::JSON::String JString;
             typedef Core::JSON::ArrayType<JString> JStringArray;
             typedef Core::JSON::Boolean JBool;
-            class PowerManagerNotification : public Exchange::IPowerManager::INotification {
+            class PowerManagerNotification : public Exchange::IPowerManager::IModeChangedNotification {
             private:
                 PowerManagerNotification(const PowerManagerNotification&) = delete;
                 PowerManagerNotification& operator=(const PowerManagerNotification&) = delete;
@@ -64,20 +68,22 @@ namespace WPEFramework {
                 {
                 }
                 ~PowerManagerNotification() override = default;
-            
+
             public:
                 void OnPowerModeChanged(const PowerState &currentState, const PowerState &newState) override
                 {
                     _parent.onPowerModeChanged(currentState, newState);
                 }
-                void OnPowerModePreChange(const PowerState &currentState, const PowerState &newState) override {}
-                void OnDeepSleepTimeout(const int &wakeupTimeout) override {}
-                void OnNetworkStandbyModeChanged(const bool &enabled) override {}
-                void OnThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature) override {}
-                void OnRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor) override {}
+
+                template <typename T>
+                T* baseInterface()
+                {
+                    static_assert(std::is_base_of<T, PowerManagerNotification>(), "base type mismatch");
+                    return static_cast<T*>(this);
+                }
 
                 BEGIN_INTERFACE_MAP(PowerManagerNotification)
-                INTERFACE_ENTRY(Exchange::IPowerManager::INotification)
+                INTERFACE_ENTRY(Exchange::IPowerManager::IModeChangedNotification)
                 END_INTERFACE_MAP
             
             private:
@@ -225,7 +231,10 @@ namespace WPEFramework {
             BEGIN_INTERFACE_MAP(DisplaySettings)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
+	    INTERFACE_ENTRY(Exchange::IDeviceOptimizeStateActivator)
             END_INTERFACE_MAP
+
+	    void Request(const string& newState);
 
         private:
             void InitializeIARM();
@@ -351,6 +360,9 @@ namespace WPEFramework {
 
         public:
             static DisplaySettings* _instance;
+
+	private: 
+	    mutable Core::CriticalSection _adminLock;
 
         };
 	} // namespace Plugin

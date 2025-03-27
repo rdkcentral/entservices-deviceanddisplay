@@ -5238,7 +5238,6 @@ namespace WPEFramework {
         uint32_t SystemServices::setMigrationStatus(const JsonObject& parameters, JsonObject& response)
         {
             LOGINFOMETHOD();
-            returnIfParamNotFound(parameters, "status");
 	    std::unordered_set<std::string> Status_Set = {"NOT_STARTED","NOT_NEEDED","STARTED","PRIORITY_SETTINGS_MIGRATED","DEVICE_SETTINGS_MIGRATED","CLOUD_SETTINGS_MIGRATED","APP_DATA_MIGRATED","MIGRATION_COMPLETED"};
 	    std::string value = parameters["status"].String();
 	    if(Status_Set.find(value) != Status_Set.end())
@@ -5251,6 +5250,7 @@ namespace WPEFramework {
                     LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
                 } else {
                     LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
+		    returnResponse(false);
                 }
                 // Close the file
                 file.close();
@@ -5258,7 +5258,11 @@ namespace WPEFramework {
             }
             else {
                 LOGERR("Invalid Migration Status\n");
-                returnResponse(false);
+                JsonObject error;
+		error["message"] = "Invalid Request";
+		error["code"] = "-32600";
+  		response["error"] = error; 
+		returnResponse(false);
             }
         }//end of setMigrationStatus method
 

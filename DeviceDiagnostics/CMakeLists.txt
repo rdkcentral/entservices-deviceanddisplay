@@ -17,10 +17,15 @@
 
 set(PLUGIN_NAME DeviceDiagnostics)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
+set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Implementation)
 
 set(PLUGIN_DEVICEDIAGNOSTICS_STARTUPORDER "" CACHE STRING "To configure startup order of DeviceDiagnostics plugin")
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 find_package(${NAMESPACE}Plugins REQUIRED)
+find_package(${NAMESPACE}Definitions REQUIRED)
+find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
         DeviceDiagnostics.cpp
@@ -30,17 +35,36 @@ set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
 
-find_package(Curl)
+target_include_directories(${MODULE_NAME} PRIVATE ../helpers)
 
-target_include_directories(${MODULE_NAME} PRIVATE ${IARMBUS_INCLUDE_DIRS} ../helpers)
-
-target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${CURL_LIBRARY})
-
-if(BUILD_ENABLE_ERM)
-    target_link_libraries(${MODULE_NAME} PRIVATE essosrmgr)
-endif()
+target_link_libraries(${MODULE_NAME}
+    PRIVATE
+        CompileSettingsDebug::CompileSettingsDebug
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 
 install(TARGETS ${MODULE_NAME}
+        DESTINATION lib/${STORAGE_DIRECTORY}/plugins)
+
+add_library(${PLUGIN_IMPLEMENTATION} SHARED
+        DeviceDiagnosticsImplementation.cpp
+        Module.cpp)
+
+set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
+        CXX_STANDARD 11
+        CXX_STANDARD_REQUIRED YES)
+
+find_package(Curl)
+
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS} ../helpers)
+
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins CompileSettingsDebug::CompileSettingsDebug ${CURL_LIBRARY})
+
+if(BUILD_ENABLE_ERM)
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE essosrmgr)
+endif()
+
+install(TARGETS ${PLUGIN_IMPLEMENTATION}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)
 
 write_config(${PLUGIN_NAME})

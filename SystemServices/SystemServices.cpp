@@ -402,6 +402,7 @@ namespace WPEFramework {
             : PluginHost::JSONRPC()
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
+            , m_remoteStoreObject(nullptr)
         {
             SystemServices::_instance = this;
             //Updating the standard territory
@@ -620,6 +621,12 @@ namespace WPEFramework {
         {
             if (_powerManagerPlugin) {
                 _powerManagerPlugin.Reset();
+            }
+
+            if(m_remoteStoreObject)
+            {
+                m_remoteStoreObject->Release();
+                m_remoteStoreObject = nullptr;
             }
 
             _registeredEventHandlers = false;
@@ -5086,7 +5093,27 @@ namespace WPEFramework {
 
             string optOutStatus;
 
-            getFileContent(PRIVACY_MODE_FILE, privacyMode);
+            if (!getFileContent(PRIVACY_MODE_FILE, privacyMode))
+            {
+                LOGWARN("Failed to get privacyMode from the file");
+                if (m_remoteStoreObject == nullptr)
+                {
+                    m_remoteStoreObject = m_shellService->QueryInterfaceByCallsign<WPEFramework::Exchange::IStore2>("org.rdk.PersistentStore");
+                }
+
+                ASSERT (nullptr != m_remoteStoreObject);
+
+                if (m_remoteStoreObject != nullptr)
+                {
+                    uint32_t ttl;
+                    uint32_t status = m_remoteStoreObject->GetValue(Exchange::IStore2::ScopeType::DEVICE, "UserSettings", "privacyMode", privacyMode, ttl);
+                    if (Core::ERROR_NONE != status)
+                    {
+                        LOGWARN("Failed to get privacyMode from PersistentStore: %u", status);
+                    }
+                }
+            }
+
             if (privacyMode != "SHARE" && privacyMode != "DO_NOT_SHARE")
             {
                 LOGWARN("Wrong privacyMode value: '%s', returning default", privacyMode.c_str());

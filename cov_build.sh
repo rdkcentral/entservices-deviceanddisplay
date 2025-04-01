@@ -117,6 +117,7 @@ cmake --build build/entservices-apis --target install
 
 ############################
 # generating extrnal headers
+cd $GITHUB_WORKSPACE
 cd entservices-testframework/Tests
 echo " Empty mocks creation to avoid compilation errors"
 echo "======================================================================================"
@@ -183,6 +184,7 @@ cp -r /usr/include/gstreamer-1.0/gst /usr/include/glib-2.0/* /usr/lib/x86_64-lin
 # Build entservices-deviceanddisplay
 echo "======================================================================================"
 echo "buliding entservices-deviceanddisplay"
+cd $GITHUB_WORKSPACE
 ls -al
 cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddisplay \
   -DUSE_THUNDER_R4=ON \

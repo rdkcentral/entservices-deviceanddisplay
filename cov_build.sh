@@ -38,8 +38,6 @@ cd ..
 
 git clone --branch  R4.4.3 https://github.com/rdkcentral/ThunderTools.git
 
-git clone https://github.com/xmidt-org/trower-base64.git
-
 git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
 
 git clone --branch main https://github.com/rdkcentral/entservices-apis.git

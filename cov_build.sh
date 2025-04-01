@@ -189,10 +189,12 @@ ls -al
 cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddisplay \
   -DUSE_THUNDER_R4=ON \
   -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
+  -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
   -DCMAKE_VERBOSE_MAKEFILE=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON \
+  -DRDK_SERVICES_L1_TEST \
   -DCMAKE_CXX_FLAGS="-DEXCEPTIONS_ENABLE=ON \
                       -I ${PWD}/entservices-testframework/Tests/headers \
                       -I ${PWD}/entservices-testframework/Tests/headers/audiocapturemgr \

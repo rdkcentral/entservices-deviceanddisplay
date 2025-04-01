@@ -188,7 +188,7 @@ cd $GITHUB_WORKSPACE
 ls -al
 cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddisplay \
   -DUSE_THUNDER_R4=ON \
-  -DCMAKE_INSTALL_PREFIX="install" \
+  -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
   -DCMAKE_VERBOSE_MAKEFILE=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON \

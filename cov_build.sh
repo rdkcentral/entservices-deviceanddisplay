@@ -210,7 +210,6 @@ cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddis
                       -include ${PWD}/entservices-testframework/Tests/mocks/pkg.h \
                       -include ${PWD}/entservices-testframework/Tests/mocks/maintenanceMGR.h \
                       -include ${PWD}/entservices-testframework/Tests/mocks/secure_wrappermock.h \
-                      -include ${PWD}/entservices-testframework/Tests/mocks/WpaCtrl.h \
                       --coverage -Wall -Werror -Wno-error=format \
                       -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog \
                       -DENABLE_TELEMETRY_LOGGING -DUSE_IARMBUS \

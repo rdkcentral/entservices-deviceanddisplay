@@ -13,6 +13,10 @@ set -e
 
 GITHUB_WORKSPACE=$(pwd)
 echo "akshay GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+GITHUB_WORKSPACE="$(pwd)"
+echo "akshay Current Directory: $GITHUB_WORKSPACE"
+
+
 
 apt update
 apt install -y libsqlite3-dev libcurl4-openssl-dev valgrind lcov clang libsystemd-dev libboost-all-dev libwebsocketpp-dev meson libcunit1 libcunit1-dev curl protobuf-compiler-grpc libgrpc-dev libgrpc++-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
@@ -54,7 +58,7 @@ echo "buliding thunderTools"
 cd ThunderTools
 echo "akshay current working dir: "$(pwd)
 echo "akshay applying patch in thunder tools"
-patch -p1 < ../Tests/L1Tests/patches/00010-R4.4-Add-support-for-project-dir.patch
+patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/patches/00010-R4.4-Add-support-for-project-dir.patch
 cd -
 
 
@@ -75,10 +79,10 @@ echo "buliding thunder"
 cd Thunder
 echo "akshay current working dir: "$(pwd)
 echo "akshay applying patch in thunder"
-patch -p1 < ../Tests/L2Tests/patches/Use_Legact_Alt_Based_On_ThunderTools_R4.4.3.patch
-patch -p1 < ../Tests/L2Tests/patches/error_code_R4_4.patch
-patch -p1 < ../Tests/L1Tests/patches/1004-Add-support-for-project-dir.patch
-patch -p1 < ../Tests/L1Tests/patches/RDKEMW-733-Add-ENTOS-IDS.patch
+patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L2Tests/patches/Use_Legact_Alt_Based_On_ThunderTools_R4.4.3.patch
+patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L2Tests/patches/error_code_R4_4.patch
+patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/patches/1004-Add-support-for-project-dir.patch
+patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/patches/RDKEMW-733-Add-ENTOS-IDS.patch
 cd -
 
 cmake -G Ninja -S Thunder -B build/Thunder \
@@ -179,6 +183,7 @@ cp -r /usr/include/gstreamer-1.0/gst /usr/include/glib-2.0/* /usr/lib/x86_64-lin
 # Build entservices-deviceanddisplay
 echo "======================================================================================"
 echo "buliding entservices-deviceanddisplay"
+ls -al
 cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddisplay \
   -DUSE_THUNDER_R4=ON \
   -DCMAKE_INSTALL_PREFIX="install" \

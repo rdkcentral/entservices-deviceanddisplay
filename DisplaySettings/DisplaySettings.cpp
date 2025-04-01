@@ -654,24 +654,13 @@ namespace WPEFramework {
 
         void DisplaySettings::InitializePowerManager()
         {
-            uint32_t count = 0;
             LOGINFO("Connect the COM-RPC socket\n");
-            while(count<25){
-                _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
-                    .withIShell(m_service)
-                    .createInterface();
-                if (!_powerManagerPlugin)
-                {
-                    count++;
-                    usleep(200*1000);
-                    LOGINFO("retry count: %u",count);
-                }
-                else
-                {
-                    LOGINFO("PowerManager interface get succeed: %u",count);
-                    break;
-                }
-            }
+            _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
+                .withIShell(m_service)
+                .withRetryIntervalMS(200)
+                .withRetryCount(25)
+                .createInterface();
+
             registerEventHandlers();
         }
 
@@ -768,7 +757,7 @@ namespace WPEFramework {
 
             if(!_registeredEventHandlers && _powerManagerPlugin) {
                 _registeredEventHandlers = true;
-                _powerManagerPlugin->Register(&_pwrMgrNotification);
+                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             }
         }
 

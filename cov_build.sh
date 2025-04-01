@@ -222,8 +222,6 @@ cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddis
   -DRDK_SERVICES_COVERITY=ON \
   -DDS_FOUND=ON \
   -DPLUGIN_DEVICEDIAGNOSTICS=ON \
-  -DPLUGIN_POWERMANAGER=ON \
-  -DPLUGIN_SYSTEMSERVICES=ON \
   -DPLUGIN_USERPREFERENCES=ON \
 
 cmake --build build/entservices-deviceanddisplay --target install

@@ -194,7 +194,6 @@ cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddis
   -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON \
-  -DRDK_SERVICES_L1_TEST \
   -DCMAKE_CXX_FLAGS="-DEXCEPTIONS_ENABLE=ON \
                       -I ${PWD}/entservices-testframework/Tests/headers \
                       -I ${PWD}/entservices-testframework/Tests/headers/audiocapturemgr \

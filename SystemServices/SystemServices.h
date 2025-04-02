@@ -52,6 +52,7 @@ using std::ofstream;
 #include "cTimer.h"
 #include "rfcapi.h"
 #include <interfaces/IPowerManager.h>
+#include <interfaces/IStore2.h>
 #include <core/core.h>
 #include <core/JSON.h>
 #include "mfrMgr.h"
@@ -232,6 +233,8 @@ namespace WPEFramework {
                 Core::Sink<PowerManagerNotification> _pwrMgrNotification;
                 bool _registeredEventHandlers;
                 void InitializePowerManager();
+                Exchange::IStore2* m_remoteStoreObject;
+
             public:
                 SystemServices();
                 virtual ~SystemServices();

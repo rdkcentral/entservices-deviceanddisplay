@@ -705,7 +705,7 @@ namespace WPEFramework {
             }
         }
 
-        void SystemServices::onPowerModeChanged(const PowerState &currentState, const PowerState &newState)
+        void SystemServices::onPowerModeChanged(const PowerState currentState, const PowerState newState)
         {
             std::string curPowerState,newPowerState = "";
 
@@ -738,7 +738,7 @@ namespace WPEFramework {
         }
 
 
-        void SystemServices::onNetworkStandbyModeChanged(const bool &enabled)
+        void SystemServices::onNetworkStandbyModeChanged(const bool enabled)
         {
             if (SystemServices::_instance) {
                 SystemServices::_instance->onNetworkModeChanged(enabled);
@@ -747,7 +747,7 @@ namespace WPEFramework {
             }
         }
 
-        void SystemServices::onThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature)
+        void SystemServices::onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature)
         {
             handleThermalLevelChange(currentThermalLevel, newThermalLevel, currentTemperature);
         }

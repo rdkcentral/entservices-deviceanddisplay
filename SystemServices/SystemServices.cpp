@@ -113,7 +113,7 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define OPFLASH_STORE "/opt/secure/persistent/opflashstore"
 #define DEVICESTATE_FILE OPFLASH_STORE "/devicestate.txt"
 #define BLOCKLIST "blocklist"
-#define MIGRATIONSTATUS "/opt/MigrationStatus"
+#define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 
 /**
  * @struct firmwareUpdate

@@ -3285,12 +3285,25 @@ namespace WPEFramework {
             returnResponse(resp);
         }
 
-        bool SystemServices::processTimeZones(std::string dir, JsonObject& out)
+        bool SystemServices::processTimeZones(std::string entry, JsonObject& out)
         {
             bool ret = true;
+
             std::string cmd = "zdump ";
-            cmd += dir;
-            cmd += "/*";
+            cmd += entry;
+
+            struct stat deStat;
+            if (0 == stat(entry.c_str(), &deStat))
+            {
+                if (S_ISDIR(deStat.st_mode))
+                {
+                    cmd += "/*";
+                }
+            }
+            else
+            {
+                LOGERR("stat() failed: %s", strerror(errno));
+            }
 
             FILE *p = popen(cmd.c_str(), "r");
 
@@ -3298,7 +3311,6 @@ namespace WPEFramework {
             {
                 LOGERR("failed to start %s: %s", cmd.c_str(), strerror(errno));
                 return false;
-
             }
 
             std::vector <std::string> dirs;
@@ -3323,7 +3335,6 @@ namespace WPEFramework {
 
                 fullName = line.substr(0, fileEnd);
 
-                struct stat deStat;
                 if (stat(fullName.c_str(), &deStat))
                 {
                     LOGERR("stat() failed: %s", strerror(errno));
@@ -3384,7 +3395,30 @@ namespace WPEFramework {
             LOGINFO("called");
 
             JsonObject dirObject;
-            bool resp = processTimeZones(ZONEINFO_DIR, dirObject);
+            bool resp = true;
+
+            if (parameters.HasLabel("timeZones"))
+            {
+                std::string timeZone = parameters["timeZones"].String();
+                std::vector<std::string> timeZoneList;
+                Utils::String::split(timeZoneList, timeZone, " ");
+
+                for (std::vector<std::string>::const_iterator i = timeZoneList.begin(); i != timeZoneList.end(); ++i)
+                {
+                    std::string line = ZONEINFO_DIR "/" + *i;
+
+                    if (!processTimeZones(line, dirObject))
+                    {
+                        LOGERR("Failed to process %s", line.c_str());
+                        resp = false;
+                    }
+                }
+            }
+            else
+            {
+                resp = processTimeZones(ZONEINFO_DIR, dirObject);
+            }
+
             response["zoneinfo"] = dirObject;
 
             returnResponse(resp);

@@ -336,13 +336,13 @@ jobs:
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DPLUGIN_USERPREFERENCES=ON
-          -DPLUGIN_WAREHOUSE=OFF
+          -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEINFO=OFF
           -DPLUGIN_DISPLAYINFO=OFF
           -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_POWERMANAGER=OFF
-          -DPLUGIN_SYSTEMSERVICES=ON
+          -DPLUGIN_SYSTEMSERVICES=OFF
           &&
           cmake --build build/entservices-deviceanddisplay -j8
           &&

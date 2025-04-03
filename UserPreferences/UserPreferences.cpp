@@ -17,6 +17,9 @@
 * limitations under the License.
 **/
 
+#define LANGUAGE_CODE_SEPARATOR_POS     2  // Position of separator ('_' or '-') in language codes
+#define LANGUAGE_CODE_LENGTH            5  // Total length of language codes (e.g., "CA_en" or "en-CA")
+
 #include "UserPreferences.h"
 #include "UtilsJsonRpc.h"
 
@@ -56,12 +59,14 @@ namespace WPEFramework {
         UserPreferences* UserPreferences::_instance = nullptr;
 
         UserPreferences::UserPreferences()
-                : PluginHost::JSONRPC()
-                ,userSettings(nullptr)
-                , _service(nullptr)
-                , _notification(this)
-                , _migrationDone(false)
-                ,_lastUILanguage("")
+            : PluginHost::JSONRPC()
+            , userSettings(nullptr)
+            , _service(nullptr)
+            , _notification(this)
+            , _isMigrationDone(false)
+            , _isRegisteredForUserSettingsNotif(false)
+            , _lastUILanguage("")
+            ,_adminLock()
         {
             LOGINFO("ctor");
             UserPreferences::_instance = this;
@@ -78,28 +83,101 @@ namespace WPEFramework {
             }
         }
 
-        const string UserPreferences::Initialize(PluginHost::IShell* shell) {
-            LOGINFO("Initializing UserPreferences plugin");
-            _service = shell;
-            _service->AddRef();
-            
-            // Register for onPresentationLanguageChanged notification
+        /**
+        * @brief Converts UI language format to presentation language format
+        * 
+        * @param Input string in UI language format (e.g., "US_en")
+        *        Expected format: "US_en" where:
+        *        - US = 2-character country code (not validated)
+        *        - en = 2-character language code (not validated)
+        *        - Separator is underscore '_'
+        *        - Total length must be 5 characters
+        * 
+        * @param[out] presentationLanguage Output string in presentation format (e.g., "en-US")
+        *        Format will be "en-US" if input is valid
+        * 
+        * 
+        * @note We only validate the format/structure of the input string,
+        *       not the actual country/language code values. This allows for flexibility
+        *       in supporting new codes without code changes.
+        */
+
+        bool UserPreferences::ConvertToPresentationFormat(const string& uiLanguage, string& presentationLanguage) {
+            size_t sep = uiLanguage.find('_');
+            if (sep == LANGUAGE_CODE_SEPARATOR_POS && uiLanguage.length() == LANGUAGE_CODE_LENGTH) {
+                presentationLanguage = uiLanguage.substr(sep + 1) + "-" + uiLanguage.substr(0, sep);
+                LOGINFO("Converting UI language '%s' to presentation format '%s'", uiLanguage.c_str(), presentationLanguage.c_str());
+                return true;
+            }
+            LOGERR("Invalid UI language format: %s", uiLanguage.c_str());
+            return false;
+        }
+
+        bool UserPreferences::ConvertToUIFormat(const string& presentationLanguage, string& uiLanguage) {
+            size_t sep = presentationLanguage.find('-');
+            if (sep == LANGUAGE_CODE_SEPARATOR_POS && presentationLanguage.length() == LANGUAGE_CODE_LENGTH) {
+                uiLanguage = presentationLanguage.substr(sep + 1) + "_" + presentationLanguage.substr(0, sep);
+                LOGINFO("Converting presentation language '%s' to UI format '%s'",presentationLanguage.c_str(), uiLanguage.c_str());
+                return true;
+            }
+            LOGERR("Invalid presentation language format: %s", presentationLanguage.c_str());
+            return false;
+        }
+
+        // New function to handle UserSettings notification registration
+        bool UserPreferences::RegisterForUserSettingsNotifications() {
+            if (_isRegisteredForUserSettingsNotif) {
+                LOGINFO("Already registered for UserSettings notifications");
+                return true;
+            }
+
+            _adminLock.Lock();
+
+            if (_service == nullptr) {
+                LOGERR("Service not initialized; cannot register for notifications");
+                return false;
+            }
+
             Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
-            LOGINFO("usersetting %p",userSettings);
+            _adminLock.Unlock();
             if (userSettings == nullptr) {
-                LOGERR("Failed to get UserSettings interface");
-                return "Failed to initialize: UserSettings interface not available";
+                LOGERR("Failed to get UserSettings interface for registration");
+                return false;
             }
         
             userSettings->Register(&_notification);
-        
-            // Check migration state
+            _isRegisteredForUserSettingsNotif = true;
+            userSettings->Release();
+            LOGINFO("Successfully registered for UserSettings notifications");
+            return true;
+        }
+
+        // New function to handle migration logic
+        bool UserPreferences::PerformMigration() {
+            if (_isMigrationDone) {
+                LOGINFO("Migration already completed");
+                return true;
+            }
+
+            _adminLock.Lock();
+
+            if (_service == nullptr) {
+                LOGERR("Service not initialized; cannot perform migration");
+                return false;
+            }
+
+            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            _adminLock.Unlock();
+            if (userSettings == nullptr) {
+                LOGERR("Failed to get UserSettings interface for migration");
+                return false;
+            }
+
             Exchange::IUserSettingsInspector* userSettingsInspector = _service->QueryInterfaceByCallsign<Exchange::IUserSettingsInspector>("org.rdk.UserSettings");
             if (userSettingsInspector == nullptr) {
-                LOGERR("Failed to get UserSettingsInspector interface");
-                userSettings->Unregister(&_notification);
+                LOGERR("Failed to get UserSettingsInspector interface for migration");
                 userSettings->Release();
-                return "Failed to initialize: UserSettingsInspector interface not available";
+                return false;
             }
         
             bool requiresMigration = false;
@@ -108,7 +186,7 @@ namespace WPEFramework {
                 LOGERR("Failed to get migration state: %u", status);
                 userSettingsInspector->Release();
                 userSettings->Release();
-                return "Failed to initialize: Could not determine migration state";
+                return false;
             }
         
             g_autoptr(GKeyFile) file = g_key_file_new();
@@ -116,16 +194,16 @@ namespace WPEFramework {
         
             if (requiresMigration) {
                 LOGINFO("Migration is required for presentation language");
-        
+                
+                // Case 1: Migration needed - File exists
                 if (g_key_file_load_from_file(file, SETTINGS_FILE_NAME, G_KEY_FILE_NONE, &error)) {
-                    // File exists and was successfully loaded
+                    // Read existing UI language from file and update UserSettings
                     g_autofree gchar *val = g_key_file_get_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, &error);
                     if (val != nullptr) {
                         string uiLanguage = val;
                         // Convert UI language to presentation language format
-                        size_t sep = uiLanguage.find('_');
-                        if (sep == 2 && uiLanguage.length() == 5) {
-                            string presentationLanguage = uiLanguage.substr(sep + 1) + "-" + uiLanguage.substr(0, sep);
+                        string presentationLanguage;
+                        if (ConvertToPresentationFormat(uiLanguage, presentationLanguage)) {
                             status = userSettings->SetPresentationLanguage(presentationLanguage);
                             if (status != Core::ERROR_NONE) {
                                 LOGERR("Failed to set presentation language: %u", status);
@@ -140,10 +218,8 @@ namespace WPEFramework {
                     string presentationLanguage;
                     status = userSettings->GetPresentationLanguage(presentationLanguage);
                     if (status == Core::ERROR_NONE) {
-                        // Convert presentation language to UI language format
-                        size_t sep = presentationLanguage.find('-');
-                        if (sep == 2 && presentationLanguage.length() == 5) {
-                            string uiLanguage = presentationLanguage.substr(sep + 1) + "_" + presentationLanguage.substr(0, sep);
+                        string uiLanguage;
+                        if (ConvertToUIFormat(presentationLanguage, uiLanguage)) {
                             g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar*)uiLanguage.c_str());
                             if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
                                 LOGERR("Failed to save file: %s", error->message);
@@ -163,10 +239,8 @@ namespace WPEFramework {
                 string presentationLanguage;
                 status = userSettings->GetPresentationLanguage(presentationLanguage);
                 if (status == Core::ERROR_NONE) {
-                    // Convert presentation language to UI language format
-                    size_t sep = presentationLanguage.find('-');
-                    if (sep == 2 && presentationLanguage.length() == 5) {
-                        string uiLanguage = presentationLanguage.substr(sep + 1) + "_" + presentationLanguage.substr(0, sep);
+                    string uiLanguage;
+                    if (ConvertToUIFormat(presentationLanguage, uiLanguage)) {
                         g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar*)uiLanguage.c_str());
                         if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
                             LOGERR("Failed to save file: %s", error->message);
@@ -178,27 +252,46 @@ namespace WPEFramework {
                     LOGERR("Failed to get presentation language: %u", status);
                 }
             }
-            _migrationDone = true;
-        
+
+            _isMigrationDone = true;
             userSettingsInspector->Release();
             userSettings->Release();
+            LOGINFO("Migration completed successfully");
+            return true;
+        }
+
+        const string UserPreferences::Initialize(PluginHost::IShell* shell) {
+            LOGINFO("Initializing UserPreferences plugin");
+            ASSERT(shell != nullptr);
+
+            _service = shell;
+            _service->AddRef();
+
+            if (!RegisterForUserSettingsNotifications()) {
+                return "Failed to initialize: Could not register for UserSettings notifications";
+            }
+
+            if (!PerformMigration()) {
+                return "Failed to initialize: Migration failed";
+            }
+
             return {};
         }
 
-        void UserPreferences::Deinitialize(PluginHost::IShell* /* service */)
-        {
+        void UserPreferences::Deinitialize(PluginHost::IShell* /* service */) {
             LOGINFO("Deinitialize");
-            if (userSettings != nullptr)
-            {
+            if (userSettings != nullptr) {
                 userSettings->Unregister(&_notification);
                 userSettings->Release();
                 userSettings = nullptr;
             }
-            if (_service != nullptr)
-            {
+            _adminLock.Lock();
+            if (_service != nullptr) {
                 _service->Release();
                 _service = nullptr;
             }
+            _adminLock.Unlock();
+            _isRegisteredForUserSettingsNotif = false;
             UserPreferences::_instance = nullptr;
         }
 
@@ -208,10 +301,8 @@ namespace WPEFramework {
 
         void UserPreferences::OnPresentationLanguageChanged(const string& language) {
             LOGINFO("Presentation language changed to: %s", language.c_str());
-            // Convert presentation language to UI language format
-            size_t sep = language.find('-');
-            if (sep == 2 && language.length() == 5) {
-                string uiLanguage = language.substr(sep + 1) + "_" + language.substr(0, sep);
+            string uiLanguage;
+            if (ConvertToUIFormat(language, uiLanguage)) {
                 g_autoptr(GKeyFile) file = g_key_file_new();
                 g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
                 g_autoptr(GError) error = nullptr;
@@ -292,31 +383,37 @@ namespace WPEFramework {
         //Begin methods
         uint32_t UserPreferences::getUILanguage(const JsonObject& parameters, JsonObject& response) {
             LOGINFOMETHOD();
-	    if (!_migrationDone) {
-                LOGERR("Migration not complete, cannot get UI language");
+            if (!_isMigrationDone && !PerformMigration()) {
+                LOGERR("Migration failed; cannot get UI language");
                 returnResponse(false);
             }
-            string language;
 
+            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications()) {
+                LOGERR("Failed to register for UserSettings notifications; cannot get UI language");
+                returnResponse(false);
+            }
+
+            string language;
+            _adminLock.Lock();
             Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            _adminLock.Unlock();
             if (userSettings != nullptr) {
                 string presentationLanguage;
                 uint32_t status = userSettings->GetPresentationLanguage(presentationLanguage);
                 if (status == Core::ERROR_NONE) {
-                    // Convert presentation language to UI language format
-                    size_t sep = presentationLanguage.find('-');
-                    if (sep == 2 && presentationLanguage.length() == 5) {
-                        language = presentationLanguage.substr(sep + 1) + "_" + presentationLanguage.substr(0, sep);
-                        // Optimization: Update file only if language has changed
-                        if (language != _lastUILanguage) {
-                            g_autoptr(GKeyFile) file = g_key_file_new();
-                            g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar*)language.c_str());
-                            g_autoptr(GError) error = nullptr;
-                            if (g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
-                                _lastUILanguage = language; // Update last known UI language
-                            } else {
-                                LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
-                            }
+                    if (!ConvertToUIFormat(presentationLanguage, language)) {
+                        userSettings->Release();
+                        returnResponse(false);
+                    }
+                    // Optimization: Update file only if language has changed
+                    if (language != _lastUILanguage) {
+                        g_autoptr(GKeyFile) file = g_key_file_new();
+                        g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar*)language.c_str());
+                        g_autoptr(GError) error = nullptr;
+                        if (g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
+                            _lastUILanguage = language;
+                        } else {
+                            LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
                         }
                     } else {
                         LOGERR("Invalid presentation language format: %s", presentationLanguage.c_str());
@@ -337,28 +434,34 @@ namespace WPEFramework {
           
 
         uint32_t UserPreferences::setUILanguage(const JsonObject& parameters, JsonObject& response) {
-        LOGINFOMETHOD();
-	    if (!_migrationDone) {
-                LOGERR("Migration not complete, cannot set UI language");
+            
+            LOGINFOMETHOD();
+            if (!_isMigrationDone && !PerformMigration()) {
+                LOGERR("Migration failed; cannot set UI language");
                 returnResponse(false);
             }
+
+            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications()) {
+                LOGERR("Failed to register for UserSettings notifications; cannot set UI language");
+                returnResponse(false);
+            }
+
             returnIfStringParamNotFound(parameters, SETTINGS_FILE_KEY);
             string uiLanguage = parameters[SETTINGS_FILE_KEY].String();
 
+            _adminLock.Lock();
+
             Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            _adminLock.Unlock();
             if (userSettings != nullptr) {
-                // Convert UI language to presentation language format
-                size_t sep = uiLanguage.find('_');
-                if (sep == 2 && uiLanguage.length() == 5) {
-                    string presentationLanguage = uiLanguage.substr(sep + 1) + "-" + uiLanguage.substr(0, sep);
-                    uint32_t status = userSettings->SetPresentationLanguage(presentationLanguage);
-                    if (status != Core::ERROR_NONE) {
-                        LOGERR("Failed to set presentation language in UserSettings");
-                        userSettings->Release();
-                        returnResponse(false);
-                    }
-                } else {
-                    LOGERR("Invalid UI language format: %s", uiLanguage.c_str());
+                string presentationLanguage;
+                if (!ConvertToPresentationFormat(uiLanguage, presentationLanguage)) {
+                    userSettings->Release();
+                    returnResponse(false);
+                }
+                uint32_t status = userSettings->SetPresentationLanguage(presentationLanguage);
+                if (status != Core::ERROR_NONE) {
+                    LOGERR("Failed to set presentation language in UserSettings: %u", status);
                     userSettings->Release();
                     returnResponse(false);
                 }

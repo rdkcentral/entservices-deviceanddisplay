@@ -21,6 +21,7 @@
 
 #include "Module.h"
 #include <interfaces/IUserSettings.h>
+#include <mutex>
 
 namespace WPEFramework {
     namespace Plugin {
@@ -68,6 +69,12 @@ namespace WPEFramework {
             //Begin methods
             uint32_t getUILanguage(const JsonObject& parameters, JsonObject& response);
             uint32_t setUILanguage(const JsonObject& parameters, JsonObject& response);
+
+            private:
+            bool ConvertToPresentationFormat(const string& uiLanguage, string& presentationLanguage);
+            bool ConvertToUIFormat(const string& presentationLanguage, string& uiLanguage);
+            bool RegisterForUserSettingsNotifications(); 
+            bool PerformMigration();
             //End methods
 
             //Begin events
@@ -86,13 +93,15 @@ namespace WPEFramework {
             END_INTERFACE_MAP
 
         private:
-        void OnPresentationLanguageChanged(const string& language);
-        Exchange::IUserSettings* userSettings;
-        PluginHost::IShell* _service;
-        Core::Sink<Notification> _notification;
-        bool _migrationDone;
-        std::string _lastUILanguage;
-
+            void OnPresentationLanguageChanged(const string& language);
+            Exchange::IUserSettings* userSettings;
+            PluginHost::IShell* _service;
+            Core::Sink<Notification> _notification;
+            bool _isMigrationDone;
+            bool _isRegisteredForUserSettingsNotif;
+            string _lastUILanguage;
+            mutable Core::CriticalSection _adminLock;
+    
         public:
             static UserPreferences* _instance;
 

@@ -73,8 +73,8 @@ namespace WPEFramework {
             private:
             bool ConvertToPresentationFormat(const string& uiLanguage, string& presentationLanguage);
             bool ConvertToUIFormat(const string& presentationLanguage, string& uiLanguage);
-            bool RegisterForUserSettingsNotifications(); 
-            bool PerformMigration();
+            bool RegisterForUserSettingsNotifications(Exchange::IUserSettings* userSettings); 
+            bool PerformMigration(Exchange::IUserSettings* userSettings);
             //End methods
 
             //Begin events

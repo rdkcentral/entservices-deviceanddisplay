@@ -77,10 +77,7 @@ namespace WPEFramework {
         UserPreferences::~UserPreferences()
         {
             //LOGINFO("dtor");
-            if (_service != nullptr) {
-                _service->Release();
-                _service = nullptr;
-            }
+            ASSERT(_service == nullptr);
         }
 
         /**
@@ -125,49 +122,30 @@ namespace WPEFramework {
         }
 
         // New function to handle UserSettings notification registration
-        bool UserPreferences::RegisterForUserSettingsNotifications() {
+        bool UserPreferences::RegisterForUserSettingsNotifications(Exchange::IUserSettings* userSettings) {
             if (_isRegisteredForUserSettingsNotif) {
                 LOGINFO("Already registered for UserSettings notifications");
                 return true;
             }
 
-            _adminLock.Lock();
-
-            if (_service == nullptr) {
-                LOGERR("Service not initialized; cannot register for notifications");
-                return false;
-            }
-
-            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
-            _adminLock.Unlock();
             if (userSettings == nullptr) {
-                LOGERR("Failed to get UserSettings interface for registration");
+                LOGERR("UserSettings interface is null; cannot register for notifications");
                 return false;
             }
         
             userSettings->Register(&_notification);
             _isRegisteredForUserSettingsNotif = true;
-            userSettings->Release();
             LOGINFO("Successfully registered for UserSettings notifications");
             return true;
         }
 
         // New function to handle migration logic
-        bool UserPreferences::PerformMigration() {
+        bool UserPreferences::PerformMigration(Exchange::IUserSettings* userSettings) {
             if (_isMigrationDone) {
                 LOGINFO("Migration already completed");
                 return true;
             }
 
-            _adminLock.Lock();
-
-            if (_service == nullptr) {
-                LOGERR("Service not initialized; cannot perform migration");
-                return false;
-            }
-
-            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
-            _adminLock.Unlock();
             if (userSettings == nullptr) {
                 LOGERR("Failed to get UserSettings interface for migration");
                 return false;
@@ -185,7 +163,6 @@ namespace WPEFramework {
             if (status != Core::ERROR_NONE) {
                 LOGERR("Failed to get migration state: %u", status);
                 userSettingsInspector->Release();
-                userSettings->Release();
                 return false;
             }
         
@@ -214,7 +191,9 @@ namespace WPEFramework {
                     } else {
                         LOGERR("Failed to read UI language from file: %s", error->message);
                     }
+                    // Case 2: Migration needed - File doesn't exist
                 } else if (error != nullptr && error->code == G_FILE_ERROR_NOENT) {
+                    // Get current value from UserSettings and create new file
                     string presentationLanguage;
                     status = userSettings->GetPresentationLanguage(presentationLanguage);
                     if (status == Core::ERROR_NONE) {
@@ -235,7 +214,9 @@ namespace WPEFramework {
                 }
             } else {
                 LOGINFO("No migration required for presentation language");
-        
+
+            // Case 3: No migration needed - Sync file with current UserSettings value
+           // This handles cases where UserSettings was initialized separately    
                 string presentationLanguage;
                 status = userSettings->GetPresentationLanguage(presentationLanguage);
                 if (status == Core::ERROR_NONE) {
@@ -267,12 +248,39 @@ namespace WPEFramework {
             _service = shell;
             _service->AddRef();
 
-            if (!RegisterForUserSettingsNotifications()) {
-                return "Failed to initialize: Could not register for UserSettings notifications";
+            Exchange::IUserSettings* userSettings = nullptr;
+            int count = 0;
+            const int RETRY_COUNT = 5;
+            const int RETRY_INTERVAL_MS = 1000;
+
+           
+            do {
+                userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+                if (userSettings) {
+                    userSettings->AddRef();
+                    LOGINFO("Successfully obtained UserSettings interface after %d retries", count);
+                    break;
+                } else {
+                    count++;
+                    LOGERR("Failed to get UserSettings interface, retry: %d/%d", count, RETRY_COUNT);
+                    usleep(RETRY_INTERVAL_MS * 1000);
+                }
+            } while (count < RETRY_COUNT);
+           
+
+            if (userSettings == nullptr) {
+                LOGERR("Failed to obtain UserSettings interface after %d retries", RETRY_COUNT);
+                return " ";
             }
 
-            if (!PerformMigration()) {
-                return "Failed to initialize: Migration failed";
+            if (!PerformMigration(userSettings)) {
+                userSettings->Release();
+                return " ";
+            }
+        
+            if (!RegisterForUserSettingsNotifications(userSettings)) {
+                userSettings->Release();
+                return " ";
             }
 
             return {};
@@ -383,12 +391,12 @@ namespace WPEFramework {
         //Begin methods
         uint32_t UserPreferences::getUILanguage(const JsonObject& parameters, JsonObject& response) {
             LOGINFOMETHOD();
-            if (!_isMigrationDone && !PerformMigration()) {
+            if (!_isMigrationDone && !PerformMigration(userSettings)) {
                 LOGERR("Migration failed; cannot get UI language");
                 returnResponse(false);
             }
 
-            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications()) {
+            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications(userSettings)) {
                 LOGERR("Failed to register for UserSettings notifications; cannot get UI language");
                 returnResponse(false);
             }
@@ -436,12 +444,12 @@ namespace WPEFramework {
         uint32_t UserPreferences::setUILanguage(const JsonObject& parameters, JsonObject& response) {
             
             LOGINFOMETHOD();
-            if (!_isMigrationDone && !PerformMigration()) {
+            if (!_isMigrationDone && !PerformMigration(userSettings)) {
                 LOGERR("Migration failed; cannot set UI language");
                 returnResponse(false);
             }
 
-            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications()) {
+            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications(userSettings)) {
                 LOGERR("Failed to register for UserSettings notifications; cannot set UI language");
                 returnResponse(false);
             }

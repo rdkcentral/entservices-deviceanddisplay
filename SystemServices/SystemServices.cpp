@@ -113,7 +113,7 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define OPFLASH_STORE "/opt/secure/persistent/opflashstore"
 #define DEVICESTATE_FILE OPFLASH_STORE "/devicestate.txt"
 #define BLOCKLIST "blocklist"
-#define BOOTVERSION "/opt/.bootversion"
+#define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 
 /**
  * @struct firmwareUpdate
@@ -553,6 +553,7 @@ namespace WPEFramework {
             registerMethod("getBlocklistFlag", &SystemServices::getBlocklistFlag, this);
             registerMethod("getBootTypeInfo", &SystemServices::getBootTypeInfo, this);
             registerMethod("getBuildType", &SystemServices::getBuildType, this);
+	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
         }
 
         SystemServices::~SystemServices()
@@ -5168,46 +5169,24 @@ namespace WPEFramework {
         uint32_t SystemServices::getBootTypeInfo(const JsonObject& parameters, JsonObject& response) 
         {
             LOGINFOMETHOD();
-            //check if file exists
-            std::ifstream file_read(BOOTVERSION);
-            if (! file_read){
-                LOGERR("Failed to open file %s\n", BOOTVERSION);
-                returnResponse(false);
+	    bool result = false;
+            const char* filename = "/tmp/bootType";
+            string propertyName = "BOOT_TYPE";
+            string bootType = "";
+
+            if (Utils::readPropertyFromFile(filename, propertyName, bootType))
+            {
+                LOGINFO("Boot type changed to: %s, current OS Class: rdke\n", bootType.c_str());
+                response["bootType"] = bootType;
+                result = true;
             }
-                //Read the file and get the imagename, version and fw_class
-                std::string line,key_val,value;
-                std::map<std::string,std::vector<std::string>> boot_val;
-                while(std::getline(file_read, line)){
-                    size_t pos=0, start=0;
-                    pos = line.find(':', start);
-                    key_val = line.substr(start, pos);
-                    value = line.substr(pos+1);
-                    if (key_val == "imagename" || key_val == "VERSION" || key_val == "FW_CLASS") {
-                        boot_val[key_val].push_back(value);
-                    }
-                }
-                file_read.close(); 
-                //if both the slots are present then we can get the boot type or it is inconclusive
-                    if(boot_val["FW_CLASS"].size() == 2 ) {
-                        if(boot_val["FW_CLASS"][0] != boot_val["FW_CLASS"][1]) {
-                            response["bootType"] = "BOOT_MIGRATION";
-                            LOGINFO("Boot Type is BOOT_MIGRATION\n");
-                        }
-                        else if((boot_val["FW_CLASS"][0] == boot_val["FW_CLASS"][1]) && (boot_val["imagename"][0] == boot_val["imagename"][1])){
-                            response["bootType"] = "BOOT_NORMAL";
-                            LOGINFO("Boot Type is BOOT_NORMAL\n");
-                        }
-                        else if((boot_val["FW_CLASS"][0] == boot_val["FW_CLASS"][1]) && (boot_val["imagename"][0] != boot_val["imagename"][1])) {
-                            response["bootType"] = "BOOT_UPDATE";
-                            LOGINFO("Boot Type is BOOT_UPDATE\n");
-                        }
-                    }// only one slot is populated and both cannot be empty since file is present
-                    else{   
-                        response["bootType"] = "BOOT_INCONCLUSIVE";
-                        LOGINFO("Boot Type is BOOT_INCONCLUSIVE\n");
-                    }
-            returnResponse(true);
-        }//end of getBootTypeInfo method
+            else
+            {
+                LOGERR("BootType is not present");
+                result = false;
+            }
+	    returnResponse(result);
+	}//end of getBootTypeInfo method
 
         /**
          * @brief : API to query BuildType details
@@ -5238,6 +5217,46 @@ namespace WPEFramework {
             }
             returnResponse(result);
         }//end of getBuildType method
+
+	/*
+         * @brief This function tells the Migration Status of the device.
+         * This will internally sets the tr181 MigrationStatus parameter.
+         * @param1[in]: {"jsonrpc":"2.0","id":"3","method":"org.rdk.System.setMigrationStatus",
+         *                  "params":{"status": string <status>}}''
+         * @param2[out]: {"jsonrpc":"2.0","id":3,"result":{"success":<bool>}}
+         * @return: Core::<StatusCode>
+         */
+
+        uint32_t SystemServices::setMigrationStatus(const JsonObject& parameters, JsonObject& response)
+        {
+            LOGINFOMETHOD();
+	    std::unordered_set<std::string> Status_Set = {"NOT_STARTED","NOT_NEEDED","STARTED","PRIORITY_SETTINGS_MIGRATED","DEVICE_SETTINGS_MIGRATED","CLOUD_SETTINGS_MIGRATED","APP_DATA_MIGRATED","MIGRATION_COMPLETED"};
+	    std::string value = parameters["status"].String();
+	    if(Status_Set.find(value) != Status_Set.end())
+            {
+                // if file exists, it will be truncated, otherwise it will be created
+                std::ofstream file(MIGRATIONSTATUS, std::ios::trunc);
+                if (file.is_open()) {
+                    // Write the string value to the file
+                    file << value;
+                    LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
+                } else {
+                    LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
+		    returnResponse(false);
+                }
+                // Close the file
+                file.close();
+                returnResponse(true);
+            }
+            else {
+                LOGERR("Invalid Migration Status\n");
+                JsonObject error;
+		error["message"] = "Invalid Request";
+		error["code"] = "-32600";
+  		response["error"] = error; 
+		returnResponse(false);
+            }
+        }//end of setMigrationStatus method
 
     } /* namespace Plugin */
 } /* namespace WPEFramework */

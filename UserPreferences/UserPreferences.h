@@ -56,7 +56,7 @@ namespace WPEFramework {
                     void OnVoiceGuidanceHintsChanged(const bool hints) override;
                     void AddRef() const override;
                     uint32_t Release() const override;
-                    //void* QueryInterface(const uint32_t interfaceNumber) override;
+                    
     
                 private:
                     UserPreferences* _parent;
@@ -71,8 +71,8 @@ namespace WPEFramework {
             uint32_t setUILanguage(const JsonObject& parameters, JsonObject& response);
 
             private:
-            bool ConvertToPresentationFormat(const string& uiLanguage, string& presentationLanguage);
-            bool ConvertToUIFormat(const string& presentationLanguage, string& uiLanguage);
+            bool ConvertToUserSettingsFormat(const string& uiLanguage, string& presentationLanguage);
+            bool ConvertToUserPrefsFormat(const string& presentationLanguage, string& uiLanguage);
             bool RegisterForUserSettingsNotifications(Exchange::IUserSettings* userSettings); 
             bool PerformMigration(Exchange::IUserSettings* userSettings);
             //End methods
@@ -94,7 +94,7 @@ namespace WPEFramework {
 
         private:
             void OnPresentationLanguageChanged(const string& language);
-            Exchange::IUserSettings* userSettings;
+
             PluginHost::IShell* _service;
             Core::Sink<Notification> _notification;
             bool _isMigrationDone;

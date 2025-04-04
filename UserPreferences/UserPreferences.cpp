@@ -60,7 +60,7 @@ namespace WPEFramework {
 
         UserPreferences::UserPreferences()
             : PluginHost::JSONRPC()
-            , userSettings(nullptr)
+
             , _service(nullptr)
             , _notification(this)
             , _isMigrationDone(false)
@@ -76,30 +76,30 @@ namespace WPEFramework {
 
         UserPreferences::~UserPreferences()
         {
-            //LOGINFO("dtor");
-            ASSERT(_service == nullptr);
+            LOGINFO("dtor");
+            ASSERT(nullptr == _service);
         }
 
         /**
-        * @brief Converts UI language format to presentation language format
-        * 
-        * @param Input string in UI language format (e.g., "US_en")
-        *        Expected format: "US_en" where:
-        *        - US = 2-character country code (not validated)
-        *        - en = 2-character language code (not validated)
-        *        - Separator is underscore '_'
-        *        - Total length must be 5 characters
-        * 
-        * @param[out] presentationLanguage Output string in presentation format (e.g., "en-US")
-        *        Format will be "en-US" if input is valid
-        * 
-        * 
-        * @note We only validate the format/structure of the input string,
-        *       not the actual country/language code values. This allows for flexibility
-        *       in supporting new codes without code changes.
+        * @brief Converts a UI language format string to a presentation format string.
+        *
+        * @param[in]  inputLanguage         Input string in UI language format (e.g., "US_en").
+        *                                    Expected format: "US_en", where:
+        *                                    - The first two characters represent a country code (not validated).
+        *                                    - The last two characters represent a language code (not validated).
+        *                                    - The separator must be an underscore '_'.
+        *                                    - The total length must be exactly 5 characters.
+        *                                    - The function does not enforce that the language code is in the expected position.
+        *
+        * @param[out] presentationLanguage  Output string in presentation format (e.g., "en-US").
+        *                                    If the input is valid, the format will be transformed to "en-US".
+        *                                    If the input is invalid, the output string remains unchanged.
+        *
+        * @return True if the conversion was successful and the input format is valid.
+        *         False if the input format is incorrect (e.g., missing separator, incorrect length).
         */
 
-        bool UserPreferences::ConvertToPresentationFormat(const string& uiLanguage, string& presentationLanguage) {
+        bool UserPreferences::ConvertToUserSettingsFormat(const string& uiLanguage, string& presentationLanguage) {
             size_t sep = uiLanguage.find('_');
             if (sep == LANGUAGE_CODE_SEPARATOR_POS && uiLanguage.length() == LANGUAGE_CODE_LENGTH) {
                 presentationLanguage = uiLanguage.substr(sep + 1) + "-" + uiLanguage.substr(0, sep);
@@ -110,7 +110,26 @@ namespace WPEFramework {
             return false;
         }
 
-        bool UserPreferences::ConvertToUIFormat(const string& presentationLanguage, string& uiLanguage) {
+        /**
+        * @brief Converts a presentation format language string to a UI language format string.
+        *
+        * @param[in]  presentationLanguage  Input string in presentation format (e.g., "en-US").
+        *                                    Expected format: "en-US", where:
+        *                                    - The first two characters represent a language code.
+        *                                    - The last two characters represent a country code.
+        *                                    - The separator must be a hyphen '-'.
+        *                                    - The total length must be exactly 5 characters.
+        *
+        * @param[out] uiLanguage            Output string in UI format (e.g., "US_en").
+        *                                    If the input is valid, the format will be transformed to "US_en".
+        *                                    If the input is invalid, the output string remains unchanged.
+        *
+        * @return True  - If the input string is in a valid presentation format and successfully converted.
+        *         False - If the input string does not meet the expected format (e.g., incorrect length,
+        *                 missing or misplaced separator). In this case, no conversion is performed.
+        */
+
+        bool UserPreferences::ConvertToUserPrefsFormat(const string& presentationLanguage, string& uiLanguage) {
             size_t sep = presentationLanguage.find('-');
             if (sep == LANGUAGE_CODE_SEPARATOR_POS && presentationLanguage.length() == LANGUAGE_CODE_LENGTH) {
                 uiLanguage = presentationLanguage.substr(sep + 1) + "_" + presentationLanguage.substr(0, sep);
@@ -123,12 +142,7 @@ namespace WPEFramework {
 
         // New function to handle UserSettings notification registration
         bool UserPreferences::RegisterForUserSettingsNotifications(Exchange::IUserSettings* userSettings) {
-            if (_isRegisteredForUserSettingsNotif) {
-                LOGINFO("Already registered for UserSettings notifications");
-                return true;
-            }
-
-            if (userSettings == nullptr) {
+            if (nullptr == userSettings) {
                 LOGERR("UserSettings interface is null; cannot register for notifications");
                 return false;
             }
@@ -141,10 +155,7 @@ namespace WPEFramework {
 
         // New function to handle migration logic
         bool UserPreferences::PerformMigration(Exchange::IUserSettings* userSettings) {
-            if (_isMigrationDone) {
-                LOGINFO("Migration already completed");
-                return true;
-            }
+            
 
             if (userSettings == nullptr) {
                 LOGERR("Failed to get UserSettings interface for migration");
@@ -154,7 +165,6 @@ namespace WPEFramework {
             Exchange::IUserSettingsInspector* userSettingsInspector = _service->QueryInterfaceByCallsign<Exchange::IUserSettingsInspector>("org.rdk.UserSettings");
             if (userSettingsInspector == nullptr) {
                 LOGERR("Failed to get UserSettingsInspector interface for migration");
-                userSettings->Release();
                 return false;
             }
         
@@ -180,7 +190,7 @@ namespace WPEFramework {
                         string uiLanguage = val;
                         // Convert UI language to presentation language format
                         string presentationLanguage;
-                        if (ConvertToPresentationFormat(uiLanguage, presentationLanguage)) {
+                        if (ConvertToUserSettingsFormat(uiLanguage, presentationLanguage)) {
                             status = userSettings->SetPresentationLanguage(presentationLanguage);
                             if (status != Core::ERROR_NONE) {
                                 LOGERR("Failed to set presentation language: %u", status);
@@ -198,7 +208,7 @@ namespace WPEFramework {
                     status = userSettings->GetPresentationLanguage(presentationLanguage);
                     if (status == Core::ERROR_NONE) {
                         string uiLanguage;
-                        if (ConvertToUIFormat(presentationLanguage, uiLanguage)) {
+                        if (ConvertToUserPrefsFormat(presentationLanguage, uiLanguage)) {
                             g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar*)uiLanguage.c_str());
                             if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
                                 LOGERR("Failed to save file: %s", error->message);
@@ -215,13 +225,13 @@ namespace WPEFramework {
             } else {
                 LOGINFO("No migration required for presentation language");
 
-            // Case 3: No migration needed - Sync file with current UserSettings value
-           // This handles cases where UserSettings was initialized separately    
+            // Case 3: If there is no "/opt/user_preferences.conf" file, get value from user settings and, create and update "/opt/user_preferences.conf".
+           // This handles cases where UserSettings was initialized earlier
                 string presentationLanguage;
                 status = userSettings->GetPresentationLanguage(presentationLanguage);
                 if (status == Core::ERROR_NONE) {
                     string uiLanguage;
-                    if (ConvertToUIFormat(presentationLanguage, uiLanguage)) {
+                    if (ConvertToUserPrefsFormat(presentationLanguage, uiLanguage)) {
                         g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar*)uiLanguage.c_str());
                         if (!g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
                             LOGERR("Failed to save file: %s", error->message);
@@ -240,6 +250,7 @@ namespace WPEFramework {
             LOGINFO("Migration completed successfully");
             return true;
         }
+        /*no need to do admin lock for IShell pointer. That is because Thunder won't call get/set unless Init was completed.*/
 
         const string UserPreferences::Initialize(PluginHost::IShell* shell) {
             LOGINFO("Initializing UserPreferences plugin");
@@ -273,21 +284,21 @@ namespace WPEFramework {
                 return " ";
             }
 
-            if (!PerformMigration(userSettings)) {
-                userSettings->Release();
+            if (!_isMigrationDone && !PerformMigration(userSettings)) {
                 return " ";
             }
         
             if (!RegisterForUserSettingsNotifications(userSettings)) {
-                userSettings->Release();
                 return " ";
             }
+            userSettings->Release();
 
             return {};
         }
 
         void UserPreferences::Deinitialize(PluginHost::IShell* /* service */) {
             LOGINFO("Deinitialize");
+            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
             if (userSettings != nullptr) {
                 userSettings->Unregister(&_notification);
                 userSettings->Release();
@@ -303,6 +314,11 @@ namespace WPEFramework {
             UserPreferences::_instance = nullptr;
         }
 
+        /*executing in UserSettings context as 
+         1. this is not considered performance critical (called only when the presentation language is changed) 
+         2. won't make a call to UserSettings"
+        */
+
         void UserPreferences::Notification::OnPresentationLanguageChanged(const string& language) {
              _parent->OnPresentationLanguageChanged(language);
         }
@@ -310,7 +326,7 @@ namespace WPEFramework {
         void UserPreferences::OnPresentationLanguageChanged(const string& language) {
             LOGINFO("Presentation language changed to: %s", language.c_str());
             string uiLanguage;
-            if (ConvertToUIFormat(language, uiLanguage)) {
+            if (ConvertToUserPrefsFormat(language, uiLanguage)) {
                 g_autoptr(GKeyFile) file = g_key_file_new();
                 g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
                 g_autoptr(GError) error = nullptr;
@@ -391,6 +407,9 @@ namespace WPEFramework {
         //Begin methods
         uint32_t UserPreferences::getUILanguage(const JsonObject& parameters, JsonObject& response) {
             LOGINFOMETHOD();
+            _adminLock.Lock();
+            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            _adminLock.Unlock();
             if (!_isMigrationDone && !PerformMigration(userSettings)) {
                 LOGERR("Migration failed; cannot get UI language");
                 returnResponse(false);
@@ -402,15 +421,12 @@ namespace WPEFramework {
             }
 
             string language;
-            _adminLock.Lock();
-            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
-            _adminLock.Unlock();
             if (userSettings != nullptr) {
                 string presentationLanguage;
                 uint32_t status = userSettings->GetPresentationLanguage(presentationLanguage);
                 if (status == Core::ERROR_NONE) {
-                    if (!ConvertToUIFormat(presentationLanguage, language)) {
-                        userSettings->Release();
+                    if (!ConvertToUserPrefsFormat(presentationLanguage, language)) {
+                        
                         returnResponse(false);
                     }
                     // Optimization: Update file only if language has changed
@@ -429,11 +445,12 @@ namespace WPEFramework {
                 } else {
                     LOGERR("Failed to get presentation language: %u", status);
                 }
-                userSettings->Release();
+                
             } else {
                 LOGERR("Failed to get UserSettings interface");
                 returnResponse(false);
             }
+            userSettings->Release();
 
             response[SETTINGS_FILE_KEY] = language;
             returnResponse(true);
@@ -444,6 +461,10 @@ namespace WPEFramework {
         uint32_t UserPreferences::setUILanguage(const JsonObject& parameters, JsonObject& response) {
             
             LOGINFOMETHOD();
+            _adminLock.Lock();
+
+            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            _adminLock.Unlock();
             if (!_isMigrationDone && !PerformMigration(userSettings)) {
                 LOGERR("Migration failed; cannot set UI language");
                 returnResponse(false);
@@ -457,28 +478,25 @@ namespace WPEFramework {
             returnIfStringParamNotFound(parameters, SETTINGS_FILE_KEY);
             string uiLanguage = parameters[SETTINGS_FILE_KEY].String();
 
-            _adminLock.Lock();
-
-            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
-            _adminLock.Unlock();
+            
             if (userSettings != nullptr) {
                 string presentationLanguage;
-                if (!ConvertToPresentationFormat(uiLanguage, presentationLanguage)) {
-                    userSettings->Release();
+                if (!ConvertToUserSettingsFormat(uiLanguage, presentationLanguage)) {
+                    
                     returnResponse(false);
                 }
                 uint32_t status = userSettings->SetPresentationLanguage(presentationLanguage);
                 if (status != Core::ERROR_NONE) {
                     LOGERR("Failed to set presentation language in UserSettings: %u", status);
-                    userSettings->Release();
+                    
                     returnResponse(false);
                 }
-                userSettings->Release();
+                
             } else {
                 LOGERR("Failed to get UserSettings interface");
                 returnResponse(false);
             }
-
+            userSettings->Release();
             returnResponse(true);
         }
         //End methods

@@ -64,7 +64,6 @@ namespace WPEFramework {
             , _service(nullptr)
             , _notification(this)
             , _isMigrationDone(false)
-            , _isRegisteredForUserSettingsNotif(false)
             , _lastUILanguage("")
             ,_adminLock()
         {
@@ -148,7 +147,7 @@ namespace WPEFramework {
             }
         
             userSettings->Register(&_notification);
-            _isRegisteredForUserSettingsNotif = true;
+
             LOGINFO("Successfully registered for UserSettings notifications");
             return true;
         }
@@ -250,7 +249,8 @@ namespace WPEFramework {
             LOGINFO("Migration completed successfully");
             return true;
         }
-        /*no need to do admin lock for IShell pointer. That is because Thunder won't call get/set unless Init was completed.*/
+        /*No need to perform AdminLock() for the IShell pointer, as Thunder guarantees 
+        * that Initialize() will not be called unless the plugin has been successfully activated..*/
 
         const string UserPreferences::Initialize(PluginHost::IShell* shell) {
             LOGINFO("Initializing UserPreferences plugin");
@@ -310,13 +310,24 @@ namespace WPEFramework {
                 _service = nullptr;
             }
             _adminLock.Unlock();
-            _isRegisteredForUserSettingsNotif = false;
+
             UserPreferences::_instance = nullptr;
         }
 
-        /*executing in UserSettings context as 
-         1. this is not considered performance critical (called only when the presentation language is changed) 
-         2. won't make a call to UserSettings"
+        string UserPreferences::Information() const {
+            return {};
+        }
+
+        /* 
+        * Executing in the UserSettings notification context because:
+        * 1. This callback is triggered only when the presentation language is changed, 
+        *    which is a relatively infrequent operation and not performance critical.
+        * 2. The handler does not make any blocking or recursive calls back into UserSettings, 
+        *    so there is no risk of deadlock or circular dependency.
+        *
+        * Therefore, there's no need to offload this work to another thread. 
+        * Handling it directly in the caller context ensures simplicity, avoids unnecessary thread management, 
+        * and is safe within the constraints of this use case.
         */
 
         void UserPreferences::Notification::OnPresentationLanguageChanged(const string& language) {
@@ -415,7 +426,7 @@ namespace WPEFramework {
                 returnResponse(false);
             }
 
-            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications(userSettings)) {
+            if (!RegisterForUserSettingsNotifications(userSettings)) {
                 LOGERR("Failed to register for UserSettings notifications; cannot get UI language");
                 returnResponse(false);
             }
@@ -470,7 +481,7 @@ namespace WPEFramework {
                 returnResponse(false);
             }
 
-            if (!_isRegisteredForUserSettingsNotif && !RegisterForUserSettingsNotifications(userSettings)) {
+            if (!RegisterForUserSettingsNotifications(userSettings)) {
                 LOGERR("Failed to register for UserSettings notifications; cannot set UI language");
                 returnResponse(false);
             }

@@ -85,7 +85,7 @@ namespace WPEFramework {
             virtual ~UserPreferences();
             virtual const string Initialize(PluginHost::IShell* shell) override ;
             virtual void Deinitialize(PluginHost::IShell* service) override;
-            virtual string Information() const override { return {}; }
+            virtual string Information() const override;
 
             BEGIN_INTERFACE_MAP(UserPreferences)
             INTERFACE_ENTRY(PluginHost::IPlugin)
@@ -98,7 +98,6 @@ namespace WPEFramework {
             PluginHost::IShell* _service;
             Core::Sink<Notification> _notification;
             bool _isMigrationDone;
-            bool _isRegisteredForUserSettingsNotif;
             string _lastUILanguage;
             mutable Core::CriticalSection _adminLock;
     

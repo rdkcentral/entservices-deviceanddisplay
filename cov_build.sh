@@ -175,6 +175,7 @@ touch maintenanceMGR.h
 touch pkg.h
 touch secure_wrapper.h
 touch wpa_ctrl.h
+touch proc/readproc.h
 touch btmgr.h
 touch rdk_logger_milestone.h
 echo "files created successfully"

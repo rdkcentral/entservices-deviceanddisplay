@@ -222,6 +222,7 @@ cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddis
   -DPLUGIN_USERPREFERENCES=ON \
   -DPLUGIN_DEVICEDIAGNOSTICS=ON \
   -DPLUGIN_FRAMERATE=ON \
+
 cmake --build build/entservices-deviceanddisplay --target install
 echo "======================================================================================"
 echo "path of so files"

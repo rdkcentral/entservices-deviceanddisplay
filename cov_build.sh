@@ -181,6 +181,8 @@ touch btmgr.h
 touch rdk_logger_milestone.h
 touch audioOutputPortType.hpp
 touch audioOutputPortConfig.hpp
+touch tr181api.h
+touch dsRpc.h
 echo "files created successfully"
 echo "======================================================================================"
 

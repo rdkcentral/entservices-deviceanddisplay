@@ -3399,19 +3399,29 @@ namespace WPEFramework {
 
             if (parameters.HasLabel("timeZones"))
             {
-                std::string timeZone = parameters["timeZones"].String();
-                std::vector<std::string> timeZoneList;
-                Utils::String::split(timeZoneList, timeZone, " ");
-
-                for (std::vector<std::string>::const_iterator i = timeZoneList.begin(); i != timeZoneList.end(); ++i)
+                if (Core::JSON::Variant::type::ARRAY != parameters["timeZones"].Content() )
                 {
-                    std::string line = ZONEINFO_DIR "/" + *i;
+                    LOGERR("Invalid parameter type");
+                    returnResponse(false);
+                }
 
-                    if (!processTimeZones(line, dirObject))
+                JsonArray timeZones = parameters["timeZones"].Array();
+                JsonArray::Iterator index(timeZones.Elements());
+
+                while (index.Next() == true)
+                {
+                    if (Core::JSON::Variant::type::STRING == index.Current().Content())
                     {
-                        LOGERR("Failed to process %s", line.c_str());
-                        resp = false;
+                        std::string line = ZONEINFO_DIR "/" + index.Current().String();
+
+                        if (!processTimeZones(line, dirObject))
+                        {
+                            LOGERR("Failed to process %s", line.c_str());
+                            resp = false;
+                        }
                     }
+                    else
+                        LOGWARN("Unexpected variant type");
                 }
             }
             else

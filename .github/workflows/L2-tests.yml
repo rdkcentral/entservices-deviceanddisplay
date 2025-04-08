@@ -1,11 +1,5 @@
 name: L2-tests
 
-on:
-  push:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
-  pull_request:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
-
 env:
   BUILD_TYPE: Debug
   THUNDER_REF: "R4.4.1"

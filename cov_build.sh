@@ -179,6 +179,7 @@ touch wpa_ctrl.h
 touch proc/readproc.h
 touch btmgr.h
 touch rdk_logger_milestone.h
+touch audioOutputPortType.hpp
 echo "files created successfully"
 echo "======================================================================================"
 

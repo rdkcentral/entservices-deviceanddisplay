@@ -211,6 +211,10 @@ cmake -G Ninja -S entservices-deviceanddisplay -B build/entservices-deviceanddis
                       -I ${PWD}/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal \
                       -I ${PWD}/entservices-testframework/Tests/headers/ccec/drivers \
                       -I ${PWD}/entservices-testframework/Tests/headers/network \
+                      -I ${PWD}/entservices-testframework/Tests \
+                      -I ${PWD}/entservices-deviceanddisplay/helpers \
+                      -I ${PWD}/Thunder/Source \
+                      -I ${PWD}/Thunder/Source/core \
                       -include ${PWD}/entservices-testframework/Tests/mocks/devicesettings.h \
                       -include ${PWD}/entservices-testframework/Tests/mocks/Iarm.h \
                       -include ${PWD}/entservices-testframework/Tests/mocks/Rfc.h \

@@ -58,7 +58,9 @@ string PlatformCapsData::GetDeviceType() {
     std::string hex;
     WPEFramework::Exchange::IAuthService::GetDeviceInfoResult diRes;
     auto rc = authservicePlugin->GetDeviceInfo(diRes);
-    hex = diRes.deviceInfo;
+    if (rc == Core::ERROR_NONE) {
+      hex = diRes.deviceInfo;
+    }
 
     auto deviceInfo = stringFromHex(hex);
 
@@ -82,7 +84,7 @@ string PlatformCapsData::GetDeviceType() {
   }
   return deviceType;
 }
-
+   
 string PlatformCapsData::GetHDRCapability() {
   JsonArray hdrCaps = jsonRpc.invoke(_T("org.rdk.DisplaySettings"),
                                      _T("getSettopHDRSupport"), 3000)

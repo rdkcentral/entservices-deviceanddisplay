@@ -1,12 +1,14 @@
 name: L2-tests
 
 on:
-  workflow_call:
   push:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
+    branches: [ develop, 'sprint/**', 'release/**' ]
   pull_request:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
-
+    branches: [ develop, 'sprint/**', 'release/**' ]
+  workflow_call:
+    secrets:
+      token:
+        required: true
 env:
   BUILD_TYPE: Debug
   THUNDER_REF: "R4.4.1"
@@ -79,18 +81,10 @@ jobs:
           path: ThunderTools
           ref: R4.4.3
 
-      - name: Checkout entservices-deviceanddisplay
-        uses: actions/checkout@v3
-        with:
-          path: entservices-deviceanddisplay
-
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
         with:
-          repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
-          token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Apply patches ThunderTools
         run: |  
@@ -158,6 +152,41 @@ jobs:
           cmake --build build/entservices-apis -j8
           &&
           cmake --install build/entservices-apis
+
+      - name: Checkout entservices-deviceanddisplay
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-deviceanddisplay
+          path: entservices-deviceanddisplay
+          branch: develop
+
+      - name: Checkout entservices-infra
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-infra
+          path: entservices-infra
+          branch: develop
+
+      - name: Checkout entservices-softwareupdate
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-softwareupdate
+          path: entservices-softwareupdate
+          branch : develop
+
+      - name: Checkout entservices-inputoutput
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-inputoutput
+          path: entservices-inputoutput
+          branch : develop
+          
+      - name: Checkout entservices-mediaanddrm
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-mediaanddrm
+          path: entservices-mediaanddrm
+          branch : develop
 
       - name: Generate external headers
         # Empty headers to mute errors
@@ -332,7 +361,6 @@ jobs:
           -DPLUGIN_SYSTEMSERVICES=OFF
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DISPLAYSETTINGS=OFF
-          -DPLUGIN_WAREHOUSE=OFF
           -DUSE_THUNDER_R4=ON
           -DPLUGIN_L2Tests=ON
           -DRDK_SERVICE_L2_TEST=ON
@@ -342,6 +370,378 @@ jobs:
           cmake --build build/entservices-deviceanddisplay -j8
           &&
           cmake --install build/entservices-deviceanddisplay
+
+      - name: Build entservices-infra
+        run: >
+          cmake
+          -S "$GITHUB_WORKSPACE/entservices-infra"
+          -B build/entservices-infra
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}"
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -fprofile-arcs
+          -ftest-coverage
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DDEVICE_TYPE=AVOutputTV
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices/proc
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Wraps.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/btmgr.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tr181api.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsExtODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoResolution.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/sleepMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/manager.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/iarmUtil.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemaudioplatform.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/list.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsDisplay.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/AudioStereoMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/VideoDFC.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsRpc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsUtl.h
+          -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -DUSE_IARMBUS
+          -DRDK_SERVICE_L2_TEST
+          -DDISABLE_SECURITY_TOKEN
+          -DENABLE_THERMAL_PROTECTION"
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DPLUGIN_TELEMETRY=OFF
+          -DPLUGIN_USERSETTINGS=ON
+          -DPLUGIN_PERSISTENTSTORE=ON
+          -DPLUGIN_USBDEVICE=ON
+          -DPLUGIN_USB_MASS_STORAGE=ON
+          -DPLUGIN_LIFECYCLEMANAGER=OFF
+          -DPLUGIN_APPMANAGER=OFF
+          -DPLUGIN_ANALYTICS=OFF
+          -DUSE_THUNDER_R4=ON
+          -DPLUGIN_L2Tests=ON
+          -DRDK_SERVICE_L2_TEST=ON
+          -DDS_FOUND=ON
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          -DPLUGIN_ANALYTICS_SIFT_BACKEND=ON
+          -DPLUGIN_ANALYTICS_SIFT_2_0_ENABLED="true"
+          -DPLUGIN_ANALYTICS_SIFT_MAX_RANDOMISATION_WINDOW_TIME=15
+          -DPLUGIN_ANALYTICS_SIFT_STORE_PATH="/tmp/AnalyticsSiftStore"
+          -DPLUGIN_ANALYTICS_SIFT_URL="127.0.0.1:12345"
+          -DPLUGIN_ANALYTICS_EVENTS_MAP="/tmp/AnalyticsEventsMap.json"
+          &&
+          cmake --build build/entservices-infra -j8
+          &&
+          cmake --install build/entservices-infra
+
+      - name: Build entservices-softwareupdate
+        run: >
+          cmake
+          -S "$GITHUB_WORKSPACE/entservices-softwareupdate"
+          -B build/entservices-softwareupdate
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}"
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -fprofile-arcs
+          -ftest-coverage
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DDEVICE_TYPE=AVOutputTV
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices/proc
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Wraps.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/btmgr.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tr181api.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsExtODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoResolution.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/sleepMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/manager.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/iarmUtil.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemaudioplatform.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/list.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsDisplay.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/AudioStereoMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/VideoDFC.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsRpc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsUtl.h
+          -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -DUSE_IARMBUS
+          -DRDK_SERVICE_L2_TEST
+          -DDISABLE_SECURITY_TOKEN
+          -DENABLE_THERMAL_PROTECTION"
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DPLUGIN_FIRMWAREUPDATE=ON
+          -DUSE_THUNDER_R4=ON
+          -DPLUGIN_L2Tests=ON
+          -DRDK_SERVICE_L2_TEST=ON
+          -DDS_FOUND=ON
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          &&
+          cmake --build build/entservices-softwareupdate -j8
+          &&
+          cmake --install build/entservices-softwareupdate
+
+      - name: Build entservices-inputoutput
+        run: >
+          cmake
+          -S "$GITHUB_WORKSPACE/entservices-inputoutput"
+          -B build/entservices-inputoutput
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}"
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -fprofile-arcs
+          -ftest-coverage
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DDEVICE_TYPE=AVOutputTV
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices/proc
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Wraps.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/btmgr.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tr181api.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsExtODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoResolution.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/sleepMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/manager.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/iarmUtil.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemaudioplatform.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/list.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsDisplay.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/AudioStereoMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/VideoDFC.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsRpc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsUtl.h
+          -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -DUSE_IARMBUS
+          -DRDK_SERVICE_L2_TEST
+          -DDISABLE_SECURITY_TOKEN
+          -DENABLE_THERMAL_PROTECTION"
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DPLUGIN_AVINPUT=OFF
+          -DPLUGIN_AVOUTPUT=OFF
+          -DAVOUTPUT_TV=OFF
+          -DUSE_THUNDER_R4=ON
+          -DPLUGIN_L2Tests=ON
+          -DRDK_SERVICE_L2_TEST=ON
+          -DDS_FOUND=ON
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          &&
+          cmake --build build/entservices-inputoutput -j8
+          &&
+          cmake --install build/entservices-inputoutput
+
+      - name: Build entservices-mediaanddrm
+        run: >
+          cmake
+          -S "$GITHUB_WORKSPACE/entservices-mediaanddrm"
+          -B build/entservices-mediaanddrm
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}"
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -fprofile-arcs
+          -ftest-coverage
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DDEVICE_TYPE=AVOutputTV
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices/proc
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Wraps.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/btmgr.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tr181api.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsExtODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsODM.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/systemaudioplatform.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/videoResolution.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/sleepMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortType.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/frontPanelTextDisplay.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/manager.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/audioOutputPortConfig.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/iarmUtil.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemaudioplatform.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/list.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsDisplay.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/AudioStereoMode.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/VideoDFC.hpp
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/dsRpc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsError.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsUtl.h
+          -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -DUSE_IARMBUS
+          -DRDK_SERVICE_L2_TEST
+          -DDISABLE_SECURITY_TOKEN
+          -DENABLE_THERMAL_PROTECTION"
+          -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
+          -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DPLUGIN_TEXTTOSPEECH=ON
+          -DUSE_THUNDER_R4=ON
+          -DPLUGIN_L2Tests=ON
+          -DRDK_SERVICE_L2_TEST=ON
+          -DDS_FOUND=ON
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          &&
+          cmake --build build/entservices-mediaanddrm -j8
+          &&
+          cmake --install build/entservices-mediaanddrm
 
       - name: Build entservices-testframework
         run: >
@@ -404,7 +804,16 @@ jobs:
           -DPLUGIN_SYSTEMSERVICES=OFF
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DISPLAYSETTINGS=OFF
-          -DPLUGIN_WAREHOUSE=OFF
+          -DPLUGIN_TELEMETRY=OFF
+          -DPLUGIN_USERSETTINGS=ON
+          -DPLUGIN_PERSISTENTSTORE=ON
+          -DPLUGIN_USBDEVICE=ON
+          -DPLUGIN_USB_MASS_STORAGE=ON
+          -DPLUGIN_ANALYTICS=OFF
+          -DPLUGIN_LIFECYCLEMANAGER=OFF
+          -DPLUGIN_APPMANAGER=OFF
+          -DPLUGIN_FIRMWAREUPDATE=ON
+          -DPLUGIN_TEXTTOSPEECH=ON
           -DPLUGIN_AVINPUT=OFF
           -DPLUGIN_AVOUTPUT=OFF
           -DAVOUTPUT_TV=OFF
@@ -558,6 +967,7 @@ jobs:
           lcov
           -r coverage.info
           '/usr/include/*'
+          '*/build/entservices-infra/_deps/*'
           '*/build/entservices-deviceanddisplay/_deps/*'
           '*/build/entservices-entservices-testframework/_deps/*'
           '*/install/usr/include/*'
@@ -582,4 +992,3 @@ jobs:
             rdkL2TestResultsWithoutValgrind.json
             rdkL2TestResultsWithValgrind.json
           if-no-files-found: warn
-

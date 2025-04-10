@@ -2,12 +2,6 @@ name: json-validator
 
 on:
   workflow_call:
-    inputs:
-      env:
-        description: 'Test'
-        default: 'stage'
-        required: false
-        type: string
 jobs:
   build:
     runs-on: ubuntu-latest  

@@ -1,6 +1,7 @@
 name: L2-tests
 
 on:
+  workflow_call:
   push:
     branches: [ main, develop, 'sprint/**', 'release/**' ]
   pull_request:

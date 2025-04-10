@@ -2,10 +2,13 @@ name: L1-tests
 
 on:
   push:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
+    branches: [ main, 'sprint/**', 'release/**', develop ]
   pull_request:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
-
+    branches: [ main, 'sprint/**', 'release/**', topic/RDK*, develop ]
+  workflow_call:
+    secrets:
+      RDKCM_RDKE: 
+        required: true
 env:
   BUILD_TYPE: Debug
   THUNDER_REF: "R4.4.1"
@@ -113,13 +116,57 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          branch: develop
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
         uses: actions/checkout@v3
         with:
+          repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
+          branch: develop
+
+      - name: Checkout entservices-infra
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-infra
+          path: entservices-infra
+          branch: develop
+
+      - name: Checkout entservices-softwareupdate
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-softwareupdate
+          path: entservices-softwareupdate
+          branch: develop
+
+      - name: Checkout entservices-inputoutput
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-inputoutput
+          path: entservices-inputoutput
+          branch: develop
+
+      - name: Checkout entservices-casting
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-casting
+          path: entservices-casting
+          branch: develop
+
+      - name: Checkout entservices-mediaanddrm
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-mediaanddrm
+          path: entservices-mediaanddrm
+          branch: develop
+
+      - name: Checkout entservices-peripherals
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-peripherals
+          path: entservices-peripherals
+          branch: develop
 
       - name: Apply patches ThunderTools
         run: |  
@@ -348,6 +395,452 @@ jobs:
           &&
           cmake --install build/entservices-deviceanddisplay
 
+      - name: Build entservices-infra
+        run: >
+          cmake -G Ninja
+          -S "$GITHUB_WORKSPACE/entservices-infra"
+          -B build/entservices-infra
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DRDK_SERVICES_L1_TEST
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/headers/audiocapturemgr
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I $GITHUB_WORKSPACE/Thunder/Source
+          -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          --coverage
+          -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog
+          -DENABLE_TELEMETRY_LOGGING
+          -DUSE_IARMBUS
+          -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
+          -DENABLE_DEEP_SLEEP
+          -DENABLE_SET_WAKEUP_SRC_CONFIG
+          -DENABLE_THERMAL_PROTECTION
+          -DDISABLE_SECURITY_TOKEN
+          -DUSE_DRM_SCREENCAPTURE
+          -DHAS_API_SYSTEM
+          -DHAS_API_POWERSTATE
+          -DHAS_RBUS
+          -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DDS_FOUND=ON
+          -DHAS_FRONT_PANEL=ON
+          -DRDK_SERVICES_L1_TEST=ON
+          -DUSE_THUNDER_R4=ON
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DPLUGIN_ANALYTICS=OFF
+          -DPLUGIN_APPMANAGER=ON
+          -DPLUGIN_CLOUDSTORE=OFF
+          -DPLUGIN_LIFECYCLEMANAGER=OFF
+          -DPLUGIN_MESSAGECONTROL=OFF
+          -DPLUGIN_MONITOR=OFF
+          -DPLUGIN_OCICONTAINER=OFF
+          -DPLUGIN_PERSISTENTSTORE=OFF
+          -DPLUGIN_RDKSHELL=OFF
+          -DPLUGIN_RDKWINDOWMANAGER=OFF
+          -DPLUGIN_RESOURCEMANAGER=OFF
+          -DPLUGIN_RUNTIMEMANAGER=OFF
+          -DPLUGIN_RUSTADAPTER=OFF
+          -DPLUGIN_SHAREDSTORAGE=OFF
+          -DPLUGIN_STORAGEMANAGER=OFF
+          -DPLUGIN_USERSETTINGS=OFF
+          -DPLUGIN_WEBBRIDGE=OFF
+          -DPLUGIN_TELEMETRY=OFF
+          -DPLUGIN_USBDEVICE=ON
+          -DPLUGIN_USB_MASS_STORAGE=ON
+          &&
+          cmake --build build/entservices-infra -j8
+          &&
+          cmake --install build/entservices-infra
+
+      - name: Build entservices-softwareupdate
+        run: >
+          cmake -G Ninja
+          -S "$GITHUB_WORKSPACE/entservices-softwareupdate"
+          -B build/entservices-softwareupdate
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DRDK_SERVICES_L1_TEST
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/headers/audiocapturemgr
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I $GITHUB_WORKSPACE/Thunder/Source
+          -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          --coverage
+          -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog
+          -DENABLE_TELEMETRY_LOGGING
+          -DUSE_IARMBUS
+          -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
+          -DENABLE_DEEP_SLEEP
+          -DENABLE_SET_WAKEUP_SRC_CONFIG
+          -DENABLE_THERMAL_PROTECTION
+          -DDISABLE_SECURITY_TOKEN
+          -DUSE_DRM_SCREENCAPTURE
+          -DHAS_API_SYSTEM
+          -DHAS_API_POWERSTATE
+          -DHAS_RBUS
+          -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DDS_FOUND=ON
+          -DHAS_FRONT_PANEL=ON
+          -DRDK_SERVICES_L1_TEST=ON
+          -DUSE_THUNDER_R4=ON
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DPLUGIN_FIRMWAREUPDATE=ON
+          -DPLUGIN_MAINTENANCEMANAGER=OFF
+          -DPLUGIN_PACKAGER=OFF
+          &&
+          cmake --build build/entservices-softwareupdate -j8
+          &&
+          cmake --install build/entservices-softwareupdate
+
+      - name: Build entservices-inputoutput
+        run: >
+          cmake -G Ninja
+          -S "$GITHUB_WORKSPACE/entservices-inputoutput"
+          -B build/entservices-inputoutput
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DRDK_SERVICES_L1_TEST
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/headers/audiocapturemgr
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I $GITHUB_WORKSPACE/Thunder/Source
+          -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          --coverage
+          -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog
+          -DENABLE_TELEMETRY_LOGGING
+          -DUSE_IARMBUS
+          -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
+          -DENABLE_DEEP_SLEEP
+          -DENABLE_SET_WAKEUP_SRC_CONFIG
+          -DENABLE_THERMAL_PROTECTION
+          -DDISABLE_SECURITY_TOKEN
+          -DUSE_DRM_SCREENCAPTURE
+          -DHAS_API_SYSTEM
+          -DHAS_API_POWERSTATE
+          -DHAS_RBUS
+          -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DDS_FOUND=ON
+          -DHAS_FRONT_PANEL=ON
+          -DRDK_SERVICES_L1_TEST=ON
+          -DUSE_THUNDER_R4=ON
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DPLUGIN_HDCPPROFILE=ON
+          &&
+          cmake --build build/entservices-inputoutput -j8
+          &&
+          cmake --install build/entservices-inputoutput
+
+      - name: Build entservices-casting
+        run: >
+          cmake -G Ninja
+          -S "$GITHUB_WORKSPACE/entservices-casting"
+          -B build/entservices-casting
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DRDK_SERVICES_L1_TEST
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/headers/audiocapturemgr
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I $GITHUB_WORKSPACE/Thunder/Source
+          -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          --coverage
+          -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,wpa_ctrl_open -Wl,-wrap,wpa_ctrl_request -Wl,-wrap,wpa_ctrl_close -Wl,-wrap,wpa_ctrl_pending -Wl,-wrap,wpa_ctrl_recv -Wl,-wrap,wpa_ctrl_attach
+          -DENABLE_TELEMETRY_LOGGING
+          -DUSE_IARMBUS
+          -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
+          -DENABLE_DEEP_SLEEP
+          -DENABLE_SET_WAKEUP_SRC_CONFIG
+          -DENABLE_THERMAL_PROTECTION
+          -DDISABLE_SECURITY_TOKEN
+          -DUSE_DRM_SCREENCAPTURE
+          -DHAS_API_SYSTEM
+          -DHAS_API_POWERSTATE
+          -DHAS_RBUS
+          -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DDS_FOUND=ON
+          -DHAS_FRONT_PANEL=ON
+          -DRDK_SERVICES_L1_TEST=ON
+          -DUSE_THUNDER_R4=ON
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DPLUGIN_XCAST=ON
+          -DPLUGIN_MIRACAST=ON
+          &&
+          cmake --build build/entservices-casting -j8
+          &&
+          cmake --install build/entservices-casting
+
+      - name: Build entservices-mediaanddrm
+        run: >
+          cmake -G Ninja
+          -S "$GITHUB_WORKSPACE/entservices-mediaanddrm"
+          -B build/entservices-mediaanddrm
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DRDK_SERVICES_L1_TEST
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/headers/audiocapturemgr
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I $GITHUB_WORKSPACE/Thunder/Source
+          -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/thunder/Communicator.h
+          --coverage
+          -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink
+          -DENABLE_TELEMETRY_LOGGING
+          -DUSE_IARMBUS
+          -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
+          -DENABLE_DEEP_SLEEP
+          -DENABLE_SET_WAKEUP_SRC_CONFIG
+          -DENABLE_THERMAL_PROTECTION
+          -DDISABLE_SECURITY_TOKEN
+          -DUSE_DRM_SCREENCAPTURE
+          -DHAS_API_SYSTEM
+          -DHAS_API_POWERSTATE
+          -DHAS_RBUS
+          -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DDS_FOUND=ON
+          -DHAS_FRONT_PANEL=ON
+          -DRDK_SERVICES_L1_TEST=ON
+          -DUSE_THUNDER_R4=ON
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DPLUGIN_TEXTTOSPEECH=OFF
+          -DPLUGIN_SYSTEMAUDIOPLAYER=OFF
+          -DPLUGIN_SCREENCAPTURE=ON
+          &&
+          cmake --build build/entservices-mediaanddrm -j8
+          &&
+          cmake --install build/entservices-mediaanddrm
+
+      - name: Build entservices-peripherals
+        run: >
+          cmake -G Ninja
+          -S "$GITHUB_WORKSPACE/entservices-peripherals"
+          -B build/entservices-peripherals
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_CXX_FLAGS="
+          -DEXCEPTIONS_ENABLE=ON
+          -DUSE_THUNDER_R4=ON
+          -DTHUNDER_VERSION=4
+          -DTHUNDER_VERSION_MAJOR=4
+          -DTHUNDER_VERSION_MINOR=4
+          -DRDK_SERVICES_L1_TEST
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-testframework/headers/audiocapturemgr
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I $GITHUB_WORKSPACE/Thunder/Source
+          -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Udev.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/maintenanceMGR.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/pkg.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/secure_wrappermock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/MotionDetection.h
+          --coverage
+          -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,wpa_ctrl_open -Wl,-wrap,wpa_ctrl_request -Wl,-wrap,wpa_ctrl_close -Wl,-wrap,wpa_ctrl_pending -Wl,-wrap,wpa_ctrl_recv -Wl,-wrap,wpa_ctrl_attach
+          -DENABLE_TELEMETRY_LOGGING
+          -DUSE_IARMBUS
+          -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
+          -DENABLE_DEEP_SLEEP
+          -DENABLE_SET_WAKEUP_SRC_CONFIG
+          -DENABLE_THERMAL_PROTECTION
+          -DDISABLE_SECURITY_TOKEN
+          -DUSE_DRM_SCREENCAPTURE
+          -DHAS_API_SYSTEM
+          -DHAS_API_POWERSTATE
+          -DHAS_RBUS
+          -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -DCOMCAST_CONFIG=OFF
+          -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DDS_FOUND=ON
+          -DHAS_FRONT_PANEL=OFF
+          -DPLUGIN_MOTION_DETECTION=ON
+          -DRDK_SERVICES_L1_TEST=ON
+          -DUSE_THUNDER_R4=ON
+          -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          &&
+          cmake --build build/entservices-peripherals -j8
+          &&
+          cmake --install build/entservices-peripherals
+
       - name: Build entservices-testframework
         run: >
           cmake -G Ninja
@@ -412,9 +905,16 @@ jobs:
           -DHAS_FRONT_PANEL=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_FRAMERATE=ON
+          -DPLUGIN_FIRMWAREUPDATE=ON
           -DPLUGIN_USERPREFERENCES=ON
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
+          -DPLUGIN_USBDEVICE=ON
+          -DPLUGIN_USB_MASS_STORAGE=ON
+          -DPLUGIN_HDCPPROFILE=ON
+          -DPLUGIN_MIRACAST=ON
+          -DPLUGIN_SCREENCAPTURE=ON
+          -DPLUGIN_MOTION_DETECTION=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF

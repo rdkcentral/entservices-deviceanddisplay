@@ -39,8 +39,6 @@
 #include "UtilsfileExists.h"
 #include "UtilsgetFileContent.h"
 
-#include "frontpanel.h"
-
 #include "rfcapi.h"
 
 #define WAREHOUSE_RFC_CALLERID                  "Warehouse"
@@ -111,11 +109,6 @@ namespace WPEFramework
     
         WarehouseImplementation::WarehouseImplementation() : 
         _adminLock() 
-        , _service(nullptr)
-#ifdef HAS_FRONT_PANEL
-        , m_ledTimer(64 * 1024, "LedTimer")
-        , m_ledInfo(this)
-#endif
         {
             LOGINFO("Create WarehouseImplementation Instance");
 
@@ -130,7 +123,6 @@ namespace WPEFramework
                 m_resetThread.get().join();
 
             WarehouseImplementation::_instance = nullptr;
-            _service = nullptr;
             DeinitializeIARM();
             LOGWARN ("WarehouseImplementation::Destructor finished line:%d", __LINE__);
         }
@@ -727,48 +719,6 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
 
-#ifdef HAS_FRONT_PANEL
-        static bool SetFrontPanelLights(int state, int iteration)
-        {
-            bool ledData = false;
-            bool ledRecord = false;
-            int ledBrightness = 100;
-            if (state == FRONT_PANEL_INPROGRESS)
-            {
-                // i    0   1   2   3   4   5   6   7   8
-                // DA   1   1   1   1   0   0   0   0   1
-                // RE   0   0   0   0   1   1   1   1   0
-                // BR   100 75  50  25  0   25  50  75  100
-                ledData = (iteration / 4) % 2 == 0;
-                ledRecord = !ledData;
-                ledBrightness = abs(100 - 25 * (iteration % 8));
-            }
-            else if (state == FRONT_PANEL_FAILED)
-            {
-                // i    0   1   2
-                // DA   1   0   1
-                // RE   0   1   0
-                // BR   100 100 100
-                ledData = iteration % 2 == 0;
-                ledRecord = !ledData;
-                ledBrightness = 100;
-            }
-            LOGINFO("SetFrontPanelLights set Brightness=%d (LEDs: Data=%d Record=%d)",
-                       ledBrightness, ledData?1:0, ledRecord?1:0);
-            CFrontPanel* helper = CFrontPanel::instance();
-            bool didSet = false;
-            if (ledData)
-                didSet |= helper->powerOnLed(FRONT_PANEL_INDICATOR_MESSAGE);
-            else
-                didSet |= helper->powerOffLed(FRONT_PANEL_INDICATOR_MESSAGE);
-            if (ledRecord)
-                didSet |= helper->powerOnLed(FRONT_PANEL_INDICATOR_RECORD);
-            else
-                didSet |= helper->powerOffLed(FRONT_PANEL_INDICATOR_RECORD);
-            didSet |= helper->setBrightness(ledBrightness);
-            return didSet;
-        }
-#endif
         void WarehouseImplementation::dispatchEvent(Event event, const JsonValue &params)
         {
             Core::IWorkerPool::Instance().Submit(Job::Create(this, event, params));
@@ -797,21 +747,6 @@ namespace WPEFramework
             _adminLock.Unlock();
         }
         
-#ifdef HAS_FRONT_PANEL
-        void WarehouseImplementation::onSetFrontPanelStateTimer()
-        {
-            SetFrontPanelLights(m_ledState, m_ledTimerIteration);
-            ++m_ledTimerIteration;
-            m_ledTimer.Schedule(Core::Time::Now().Add(FRONT_PANEL_INTERVAL), m_ledInfo);
-        }
-
-        uint64_t LedInfo::Timed(const uint64_t scheduledTime)
-        {
-            uint64_t result = 0;
-            m_warehouse->onSetFrontPanelStateTimer();
-            return(result);
-        }
-#endif
         void WarehouseImplementation::dsWareHouseOpnStatusChanged(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
             bool success = false;
@@ -926,16 +861,6 @@ namespace WPEFramework
             {
                 LOGWARN ("WarehouseImplementation::ResetWarehouseRebootFlag failed\n");
             }
-        }
-
-        void WarehouseImplementation::getDateAndTime(string& utcDateTime)
-        {
-            char timeStringBuffer[128] = {'\0'};
-            time_t rawTime = time(0);
-            struct tm *gmt = gmtime(&rawTime);
-            strftime(timeStringBuffer, sizeof(timeStringBuffer), "%d.%m.%Y_%H.%M.%S", gmt);
-            utcDateTime = timeStringBuffer;
-            return;
         }
 
         bool WarehouseImplementation::getSDCardMountPath(string& mount_path)

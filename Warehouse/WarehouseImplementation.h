@@ -35,37 +35,6 @@ namespace WPEFramework
 {
     namespace Plugin
     {
-#ifdef HAS_FRONT_PANEL
-        class WarehouseImplementation;
-        class LedInfo
-        {
-        private:
-            LedInfo() = delete;
-            LedInfo& operator=(const LedInfo& RHS) = delete;
-
-        public:
-            LedInfo(WarehouseImplementation* wh)
-            : m_warehouse(wh)
-            {
-            }
-            LedInfo(const LedInfo& copy)
-            : m_warehouse(copy.m_warehouse)
-            {
-            }
-            ~LedInfo() {}
-
-            inline bool operator==(const LedInfo& RHS) const
-            {
-                return(m_warehouse == RHS.m_warehouse);
-            }
-
-        public:
-            uint64_t Timed(const uint64_t scheduledTime);
-
-        private:
-            WarehouseImplementation* m_warehouse;
-        };
-#endif
         class WarehouseImplementation : public Exchange::IWarehouse
         {
             public:
@@ -139,21 +108,12 @@ namespace WPEFramework
 
         private:
             mutable Core::CriticalSection _adminLock;
-            PluginHost::IShell* _service;
-#ifdef HAS_FRONT_PANEL
-            Core::TimerType<LedInfo> m_ledTimer;
-            LedInfo m_ledInfo;
-            int m_ledTimerIteration;
-            int m_ledState;
-#endif
             std::list<Exchange::IWarehouse::INotification*> _warehouseNotification;
             Utils::ThreadRAII m_resetThread;
             
             void dispatchEvent(Event, const JsonValue &params);
             void Dispatch(Event event, const JsonValue params);
             static void dsWareHouseOpnStatusChanged(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-            /*returns the UTC date and time in format DD.MM.YYYY_HH.MM.SS format eg : 11.08.2023_18:47:47*/
-            void getDateAndTime(string& utcDateTime);
             /*gets the SD card mount path by reading /proc/mounts, returns true on success, false otherwise*/
             bool getSDCardMountPath(string&);
             /*Adds 0 to file /opt/.rebootFlag*/
@@ -165,7 +125,6 @@ namespace WPEFramework
             static WarehouseImplementation* _instance;
             
             void ResetDone(bool success, string error);
-	    void onSetFrontPanelStateTimer();
             uint32_t processColdFactoryReset();
             uint32_t processFactoryReset();
             uint32_t processWareHouseReset();

@@ -128,6 +128,10 @@ namespace WPEFramework
 
         void _frameEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
+            if ((nullptr == owner) || (nullptr == data)) {
+                LOGERR("_frameEventHandler: received null parameter; discarding.");
+                return;
+            }
             switch (eventId) {
                 case IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE:
                     {
@@ -181,7 +185,7 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
 
-        uint32_t FrameRateImplementation::Unregister(Exchange::IFrameRate::INotification *notification )
+        uint32_t FrameRateImplementation::Unregister(Exchange::IFrameRate::INotification *notification)
         {
             uint32_t status = Core::ERROR_GENERAL;
 
@@ -329,7 +333,7 @@ namespace WPEFramework
             return Core::ERROR_GENERAL;
         }
 
-        uint32_t FrameRateImplementation::GetFrmMode(int &frmmode , bool& success)
+        uint32_t FrameRateImplementation::GetFrmMode(int &frmmode, bool& success)
         {
             std::lock_guard<std::mutex> guard(m_callMutex);
 
@@ -338,7 +342,7 @@ namespace WPEFramework
             try {
                 device::VideoDevice &device = device::Host::getInstance().getVideoDevices().at(0);
                 device.getFRFMode(&frmmode);
-            } catch(const device::Exception& err) {
+            } catch (const device::Exception& err) {
                 //LOG_DEVICE_EXCEPTION0();
                 success = false;
             }
@@ -431,6 +435,11 @@ namespace WPEFramework
 
         void FrameRateImplementation::FrameRatePreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
+            if ((nullptr == owner) || (nullptr == data)) {
+                LOGERR("FrameRateImplementation::FrameRatePreChange: received null parameter; discarding.");
+                return;
+            }
+
             char dispFrameRate[20] = {0};
             if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0) {
                 switch (eventId) {
@@ -452,13 +461,20 @@ namespace WPEFramework
 
         void FrameRateImplementation::frameRatePreChange(char *displayFrameRate)
         {
-            string status;
-            status = std::string(displayFrameRate);
+            if (nullptr == displayFrameRate) {
+                LOGERR("FrameRateImplementation::frameRatePreChange: received null parameter; discarding.");
+                return;
+            }
+            string status = std::string(displayFrameRate);
             //sendNotify(EVENT_FRAMERATE_PRECHANGE, status);
         }
 
         void FrameRateImplementation::FrameRatePostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
+            if ((nullptr == owner) || (nullptr == data)) {
+                LOGERR("FrameRateImplementation::FrameRatePostChange: received null parameter; discarding.");
+                return;
+            }
             char dispFrameRate[20] = {0};
             if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0) {
                 switch (eventId) {
@@ -480,8 +496,11 @@ namespace WPEFramework
 
         void FrameRateImplementation::frameRatePostChange(char *displayFrameRate)
         {
-            string status;
-            status = std::string(displayFrameRate);
+            if (nullptr == displayFrameRate) {
+                LOGERR("FrameRateImplementation::frameRatePostChange: received null parameter; discarding.");
+                return;
+            }
+            string status = std::string(displayFrameRate);
             //sendNotify(EVENT_FRAMERATE_POSTCHANGE, status);
         }
     } // namespace Plugin

@@ -53,8 +53,8 @@ include_directories(
    ../helpers)
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
-        CXX_STANDARD 11
-        CXX_STANDARD_REQUIRED YES)
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED YES)
 
 if (RDK_SERVICE_L2_TEST)
    find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)

@@ -7,7 +7,7 @@ on:
     branches: [ develop, 'sprint/**', 'release/**' ]
   workflow_call:
     secrets:
-      token:
+      RDKCM_RDKE: 
         required: true
 env:
   BUILD_TYPE: Debug
@@ -81,10 +81,13 @@ jobs:
           path: ThunderTools
           ref: R4.4.3
 
-      - name: Checkout entservices-testframework
+      - name: Checkout entservices-deviceanddisplay
         uses: actions/checkout@v3
         with:
-          path: entservices-testframework
+          repository: rdkcentral/entservices-deviceanddisplay
+          path: entservices-deviceanddisplay
+          branch: develop
+          token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Apply patches ThunderTools
         run: |  

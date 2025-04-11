@@ -320,7 +320,7 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
         
-        Core::hresult WarehouseImplementation::GetHardwareTestResults(const string& testResults, WarehouseSuccess& success)
+        Core::hresult WarehouseImplementation::GetHardwareTestResults(string& testResults, WarehouseSuccess& success)
         {
             LOGINFO("");
             bool result = false;
@@ -332,7 +332,7 @@ namespace WPEFramework
             result = (wdmpStatus == WDMP_SUCCESS);
             if (result)
             {
-                //testResults = param.value;
+                testResults = param.value;
                 wdmpStatus = setRFCParameter((char *)WAREHOUSE_RFC_CALLERID, WAREHOUSE_HWHEALTH_ENABLE_RFC_PARAM, "false", WDMP_BOOLEAN);
                 result = (wdmpStatus == WDMP_SUCCESS);
             }

@@ -100,7 +100,7 @@ namespace WPEFramework
             virtual Core::hresult Unregister(Exchange::IWarehouse::INotification *notification ) override;
 
             Core::hresult ExecuteHardwareTest(WarehouseSuccess& success) override;
-            Core::hresult GetHardwareTestResults(const string& testResults, WarehouseSuccess& success) override;
+            Core::hresult GetHardwareTestResults(string& testResults, WarehouseSuccess& success) override;
             Core::hresult InternalReset(const string& passPhrase, WarehouseSuccessErr& successErr) override;
             Core::hresult IsClean(const int age, bool &clean, IStringIterator*& files, bool &success) override;
             Core::hresult LightReset(WarehouseSuccessErr& successErr) override;

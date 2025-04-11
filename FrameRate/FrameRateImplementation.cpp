@@ -32,11 +32,6 @@
 #include "UtilsIarm.h"
 #include "UtilsProcess.h"
 
-// Events
-#define EVENT_FPS_UPDATE "onFpsEvent"
-#define EVENT_FRAMERATE_PRECHANGE  "onDisplayFrameRateChanging"
-#define EVENT_FRAMERATE_POSTCHANGE    "onDisplayFrameRateChanged"
-
 //Defines
 #define DEFAULT_FPS_COLLECTION_TIME_IN_MILLISECONDS 10000
 #define MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS 100
@@ -403,7 +398,6 @@ namespace WPEFramework
             params["average"] = averageFps;
             params["min"] = minFps;
             params["max"] = maxFps;
-            //sendNotify(EVENT_FPS_UPDATE, params);
         }
 
         void FrameRateImplementation::onReportFpsTimer()
@@ -466,7 +460,6 @@ namespace WPEFramework
                 return;
             }
             string status = std::string(displayFrameRate);
-            //sendNotify(EVENT_FRAMERATE_PRECHANGE, status);
         }
 
         void FrameRateImplementation::FrameRatePostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
@@ -501,7 +494,6 @@ namespace WPEFramework
                 return;
             }
             string status = std::string(displayFrameRate);
-            //sendNotify(EVENT_FRAMERATE_POSTCHANGE, status);
         }
     } // namespace Plugin
 } // namespace WPEFramework

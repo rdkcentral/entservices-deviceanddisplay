@@ -52,27 +52,27 @@ string PlatformCapsData::GetDeviceType() {
   const char* device_type;
   string deviceType;
 
-  if (authservicePlugin == nullptr)
+  if (authservicePlugin != nullptr)
   {
-    TRACE(Trace::Error, (_T("No interface for AuthService\n")));
-    return string();
-  }
-  
-  std::string hex;
-  WPEFramework::Exchange::IAuthService::GetDeviceInfoResult diRes;
-  auto rc = authservicePlugin->GetDeviceInfo(diRes);
-  if (authservicePlugin != nullptr && rc == Core::ERROR_NONE) {
-    hex = diRes.deviceInfo;
-  }
+    TRACE(Trace::Information, (_T("AuthService plugin is available.\n")));
+    std::string hex;
+    WPEFramework::Exchange::IAuthService::GetDeviceInfoResult diRes;
+    auto rc = authservicePlugin->GetDeviceInfo(diRes);
+    if (rc == Core::ERROR_NONE) {
+      hex = diRes.deviceInfo;
+    }
 
-  auto deviceInfo = stringFromHex(hex);
+    auto deviceInfo = stringFromHex(hex);
 
-  std::smatch m;
-  std::regex_search(deviceInfo, m, std::regex("deviceType=(\\w+),"));
-  if (!m.empty()) {
-    return m[1];
+    std::smatch m;
+    std::regex_search(deviceInfo, m, std::regex("deviceType=(\\w+),"));
+    if (!m.empty()) {
+      return m[1];
+    }
   }
-  else {
+  else
+  {
+    TRACE(Trace::Error, (_T("AuthService plugin is not available.\n")));
     deviceType = jsonRpc.invoke(_T("org.rdk.System"),
                         _T("getDeviceInfo"), 10000)
     .Get(_T("device_type")).String();
@@ -84,7 +84,7 @@ string PlatformCapsData::GetDeviceType() {
   }
   return deviceType;
 }
-
+   
 string PlatformCapsData::GetHDRCapability() {
   JsonArray hdrCaps = jsonRpc.invoke(_T("org.rdk.DisplaySettings"),
                                      _T("getSettopHDRSupport"), 3000)

@@ -83,31 +83,31 @@ namespace Plugin {
                 _parent.Deactivated(connection);
             }
 
-            void OnPowerModeChanged(const PowerState currentState, const PowerState newState) override
+            void OnPowerModeChanged(const PowerState& currentState, const PowerState& newState) override
             {
                 LOGINFO("currentState %u, newState %u", currentState, newState);
                 Exchange::JPowerManager::Event::OnPowerModeChanged(_parent, currentState, newState);
             }
 
-            void OnPowerModePreChange(const PowerState currentState, const PowerState newState, const int trxnId, const int stateChangeAfter) override
+            void OnPowerModePreChange(const PowerState& currentState, const PowerState& newState, const int trxnId, const int stateChangeAfter) override
             {
                 LOGINFO("currentState %u, newState %u, transactionId %d, stateChangeAfter %d sec", currentState, newState, trxnId, stateChangeAfter);
                 Exchange::JPowerManager::Event::OnPowerModePreChange(_parent, currentState, newState, trxnId, stateChangeAfter);
             }
 
-            void OnDeepSleepTimeout(const int wakeupTimeout) override
+            void OnDeepSleepTimeout(const int& wakeupTimeout) override
             {
                 LOGINFO("wakeupTimeout %d", wakeupTimeout);
                 Exchange::JPowerManager::Event::OnDeepSleepTimeout(_parent, wakeupTimeout);
             }
 
-            void OnNetworkStandbyModeChanged(const bool enabled) override
+            void OnNetworkStandbyModeChanged(const bool& enabled) override
             {
                 LOGINFO("enabled %d", enabled);
                 Exchange::JPowerManager::Event::OnNetworkStandbyModeChanged(_parent, enabled);
             }
 
-            void OnThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature) override
+            void OnThermalModeChanged(const ThermalTemperature& currentThermalLevel, const ThermalTemperature& newThermalLevel, const float& currentTemperature) override
             {
                 LOGINFO("currentThermalLevel %d, newThermalLevel %d, currentTemperature %f", currentThermalLevel, newThermalLevel, currentTemperature);
                 Exchange::JPowerManager::Event::OnThermalModeChanged(_parent, currentThermalLevel, newThermalLevel, currentTemperature);

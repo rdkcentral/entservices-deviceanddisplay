@@ -186,7 +186,7 @@ namespace Plugin {
         virtual uint32_t Unregister(Exchange::IPowerManager::IThermalModeChangedNotification* notification) override;
 
         uint32_t GetPowerState(PowerState& currentState, PowerState& prevState) const override;
-        uint32_t SetPowerState(const int keyCode, const PowerState powerState, const string& standbyReason) override;
+        uint32_t SetPowerState(const int& keyCode, const PowerState& powerState, const string& standbyReason) override;
         uint32_t GetTemperatureThresholds(float& high, float& critical) const override;
         uint32_t SetTemperatureThresholds(const float high, const float critical) override;
         uint32_t GetOvertempGraceInterval(int& graceInterval) const override;
@@ -196,11 +196,11 @@ namespace Plugin {
         uint32_t GetLastWakeupReason(WakeupReason& wakeupReason) const override;
         uint32_t GetLastWakeupKeyCode(int& keycode) const override;
         uint32_t Reboot(const string& rebootRequestor, const string& rebootReasonCustom, const string& rebootReasonOther) override;
-        uint32_t SetNetworkStandbyMode(const bool standbyMode) override;
+        uint32_t SetNetworkStandbyMode(const bool& standbyMode) override;
         uint32_t GetNetworkStandbyMode(bool& standbyMode) override;
-        uint32_t SetWakeupSrcConfig(const int powerMode, const int srcType, int config) override;
+        uint32_t SetWakeupSrcConfig(const int& powerMode, const int& srcType, int config) override;
         uint32_t GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const override;
-        uint32_t SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const override;
+        uint32_t SetSystemMode(const SystemMode& currentMode, const SystemMode& newMode) const override;
         uint32_t GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot) override;
         uint32_t PowerModePreChangeComplete(const uint32_t clientId, const int transactionId) override;
         uint32_t DelayPowerModeChangeBy(const uint32_t clientId, const int transactionId, const int delayPeriod) override;

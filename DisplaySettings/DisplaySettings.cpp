@@ -4656,7 +4656,7 @@ namespace WPEFramework {
             audioPortInitActive = false;
         }
 
-        void DisplaySettings::onPowerModeChanged(const PowerState currentState, const PowerState newState)
+        void DisplaySettings::onPowerModeChanged(const PowerState &currentState, const PowerState &newState)
         {
             LOGWARN("onPowerModeChanged: State Changed %d --> %d\r",
                          currentState, newState);

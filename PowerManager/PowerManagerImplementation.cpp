@@ -618,7 +618,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    uint32_t PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState powerState, const string& standbyReason)
+    uint32_t PowerManagerImplementation::SetPowerState(const int& keyCode, const PowerState& powerState, const string& standbyReason)
     {
         PowerState currentState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
@@ -889,7 +889,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    uint32_t PowerManagerImplementation::SetNetworkStandbyMode(const bool standbyMode)
+    uint32_t PowerManagerImplementation::SetNetworkStandbyMode(const bool& standbyMode)
     {
         uint32_t errorCode = Core::ERROR_GENERAL;
         IARM_Bus_PWRMgr_NetworkStandbyMode_Param_t param = {};
@@ -939,7 +939,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    uint32_t PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)
+    uint32_t PowerManagerImplementation::SetWakeupSrcConfig(const int& powerMode, const int& srcType, int config)
     {
         uint32_t errorCode = Core::ERROR_GENERAL;
 
@@ -986,7 +986,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    uint32_t PowerManagerImplementation::SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const
+    uint32_t PowerManagerImplementation::SetSystemMode(const SystemMode& currentMode, const SystemMode& newMode) const
     {
         uint32_t errorCode = Core::ERROR_GENERAL;
         IARM_Bus_CommonAPI_SysModeChange_Param_t modeParam;

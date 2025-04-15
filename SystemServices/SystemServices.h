@@ -134,15 +134,15 @@ namespace WPEFramework {
                     ~PowerManagerNotification() override = default;
 
                 public:
-                    void OnPowerModeChanged(const PowerState &currentState, const PowerState &newState) override
+                    void OnPowerModeChanged(const PowerState currentState, const PowerState newState) override
                     {
                         _parent.onPowerModeChanged(currentState, newState);
                     }
-                    void OnNetworkStandbyModeChanged(const bool &enabled) override
+                    void OnNetworkStandbyModeChanged(const bool enabled) override
                     {
                         _parent.onNetworkStandbyModeChanged(enabled);
                     }
-                    void OnThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature) override
+                    void OnThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature) override
                     {
                         _parent.onThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
                     }
@@ -241,10 +241,10 @@ namespace WPEFramework {
                 virtual string Information() const override { return {}; }
                 IPowerManager* getPwrMgrPluginInstance();
                 void registerEventHandlers();
-                void onPowerModeChanged(const PowerState &currentState, const PowerState &newState);
+                void onPowerModeChanged(const PowerState currentState, const PowerState newState);
                 std::string powerModeEnumToString(PowerState state);
-                void onNetworkStandbyModeChanged(const bool &enabled);
-                void onThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature);
+                void onNetworkStandbyModeChanged(const bool enabled);
+                void onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature);
                 void onRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor);
 
                 BEGIN_INTERFACE_MAP(SystemServices)

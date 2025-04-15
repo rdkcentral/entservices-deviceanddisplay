@@ -701,7 +701,7 @@ namespace WPEFramework {
             }
         }
 
-        void SystemServices::onPowerModeChanged(const PowerState &currentState, const PowerState &newState)
+        void SystemServices::onPowerModeChanged(const PowerState currentState, const PowerState newState)
         {
             std::string curPowerState,newPowerState = "";
 
@@ -734,7 +734,7 @@ namespace WPEFramework {
         }
 
 
-        void SystemServices::onNetworkStandbyModeChanged(const bool &enabled)
+        void SystemServices::onNetworkStandbyModeChanged(const bool enabled)
         {
             if (SystemServices::_instance) {
                 SystemServices::_instance->onNetworkModeChanged(enabled);
@@ -743,7 +743,7 @@ namespace WPEFramework {
             }
         }
 
-        void SystemServices::onThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature)
+        void SystemServices::onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature)
         {
             handleThermalLevelChange(currentThermalLevel, newThermalLevel, currentTemperature);
         }
@@ -3281,12 +3281,25 @@ namespace WPEFramework {
             returnResponse(resp);
         }
 
-        bool SystemServices::processTimeZones(std::string dir, JsonObject& out)
+        bool SystemServices::processTimeZones(std::string entry, JsonObject& out)
         {
             bool ret = true;
+
             std::string cmd = "zdump ";
-            cmd += dir;
-            cmd += "/*";
+            cmd += entry;
+
+            struct stat deStat;
+            if (0 == stat(entry.c_str(), &deStat))
+            {
+                if (S_ISDIR(deStat.st_mode))
+                {
+                    cmd += "/*";
+                }
+            }
+            else
+            {
+                LOGERR("stat() failed: %s", strerror(errno));
+            }
 
             FILE *p = popen(cmd.c_str(), "r");
 
@@ -3294,7 +3307,6 @@ namespace WPEFramework {
             {
                 LOGERR("failed to start %s: %s", cmd.c_str(), strerror(errno));
                 return false;
-
             }
 
             std::vector <std::string> dirs;
@@ -3319,7 +3331,6 @@ namespace WPEFramework {
 
                 fullName = line.substr(0, fileEnd);
 
-                struct stat deStat;
                 if (stat(fullName.c_str(), &deStat))
                 {
                     LOGERR("stat() failed: %s", strerror(errno));
@@ -3380,7 +3391,40 @@ namespace WPEFramework {
             LOGINFO("called");
 
             JsonObject dirObject;
-            bool resp = processTimeZones(ZONEINFO_DIR, dirObject);
+            bool resp = true;
+
+            if (parameters.HasLabel("timeZones"))
+            {
+                if (Core::JSON::Variant::type::ARRAY != parameters["timeZones"].Content() )
+                {
+                    LOGERR("Invalid parameter type");
+                    returnResponse(false);
+                }
+
+                JsonArray timeZones = parameters["timeZones"].Array();
+                JsonArray::Iterator index(timeZones.Elements());
+
+                while (index.Next() == true)
+                {
+                    if (Core::JSON::Variant::type::STRING == index.Current().Content())
+                    {
+                        std::string line = ZONEINFO_DIR "/" + index.Current().String();
+
+                        if (!processTimeZones(line, dirObject))
+                        {
+                            LOGERR("Failed to process %s", line.c_str());
+                            resp = false;
+                        }
+                    }
+                    else
+                        LOGWARN("Unexpected variant type");
+                }
+            }
+            else
+            {
+                resp = processTimeZones(ZONEINFO_DIR, dirObject);
+            }
+
             response["zoneinfo"] = dirObject;
 
             returnResponse(resp);

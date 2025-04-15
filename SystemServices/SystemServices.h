@@ -52,7 +52,6 @@ using std::ofstream;
 #include "cTimer.h"
 #include "rfcapi.h"
 #include <interfaces/IPowerManager.h>
-#include <interfaces/IStore2.h>
 #include <core/core.h>
 #include <core/JSON.h>
 #include "mfrMgr.h"
@@ -82,7 +81,6 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define EVT_ONTIMEZONEDSTCHANGED          "onTimeZoneDSTChanged"
 #define EVT_FRIENDLYNAMECHANGED           "onFriendlyNameChanged"
 #define EVT_ONLOGUPLOAD                   "onLogUpload"
-#define EVT_ONPRIVACYMODECHANGED          "onPrivacyModeChanged"
 #define EVT_ONDEVICEMGTUPDATERECEIVED     "onDeviceMgtUpdateReceived"
 #define TERRITORYFILE                     "/opt/secure/persistent/System/Territory.txt"
 #define EVT_ONBLOCKLISTCHANGED            "onBlocklistChanged"
@@ -233,8 +231,6 @@ namespace WPEFramework {
                 Core::Sink<PowerManagerNotification> _pwrMgrNotification;
                 bool _registeredEventHandlers;
                 void InitializePowerManager();
-                Exchange::IStore2* m_remoteStoreObject;
-
             public:
                 SystemServices();
                 virtual ~SystemServices();
@@ -389,8 +385,6 @@ namespace WPEFramework {
 		uint32_t getWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
                 uint32_t getPlatformConfiguration(const JsonObject& parameters, PlatformCaps& response);
                 uint32_t getThunderStartReason(const JsonObject& parameters, JsonObject& response);
-                uint32_t setPrivacyMode(const JsonObject& parameters, JsonObject& response);
-                uint32_t getPrivacyMode(const JsonObject& parameters, JsonObject& response);
                 uint32_t setFSRFlag(const JsonObject& parameters, JsonObject& response);
                 uint32_t getFSRFlag(const JsonObject& parameters, JsonObject& response);
                 uint32_t setBlocklistFlag(const JsonObject& parameters, JsonObject& response);

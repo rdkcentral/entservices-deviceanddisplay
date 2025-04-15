@@ -3294,7 +3294,7 @@ namespace WPEFramework {
             
             if (0 != access(entry.c_str(), F_OK))
             {
-                LOGERR("No access to %s: %s", entry.c_str(), strerror(errno));
+                LOGERR("Timezone is not in olson format ('%s')", entry.c_str());
                 return false;
             }
 

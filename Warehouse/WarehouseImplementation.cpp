@@ -290,7 +290,7 @@ namespace WPEFramework
                 string json;
                 params.ToString(json);
                 LOGINFO("Notify %s %s\n", "ResetDone", json.c_str());
-                WarehouseImplementation::_instance->ResetDone(ok,"Reset failed");
+                WarehouseImplementation::_instance->ResetDone(ok,params["error"]);
             }
         }
 #endif

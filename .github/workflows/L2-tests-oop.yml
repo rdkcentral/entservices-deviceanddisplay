@@ -1,7 +1,10 @@
 name: L2-tests-OOP
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main, develop, 'sprint/**', 'release/**' ]
+  pull_request:
+    branches: [ main, develop, 'sprint/**', 'release/**' ]
 
 env:
   BUILD_TYPE: Debug
@@ -85,6 +88,7 @@ jobs:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
           ref: develop
+          token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
         uses: actions/checkout@v3

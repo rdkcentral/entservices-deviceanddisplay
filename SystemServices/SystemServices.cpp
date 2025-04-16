@@ -3291,6 +3291,12 @@ namespace WPEFramework {
 
             std::string cmd = "zdump ";
             cmd += entry;
+            
+            if (0 != access(entry.c_str(), F_OK))
+            {
+                LOGERR("Timezone is not in olson format ('%s')", entry.c_str());
+                return false;
+            }
 
             struct stat deStat;
             if (0 == stat(entry.c_str(), &deStat))
@@ -3395,7 +3401,7 @@ namespace WPEFramework {
             LOGINFO("called");
 
             JsonObject dirObject;
-            bool resp = true;
+            bool resp = false;
 
             if (parameters.HasLabel("timeZones"))
             {
@@ -3414,10 +3420,13 @@ namespace WPEFramework {
                     {
                         std::string line = ZONEINFO_DIR "/" + index.Current().String();
 
-                        if (!processTimeZones(line, dirObject))
+                        if (processTimeZones(line, dirObject))
+                        {
+                            resp = true;
+                        }
+                        else
                         {
                             LOGERR("Failed to process %s", line.c_str());
-                            resp = false;
                         }
                     }
                     else

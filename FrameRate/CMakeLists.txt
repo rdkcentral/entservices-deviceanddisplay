@@ -72,7 +72,7 @@ endif(PROCPS_LIBRARIES)
 
 find_package(DS)
 if (DS_FOUND)
-	find_package(IARMBus)
+    find_package(IARMBus)
     add_definitions(-DDS_FOUND)
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_INCLUDE_DIRS})

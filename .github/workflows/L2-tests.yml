@@ -316,9 +316,11 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsError.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsUtl.h
           -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink
           -DUSE_IARMBUS
           -DRDK_SERVICE_L2_TEST
           -DDISABLE_SECURITY_TOKEN
+          -DHAS_API_POWERSTATE
           -DENABLE_THERMAL_PROTECTION"
           -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
           -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
@@ -329,9 +331,9 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DPLUGIN_SYSTEMSERVICES=OFF
-          -DPLUGIN_POWERMANAGER=OFF
-          -DPLUGIN_DISPLAYSETTINGS=OFF
-          -DPLUGIN_WAREHOUSE=OFF
+          -DPLUGIN_POWERMANAGER=ON
+          -DPLUGIN_DISPLAYSETTINGS=ON
+          -DPLUGIN_WAREHOUSE=ON
           -DUSE_THUNDER_R4=ON
           -DPLUGIN_L2Tests=ON
           -DRDK_SERVICE_L2_TEST=ON
@@ -391,6 +393,7 @@ jobs:
           -DUSE_IARMBUS
           -DRDK_SERVICE_L2_TEST
           -DDISABLE_SECURITY_TOKEN
+          -DHAS_API_POWERSTATE
           -DENABLE_THERMAL_PROTECTION"
           -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
           -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"
@@ -401,9 +404,9 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DPLUGIN_SYSTEMSERVICES=OFF
-          -DPLUGIN_POWERMANAGER=OFF
-          -DPLUGIN_DISPLAYSETTINGS=OFF
-          -DPLUGIN_WAREHOUSE=OFF
+          -DPLUGIN_POWERMANAGER=ON
+          -DPLUGIN_DISPLAYSETTINGS=ON
+          -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_AVINPUT=OFF
           -DPLUGIN_AVOUTPUT=OFF
           -DAVOUTPUT_TV=OFF

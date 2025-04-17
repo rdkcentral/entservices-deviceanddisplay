@@ -2,6 +2,7 @@
 #define MODULE_NAME COMRPCTestApp
 #endif
 
+#include <chrono>
 #include <iostream>
 #include <WPEFramework/com/com.h>
 #include <WPEFramework/core/core.h>
@@ -53,7 +54,6 @@ class FrameRateEventHandler : public Exchange::IFrameRate::INotification {
 int main(void)
 {
     /******************************************* Init *******************************************/
-    // Get environment variables
     // Get environment variables
     const char* thunderAccess = std::getenv("THUNDER_ACCESS");
     std::string envThunderAccess = (thunderAccess != nullptr) ? thunderAccess : "/tmp/communicator";

@@ -278,7 +278,7 @@ namespace WPEFramework
             {
                 ok = ((err == IARM_RESULT_SUCCESS)|| (ret == Core::ERROR_NONE));
             }
-  
+
             if (!( true == isWareHouse && true == suppressReboot)) {
                 JsonObject params;
                 params["success"] = ok;
@@ -312,15 +312,13 @@ namespace WPEFramework
             if (!result)
             {
                 LOGERR("%s", getRFCErrorString(wdmpStatus));
-                success.success = false;
-                return Core::ERROR_GENERAL;
             }
 
-            success.success = true;
+            success.success = result;
             return Core::ERROR_NONE;
         }
         
-        Core::hresult WarehouseImplementation::GetHardwareTestResults(string& testResults, WarehouseSuccess& success)
+        Core::hresult WarehouseImplementation::GetHardwareTestResults(bool& success, string& testResults)
         {
             LOGINFO("");
             bool result = false;
@@ -339,11 +337,9 @@ namespace WPEFramework
             if (!result)
             {
                 LOGERR("%s", getRFCErrorString(wdmpStatus));
-                success.success = false;
-                return Core::ERROR_GENERAL;
             }
 
-            success.success = true;
+            success = result;
             return Core::ERROR_NONE;
         }
         
@@ -352,11 +348,11 @@ namespace WPEFramework
             LOGINFO("");
             bool isProd = false;
 
-            if (passPhrase.empty() && passPhrase == "FOR TEST PURPOSES ONLY")
+            if (passPhrase.empty() || passPhrase != "FOR TEST PURPOSES ONLY")
             {
                 successErr.success = false;
                 successErr.error = "incorrect pass phrase";
-                return Core::ERROR_GENERAL;
+                return Core::ERROR_NONE;
             }
 
             if (0 == access(VERSION_FILE_NAME, R_OK))
@@ -411,7 +407,7 @@ namespace WPEFramework
                 success = false;
                 clean = false;
                 list.push_back("");
-                return Core::ERROR_GENERAL;
+                return Core::ERROR_NONE;
             }
             
             std::list<std::string> listPathsToRemove;
@@ -435,7 +431,7 @@ namespace WPEFramework
                 success = false;
                 clean = false;
                 list.push_back("");
-                return Core::ERROR_GENERAL;
+                return Core::ERROR_NONE;
             }
             
             int totalPathsCounter = 0;
@@ -699,7 +695,6 @@ namespace WPEFramework
                 successErr.error = "exception in submitting request";
                 if (WarehouseImplementation::_instance)
                     WarehouseImplementation::_instance->ResetDone(successErr.success, successErr.error.c_str());
-                return Core::ERROR_GENERAL;
             }
             catch(const std::exception& e)
             {
@@ -714,8 +709,8 @@ namespace WPEFramework
             successErr.error = "exception in submitting request";
             if (WarehouseImplementation::_instance)
                 WarehouseImplementation::_instance->ResetDone(successErr.success, successErr.error.c_str());
-            return Core::ERROR_GENERAL;
 #endif
+            successErr.success = true;
             return Core::ERROR_NONE;
         }
 

@@ -57,9 +57,7 @@ namespace WPEFramework
 
         FrameRateImplementation::FrameRateImplementation() {
             FrameRateImplementation::_instance = this;
-#if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
             InitializeIARM();
-#endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
         }
 
         FrameRateImplementation::~FrameRateImplementation()

@@ -70,16 +70,22 @@ if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
 
-find_package(DS)
+find_package(DS REQUIRED)
 if (DS_FOUND)
-    find_package(IARMBus)
     add_definitions(-DDS_FOUND)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${DS_LIBRARIES})
+	target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_LIBRARIES})
 else (DS_FOUND)
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+	message(ERROR "DS not found, skipping DS related code")
 endif(DS_FOUND)
+
+find_package(IARMBus REQUIRED)
+if (IARMBUS_FOUND)
+	target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
+	target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
+else (IARMBUS_FOUND)
+	message(ERROR "IARMBus not found, skipping IARMBus related code")
+endif(IARMBUS_FOUND)
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE

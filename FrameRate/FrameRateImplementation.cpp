@@ -440,9 +440,6 @@ namespace WPEFramework
                         strncpy(dispFrameRate, eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
                         dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
                         break;
-					default:
-						LOGERR("FrameRateImplementation::FrameRatePreChange: Unknown event: %d", eventId);
-						break;
                 }
             }
 
@@ -474,9 +471,6 @@ namespace WPEFramework
                         strncpy(dispFrameRate, eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
                         dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
                         break;
-					default:
-						LOGERR("FrameRateImplementation::FrameRatePostChange: Unknown event: %d", eventId);
-						break;
                 }
             }
 

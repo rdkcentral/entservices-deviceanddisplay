@@ -1,512 +1,164 @@
-/**
-* If not stated otherwise in this file or this component's LICENSE
-* file the following copyright and licenses apply:
-*
-* Copyright 2019 RDK Management
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-**/
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2025 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "FrameRate.h"
-#include "host.hpp"
-#include "exception.hpp"
-#include "dsMgr.h"
-
-#include "UtilsJsonRpc.h"
-#include "UtilsIarm.h"
-
-// Methods
-#define METHOD_SET_COLLECTION_FREQUENCY "setCollectionFrequency"
-#define METHOD_START_FPS_COLLECTION "startFpsCollection"
-#define METHOD_STOP_FPS_COLLECTION "stopFpsCollection"
-#define METHOD_UPDATE_FPS_COLLECTION "updateFps"
-#define METHOD_SET_FRAME_MODE "setFrmMode"
-#define METHOD_GET_FRAME_MODE "getFrmMode"
-#define METHOD_GET_DISPLAY_FRAME_RATE "getDisplayFrameRate"
-#define METHOD_SET_DISPLAY_FRAME_RATE "setDisplayFrameRate"
-
-// Events
-#define EVENT_FPS_UPDATE "onFpsEvent"
-#define EVENT_FRAMERATE_PRECHANGE  "onDisplayFrameRateChanging"
-#define EVENT_FRAMERATE_POSTCHANGE    "onDisplayFrameRateChanged"
-
-//Defines
-#define DEFAULT_FPS_COLLECTION_TIME_IN_MILLISECONDS 10000
-#define MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS 100
-#define DEFAULT_MIN_FPS_VALUE 60
-#define DEFAULT_MAX_FPS_VALUE -1
-
-// TODO: remove this
-#define registerMethod(...) for (uint8_t i = 1; GetHandler(i); i++) GetHandler(i)->Register<JsonObject, JsonObject>(__VA_ARGS__)
 
 #define API_VERSION_NUMBER_MAJOR 1
 #define API_VERSION_NUMBER_MINOR 0
-#define API_VERSION_NUMBER_PATCH 5
+#define API_VERSION_NUMBER_PATCH 0
 
 namespace WPEFramework
 {
-    namespace {
-
+    namespace
+    {
         static Plugin::Metadata<Plugin::FrameRate> metadata(
-            // Version (Major, Minor, Patch)
-            API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
-            // Preconditions
-            {},
-            // Terminations
-            {},
-            // Controls
-            {}
-        );
+                // Version (Major, Minor, Patch)
+                API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
+                // Preconditions
+                {},
+                // Terminations
+                {},
+                // Controls
+                {}
+                );
     }
 
     namespace Plugin
     {
+        /*
+         *Register FrameRate module as wpeframework plugin
+         **/
         SERVICE_REGISTRATION(FrameRate, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
-        FrameRate* FrameRate::_instance = nullptr;
-
-        FrameRate::FrameRate()
-        : PluginHost::JSONRPC()
-          , m_fpsCollectionFrequencyInMs(DEFAULT_FPS_COLLECTION_TIME_IN_MILLISECONDS)
-          , m_minFpsValue(DEFAULT_MIN_FPS_VALUE), m_maxFpsValue(DEFAULT_MAX_FPS_VALUE)
-          , m_totalFpsValues(0), m_numberOfFpsUpdates(0), m_fpsCollectionInProgress(false), m_lastFpsValue(-1)
+        FrameRate::FrameRate() : _service(nullptr), _connectionId(0), _FrameRate(nullptr), _FrameRateNotification(this)
         {
-            FrameRate::_instance = this;
-
-            CreateHandler({2});
-            registerMethod(METHOD_SET_COLLECTION_FREQUENCY, &FrameRate::setCollectionFrequencyWrapper, this);
-            registerMethod(METHOD_START_FPS_COLLECTION, &FrameRate::startFpsCollectionWrapper, this);
-            registerMethod(METHOD_STOP_FPS_COLLECTION, &FrameRate::stopFpsCollectionWrapper, this);
-            registerMethod(METHOD_UPDATE_FPS_COLLECTION, &FrameRate::updateFpsWrapper, this);
-            registerMethod(METHOD_SET_FRAME_MODE, &FrameRate::setFrmMode, this);
-            registerMethod(METHOD_GET_FRAME_MODE, &FrameRate::getFrmMode, this);
-            registerMethod(METHOD_GET_DISPLAY_FRAME_RATE, &FrameRate::getDisplayFrameRate, this);
-            registerMethod(METHOD_SET_DISPLAY_FRAME_RATE, &FrameRate::setDisplayFrameRate, this);
-
-            m_reportFpsTimer.connect( std::bind( &FrameRate::onReportFpsTimer, this ) );
+            SYSLOG(Logging::Startup, (_T("FrameRate Constructor")));
         }
 
         FrameRate::~FrameRate()
         {
+            SYSLOG(Logging::Shutdown, (string(_T("FrameRate Destructor"))));
         }
 
-	const string FrameRate::Initialize(PluginHost::IShell * /* service */)
+        const string FrameRate::Initialize(PluginHost::IShell* service)
         {
-		InitializeIARM();
-                return "";
-        }
+            string message="";
 
-	void FrameRate::InitializeIARM()
-        {
-            LOGWARN("FrameRate::InitializeIARM");
-	    if(Utils::IARM::init())
-	    {
+            ASSERT(nullptr != service);
+            ASSERT(nullptr == _service);
+            ASSERT(nullptr == _FrameRate);
+            ASSERT(0 == _connectionId);
 
-		    IARM_Result_t res;
-		    IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, FrameRatePreChange) );
-		    IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, FrameRatePostChange) );
-	    }
-	}
+            SYSLOG(Logging::Startup, (_T("FrameRate::Initialize: PID=%u"), getpid()));
 
-	void FrameRate::DeinitializeIARM()
-	{
-            if (Utils::IARM::isConnected())
+            _service = service;
+            _service->AddRef();
+            _service->Register(&_FrameRateNotification);
+            _FrameRate = _service->Root<Exchange::IFrameRate>(_connectionId, 5000, _T("FrameRateImplementation"));
+
+            if (nullptr != _FrameRate)
             {
-                IARM_Result_t res;
-                IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, FrameRatePreChange) );
-                IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, FrameRatePostChange) );
+                // Register for notifications
+                _FrameRate->Register(&_FrameRateNotification);
+                // Invoking Plugin API register to wpeframework
+                Exchange::JFrameRate::Register(*this, _FrameRate);
             }
+            else
+            {
+                SYSLOG(Logging::Startup, (_T("FrameRate::Initialize: Failed to initialise FrameRate plugin")));
+                message = _T("FrameRate plugin could not be initialised");
+            }
+
+            if (0 != message.length())
+            {
+                Deinitialize(service);
+            }
+
+            return message;
         }
 
-        void FrameRate::Deinitialize(PluginHost::IShell* /* service */)
+        void FrameRate::Deinitialize(PluginHost::IShell* service)
         {
-		DeinitializeIARM();
-    		FrameRate::_instance = nullptr;
+            ASSERT(_service == service);
+
+            SYSLOG(Logging::Shutdown, (string(_T("FrameRate::Deinitialize"))));
+
+            // Make sure the Activated and Deactivated are no longer called before we start cleaning up..
+            _service->Unregister(&_FrameRateNotification);
+
+            if (nullptr != _FrameRate)
+            {
+                _FrameRate->Unregister(&_FrameRateNotification);
+                Exchange::JFrameRate::Unregister(*this);
+
+                // Stop processing:
+                RPC::IRemoteConnection* connection = service->RemoteConnection(_connectionId);
+                VARIABLE_IS_NOT_USED uint32_t result = _FrameRate->Release();
+
+                _FrameRate = nullptr;
+
+                // It should have been the last reference we are releasing,
+                // so it should endup in a DESTRUCTION_SUCCEEDED, if not we
+                // are leaking...
+                ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
+
+                // If this was running in a (container) process...
+                if (nullptr != connection)
+                {
+                    // Lets trigger the cleanup sequence for
+                    // out-of-process code. Which will guard
+                    // that unwilling processes, get shot if
+                    // not stopped friendly :-)
+                    try
+                    {
+                        connection->Terminate();
+                        // Log success if needed
+                        LOGWARN("Connection terminated successfully.");
+                    }
+                    catch (const std::exception& e)
+                    {
+                        std::string errorMessage = "Failed to terminate connection: ";
+                        errorMessage += e.what();
+                        LOGWARN("%s",errorMessage.c_str());
+                    }
+
+                    connection->Release();
+                }
+            }
+
+            _connectionId = 0;
+            _service->Release();
+            _service = nullptr;
+            SYSLOG(Logging::Shutdown, (string(_T("FrameRate de-initialised"))));
         }
 
         string FrameRate::Information() const
         {
-            return (string());
+            return ("This FrameRate Plugin facilitates communication between Thunder plugins and the PwrMgr IARM manager");
         }
 
-        uint32_t FrameRate::setCollectionFrequencyWrapper(const JsonObject& parameters, JsonObject& response)
+        void FrameRate::Deactivated(RPC::IRemoteConnection* connection)
         {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-	    bool retValue = false;
-	    try{
-		    if (parameters.HasLabel("frequency"))
-		    {
-			    int fpsFrequencyInMilliseconds = DEFAULT_FPS_COLLECTION_TIME_IN_MILLISECONDS;
-			    fpsFrequencyInMilliseconds = std::stod(parameters["frequency"].String());
-			    if( fpsFrequencyInMilliseconds >= 100) // make sure min freq is 100 and not less than that.
-			    {
-				    setCollectionFrequency(fpsFrequencyInMilliseconds);
-				    retValue = true;
-			    }
-			    else{
-				    LOGWARN("Minimum FrameRate is 100.");
-				    retValue = false;
-			    }
-		    }
-		    else{
-			     LOGWARN("Please enter valid FrameRate Parameter name.");
-			     retValue = false;
-		    }
-	    }
-	    catch(...){
-		    LOGERR("Please enter valid FrameRate value");
-		    retValue = false;
-	    }
-	    returnResponse(retValue);
-        }
-        
-        uint32_t FrameRate::startFpsCollectionWrapper(const JsonObject& parameters, JsonObject& response)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-
-            returnResponse(startFpsCollection());
-        }
-        
-        uint32_t FrameRate::stopFpsCollectionWrapper(const JsonObject& parameters, JsonObject& response)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-
-            returnResponse(stopFpsCollection());
-        }
-        
-        uint32_t FrameRate::updateFpsWrapper(const JsonObject& parameters, JsonObject& response)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-            
-            if (!parameters.HasLabel("newFpsValue"))
-            {
-                returnResponse(false);
-            }
-            
-            updateFps(parameters["newFpsValue"].Number());
-
-            returnResponse(true);
-        }
-        
-	uint32_t FrameRate::setFrmMode(const JsonObject& parameters, JsonObject& response)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-            returnIfParamNotFound(parameters, "frmmode");
-
-            string sPortId = parameters["frmmode"].String();
-            int frfmode = 0;
-            try {
-                frfmode = stoi(sPortId);
-            }catch (const device::Exception& err) {
-                LOG_DEVICE_EXCEPTION1(sPortId);
-                returnResponse(false);
-            }
-
-            bool success = true;
-            try
-            {
-                device::VideoDevice &device = device::Host::getInstance().getVideoDevices().at(0);
-                device.setFRFMode(frfmode);
-            }
-            catch (const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION1(sPortId);
-                success = false;
-            }
-            returnResponse(success);
-        }
-
-        uint32_t FrameRate::getFrmMode(const JsonObject& parameters, JsonObject& response)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-
-            int frmmode = dsHDRSTANDARD_NONE;
-            bool success = true;
-            try
-            {
-                device::VideoDevice &device = device::Host::getInstance().getVideoDevices().at(0);
-                device.getFRFMode(&frmmode);
-            }
-            catch(const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION0();
-                success = false;
-            }
-
-            response["auto-frm-mode"] = frmmode;
-            returnResponse(success);
-        }
-
-        uint32_t FrameRate::setDisplayFrameRate(const JsonObject& parameters, JsonObject& response)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-            returnIfParamNotFound(parameters, "framerate");
-
-            string sFramerate = parameters["framerate"].String();
-
-            bool success = true;
-            try
-            {
-                device::VideoDevice &device = device::Host::getInstance().getVideoDevices().at(0);
-                device.setDisplayframerate(sFramerate.c_str());
-            }
-            catch (const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION1(sFramerate);
-                success = false;
-            }
-            returnResponse(success);
-        }
-
-        uint32_t FrameRate::getDisplayFrameRate(const JsonObject& parameters, JsonObject& response)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            LOGINFOMETHOD();
-            char sFramerate[20] ={0};
-            bool success = true;
-            try
-            {
-                device::VideoDevice &device = device::Host::getInstance().getVideoDevices().at(0);
-                device.getCurrentDisframerate(sFramerate);
-            }
-            catch (const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION1(std::string(sFramerate));
-                success = false;
-            }
-
-            response["framerate"] = std::string(sFramerate);
-            returnResponse(success);
-        }
-
-        /**
-        * @brief This function is used to get the amount of collection interval per milliseconds.
-        *
-        * @return Integer value of Amount of milliseconds per collection interval .
-        */
-        int FrameRate::getCollectionFrequency()
-        {
-            return m_fpsCollectionFrequencyInMs;
-        }
-
-        /**
-        * @brief This function is used to set the amount of collection interval per milliseconds.
-        *
-        * @param[in] frequencyInMs Amount of milliseconds per collection interval.
-        * @ingroup SERVMGR_ABSFRAMERATE_API
-        */
-        void FrameRate::setCollectionFrequency(int frequencyInMs)
-        {
-            m_fpsCollectionFrequencyInMs = frequencyInMs;
-        }
-
-        /**
-        * @brief This function is used to start the fps collection. Stop the fps timer before
-        * start the fps collection frequency. Fps collection frequency is updated to minimum fps
-        * collection time if the fps collection frequency is less than the minimum fps collection time
-        * and start the fps timer.
-        *
-        * @return true on success else false if there was an error.
-        * @ingroup SERVMGR_ABSFRAMERATE_API
-        */
-        bool FrameRate::startFpsCollection()
-        {
-            if (m_fpsCollectionInProgress)
-            {
-                return false;
-            }
-            if (m_reportFpsTimer.isActive())
-            {
-                m_reportFpsTimer.stop();
-            }
-            m_minFpsValue = DEFAULT_MIN_FPS_VALUE;
-            m_maxFpsValue = DEFAULT_MAX_FPS_VALUE;
-            m_totalFpsValues = 0;
-            m_numberOfFpsUpdates = 0;
-            m_fpsCollectionInProgress = true;
-            int fpsCollectionFrequency = m_fpsCollectionFrequencyInMs;
-            if (fpsCollectionFrequency < MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS)
-            {
-                fpsCollectionFrequency = MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS;
-            }
-            m_reportFpsTimer.start(fpsCollectionFrequency);
-            enableFpsCollection();
-            return true;
-        }
-
-        /**
-        * @brief This function is used to stops the fps collection. Stop the fps timer before disable the
-        * fps collection. If the number of fps updates is greater than 0, update the fps collection by
-        * passing the minimum fps, maximum fps and average fps values  and disable the fps collection.
-        *
-        * @return true on success or false if there was an error.
-        * @ingroup SERVMGR_ABSFRAMERATE_API
-        */
-        bool FrameRate::stopFpsCollection()
-        {
-            if (m_reportFpsTimer.isActive())
-            {
-                m_reportFpsTimer.stop();
-            }
-            if (m_fpsCollectionInProgress)
-            {
-                m_fpsCollectionInProgress = false;
-                int averageFps = -1;
-                int minFps = -1;
-                int maxFps = -1;
-                if (m_numberOfFpsUpdates > 0)
-                {
-                averageFps = (m_totalFpsValues / m_numberOfFpsUpdates);
-                minFps = m_minFpsValue;
-                maxFps = m_maxFpsValue;
-                fpsCollectionUpdate(averageFps, minFps, maxFps);
-                }
-                disableFpsCollection();
-            }
-            return true;
-        }
-
-        /**
-        * @brief This function is used to update the FPS value.
-        *
-        * @param[in] newFpsValue Latest amount of milliseconds per collection interval.
-        * @ingroup SERVMGR_ABSFRAMERATE_API
-        */
-        void FrameRate::updateFps(int newFpsValue)
-        {
-            if (newFpsValue > m_maxFpsValue)
-            {
-                m_maxFpsValue = newFpsValue;
-            }
-            if (newFpsValue < m_minFpsValue)
-            {
-                m_minFpsValue = newFpsValue;
-            }
-            m_totalFpsValues += newFpsValue;
-            m_numberOfFpsUpdates++;
-            m_lastFpsValue = newFpsValue;
-        }
-        
-        void FrameRate::fpsCollectionUpdate( int averageFps, int minFps, int maxFps )
-        {
-            JsonObject params;
-            params["average"] = averageFps;
-            params["min"] = minFps;
-            params["max"] = maxFps;
-            
-            sendNotify(EVENT_FPS_UPDATE, params);
-        }
-        
-        void FrameRate::onReportFpsTimer()
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-            
-            int averageFps = -1;
-            int minFps = -1;
-            int maxFps = -1;
-            if (m_numberOfFpsUpdates > 0)
-            {
-                averageFps = (m_totalFpsValues / m_numberOfFpsUpdates);
-                minFps = m_minFpsValue;
-                maxFps = m_maxFpsValue;
-            }
-            fpsCollectionUpdate(averageFps, minFps, maxFps);
-            if (m_lastFpsValue >= 0)
-            {
-                // store the last fps value just in case there are no updates
-                m_minFpsValue = m_lastFpsValue;
-                m_maxFpsValue = m_lastFpsValue;
-                m_totalFpsValues = m_lastFpsValue;
-                m_numberOfFpsUpdates = 1;
-            }
-            else
-            {
-                m_minFpsValue = DEFAULT_MIN_FPS_VALUE;
-                m_maxFpsValue = DEFAULT_MAX_FPS_VALUE;
-                m_totalFpsValues = 0;
-                m_numberOfFpsUpdates = 0;
+            if (connection->Id() == _connectionId) {
+                ASSERT(nullptr != _service);
+                Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
             }
         }
-
-	void FrameRate::FrameRatePreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-	    char dispFrameRate[20] ={0};
-            if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0)
-            {
-                switch (eventId) {
-                    case IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE:
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        strncpy(dispFrameRate,eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
-                        dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
-                        break;
-                }
-            }
-
-            if(FrameRate::_instance)
-            {
-                FrameRate::_instance->frameRatePreChange(dispFrameRate);
-            }
-        }
-
-        void FrameRate::frameRatePreChange(char *displayFrameRate)
-        {
-            JsonObject params;
-            params["displayFrameRate"] = std::string(displayFrameRate);
-            sendNotify(EVENT_FRAMERATE_PRECHANGE, params);
-        }
-
-        void FrameRate::FrameRatePostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-	    char dispFrameRate[20] ={0};
-            if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0)
-            {
-                switch (eventId) {
-                    case IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE:
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        strncpy(dispFrameRate,eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
-                        dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
-                        break;
-                }
-            }
-
-            if(FrameRate::_instance)
-            {
-                FrameRate::_instance->frameRatePostChange(dispFrameRate);
-            }
-        }
-
-        void FrameRate::frameRatePostChange(char *displayFrameRate)
-        {
-            JsonObject params;
-            params["displayFrameRate"] = std::string(displayFrameRate);
-            sendNotify(EVENT_FRAMERATE_POSTCHANGE, params);
-        }
-
-        
     } // namespace Plugin
 } // namespace WPEFramework

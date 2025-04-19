@@ -62,7 +62,7 @@ endif()
 if(PLUGIN_FRAMERATE)
     add_subdirectory(FrameRate)
     if (TESTBINARIES)
-        set(FRAMERATETESTAPP ON)
+        set(FRAMERATETESTAPP ON CACHE INTERNAL "Enable FrameRate test application")
     endif()
 endif()
 

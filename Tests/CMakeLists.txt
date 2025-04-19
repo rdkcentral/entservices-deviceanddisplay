@@ -58,6 +58,8 @@ include(GNUInstallDirs)
 # List to hold dynamically added targets
 set(TEST_TARGETS)
 
+message(STATUS "Arun FRAMERATETESTAPP in Tests: ${FRAMERATETESTAPP}")
+
 if (FRAMERATETESTAPP)
     message(STATUS "Framerate test application is enabled.")
     set(FRAMERATE_EXECUTABLE_NAME "${TESTBINPREFIX}FrameRateTest")

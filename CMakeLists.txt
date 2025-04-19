@@ -28,6 +28,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 # This configuration enables generation of Test binaries which can be used to test respective plugins.
 option(TESTBINARIES "Generate plugin specific test binaries" OFF)
 if(TESTBINARIES)
+    message(INFO "Enabling test binaries")
     add_subdirectory(Tests)
 endif()
 
@@ -64,6 +65,9 @@ if(PLUGIN_FRAMERATE)
         set(FRAMERATETESTAPP ON)
     endif()
 endif()
+
+message(STATUS "Arun TESTBINARIES: ${TESTBINARIES}")
+message(STATUS "Arun FRAMERATETESTAPP: ${FRAMERATETESTAPP}")
 
 if(PLUGIN_WAREHOUSE)
     add_subdirectory(Warehouse)

@@ -19,79 +19,103 @@
 
 #pragma once
 
-#include <mutex>
-
 #include "Module.h"
-#include "tptimer.h"
-#include "libIARM.h"
+#include <interfaces/IFrameRate.h>
+#include <interfaces/json/JFrameRate.h>
+#include <interfaces/json/JsonData_FrameRate.h>
+#include "UtilsLogging.h"
+#include "tracing/Logging.h"
 
-namespace WPEFramework {
-    namespace Plugin {
-        class FrameRate : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+namespace WPEFramework
+{
+    namespace Plugin
+    {
+        class FrameRate : public PluginHost::IPlugin, public PluginHost::JSONRPC
+        {
             private:
-                // We do not allow this plugin to be copied !!
+                class Notification : public RPC::IRemoteConnection::INotification, public Exchange::IFrameRate::INotification
+            {
+                private:
+                    Notification() = delete;
+                    Notification(const Notification&) = delete;
+                    Notification& operator=(const Notification&) = delete;
+
+                public:
+                    explicit Notification(FrameRate* parent)
+                        : _parent(*parent)
+                    {
+                        ASSERT(parent != nullptr);
+                    }
+
+                    virtual ~Notification()
+                    {
+                    }
+
+                    BEGIN_INTERFACE_MAP(Notification)
+                        INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
+                        INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
+                    END_INTERFACE_MAP
+
+                    void Activated(RPC::IRemoteConnection*) override
+                    {
+                        LOGINFO("FrameRate Notification Activated");
+                    }
+
+                    void Deactivated(RPC::IRemoteConnection *connection) override
+                    {
+                        LOGINFO("FrameRate Notification Deactivated");
+                        _parent.Deactivated(connection);
+                    }
+
+                    void OnFpsEvent( int average, int min, int max ) override
+                    {
+                        LOGINFO("OnFpsEvent: FPS DATA %d %d %d\n", average, min, max);
+                        Exchange::JFrameRate::Event::OnFpsEvent(_parent, average, min, max);
+                    }
+
+                    void OnDisplayFrameRateChanging(const string& displayFrameRate) override
+                    {
+                        LOGINFO("OnDisplayFrameRateChanging: displayFrameRate %s\n", displayFrameRate.c_str());
+                        Exchange::JFrameRate::Event::OnDisplayFrameRateChanging(_parent, displayFrameRate);
+                    }
+
+                    void OnDisplayFrameRateChanged(const string& displayFrameRate) override
+                    {
+                        LOGINFO("OnDisplayFrameRateChanged: displayFrameRate %s\n", displayFrameRate.c_str());
+                        Exchange::JFrameRate::Event::OnDisplayFrameRateChanged(_parent, displayFrameRate);
+                    }
+
+                private:
+                    FrameRate& _parent;
+            };
+
+            public:
                 FrameRate(const FrameRate&) = delete;
                 FrameRate& operator=(const FrameRate&) = delete;
 
-                //Begin methods
-                uint32_t setCollectionFrequencyWrapper(const JsonObject& parameters, JsonObject& response);
-                uint32_t startFpsCollectionWrapper(const JsonObject& parameters, JsonObject& response);
-                uint32_t stopFpsCollectionWrapper(const JsonObject& parameters, JsonObject& response);
-                uint32_t updateFpsWrapper(const JsonObject& parameters, JsonObject& response);
-                uint32_t setFrmMode(const JsonObject& parameters, JsonObject& response);
-                uint32_t getFrmMode(const JsonObject& parameters, JsonObject& response);
-                uint32_t getDisplayFrameRate(const JsonObject& parameters, JsonObject& response);
-                uint32_t setDisplayFrameRate(const JsonObject& parameters, JsonObject& response);
-                //End methods
-
-                int getCollectionFrequency();
-                void setCollectionFrequency(int frequencyInMs);
-                bool startFpsCollection();
-                bool stopFpsCollection();
-                void updateFps(int newFpsValue);
-
-                void fpsCollectionUpdate( int averageFps, int minFps, int maxFps );
-
-                virtual void enableFpsCollection() {}
-                virtual void disableFpsCollection() {}
-
-                void onReportFpsTimer();
-                void onReportFpsTimerTest();
-
-                void InitializeIARM();
-                void DeinitializeIARM();
-
-                void frameRatePreChange(char *displayFrameRate);
-                static void FrameRatePreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-
-                void frameRatePostChange(char *displayFrameRate);
-                static void FrameRatePostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-
-            public:
                 FrameRate();
                 virtual ~FrameRate();
-                virtual const string Initialize(PluginHost::IShell* service) override;
-                virtual void Deinitialize(PluginHost::IShell* service) override;
-                virtual string Information() const override;
 
                 BEGIN_INTERFACE_MAP(FrameRate)
                     INTERFACE_ENTRY(PluginHost::IPlugin)
                     INTERFACE_ENTRY(PluginHost::IDispatcher)
+                    INTERFACE_AGGREGATE(Exchange::IFrameRate, _FrameRate)
                 END_INTERFACE_MAP
 
-            public:
-                static FrameRate* _instance;
+                //  IPlugin methods
+                // -------------------------------------------------------------------------------------------------------
+                const string Initialize(PluginHost::IShell* service) override;
+                void Deinitialize(PluginHost::IShell* service) override;
+                string Information() const override;
 
             private:
-                int m_fpsCollectionFrequencyInMs;
-                int m_minFpsValue;
-                int m_maxFpsValue;
-                int m_totalFpsValues;
-                int m_numberOfFpsUpdates;
-                bool m_fpsCollectionInProgress;
-                TpTimer m_reportFpsTimer;
-                int m_lastFpsValue;
-                std::mutex m_callMutex;
+                void Deactivated(RPC::IRemoteConnection* connection);
+
+            private:
+                PluginHost::IShell* _service{};
+                uint32_t _connectionId{};
+                Exchange::IFrameRate* _FrameRate{};
+                Core::Sink<Notification> _FrameRateNotification;
         };
     } // namespace Plugin
 } // namespace WPEFramework

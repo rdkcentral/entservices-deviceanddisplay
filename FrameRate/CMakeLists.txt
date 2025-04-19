@@ -19,9 +19,9 @@ set(PLUGIN_NAME FrameRate)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Implementation)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 set(PLUGIN_FRAMERATE_STARTUPORDER "" CACHE STRING "To configure startup order of FrameRate plugin")
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
@@ -29,18 +29,18 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 
 add_library(${MODULE_NAME} SHARED
-        FrameRate.cpp
-        Module.cpp)
+    FrameRate.cpp
+    Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
-        CXX_STANDARD 11
-        CXX_STANDARD_REQUIRED YES)
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED YES)
 
 target_link_libraries(${MODULE_NAME}
     PRIVATE
-        CompileSettingsDebug::CompileSettingsDebug
-        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
+    CompileSettingsDebug::CompileSettingsDebug
+    ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+    ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 
 install(TARGETS ${MODULE_NAME}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)
@@ -49,50 +49,41 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     FrameRateImplementation.cpp
     Module.cpp)
 
-include_directories(
-   ../helpers)
+include_directories(../helpers)
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
     CXX_STANDARD 11
     CXX_STANDARD_REQUIRED YES)
 
 if (RDK_SERVICE_L2_TEST)
-   find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
-   if (TESTMOCKLIB_LIBRARIES)
-       message ("FrameRate: linking mock libraries ${TESTMOCKLIB_LIBRARIES} library")
-       target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TESTMOCKLIB_LIBRARIES})
-   else (TESTMOCKLIB_LIBRARIES)
-       message ("FrameRate: Require ${TESTMOCKLIB_LIBRARIES} library")
-   endif (TESTMOCKLIB_LIBRARIES)
+    find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
+    if (TESTMOCKLIB_LIBRARIES)
+        message ("linking mock libraries ${TESTMOCKLIB_LIBRARIES} library")
+        target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TESTMOCKLIB_LIBRARIES})
+    else (TESTMOCKLIB_LIBRARIES)
+        message ("Require ${TESTMOCKLIB_LIBRARIES} library")
+    endif (TESTMOCKLIB_LIBRARIES)
 endif (RDK_SERVICES_L2_TEST)
 
 if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
 
-find_package(DS REQUIRED)
+find_package(DS)
 if (DS_FOUND)
+    find_package(IARMBus)
     add_definitions(-DDS_FOUND)
+    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_INCLUDE_DIRS})
-	target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_LIBRARIES})
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${DS_LIBRARIES})
 else (DS_FOUND)
-	message(ERROR "FrameRate: DS not found, skipping DS related code")
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 endif(DS_FOUND)
-
-find_package(IARMBus REQUIRED)
-if (IARMBUS_FOUND)
-	message(STATUS "FrameRate: IARMBus found, ${IARMBUS_INCLUDE_DIRS} ${IARMBUS_LIBRARIES}")
-	include_directories(${STAGING_INCDIRS}/rdk/iarmbus)
-	include_directories(${IARMBUS_INCLUDE_DIRS})
-	target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
-else (IARMBUS_FOUND)
-	message(ERROR "FrameRate: IARMBus not found, skipping IARMBus related code")
-endif(IARMBUS_FOUND)
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE
-        CompileSettingsDebug::CompileSettingsDebug
-        ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+    CompileSettingsDebug::CompileSettingsDebug
+    ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 
 install(TARGETS ${PLUGIN_IMPLEMENTATION}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)

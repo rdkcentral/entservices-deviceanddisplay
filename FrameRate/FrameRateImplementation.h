@@ -24,19 +24,19 @@
 #include "Module.h"
 #include <interfaces/Ids.h>
 #include <interfaces/IFrameRate.h>
-
-#include "tptimer.h"
-#include "libIARM.h"
-#include "tracing/Logging.h"
-
-#include <vector>
-#include <boost/variant.hpp>
 #include <com/com.h>
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-namespace WPEFramework
-{
+#include "tptimer.h"
+#include "libIARM.h"
+
+#include "tracing/Logging.h"
+
+#include <vector>
+#include <boost/variant.hpp>
+
+namespace WPEFramework {
     namespace Plugin {
         class FrameRateImplementation : public Exchange::IFrameRate {
             public:
@@ -82,7 +82,7 @@ namespace WPEFramework
                         }
 
                     public:
-                        static Core::ProxyType<Core::IDispatch> Create(FrameRateImplementation* framerateImplementation, Event event, JsonValue  params ) {
+                        static Core::ProxyType<Core::IDispatch> Create(FrameRateImplementation* framerateImplementation, Event event, JsonValue params) {
 #ifndef USE_THUNDER_R4
                             return (Core::proxy_cast<Core::IDispatch>(Core::ProxyType<Job>::Create(framerateImplementation, event, params)));
 #else
@@ -100,23 +100,22 @@ namespace WPEFramework
                         JsonValue _params;
                 };
             public:
-                virtual uint32_t Register(Exchange::IFrameRate::INotification *notification ) override ;
+                virtual uint32_t Register(Exchange::IFrameRate::INotification *notification ) override;
                 virtual uint32_t Unregister(Exchange::IFrameRate::INotification *notification ) override;
 
                 //Begin methods
                 uint32_t GetDisplayFrameRate(string& framerate, bool& success) override;
                 uint32_t GetFrmMode(int &frmmode, bool& success) override;
                 uint32_t SetCollectionFrequency(int frequency, bool& success) override;
-                uint32_t SetDisplayFrameRate(const string& framerate , bool& success) override;
-                uint32_t SetFrmMode(int frmmode , bool& success) override;
+                uint32_t SetDisplayFrameRate(const string& framerate, bool& success) override;
+                uint32_t SetFrmMode(int frmmode, bool& success) override;
                 uint32_t StartFpsCollection(bool& success)override;
                 uint32_t StopFpsCollection(bool& success) override;
                 uint32_t UpdateFps(int newFpsValue, bool& success) override;
                 //End methods
 
                 int getCollectionFrequency();
-
-                void fpsCollectionUpdate( int averageFps, int minFps, int maxFps );
+                void fpsCollectionUpdate(int averageFps, int minFps, int maxFps);
 
                 virtual void enableFpsCollection() {}
                 virtual void disableFpsCollection() {}
@@ -144,7 +143,7 @@ namespace WPEFramework
                 PluginHost::IShell* _service;
                 std::list<Exchange::IFrameRate::INotification*> _framerateNotification;
 
-                void dispatchOnFpsEvent( int average, int min, int max );
+                void dispatchOnFpsEvent(int average, int min, int max);
                 void dispatchOnDisplayFrameRateChangingEvent(const string& displayFrameRate);
                 void dispatchOnDisplayFrameRateChangedEvent(const string& displayFrameRate);
                 void Dispatch(Event event, const JsonValue params);

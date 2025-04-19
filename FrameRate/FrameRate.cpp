@@ -25,23 +25,24 @@
 
 namespace WPEFramework
 {
-    namespace {
+    namespace
+    {
         static Plugin::Metadata<Plugin::FrameRate> metadata(
-            // Version (Major, Minor, Patch)
-            API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
-            // Preconditions
-            {},
-            // Terminations
-            {},
-            // Controls
-            {}
-        );
+                // Version (Major, Minor, Patch)
+                API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
+                // Preconditions
+                {},
+                // Terminations
+                {},
+                // Controls
+                {}
+                );
     }
 
     namespace Plugin
     {
         /*
-         * Register FrameRate module as wpeframework plugin
+         *Register FrameRate module as wpeframework plugin
          **/
         SERVICE_REGISTRATION(FrameRate, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
@@ -71,17 +72,21 @@ namespace WPEFramework
             _service->Register(&_FrameRateNotification);
             _FrameRate = _service->Root<Exchange::IFrameRate>(_connectionId, 5000, _T("FrameRateImplementation"));
 
-            if (nullptr != _FrameRate) {
+            if (nullptr != _FrameRate)
+            {
                 // Register for notifications
                 _FrameRate->Register(&_FrameRateNotification);
                 // Invoking Plugin API register to wpeframework
                 Exchange::JFrameRate::Register(*this, _FrameRate);
-            } else {
+            }
+            else
+            {
                 SYSLOG(Logging::Startup, (_T("FrameRate::Initialize: Failed to initialise FrameRate plugin")));
                 message = _T("FrameRate plugin could not be initialised");
             }
 
-            if (0 != message.length()) {
+            if (0 != message.length())
+            {
                 Deinitialize(service);
             }
 
@@ -97,8 +102,8 @@ namespace WPEFramework
             // Make sure the Activated and Deactivated are no longer called before we start cleaning up..
             _service->Unregister(&_FrameRateNotification);
 
-            if (nullptr != _FrameRate) {
-				// Unregister for notifications
+            if (nullptr != _FrameRate)
+            {
                 _FrameRate->Unregister(&_FrameRateNotification);
                 Exchange::JFrameRate::Unregister(*this);
 
@@ -114,16 +119,20 @@ namespace WPEFramework
                 ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
 
                 // If this was running in a (container) process...
-                if (nullptr != connection) {
+                if (nullptr != connection)
+                {
                     // Lets trigger the cleanup sequence for
                     // out-of-process code. Which will guard
                     // that unwilling processes, get shot if
                     // not stopped friendly :-)
-                    try {
+                    try
+                    {
                         connection->Terminate();
                         // Log success if needed
                         LOGWARN("Connection terminated successfully.");
-                    } catch (const std::exception& e) {
+                    }
+                    catch (const std::exception& e)
+                    {
                         std::string errorMessage = "Failed to terminate connection: ";
                         errorMessage += e.what();
                         LOGWARN("%s",errorMessage.c_str());

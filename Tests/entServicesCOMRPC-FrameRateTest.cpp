@@ -24,6 +24,8 @@
 #include <chrono>
 #include <string>
 #include <iostream>
+#include <mutex>
+#include <csignal>
 #include <WPEFramework/com/com.h>
 #include <WPEFramework/core/core.h>
 #include "WPEFramework/interfaces/IFrameRate.h"
@@ -31,18 +33,21 @@
 /************************************ Wrapper for Logging *************************************/
 class Logger {
 public:
-    Logger(const std::string& binaryName) : _binaryName(binaryName) {}
+    explicit Logger(const std::string& binaryName) : _binaryName(binaryName) {}
 
     void Log(const std::string& message) const {
+        std::lock_guard<std::mutex> lock(_mutex);
         std::cout << "[" << _binaryName << "] " << message << std::endl;
     }
 
     void Error(const std::string& message) const {
+        std::lock_guard<std::mutex> lock(_mutex);
         std::cerr << "[" << _binaryName << "] " << message << std::endl;
     }
 
 private:
     std::string _binaryName;
+    mutable std::mutex _mutex;
 };
 
 /********************************* Test FrameRate COMRPC Impl **********************************/
@@ -74,22 +79,22 @@ class FrameRateEventHandler : public Exchange::IFrameRate::INotification {
 public:
     explicit FrameRateEventHandler(const Logger& logger) : _logger(logger) {}
 
-    // Handle FPS event
     void OnFpsEvent(int average, int min, int max) override {
         _logger.Log("FPS Event - Average: " + std::to_string(average) +
                     ", Min: " + std::to_string(min) +
                     ", Max: " + std::to_string(max));
     }
 
-    // Handle display frame rate changing event
     void OnDisplayFrameRateChanging(const std::string& displayFrameRate) override {
         _logger.Log("Display Frame Rate Changing to: " + displayFrameRate);
     }
 
-    // Handle display frame rate changed event
     void OnDisplayFrameRateChanged(const std::string& displayFrameRate) override {
         _logger.Log("Display Frame Rate Changed to: " + displayFrameRate);
     }
+
+    void AddRef() const override {}
+    uint32_t Release() const override { return 0; }
 
     BEGIN_INTERFACE_MAP(FrameRateEventHandler)
         INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
@@ -99,9 +104,61 @@ private:
     const Logger& _logger;
 };
 
-int main(int argc, char* argv[])
-{
-	/*************************************** Logger Setup ****************************************/
+/*************************************** Helper Functions ***************************************/
+bool HandleResult(const Logger& logger, const std::string& methodName, uint32_t result, bool success) {
+    if (result == Core::ERROR_NONE && success) {
+        logger.Log(methodName + " succeeded.");
+        return true;
+    } else {
+        logger.Error(methodName + " failed with error: " + std::to_string(result));
+        return false;
+    }
+}
+
+void TestFrameRateMethods(FrameRateProxy& frameRate, const Logger& logger) {
+    bool success = false;
+
+    // Test GetDisplayFrameRate
+    std::string displayFrameRate;
+    HandleResult(logger, "GetDisplayFrameRate", frameRate->GetDisplayFrameRate(displayFrameRate, success), success);
+
+    // Test GetFrmMode
+    int frmmode = 0;
+    HandleResult(logger, "GetFrmMode", frameRate->GetFrmMode(frmmode, success), success);
+
+    // Test SetCollectionFrequency
+    int frequency = 30;
+    HandleResult(logger, "SetCollectionFrequency", frameRate->SetCollectionFrequency(frequency, success), success);
+
+    // Test SetDisplayFrameRate
+    const char* newDisplayFrameRate = "60";
+    HandleResult(logger, "SetDisplayFrameRate", frameRate->SetDisplayFrameRate(newDisplayFrameRate, success), success);
+
+    // Test SetFrmMode
+    int autoFrameRate = 1;
+    HandleResult(logger, "SetFrmMode", frameRate->SetFrmMode(autoFrameRate, success), success);
+
+    // Test StartFpsCollection
+    HandleResult(logger, "StartFpsCollection", frameRate->StartFpsCollection(success), success);
+
+    // Test StopFpsCollection
+    HandleResult(logger, "StopFpsCollection", frameRate->StopFpsCollection(success), success);
+
+    // Test UpdateFps
+    int fps = 60;
+    HandleResult(logger, "UpdateFps", frameRate->UpdateFps(fps, success), success);
+}
+
+/*************************************** Signal Handling ****************************************/
+volatile bool keepRunning = true;
+
+void SignalHandler(int signal) {
+    keepRunning = false;
+}
+
+/******************************************** Main *********************************************/
+int main(int argc, char* argv[]) {
+    /*************************************** Logger Setup ****************************************/
     const std::string binaryName = (argc > 0) ? argv[0] : "entServicesCOMRPC-FrameRateTest";
     Logger logger(binaryName);
 
@@ -114,7 +171,7 @@ int main(int argc, char* argv[])
     Core::ProxyType<RPC::CommunicatorClient> client = Core::ProxyType<RPC::CommunicatorClient>::Create(
         Core::NodeId(envThunderAccess.c_str()));
 
-    if (client.IsValid() == false) {
+    if (!client.IsValid()) {
         logger.Error("Failed to create COMRPC client.");
         return 1;
     }
@@ -136,85 +193,16 @@ int main(int argc, char* argv[])
     logger.Log("Event handler registered.");
 
     /************************************* Test All Methods **************************************/
-    bool success = false;
-    int frmmode = 0;
-
-    // Gets the Display Frame Rate - GetDisplayFrameRate method
-    uint32_t result = frameRate->GetDisplayFrameRate(frmmode, success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("GetDisplayFrameRate response: " + std::to_string(frmmode));
-    } else {
-        logger.Error("GetDisplayFrameRate error: " + std::to_string(result));
-    }
-
-    // Gets framerate mode - GetFrmMode method
-    result = frameRate->GetFrmMode(frmmode, success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("GetFrmMode response: " + std::to_string(frmmode));
-    } else {
-        logger.Error("GetFrmMode error: " + std::to_string(result));
-    }
-
-    // Sets the FPS data collection interval - SetCollectionFrequency method
-    int frequency = 30;
-    result = frameRate->SetCollectionFrequency(frequency, success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("SetCollectionFrequency response: " + std::to_string(frequency));
-    } else {
-        logger.Error("SetCollectionFrequency error: " + std::to_string(result));
-    }
-
-    // Sets the display framerate values - SetDisplayFrameRate method
-    const char* displayFrameRate = "60";
-    result = frameRate->SetDisplayFrameRate(displayFrameRate, success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("SetDisplayFrameRate response: " + std::string(displayFrameRate));
-    } else {
-        logger.Error("SetDisplayFrameRate error: " + std::to_string(result));
-    }
-
-    // Sets the auto framerate mode - SetFrmMode method
-    int autoFrameRate = 1;
-    result = frameRate->SetFrmMode(autoFrameRate, success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("SetFrmMode response: " + std::to_string(autoFrameRate));
-    } else {
-        logger.Error("SetFrmMode error: " + std::to_string(result));
-    }
-
-    // Starts the FPS data collection - StartFpsCollection method
-    result = frameRate->StartFpsCollection(success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("StartFpsCollection response: " + std::to_string(success));
-    } else {
-        logger.Error("StartFpsCollection error: " + std::to_string(result));
-    }
-
-    // Stops the FPS data collection - StopFpsCollection method
-    result = frameRate->StopFpsCollection(success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("StopFpsCollection response: " + std::to_string(success));
-    } else {
-        logger.Error("StopFpsCollection error: " + std::to_string(result));
-    }
-
-    // Update the FPS values - UpdateFps method
-    int fps = 60;
-    result = frameRate->UpdateFps(fps, success);
-    if (result == Core::ERROR_NONE && success) {
-        logger.Log("UpdateFps response: " + std::to_string(success));
-    } else {
-        logger.Error("UpdateFps error: " + std::to_string(result));
-    }
+    TestFrameRateMethods(frameRate, logger);
 
     /************************************ Wait for Notifications ************************************/
     logger.Log("Waiting for events... Press Ctrl+C to exit.");
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(60));
+    std::signal(SIGINT, SignalHandler);
+    while (keepRunning) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     /******************************************* Clean-Up *******************************************/
-    // FrameRateProxy destructor will automatically release the proxy
     logger.Log("Exiting...");
     frameRate->Unregister(&eventHandler);
     return 0;

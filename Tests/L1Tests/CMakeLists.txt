@@ -120,6 +120,7 @@ if (RDK_SERVICES_L1_TEST)
    find_library(TESTMOCKLIB_LIBRARIES NAMES L1TestMocklib)
    if (TESTMOCKLIB_LIBRARIES)
        message ("KKK3 Found mock libraries ${TESTMOCKLIB_LIBRARIES} library")
+       target_link_libraries(${PROJECT_NAME} ${TESTMOCKLIB_LIBRARIES})
    else (TESTMOCKLIB_LIBRARIES)
        message ("KKK3 Require ${TESTMOCKLIB_LIBRARIES} library")
    endif (TESTMOCKLIB_LIBRARIES)
@@ -129,7 +130,7 @@ include_directories(${TEST_INC})
 
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_INSTALL_PREFIX}/lib/wpeframework/plugins)
 
-target_link_libraries(${PROJECT_NAME} ${TEST_LIB} ${TESTMOCKLIB_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${TEST_LIB})
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC

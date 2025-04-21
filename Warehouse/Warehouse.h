@@ -66,7 +66,7 @@ namespace WPEFramework
                             _parent.Deactivated(connection);
                         }
 
-                        void ResetDone(const bool& success, const string& error) override
+                        void ResetDone(const bool success, const string& error) override
                         {
                             LOGINFO("ResetDone");
                             Exchange::JWarehouse::Event::ResetDone(_parent, success,error);

@@ -203,7 +203,6 @@ jobs:
           rfcapi.h
           rbus.h
           libudev.h
-          libusb.h
           systemservices/proc/readproc.h
           systemservices/secure_wrapper.h
           systemaudioplatform.h

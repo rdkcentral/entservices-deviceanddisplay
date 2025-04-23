@@ -16,7 +16,8 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.8)
-project(RdkServicesL1Test)
+set(PLUGIN_NAME L1TestsDD)
+set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -27,6 +28,7 @@ FetchContent_Declare(
         googletest
         URL https://github.com/google/googletest/archive/e39786088138f2749d64e9e90e0f9902daa77c40.zip
 )
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 FetchContent_MakeAvailable(googletest)
 
 set (TEST_LIB
@@ -112,15 +114,13 @@ endmacro()
 set (WAREHOUSE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/Warehouse ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" "${NAMESPACE}Warehouse")
 
-add_executable(${PROJECT_NAME}
-      ${TEST_SRC}
-  )
+add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 
 if (RDK_SERVICES_L1_TEST)
    find_library(TESTMOCKLIB_LIBRARIES NAMES L1TestMocklib)
    if (TESTMOCKLIB_LIBRARIES)
        message ("KKK3 Found mock libraries ${TESTMOCKLIB_LIBRARIES} library")
-       target_link_libraries(${PROJECT_NAME} ${TESTMOCKLIB_LIBRARIES})
+       target_link_libraries(${MODULE_NAME} ${TESTMOCKLIB_LIBRARIES})
    else (TESTMOCKLIB_LIBRARIES)
        message ("KKK3 Require ${TESTMOCKLIB_LIBRARIES} library")
    endif (TESTMOCKLIB_LIBRARIES)
@@ -128,11 +128,11 @@ endif (RDK_SERVICES_L2_TEST)
 
 include_directories(${TEST_INC})
 
-target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_INSTALL_PREFIX}/lib/wpeframework/plugins)
+target_link_directories(${MODULE_NAME} PUBLIC ${CMAKE_INSTALL_PREFIX}/lib/wpeframework/plugins)
 
-target_link_libraries(${PROJECT_NAME} ${TEST_LIB})
+target_link_libraries(${MODULE_NAME} ${TEST_LIB})
 
-target_include_directories(${PROJECT_NAME}
+target_include_directories(${MODULE_NAME}
         PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>
@@ -142,4 +142,9 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_SOURCE_DIR}/../Thunder/Source/plugins
         )
 
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+#install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+install(TARGETS ${MODULE_NAME} DESTINATION lib)
+write_config(${PLUGIN_NAME})
+
+

@@ -111,7 +111,7 @@ jobs:
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
         with:
-          repository: rdkcentral/entservices-testframework
+          repository: rwarier/entservices-testframework
           path: entservices-testframework
           ref: develop
           token: ${{ secrets.RDKCM_RDKE }}
@@ -335,7 +335,7 @@ jobs:
           -DPLUGIN_DEVICEDIAGNOSTICS=OFF
           -DPLUGIN_USERPREFERENCES=ON
           -DPLUGIN_WAREHOUSE=ON
-          -DPLUGIN_DEVICEINFO=OFF
+          -DPLUGIN_DEVICEINFO=ON
           -DPLUGIN_DISPLAYINFO=OFF
           -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_FRAMERATE=ON

@@ -160,3 +160,4 @@ install(TARGETS ${MODULE_NAME} DESTINATION lib)
 write_config(${PLUGIN_NAME})
 
 
+

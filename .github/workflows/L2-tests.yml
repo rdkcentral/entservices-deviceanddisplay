@@ -1,4 +1,4 @@
-name: L2-tests
+name: L2-tests-kdd
 
 on:
   push:
@@ -14,7 +14,7 @@ env:
   AUTOMATICS_PASSCODE: ${{ secrets. AUTOMATICS_PASSCODE}}
 
 jobs:
-  L2-tests:
+  L2-tests-kdd:
     name: Build and run L2 tests
     runs-on: ubuntu-22.04
     strategy:
@@ -554,7 +554,8 @@ jobs:
           &&
           lcov -c
           -o coverage.info
-          -d build/
+          -d build/entservices-deviceanddisplay
+          -d build/entservices-entservices-testframework
           &&
           lcov
           -r coverage.info

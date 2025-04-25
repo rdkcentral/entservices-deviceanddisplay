@@ -278,6 +278,8 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DCMAKE_CXX_FLAGS="
+          -fprofile-arcs
+          -ftest-coverage
           -DEXCEPTIONS_ENABLE=ON
           -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
@@ -354,6 +356,8 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DCMAKE_CXX_FLAGS="
+          -fprofile-arcs
+          -ftest-coverage
           -DEXCEPTIONS_ENABLE=ON
           -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
@@ -534,7 +538,7 @@ jobs:
       - name: Generate coverage
         if: ${{ matrix.coverage == 'with-coverage' && !env.ACT }}
         run: >
-          cp $GITHUB_WORKSPACE/entservices-deviceanddisplay/Tests/L1Tests/.lcovrc_l1 ~/.lcovrc
+          cp $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/.lcovrc_l1 ~/.lcovrc
           &&
           lcov -c
           -o coverage.info
@@ -567,8 +571,3 @@ jobs:
             rdkL1TestResultsWithValgrind.json
           if-no-files-found: warn
 
-      - name: Coping results to /tmp/Gtest_Report/
-        if: ${{ !env.ACT }}
-        run: >
-          mkdir -p /tmp/Gtest_Report/ &&
-          cp -r valgrind_log rdkL1TestResultsWithoutValgrind.json rdkL1TestResultsWithValgrind.json coverage /tmp/Gtest_Report/

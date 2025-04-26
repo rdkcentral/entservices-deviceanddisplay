@@ -247,7 +247,6 @@ jobs:
           network/wifiSrvMgrIarmIf.h
           network/netsrvmgrIarm.h
           libudev.h
-          libusb.h
           rfcapi.h
           rbus.h
           motionDetector.h
@@ -297,7 +296,6 @@ jobs:
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
-          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
@@ -336,7 +334,7 @@ jobs:
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           -DPLUGIN_DEVICEDIAGNOSTICS=OFF
           -DPLUGIN_USERPREFERENCES=ON
-          -DPLUGIN_WAREHOUSE=ON
+          -DPLUGIN_WAREHOUSE=OFF
           -DPLUGIN_DEVICEINFO=OFF
           -DPLUGIN_DISPLAYINFO=OFF
           -DPLUGIN_DISPLAYSETTINGS=OFF
@@ -375,7 +373,6 @@ jobs:
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
-          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/libusb.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
@@ -413,7 +410,7 @@ jobs:
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_USERPREFERENCES=OFF
-          -DPLUGIN_WAREHOUSE=ON
+          -DPLUGIN_WAREHOUSE=OFF
           -DPLUGIN_DEVICEDIAGNOSTICS=OFF
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON

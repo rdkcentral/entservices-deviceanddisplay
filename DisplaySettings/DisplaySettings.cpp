@@ -668,7 +668,7 @@ namespace WPEFramework {
         {
             PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             IARM_Result_t res;
             if (Utils::IARM::init())
             {
@@ -4629,7 +4629,7 @@ namespace WPEFramework {
         {
             PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
 
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){

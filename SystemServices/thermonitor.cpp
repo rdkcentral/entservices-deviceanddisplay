@@ -60,7 +60,7 @@ namespace WPEFramework {
 
         bool CThermalMonitor::getCoreTemperature(float& temperature) const
         {
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             temperature = 0;
             bool result = false;
             WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
@@ -82,7 +82,7 @@ namespace WPEFramework {
 
         bool CThermalMonitor::getCoreTempThresholds(float& high, float& critical) const
         {
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool result = false;
             WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
 
@@ -104,7 +104,7 @@ namespace WPEFramework {
 
         bool CThermalMonitor::setCoreTempThresholds(float high, float critical) const
         {
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool result = false;
             WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
 
@@ -126,7 +126,7 @@ namespace WPEFramework {
 
         bool CThermalMonitor::getOvertempGraceInterval(int& graceInterval) const
         {
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool result = false;
             WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
 
@@ -149,7 +149,7 @@ namespace WPEFramework {
         bool CThermalMonitor::setOvertempGraceInterval(int graceInterval) const
         {
             bool result = false;
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
 
             ASSERT (nullptr != _powerManagerPlugin);

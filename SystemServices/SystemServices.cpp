@@ -764,7 +764,7 @@ namespace WPEFramework {
         uint32_t SystemServices::requestSystemReboot(const JsonObject& parameters,
                 JsonObject& response)
         {
-            uint32_t status = Core::ERROR_GENERAL;
+            Core::hresult status = Core::ERROR_GENERAL;
             bool nfxResult = false;
             string customReason = "No custom reason provided";
             string otherReason = "No other reason supplied";
@@ -2107,7 +2107,7 @@ namespace WPEFramework {
         uint32_t SystemServices::setDeepSleepTimer(const JsonObject& parameters,
                 JsonObject& response)
     {
-        uint32_t retStatus = Core::ERROR_GENERAL;
+        Core::hresult retStatus = Core::ERROR_GENERAL;
         bool status = false;
 
         if (parameters.HasLabel("seconds")) {
@@ -2140,7 +2140,7 @@ namespace WPEFramework {
          {
              bool status = false;
              bool bStandbyMode = false;
-             uint32_t retStatus = Core::ERROR_GENERAL;
+             Core::hresult retStatus = Core::ERROR_GENERAL;
 
              if (parameters.HasLabel("nwStandby")) {
                  bStandbyMode = parameters["nwStandby"].Boolean();
@@ -2173,7 +2173,7 @@ namespace WPEFramework {
         uint32_t SystemServices::getNetworkStandbyMode(const JsonObject& parameters,
             JsonObject& response)
         {
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool retVal = false;
 
             if (m_networkStandbyModeValid) {
@@ -2275,7 +2275,7 @@ namespace WPEFramework {
         uint32_t SystemServices::getWakeupReason(const JsonObject& parameters,
                 JsonObject& response)
         {
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool status = false;
             WakeupReason param = WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_UNKNOWN;
             std::string wakeupReason = "WAKEUP_REASON_UNKNOWN";
@@ -2310,7 +2310,7 @@ namespace WPEFramework {
 
         uint32_t SystemServices::getLastWakeupKeyCode(const JsonObject& parameters, JsonObject& response)
         {
-          uint32_t retStatus = Core::ERROR_GENERAL;
+          Core::hresult retStatus = Core::ERROR_GENERAL;
           bool status = false;
           int keyCode = 0;
           uint32_t wakeupKeyCode = 0;
@@ -4042,7 +4042,7 @@ namespace WPEFramework {
             PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             string powerState= "UNKNOWN";
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
 
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){
@@ -4124,7 +4124,7 @@ namespace WPEFramework {
 
     bool SystemServices::setPowerState(std::string powerState)
     {
-        uint32_t status = Core::ERROR_GENERAL;
+        Core::hresult status = Core::ERROR_GENERAL;
         WPEFramework::Exchange::IPowerManager::PowerState pwrMgrState;
         int keyCode = 0;
 
@@ -4471,7 +4471,7 @@ namespace WPEFramework {
                 retVal = true;
                 LOGINFO("Got cached powerStateBeforeReboot: '%s'", m_powerStateBeforeReboot.c_str());
             } else {
-                uint32_t retStatus = Core::ERROR_GENERAL;
+                Core::hresult retStatus = Core::ERROR_GENERAL;
                 ASSERT (_powerManagerPlugin);
                 if (_powerManagerPlugin){
                     retStatus = _powerManagerPlugin->GetPowerStateBeforeReboot(pwrStateBeforeReboot);
@@ -4504,7 +4504,7 @@ namespace WPEFramework {
             unsigned int srcType = 0x0;
             unsigned int config = 0x0;
             unsigned int powerState = 0x0;
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             LOGWARN(" %s: %d Entry \n",__FUNCTION__,__LINE__);
             if (parameters.HasLabel("powerState")) 
             {
@@ -4578,7 +4578,7 @@ namespace WPEFramework {
             int config = 0x0;
             int powerState = 0x0;
             bool status = false;
-            uint32_t retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
 
             ASSERT (_powerManagerPlugin);
 

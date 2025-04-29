@@ -109,7 +109,7 @@ class FrameRateEventHandler : public Exchange::IFrameRate::INotification {
 /*************************************** Worker Job ********************************************/
 class EventJob : public Core::IDispatch {
     public:
-        EventJob(FrameRateProxy& frameRate, const Logger& logger, const std::atomic<bool>& keepRunning)
+        EventJob(FrameRateProxy& frameRate, const Logger& logger, const std::atomic<bool>* keepRunning)
             : _frameRate(frameRate), _logger(logger), _eventHandler(logger), _keepRunning(keepRunning) {}
 
         void Dispatch() override {
@@ -117,7 +117,7 @@ class EventJob : public Core::IDispatch {
 
             _frameRate->Register(&_eventHandler);
 
-            while (_keepRunning) {
+            while (*_keepRunning) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
 
@@ -129,7 +129,7 @@ class EventJob : public Core::IDispatch {
         FrameRateProxy& _frameRate;
         const Logger& _logger;
         FrameRateEventHandler _eventHandler;
-        const std::atomic<bool>& _keepRunning;
+        const std::atomic<bool>* _keepRunning;
 };
 
 /*************************************** Helper Functions ***************************************/
@@ -196,7 +196,6 @@ int main(int argc, char* argv[])
     const std::string binaryName = (argc > 0) ? argv[0] : "entServicesCOMRPC-FrameRateTest";
     Logger logger(binaryName);
 
-    /******************************************* Init *******************************************/
     const char* thunderAccess = std::getenv("THUNDER_ACCESS");
     std::string envThunderAccess = (thunderAccess != nullptr) ? thunderAccess : "/tmp/communicator";
     logger.Log("Using THUNDER_ACCESS: " + envThunderAccess);
@@ -210,7 +209,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    /************************************* Plugin Connector **************************************/
     Exchange::IFrameRate* rawFrameRate = client->Open<Exchange::IFrameRate>(_T("FrameRate"));
     if (rawFrameRate == nullptr) {
         logger.Error("Failed to connect to FrameRate plugin.");
@@ -218,29 +216,22 @@ int main(int argc, char* argv[])
     }
     logger.Log("Connected to FrameRate plugin.");
 
-    // Use RAII wrapper for FrameRate proxy
     FrameRateProxy frameRate(rawFrameRate, logger);
 
-    /*************************************** Worker Setup ****************************************/
-    if (!Core::WorkerPool::Instance().Initialize(1)) {
-        logger.Error("Failed to initialize WorkerPool.");
-        return 1;
-    }
-    Core::ProxyType<EventJob> job = Core::ProxyType<EventJob>::Create(frameRate, logger, keepRunning);
-    Core::WorkerPool::Instance().Submit(job);
+    Core::WorkerPool::Instance().Run();
+
+    Core::ProxyType<EventJob> job = Core::ProxyType<EventJob>::Create(frameRate, logger, &keepRunning);
+    Core::WorkerPool::Instance().Submit(Core::ProxyType<Core::IDispatch>(job));
 
     std::signal(SIGINT, SignalHandler);
     logger.Log("Press Ctrl+C to exit...");
 
-    /************************************* Test All Methods **************************************/
     TestFrameRateMethods(frameRate, logger);
 
-    /*************************************** Wait for Signal *************************************/
     while (keepRunning) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    /******************************************* Clean-Up *******************************************/
     logger.Log("Exiting...");
     Core::WorkerPool::Instance().Shutdown();
 

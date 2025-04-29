@@ -176,7 +176,7 @@ void TestFrameRateMethods(FrameRateProxy& frameRate, const Logger& logger)
 
 /*************************************** Signal Handling ****************************************/
 
-std::atomic<bool> keepRunning = true;
+std::atomic<bool> keepRunning{true};
 
 void SignalHandler(int signal)
 {

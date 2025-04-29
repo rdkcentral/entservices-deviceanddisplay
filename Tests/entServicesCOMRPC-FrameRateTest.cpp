@@ -27,6 +27,7 @@
 #include <mutex>
 #include <csignal>
 #include <atomic>
+#include <thread>
 
 #include <WPEFramework/com/com.h>
 #include <WPEFramework/core/core.h>
@@ -106,31 +107,21 @@ class FrameRateEventHandler : public Exchange::IFrameRate::INotification {
         const Logger& _logger;
 };
 
-/*************************************** Worker Job ********************************************/
-class EventJob : public Core::IDispatch {
-    public:
-        EventJob(FrameRateProxy& frameRate, const Logger& logger, const std::atomic<bool>* keepRunning)
-            : _frameRate(frameRate), _logger(logger), _eventHandler(logger), _keepRunning(keepRunning) {}
+/*************************************** Event Listener ****************************************/
+void EventListener(FrameRateProxy& frameRate, const Logger& logger, const std::atomic<bool>& keepRunning)
+{
+    logger.Log("Event listener thread started. Registering for events...");
 
-        void Dispatch() override {
-            _logger.Log("Worker thread started. Registering for events...");
+    FrameRateEventHandler eventHandler(logger);
+    frameRate->Register(&eventHandler);
 
-            _frameRate->Register(&_eventHandler);
+    while (keepRunning) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 
-            while (*_keepRunning) {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-
-            _frameRate->Unregister(&_eventHandler);
-            _logger.Log("Worker thread stopped. Event handler unregistered.");
-        }
-
-    private:
-        FrameRateProxy& _frameRate;
-        const Logger& _logger;
-        FrameRateEventHandler _eventHandler;
-        const std::atomic<bool>* _keepRunning;
-};
+    frameRate->Unregister(&eventHandler);
+    logger.Log("Event listener thread stopped. Event handler unregistered.");
+}
 
 /*************************************** Helper Functions ***************************************/
 bool HandleResult(const Logger& logger, const std::string& methodName, uint32_t result, bool success)
@@ -144,6 +135,7 @@ bool HandleResult(const Logger& logger, const std::string& methodName, uint32_t 
     }
 }
 
+/************************************* Method Test Wrapper *************************************/
 void TestFrameRateMethods(FrameRateProxy& frameRate, const Logger& logger)
 {
     bool success = false;
@@ -186,7 +178,8 @@ void TestFrameRateMethods(FrameRateProxy& frameRate, const Logger& logger)
 
 volatile std::atomic<bool> keepRunning = true;
 
-void SignalHandler(int signal) {
+void SignalHandler(int signal)
+{
     keepRunning = false;
 }
 
@@ -218,10 +211,8 @@ int main(int argc, char* argv[])
 
     FrameRateProxy frameRate(rawFrameRate, logger);
 
-    Core::WorkerPool::Instance().Run();
-
-    Core::ProxyType<EventJob> job = Core::ProxyType<EventJob>::Create(frameRate, logger, &keepRunning);
-    Core::WorkerPool::Instance().Submit(Core::ProxyType<Core::IDispatch>(job));
+    // Start the event listener thread
+    std::thread eventThread(EventListener, std::ref(frameRate), std::ref(logger), std::ref(keepRunning));
 
     std::signal(SIGINT, SignalHandler);
     logger.Log("Press Ctrl+C to exit...");
@@ -232,8 +223,11 @@ int main(int argc, char* argv[])
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    logger.Log("Exiting...");
-    Core::WorkerPool::Instance().Shutdown();
+    // Wait for the event listener thread to finish
+    if (eventThread.joinable()) {
+        eventThread.join();
+    }
 
+    logger.Log("Exiting...");
     return 0;
 }

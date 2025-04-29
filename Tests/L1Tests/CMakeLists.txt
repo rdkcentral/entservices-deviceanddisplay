@@ -122,10 +122,6 @@ add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_FrameRate.cpp "${FRAMERATE_INC}" 
 set (USERPREFERENCES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/UserPreferences ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USERPREFERENCES_INC}" "${NAMESPACE}UserPreferences")
 
-# PLUGIN_SYSTEMSERVICES
-#set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-#add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
-
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 
 if (RDK_SERVICES_L1_TEST)

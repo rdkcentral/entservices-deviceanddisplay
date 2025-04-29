@@ -109,15 +109,15 @@ class FrameRateEventHandler : public Exchange::IFrameRate::INotification {
 /*************************************** Worker Job ********************************************/
 class EventJob : public Core::IDispatch {
     public:
-        EventJob(FrameRateProxy& frameRate, const Logger& logger)
-            : _frameRate(frameRate), _logger(logger), _eventHandler(logger) {}
+        EventJob(FrameRateProxy& frameRate, const Logger& logger, const std::atomic<bool>& keepRunning)
+            : _frameRate(frameRate), _logger(logger), _eventHandler(logger), _keepRunning(keepRunning) {}
 
         void Dispatch() override {
             _logger.Log("Worker thread started. Registering for events...");
 
             _frameRate->Register(&_eventHandler);
 
-            while (keepRunning) {
+            while (_keepRunning) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
 
@@ -129,6 +129,7 @@ class EventJob : public Core::IDispatch {
         FrameRateProxy& _frameRate;
         const Logger& _logger;
         FrameRateEventHandler _eventHandler;
+        const std::atomic<bool>& _keepRunning;
 };
 
 /*************************************** Helper Functions ***************************************/
@@ -225,7 +226,7 @@ int main(int argc, char* argv[])
         logger.Error("Failed to initialize WorkerPool.");
         return 1;
     }
-	Core::ProxyType<EventJob> job = Core::ProxyType<EventJob>::Create(frameRate, logger);
+    Core::ProxyType<EventJob> job = Core::ProxyType<EventJob>::Create(frameRate, logger, keepRunning);
     Core::WorkerPool::Instance().Submit(job);
 
     std::signal(SIGINT, SignalHandler);

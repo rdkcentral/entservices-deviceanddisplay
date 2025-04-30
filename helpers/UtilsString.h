@@ -351,5 +351,20 @@ namespace String {
         infile.close();
         return false;
     }
+
+    // Function to replace all occurrences of a substring with another substring
+    inline std::string replaceString(std::string sentence, const std::string& oldString, const std::string& newString) {
+
+        if (oldString.empty()) {
+            return sentence;
+        }
+
+        size_t pos = 0;
+        while ((pos = sentence.find(oldString, pos)) != std::string::npos) {
+            sentence.replace(pos, oldString.length(), newString);
+            pos += newString.length();
+        }
+        return sentence;
+    }
 }
 }

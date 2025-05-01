@@ -47,6 +47,7 @@ namespace WPEFramework
         FrameRateImplementation* FrameRateImplementation::_instance = nullptr;
 
         FrameRateImplementation::FrameRateImplementation()
+			: _adminLock()
         {
             FrameRateImplementation::_instance = this;
             InitializeIARM();
@@ -62,7 +63,6 @@ namespace WPEFramework
 
         void FrameRateImplementation::InitializeIARM()
         {
-            TRACE(Trace::Information, (_T("FrameRateImplementation::InitializeIARM()")));
             if (Utils::IARM::init())
             {
                 IARM_Result_t res;
@@ -73,7 +73,6 @@ namespace WPEFramework
 
         void FrameRateImplementation::DeinitializeIARM()
         {
-			TRACE(Trace::Information, (_T("FrameRateImplementation::DeinitializeIARM()")));
             if (Utils::IARM::isConnected())
             {
                 IARM_Result_t res;
@@ -102,7 +101,7 @@ namespace WPEFramework
             }
         }
 
-        void FrameRateImplementation::Dispatch(Event event, const JsonValue params)
+        void FrameRateImplementation::DispatchDSMGRDisplayFramerateChangeEvent(Event event, const JsonValue params)
         {
             _adminLock.Lock();
             switch (event)
@@ -132,7 +131,6 @@ namespace WPEFramework
                         Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
                                     FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE,
                                     dispFrameRate));
-						TRACE(Trace::Information, (_T("IARM Event triggered for Display framerate prechange: %s"), dispFrameRate));
                     }
                     break;
 
@@ -145,7 +143,6 @@ namespace WPEFramework
                         Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
                                     FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE,
                                     dispFrameRate));
-						TRACE(Trace::Information, (_T("IARM Event triggered for Display framerate postchange: %s"), dispFrameRate));
                     }
                     break;
             }

@@ -92,7 +92,7 @@ namespace WPEFramework {
 						}
 
 						virtual void Dispatch() {
-							_framerateImplementation->Dispatch(_event, _params);
+							_framerateImplementation->DispatchDSMGRDisplayFramerateChangeEvent(_event, _params);
 						}
 
 					private:
@@ -141,7 +141,7 @@ namespace WPEFramework {
 				void dispatchOnFpsEvent(int average, int min, int max);
 				void dispatchOnDisplayFrameRateChangingEvent(const string& displayFrameRate);
 				void dispatchOnDisplayFrameRateChangedEvent(const string& displayFrameRate);
-				void Dispatch(Event event, const JsonValue params);
+				void DispatchDSMGRDisplayFramerateChangeEvent(Event event, const JsonValue params);
 
             private:
 				int m_fpsCollectionFrequencyInMs;

@@ -24,8 +24,6 @@
 #include <interfaces/IFrameRate.h>
 #include <interfaces/json/JFrameRate.h>
 #include <interfaces/json/JsonData_FrameRate.h>
-#include "UtilsLogging.h"
-#include "tracing/Logging.h"
 
 namespace WPEFramework
 {
@@ -58,32 +56,25 @@ namespace WPEFramework
 
                     void Activated(RPC::IRemoteConnection*) override
                     {
-                        LOGINFO("Notification Activated");
-                        TRACE(Trace::Information, (_T("Notification Activated")));
                     }
 
                     void Deactivated(RPC::IRemoteConnection *connection) override
                     {
-                        LOGINFO("Notification Deactivated");
-                        TRACE(Trace::Information, (_T("Notification Deactivated")));
                         _parent.Deactivated(connection);
                     }
 
                     void OnFpsEvent(int average, int min, int max ) override
                     {
-                        TRACE(Trace::Information, (_T("FPS data(avg/min/max): %d %d %d."), average, min, max));
                         Exchange::JFrameRate::Event::OnFpsEvent(_parent, average, min, max);
                     }
 
                     void OnDisplayFrameRateChanging(const string& displayFrameRate) override
                     {
-                        TRACE(Trace::Information, (_T("DisplayFrameRate %s."), displayFrameRate.c_str()));
                         Exchange::JFrameRate::Event::OnDisplayFrameRateChanging(_parent, displayFrameRate);
                     }
 
                     void OnDisplayFrameRateChanged(const string& displayFrameRate) override
                     {
-                        TRACE(Trace::Information, (_T("DisplayFrameRate %s."), displayFrameRate.c_str()));
                         Exchange::JFrameRate::Event::OnDisplayFrameRateChanged(_parent, displayFrameRate);
                     }
 

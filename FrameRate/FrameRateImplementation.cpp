@@ -47,7 +47,7 @@ namespace WPEFramework
         FrameRateImplementation* FrameRateImplementation::_instance = nullptr;
 
         FrameRateImplementation::FrameRateImplementation()
-			: _adminLock()
+            : _adminLock()
         {
             FrameRateImplementation::_instance = this;
             InitializeIARM();
@@ -313,19 +313,19 @@ namespace WPEFramework
             std::lock_guard<std::mutex> guard(m_callMutex);
             LOGINFO();
 
-			try
-			{
-				device::VideoDevice& device = device::Host::getInstance().getVideoDevices().at(0);
-				device.setFRFMode(frmmode);
-				success = true;
-				return Core::ERROR_NONE;
-			}
-			catch (const device::Exception& err)
-			{
-				LOGERR("Failed to set frame mode: %s", err.what());
-				success = false;
-			}
-			return Core::ERROR_GENERAL;
+            try
+            {
+                device::VideoDevice& device = device::Host::getInstance().getVideoDevices().at(0);
+                device.setFRFMode(frmmode);
+                success = true;
+                return Core::ERROR_NONE;
+            }
+            catch (const device::Exception& err)
+            {
+                LOGERR("Failed to set frame mode: %s", err.what());
+                success = false;
+            }
+            return Core::ERROR_GENERAL;
         }
 
         Core::hresult FrameRateImplementation::GetFrmMode(int &frmmode , bool& success)
@@ -338,11 +338,11 @@ namespace WPEFramework
             {
                 device::VideoDevice &device = device::Host::getInstance().getVideoDevices().at(0);
                 device.getFRFMode(&frmmode);
-				return Core::ERROR_NONE;
+                return Core::ERROR_NONE;
             }
             catch(const device::Exception& err)
             {
-				LOGERR("Failed to get frame mode: %s", err.what());
+                LOGERR("Failed to get frame mode: %s", err.what());
                 success = false;
             }
             return Core::ERROR_GENERAL;
@@ -363,7 +363,7 @@ namespace WPEFramework
             }
             catch (const device::Exception& err)
             {
-				LOGERR("Failed to set display frame rate: %s", err.what());
+                LOGERR("Failed to set display frame rate: %s", err.what());
                 success = false;
             }
             return Core::ERROR_GENERAL;
@@ -380,13 +380,13 @@ namespace WPEFramework
             {
                 device::VideoDevice &device = device::Host::getInstance().getVideoDevices().at(0);
                 device.getCurrentDisframerate(sFramerate);
-				framerate = std::string(sFramerate);
-				LOGINFO("Display Frame Rate: %s", framerate.c_str());
-				return Core::ERROR_NONE;
+                framerate = std::string(sFramerate);
+                LOGINFO("Display Frame Rate: %s", framerate.c_str());
+                return Core::ERROR_NONE;
             }
             catch (const device::Exception& err)
             {
-				LOGERR("Failed to get display frame rate: %s", err.what());
+                LOGERR("Failed to get display frame rate: %s", err.what());
                 success = false;
             }
 
@@ -462,10 +462,10 @@ namespace WPEFramework
             {
                 FrameRateImplementation::_instance->frameRatePreChange(dispFrameRate);
             }
-			else
-			{
-				LOGERR("FrameRateImplementation::_instance is NULL");
-			}
+            else
+            {
+                LOGERR("FrameRateImplementation::_instance is NULL");
+            }
         }
 
         void FrameRateImplementation::frameRatePreChange(char *displayFrameRate)
@@ -492,10 +492,10 @@ namespace WPEFramework
             {
                 FrameRateImplementation::_instance->frameRatePostChange(dispFrameRate);
             }
-			else
-			{
-				LOGERR("FrameRateImplementation::_instance is NULL");
-			}
+            else
+            {
+                LOGERR("FrameRateImplementation::_instance is NULL");
+            }
         }
 
         void FrameRateImplementation::frameRatePostChange(char *displayFrameRate)

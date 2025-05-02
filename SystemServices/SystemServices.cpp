@@ -5325,8 +5325,8 @@ namespace WPEFramework {
            bool status = false;
            std::string migrationstatus;
            RFC_ParamData_t param = {0};
-           WDMP_STATUS status = getRFCParameter((char*)"thunderapi", TR181_MIGRATIONSTATUS, &param);
-           if (WDMP_SUCCESS == status) {
+           WDMP_STATUS wdmpstatus = getRFCParameter((char*)"thunderapi", TR181_MIGRATIONSTATUS, &param);
+           if (WDMP_SUCCESS == wdmpstatus) {
                 migrationstatus = param.value;
                 LOGINFO("Current ENTOS Migration Status is: %s\n", migrationstatus.c_str());
                 response["MigrationStatus"] = migrationstatus;

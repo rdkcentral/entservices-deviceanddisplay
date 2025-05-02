@@ -114,7 +114,7 @@ namespace WPEFramework
 
             WarehouseImplementation::_instance = this;
             InitializeIARM();
-            LOGWARN ("WarehouseImplementation::Constructor finished line:%d", __LINE__);
+            LOGWARN ("WarehouseImplementation::Constructor finished line:%d");
         }
 
         WarehouseImplementation::~WarehouseImplementation()

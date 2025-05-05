@@ -39,6 +39,13 @@
 #define DEFAULT_MIN_FPS_VALUE 60
 #define DEFAULT_MAX_FPS_VALUE -1
 
+#define ENABLE_DEBUG 1
+#ifdef ENABLE_DEBUG
+#define DBGINFO(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
+#else
+#define DBGINFO(fmt, ...)
+#endif
+
 namespace WPEFramework
 {
     namespace Plugin
@@ -203,7 +210,6 @@ namespace WPEFramework
         {
             std::lock_guard<std::mutex> guard(m_callMutex);
             LOGINFO();
-            bool retValue = false;
 
             if (frequency < MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS)
             {
@@ -333,7 +339,7 @@ namespace WPEFramework
             return Core::ERROR_GENERAL;
         }
 
-        Core::hresult FrameRateImplementation::GetFrmMode(int &frmmode , bool& success)
+        Core::hresult FrameRateImplementation::GetFrmMode(int &autoFRMMode, bool& success)
         {
             std::lock_guard<std::mutex> guard(m_callMutex);
             LOGINFO();
@@ -382,6 +388,7 @@ namespace WPEFramework
             {
                 device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
                 if (videoDevices.size() == 0)
+				{
                     LOGERR("No video devices available.");
                     return Core::ERROR_GENERAL;
                 }

@@ -252,6 +252,83 @@ namespace WPEFramework
         /***************************************** Methods **********************************************/
 
         /**
+         * @brief Returns the current display frame rate values.
+         * @param framerate - The current display framerate setting (width x height x framerate)
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
+        Core::hresult FrameRateImplementation::GetDisplayFrameRate(string& framerate, bool& success)
+        {
+            DBGINFO();
+            success = false;
+
+            std::lock_guard<std::mutex> guard(m_callMutex);
+
+            try
+            {
+                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
+                if (videoDevices.size() == 0)
+                {
+                    LOGERR("No video devices available.");
+                    return Core::ERROR_GENERAL;
+                }
+
+                char sFramerate[32] = {0};
+                device::VideoDevice& device = videoDevices.at(0);
+                if (!device.getCurrentDisframerate(sFramerate) && sFramerate[0] != '\0')
+                {
+                    framerate = sFramerate;
+                    success = true;
+                    return Core::ERROR_NONE;
+                }
+
+                LOGERR("getCurrentDisframerate error, DS::ERROR.");
+            }
+            catch (const device::Exception& err)
+            {
+                LOG_DEVICE_EXCEPTION0();
+            }
+
+            return Core::ERROR_GENERAL;
+        }
+
+        /**
+         * @brief Returns the current auto framerate mode.
+         * @param autoFRMMode - The current auto framerate mode.
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
+        Core::hresult FrameRateImplementation::GetFrmMode(int &autoFRMMode, bool& success)
+        {
+            DBGINFO();
+            std::lock_guard<std::mutex> guard(m_callMutex);
+
+            success = false;
+            try
+            {
+                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
+                if (videoDevices.size() == 0)
+                {
+                    LOGERR("No video devices available.");
+                    return Core::ERROR_GENERAL;
+                }
+                device::VideoDevice& device = videoDevices.at(0);
+                if (!device.getFRFMode(&autoFRMMode))
+                {
+                    DBGINFO("Frame Mode: %d", autoFRMMode);
+                    success = true;
+                    return Core::ERROR_NONE;
+                }
+                LOGERR("getFRFMode failed DS::ERROR.");
+            }
+            catch(const device::Exception& err)
+            {
+                LOG_DEVICE_EXCEPTION0();
+            }
+            return Core::ERROR_GENERAL;
+        }
+
+        /**
          * @brief This function is used to set the FPS data collection interval.
          * @param frequency - The amount of time in milliseconds. Default is 10000ms and min is 100ms.
          * @param success - Indicates whether the operation was successful.
@@ -278,7 +355,90 @@ namespace WPEFramework
             catch (const device::Exception& err)
             {
                 LOG_DEVICE_EXCEPTION0();
-                LOGERR("Exception: %s", err.what());
+            }
+            return Core::ERROR_GENERAL;
+        }
+
+        /**
+         * @brief Sets the display framerate values.
+         * @param framerate - The display frame rate in the format "WIDTHxHEIGHTxFPS".
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
+        Core::hresult FrameRateImplementation::SetDisplayFrameRate(const string& framerate, bool& success)
+        {
+            // framerate should be of "WIDTHxHEIGHTxFPS" as per DSHAL specification - setDisplayframerate
+            // Eg: 1920px1080px60
+            // check if we got two 'x' in the string at least.
+            success = false;
+            if (std::count(framerate.begin(), framerate.end(), 'x') != 2 ||
+                    !isdigit(framerate.front()) || !isdigit(framerate.back()))
+            {
+                LOGERR("Invalid frame rate format: '%s'", framerate.c_str());
+                return Core::ERROR_INVALID_PARAMETER;
+            }
+            string sFramerate = framerate;
+            std::lock_guard<std::mutex> guard(m_callMutex);
+
+            try
+            {
+                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
+                if (videoDevices.size() == 0)
+                {
+                    LOGERR("No video devices available.");
+                    return Core::ERROR_GENERAL;
+                }
+                device::VideoDevice& device = videoDevices.at(0);
+                if (!device.setDisplayframerate(sFramerate.c_str()))
+                {
+                    success = true;
+                    return Core::ERROR_NONE;
+                }
+                LOGERR("setDisplayframerate failed, DS::ERROR.");
+            }
+            catch (const device::Exception& err)
+            {
+                LOG_DEVICE_EXCEPTION0();
+            }
+            return Core::ERROR_GENERAL;
+        }
+
+        /**
+         * @brief Sets the auto framerate mode.
+         * @param frmmode - The frame mode (0 or 1).
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
+        Core::hresult FrameRateImplementation::SetFrmMode(int frmmode, bool& success)
+        {
+            success = false;
+            if (frmmode != 0 && frmmode != 1)
+            {
+                LOGERR("Invalid frame mode: %d", frmmode);
+                return Core::ERROR_INVALID_RANGE;
+            }
+
+            std::lock_guard<std::mutex> guard(m_callMutex);
+
+            try
+            {
+                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
+                if (videoDevices.size() == 0)
+                {
+                    LOGERR("No video devices available.");
+                    return Core::ERROR_GENERAL;
+                }
+                device::VideoDevice& device = videoDevices.at(0);
+                if (!device.setFRFMode(frmmode))
+                {
+                    success = true;
+                    return Core::ERROR_NONE;
+                }
+                DBGINFO("Failed to set frame mode DS::ERROR  %d", frmmode);
+            }
+            catch (const device::Exception& err)
+            {
+                LOG_DEVICE_EXCEPTION0();
             }
             return Core::ERROR_GENERAL;
         }
@@ -379,171 +539,6 @@ namespace WPEFramework
 
             success = true;
             return Core::ERROR_NONE;
-        }
-
-        /**
-         * @brief Sets the auto framerate mode.
-         * @param frmmode - The frame mode (0 or 1).
-         * @param success - Indicates whether the operation was successful.
-         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
-         */
-        Core::hresult FrameRateImplementation::SetFrmMode(int frmmode, bool& success)
-        {
-            success = false;
-            if (frmmode != 0 && frmmode != 1)
-            {
-                LOGERR("Invalid frame mode: %d", frmmode);
-                return Core::ERROR_INVALID_RANGE;
-            }
-
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            try
-            {
-                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
-                if (videoDevices.size() == 0)
-                {
-                    LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
-                }
-                device::VideoDevice& device = videoDevices.at(0);
-                if (!device.setFRFMode(frmmode))
-                {
-                    success = true;
-                    return Core::ERROR_NONE;
-                }
-                DBGINFO("Failed to set frame mode DS::ERROR  %d", frmmode);
-            }
-            catch (const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION0();
-                LOGERR("Failed to set frame mode: %s", err.what());
-            }
-            return Core::ERROR_GENERAL;
-        }
-
-        /**
-         * @brief Returns the current auto framerate mode.
-         * @param autoFRMMode - The current auto framerate mode.
-         * @param success - Indicates whether the operation was successful.
-         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
-         */
-        Core::hresult FrameRateImplementation::GetFrmMode(int &autoFRMMode, bool& success)
-        {
-            DBGINFO();
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            success = false;
-            try
-            {
-                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
-                if (videoDevices.size() == 0)
-                {
-                    LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
-                }
-                device::VideoDevice& device = videoDevices.at(0);
-                if (!device.getFRFMode(&autoFRMMode))
-                {
-                    DBGINFO("Frame Mode: %d", autoFRMMode);
-                    success = true;
-                    return Core::ERROR_NONE;
-                }
-                LOGERR("getFRFMode failed DS::ERROR.");
-            }
-            catch(const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION0();
-                LOGERR("Failed to get frame mode: %s", err.what());
-            }
-            return Core::ERROR_GENERAL;
-        }
-
-        /**
-         * @brief Sets the display framerate values.
-         * @param framerate - The display frame rate in the format "WIDTHxHEIGHTxFPS".
-         * @param success - Indicates whether the operation was successful.
-         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
-         */
-        Core::hresult FrameRateImplementation::SetDisplayFrameRate(const string& framerate, bool& success)
-        {
-            // framerate should be of "WIDTHxHEIGHTxFPS" as per DSHAL specification - setDisplayframerate
-            // Eg: 1920px1080px60
-            // check if we got two 'x' in the string at least.
-            success = false;
-            if (std::count(framerate.begin(), framerate.end(), 'x') != 2 ||
-                    !isdigit(framerate.front()) || !isdigit(framerate.back()))
-            {
-                LOGERR("Invalid frame rate format: '%s'", framerate.c_str());
-                return Core::ERROR_INVALID_PARAMETER;
-            }
-            string sFramerate = framerate;
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            try
-            {
-                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
-                if (videoDevices.size() == 0)
-                {
-                    LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
-                }
-                device::VideoDevice& device = videoDevices.at(0);
-                if (!device.setDisplayframerate(sFramerate.c_str()))
-                {
-                    success = true;
-                    return Core::ERROR_NONE;
-                }
-                LOGERR("setDisplayframerate failed, DS::ERROR.");
-            }
-            catch (const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION0();
-                LOGERR("Failed to set display frame rate: %s", err.what());
-            }
-            return Core::ERROR_GENERAL;
-        }
-
-        /**
-         * @brief Returns the current display frame rate values.
-         * @param framerate - The current display framerate setting (width x height x framerate)
-         * @param success - Indicates whether the operation was successful.
-         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
-         */
-        Core::hresult FrameRateImplementation::GetDisplayFrameRate(string& framerate, bool& success)
-        {
-            DBGINFO();
-            success = false;
-
-            std::lock_guard<std::mutex> guard(m_callMutex);
-
-            try
-            {
-                device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
-                if (videoDevices.size() == 0)
-                {
-                    LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
-                }
-
-                char sFramerate[32] = {0};
-                device::VideoDevice& device = videoDevices.at(0);
-                if (!device.getCurrentDisframerate(sFramerate) && sFramerate[0] != '\0')
-                {
-                    framerate = sFramerate;
-                    success = true;
-                    return Core::ERROR_NONE;
-                }
-
-                LOGERR("getCurrentDisframerate error, DS::ERROR.");
-            }
-            catch (const device::Exception& err)
-            {
-                LOG_DEVICE_EXCEPTION0();
-                LOGERR("Failed to get display frame rate: %s", err.what());
-            }
-
-            return Core::ERROR_GENERAL;
         }
 
         /**

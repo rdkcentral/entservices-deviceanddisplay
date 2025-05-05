@@ -65,7 +65,8 @@ namespace WPEFramework
         {
             FrameRateImplementation::_instance = this;
             InitializeIARM();
-			m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
+            // Connect the timer callback handle for triggering FrameRate notifications.
+            m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
         }
 
         FrameRateImplementation::~FrameRateImplementation()
@@ -74,15 +75,15 @@ namespace WPEFramework
         }
 
         // IARM EventHandler
-        static void _frameEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
+        static void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
 
         void FrameRateImplementation::InitializeIARM()
         {
             if (Utils::IARM::init())
             {
                 IARM_Result_t res;
-                IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _frameEventHandler));
-                IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _frameEventHandler));
+                IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
+                IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
             }
         }
 
@@ -91,11 +92,36 @@ namespace WPEFramework
             if (Utils::IARM::isConnected())
             {
                 IARM_Result_t res;
-                IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _frameEventHandler));
-                IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _frameEventHandler));
+                IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
+                IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
             }
         }
 
+        /******************************************* Notifications ****************************************/
+
+        /**
+         * @brief This function is used to dispatch 'onFpsEvent' to all registered notification sinks.
+         * @param average - The average frame rate.
+         * @param min - The minimum frame rate.
+         * @param max - The maximum frame rate.
+         * @return void
+         */
+        void FrameRateImplementation::dispatchOnFpsEvent(int average, int min, int max)
+        {
+            std::list<Exchange::IFrameRate::INotification*>::const_iterator index(_framerateNotification.begin());
+            while (index != _framerateNotification.end())
+            {
+                (*index)->OnFpsEvent(average, min, max);
+                ++index;
+            }
+            DBGINFO("average = %d, min = %d, max = %d.", average, min, max);
+        }
+
+        /**
+         * @brief This function is used to dispatch 'onDisplayFrameRateChanging' to all registered notifications.
+         * @param displayFrameRate - The display frame rate.
+         * @return void
+         */
         void FrameRateImplementation::dispatchOnDisplayFrameRateChangingEvent(const string& displayFrameRate)
         {
             std::list<Exchange::IFrameRate::INotification*>::const_iterator index(_framerateNotification.begin());
@@ -104,8 +130,14 @@ namespace WPEFramework
                 (*index)->OnDisplayFrameRateChanging(displayFrameRate);
                 ++index;
             }
+            DBGINFO("displayFrameRate: '%s'", displayFrameRate.c_str());
         }
 
+        /**
+         * @brief This function is used to dispatch 'onDisplayFrameRateChanged' to all registered notifications.
+         * @param displayFrameRate - The display frame rate.
+         * @return void
+         */
         void FrameRateImplementation::dispatchOnDisplayFrameRateChangedEvent(const string& displayFrameRate)
         {
             std::list<Exchange::IFrameRate::INotification*>::const_iterator index(_framerateNotification.begin());
@@ -114,8 +146,15 @@ namespace WPEFramework
                 (*index)->OnDisplayFrameRateChanged(displayFrameRate);
                 ++index;
             }
+            DBGINFO("displayFrameRate: '%s'", displayFrameRate.c_str());
         }
 
+        /**
+         * @brief This function is used to dispatch the display frame rate change event, triggered by worker pool.
+         * @param event - The event type (prechange or postchange).
+         * @param params - The parameters associated with the event.
+         * @return void
+         */
         void FrameRateImplementation::DispatchDSMGRDisplayFramerateChangeEvent(Event event, const JsonValue params)
         {
             _adminLock.Lock();
@@ -132,7 +171,15 @@ namespace WPEFramework
             _adminLock.Unlock();
         }
 
-        void _frameEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
+        /**
+         * @brief This function is used to handle the generic IARM event callback.
+         * @param owner - The owner of the event.
+         * @param eventId - The ID of the event.
+         * @param data - The data associated with the event.
+         * @param len - The length of the data.
+         * @return void
+         */
+        void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
             switch (eventId)
             {
@@ -142,7 +189,7 @@ namespace WPEFramework
                         IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
                         strncpy(dispFrameRate, eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
                         dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
-
+                        DBGINFO("IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE: '%s'", dispFrameRate);
                         Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
                                     FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE,
                                     dispFrameRate));
@@ -155,6 +202,7 @@ namespace WPEFramework
                         IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
                         strncpy(dispFrameRate, eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
                         dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
+                        DBGINFO("IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE: '%s'", dispFrameRate);
                         Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
                                     FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE,
                                     dispFrameRate));
@@ -165,19 +213,18 @@ namespace WPEFramework
 
         Core::hresult FrameRateImplementation::Register(Exchange::IFrameRate::INotification *notification)
         {
-            ASSERT (nullptr != notification);
+            ASSERT(nullptr != notification);
             _adminLock.Lock();
 
-            // Make sure we can't register the same notification callback multiple times
-            if (std::find(_framerateNotification.begin(), _framerateNotification.end(), notification) == _framerateNotification.end())
+            // Check if the notification is already registered
+            if (std::find(_framerateNotification.begin(), _framerateNotification.end(), notification) != _framerateNotification.end())
             {
-                _framerateNotification.push_back(notification);
-                notification->AddRef();
+                LOGERR("Same notification is registered already");
+                return Core::ERROR_ALREADY_CONNECTED;
             }
-            else
-            {
-                LOGERR("same notification is registered already");
-            }
+
+            _framerateNotification.push_back(notification);
+            notification->AddRef();
 
             _adminLock.Unlock();
             return Core::ERROR_NONE;
@@ -185,53 +232,69 @@ namespace WPEFramework
 
         Core::hresult FrameRateImplementation::Unregister(Exchange::IFrameRate::INotification *notification)
         {
-            Core::hresult status = Core::ERROR_GENERAL;
-            ASSERT (nullptr != notification);
+            ASSERT(nullptr != notification);
             _adminLock.Lock();
 
-            // we just unregister one notification once
+            // Just unregister one notification once
             auto itr = std::find(_framerateNotification.begin(), _framerateNotification.end(), notification);
             if (itr != _framerateNotification.end())
             {
                 (*itr)->Release();
                 _framerateNotification.erase(itr);
-                status = Core::ERROR_NONE;
+                return Core::ERROR_NONE;
             }
-            else
-            {
-                LOGERR("_framerateNotification not found");
-            }
+            LOGERR("Notification %p not found in _framerateNotification", notification);
 
             _adminLock.Unlock();
-            return status;
+            return Core::ERROR_GENERAL;
         }
 
+        /***************************************** Methods **********************************************/
+
+        /**
+         * @brief This function is used to set the FPS data collection interval.
+         * @param frequency - The amount of time in milliseconds. Default is 10000ms and min is 100ms.
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::SetCollectionFrequency(int frequency, bool& success)
         {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-            LOGINFO();
-
+            DBGINFO();
+            success = false;
             if (frequency < MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS)
             {
                 LOGERR("Invalid frequency, minimum is %d ms.", MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS);
-                success = false;
-                return Core::ERROR_GENERAL;
+                return Core::ERROR_INVALID_RANGE;
             }
 
-            m_fpsCollectionFrequencyInMs = frequency;
-            DBGINFO("FrameRate collection frequency set to %d milliseconds.", frequency);
-            success = true;
-            return Core::ERROR_NONE;
-		}
+            std::lock_guard<std::mutex> guard(m_callMutex);
+            try
+            {
+                m_fpsCollectionFrequencyInMs = frequency;
+                DBGINFO("FrameRate collection frequency set to %d milliseconds.", frequency);
+                success = true;
+                return Core::ERROR_NONE;
+            }
+            catch (const device::Exception& err)
+            {
+                LOGERR("Exception: %s", err.what());
+            }
+            return Core::ERROR_GENERAL;
+        }
 
+        /**
+         * @brief Starts the FPS data collection.
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::StartFpsCollection(bool& success)
         {
+            DBGINFO();
             std::lock_guard<std::mutex> guard(m_callMutex);
-            LOGINFO();
 
             if (m_fpsCollectionInProgress)
             {
-                success = false;
+                DBGINFO("FPS collection is already in progress.");
             }
             if (m_reportFpsTimer.isActive())
             {
@@ -249,16 +312,22 @@ namespace WPEFramework
             {
                 fpsCollectionFrequency = MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS;
             }
+            m_lastFpsValue = -1;
             m_reportFpsTimer.start(fpsCollectionFrequency);
-            enableFpsCollection();
+            DBGINFO("FPS collection timer started with frequency %d milliseconds.", fpsCollectionFrequency);
             success = true;
             return Core::ERROR_NONE;
         }
 
+        /**
+         * @brief Stops the FPS data collection.
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::StopFpsCollection(bool& success)
         {
+            DBGINFO();
             std::lock_guard<std::mutex> guard(m_callMutex);
-            LOGINFO();
 
             if (m_reportFpsTimer.isActive())
             {
@@ -275,42 +344,55 @@ namespace WPEFramework
                     averageFps = (m_totalFpsValues / m_numberOfFpsUpdates);
                     minFps = m_minFpsValue;
                     maxFps = m_maxFpsValue;
-                    fpsCollectionUpdate(averageFps, minFps, maxFps);
+                    dispatchOnFpsEvent(averageFps, minFps, maxFps);
                 }
-                disableFpsCollection();
             }
             success = true;
             return Core::ERROR_NONE;
         }
 
+        /**
+         * @brief Updates the FPS value.
+         * @param newFpsValue - The new FPS value.
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::UpdateFps(int newFpsValue, bool& success)
         {
+            DBGINFO();
+            if (newFpsValue < 0)
+            {
+                LOGERR("Invalid FPS value: %d", newFpsValue);
+                success = false;
+                return Core::ERROR_INVALID_RANGE;
+            }
             std::lock_guard<std::mutex> guard(m_callMutex);
-            LOGINFO();
 
-            if (newFpsValue > m_maxFpsValue)
-            {
-                m_maxFpsValue = newFpsValue;
-            }
-            if (newFpsValue < m_minFpsValue)
-            {
-                m_minFpsValue = newFpsValue;
-            }
+            m_maxFpsValue = std::max(m_maxFpsValue, newFpsValue);
+            m_minFpsValue = std::min(m_minFpsValue, newFpsValue);
             m_totalFpsValues += newFpsValue;
             m_numberOfFpsUpdates++;
             m_lastFpsValue = newFpsValue;
+            DBGINFO("m_maxFpsValue = %d, m_minFpsValue = %d, m_totalFpsValues = %d, m_numberOfFpsUpdates = %d",
+                    m_maxFpsValue, m_minFpsValue, m_totalFpsValues, m_numberOfFpsUpdates);
 
             success = true;
             return Core::ERROR_NONE;
         }
 
+        /**
+         * @brief Sets the auto framerate mode.
+         * @param frmmode - The frame mode (0 or 1).
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::SetFrmMode(int frmmode, bool& success)
         {
+            success = false;
             if (frmmode != 0 && frmmode != 1)
             {
                 LOGERR("Invalid frame mode: %d", frmmode);
-                success = false;
-                return Core::ERROR_GENERAL;
+                return Core::ERROR_INVALID_RANGE;
             }
 
             std::lock_guard<std::mutex> guard(m_callMutex);
@@ -329,22 +411,27 @@ namespace WPEFramework
                     success = true;
                     return Core::ERROR_NONE;
                 }
-				DBGINFO("Failed to set frame mode DS::ERROR  %d", frmmode);
+                DBGINFO("Failed to set frame mode DS::ERROR  %d", frmmode);
             }
             catch (const device::Exception& err)
             {
                 LOGERR("Failed to set frame mode: %s", err.what());
-                success = false;
             }
             return Core::ERROR_GENERAL;
         }
 
+        /**
+         * @brief Returns the current auto framerate mode.
+         * @param autoFRMMode - The current auto framerate mode.
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::GetFrmMode(int &autoFRMMode, bool& success)
         {
+            DBGINFO();
             std::lock_guard<std::mutex> guard(m_callMutex);
-            LOGINFO();
 
-            success = true;
+            success = false;
             try
             {
                 device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
@@ -370,6 +457,12 @@ namespace WPEFramework
             return Core::ERROR_GENERAL;
         }
 
+        /**
+         * @brief Sets the display framerate values.
+         * @param framerate - The display frame rate in the format "WIDTHxHEIGHTxFPS".
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::SetDisplayFrameRate(const string& framerate, bool& success)
         {
             // framerate should be of "WIDTHxHEIGHTxFPS" as per DSHAL specification - setDisplayframerate
@@ -379,7 +472,7 @@ namespace WPEFramework
             if (std::count(framerate.begin(), framerate.end(), 'x') != 2)
             {
                 LOGERR("Invalid frame rate format: %s", framerate.c_str());
-                return Core::ERROR_GENERAL;
+                return Core::ERROR_INVALID_PARAMETER;
             }
             string sFramerate = framerate;
             std::lock_guard<std::mutex> guard(m_callMutex);
@@ -388,7 +481,7 @@ namespace WPEFramework
             {
                 device::List<device::VideoDevice> videoDevices = device::Host::getInstance().getVideoDevices();
                 if (videoDevices.size() == 0)
-				{
+                {
                     LOGERR("No video devices available.");
                     return Core::ERROR_GENERAL;
                 }
@@ -408,12 +501,18 @@ namespace WPEFramework
             return Core::ERROR_GENERAL;
         }
 
+        /**
+         * @brief Returns the current display frame rate values.
+         * @param framerate - The current display framerate setting (width x height x framerate)
+         * @param success - Indicates whether the operation was successful.
+         * @return Core::ERROR_NONE on success, Core::ERROR_GENERAL on failure.
+         */
         Core::hresult FrameRateImplementation::GetDisplayFrameRate(string& framerate, bool& success)
         {
+            DBGINFO();
+            success = false;
+
             std::lock_guard<std::mutex> guard(m_callMutex);
-            LOGINFO();
-            char sFramerate[32] = {0};
-            success = true;
 
             try
             {
@@ -438,7 +537,6 @@ namespace WPEFramework
             catch (const device::Exception& err)
             {
                 LOGERR("Failed to get display frame rate: %s", err.what());
-                success = false;
             }
 
             return Core::ERROR_GENERAL;
@@ -456,29 +554,20 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
 
-        void FrameRateImplementation::fpsCollectionUpdate(int averageFps, int minFps, int maxFps)
-        {
-            JsonObject params;
-            params["average"] = averageFps;
-            params["min"] = minFps;
-            params["max"] = maxFps;
-        }
+        /************************************** Implementation specific ****************************************/
 
+        /**
+         * @brief This function is used to handle the timer event for reporting FPS.
+         * @return void
+         */
         void FrameRateImplementation::onReportFpsTimer()
         {
             std::lock_guard<std::mutex> guard(m_callMutex);
-            int averageFps = -1;
-            int minFps = -1;
-            int maxFps = -1;
+            int averageFps = (m_numberOfFpsUpdates > 0) ? (m_totalFpsValues / m_numberOfFpsUpdates) : -1;
+            int minFps = (m_numberOfFpsUpdates > 0) ? m_minFpsValue : DEFAULT_MIN_FPS_VALUE;
+            int maxFps = (m_numberOfFpsUpdates > 0) ? m_maxFpsValue : DEFAULT_MAX_FPS_VALUE;
 
-            if (m_numberOfFpsUpdates > 0)
-            {
-                averageFps = (m_totalFpsValues / m_numberOfFpsUpdates);
-                minFps = m_minFpsValue;
-                maxFps = m_maxFpsValue;
-            }
-
-            fpsCollectionUpdate(averageFps, minFps, maxFps);
+            dispatchOnFpsEvent(averageFps, minFps, maxFps);
 
             if (m_lastFpsValue >= 0)
             {

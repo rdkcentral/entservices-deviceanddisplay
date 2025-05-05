@@ -277,6 +277,7 @@ namespace WPEFramework
             }
             catch (const device::Exception& err)
             {
+                LOG_DEVICE_EXCEPTION0();
                 LOGERR("Exception: %s", err.what());
             }
             return Core::ERROR_GENERAL;
@@ -415,6 +416,7 @@ namespace WPEFramework
             }
             catch (const device::Exception& err)
             {
+                LOG_DEVICE_EXCEPTION0();
                 LOGERR("Failed to set frame mode: %s", err.what());
             }
             return Core::ERROR_GENERAL;
@@ -451,8 +453,8 @@ namespace WPEFramework
             }
             catch(const device::Exception& err)
             {
+                LOG_DEVICE_EXCEPTION0();
                 LOGERR("Failed to get frame mode: %s", err.what());
-                success = false;
             }
             return Core::ERROR_GENERAL;
         }
@@ -466,12 +468,13 @@ namespace WPEFramework
         Core::hresult FrameRateImplementation::SetDisplayFrameRate(const string& framerate, bool& success)
         {
             // framerate should be of "WIDTHxHEIGHTxFPS" as per DSHAL specification - setDisplayframerate
-            // Eg: 1920x1080x60
+            // Eg: 1920px1080px60
             // check if we got two 'x' in the string at least.
             success = false;
-            if (std::count(framerate.begin(), framerate.end(), 'x') != 2)
+            if (std::count(framerate.begin(), framerate.end(), 'x') != 2 ||
+                    !isdigit(framerate.front()) || !isdigit(framerate.back()))
             {
-                LOGERR("Invalid frame rate format: %s", framerate.c_str());
+                LOGERR("Invalid frame rate format: '%s'", framerate.c_str());
                 return Core::ERROR_INVALID_PARAMETER;
             }
             string sFramerate = framerate;
@@ -495,8 +498,8 @@ namespace WPEFramework
             }
             catch (const device::Exception& err)
             {
+                LOG_DEVICE_EXCEPTION0();
                 LOGERR("Failed to set display frame rate: %s", err.what());
-                success = false;
             }
             return Core::ERROR_GENERAL;
         }
@@ -536,6 +539,7 @@ namespace WPEFramework
             }
             catch (const device::Exception& err)
             {
+                LOG_DEVICE_EXCEPTION0();
                 LOGERR("Failed to get display frame rate: %s", err.what());
             }
 
@@ -584,66 +588,6 @@ namespace WPEFramework
                 m_totalFpsValues = 0;
                 m_numberOfFpsUpdates = 0;
             }
-        }
-
-        void FrameRateImplementation::FrameRatePreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            char dispFrameRate[32] = {0};
-            if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0)
-            {
-                switch (eventId)
-                {
-                    case IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE:
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        strncpy(dispFrameRate,eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
-                        dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
-                        break;
-                }
-            }
-
-            if (FrameRateImplementation::_instance)
-            {
-                FrameRateImplementation::_instance->frameRatePreChange(dispFrameRate);
-            }
-            else
-            {
-                LOGERR("FrameRateImplementation::_instance is NULL");
-            }
-        }
-
-        void FrameRateImplementation::frameRatePreChange(char *displayFrameRate)
-        {
-            string status = std::string(displayFrameRate);
-        }
-
-        void FrameRateImplementation::FrameRatePostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            char dispFrameRate[32] = {0};
-            if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0)
-            {
-                switch (eventId)
-                {
-                    case IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE:
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        strncpy(dispFrameRate,eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
-                        dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
-                        break;
-                }
-            }
-
-            if (FrameRateImplementation::_instance)
-            {
-                FrameRateImplementation::_instance->frameRatePostChange(dispFrameRate);
-            }
-            else
-            {
-                LOGERR("FrameRateImplementation::_instance is NULL");
-            }
-        }
-
-        void FrameRateImplementation::frameRatePostChange(char *displayFrameRate)
-        {
-            string status = std::string(displayFrameRate);
         }
     } // namespace Plugin
 } // namespace WPEFramework

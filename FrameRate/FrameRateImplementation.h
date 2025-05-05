@@ -117,13 +117,8 @@ namespace WPEFramework {
                 //End methods
 
                 void onReportFpsTimer();
-                void onReportFpsTimerTest();
                 void InitializeIARM();
                 void DeinitializeIARM();
-                void frameRatePreChange(char *displayFrameRate);
-                static void FrameRatePreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-                void frameRatePostChange(char *displayFrameRate);
-                static void FrameRatePostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
 
                 static FrameRateImplementation* _instance;
 
@@ -135,9 +130,12 @@ namespace WPEFramework {
                 PluginHost::IShell* _service;
                 std::list<Exchange::IFrameRate::INotification*> _framerateNotification;
 
+                //Begin Notifications
                 void dispatchOnFpsEvent(int average, int min, int max);
                 void dispatchOnDisplayFrameRateChangingEvent(const string& displayFrameRate);
                 void dispatchOnDisplayFrameRateChangedEvent(const string& displayFrameRate);
+                //End Notifications
+
                 void DispatchDSMGRDisplayFramerateChangeEvent(Event event, const JsonValue params);
 
             private:

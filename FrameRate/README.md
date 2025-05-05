@@ -1,4 +1,4 @@
 ## FrameRate plugin
-A org.rdk.FrameRate plugin for Thunder framework.
+An org.rdk.FrameRate plugin for Thunder framework.
 
 Refer [FrameRatePlugin](https://rdkcentral.github.io/entservices-apis/#/apis/FrameRatePlugin) for details.

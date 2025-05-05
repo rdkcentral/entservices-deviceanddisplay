@@ -28,6 +28,7 @@
 #include <plugins/plugins.h>
 #include <interfaces/Ids.h>
 #include <interfaces/IFrameRate.h>
+#include "tracing/Logging.h"
 
 #include "tptimer.h"
 #include "libIARM.h"
@@ -90,9 +91,6 @@ namespace WPEFramework {
 #endif
                         }
 
-                        /**
-                         * @brief This function is used to execute the job triggered by the worker pool.
-                         */
                         virtual void Dispatch() {
                             _framerateImplementation->DispatchDSMGRDisplayFramerateChangeEvent(_event, _params);
                         }
@@ -118,9 +116,16 @@ namespace WPEFramework {
                 Core::hresult GetCollectionFrequency(int& frequency, bool& success) override;
                 //End methods
 
+                virtual void enableFpsCollection() {}
+                virtual void disableFpsCollection() {}
                 void onReportFpsTimer();
+                void onReportFpsTimerTest();
                 void InitializeIARM();
                 void DeinitializeIARM();
+                void frameRatePreChange(char *displayFrameRate);
+                static void FrameRatePreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
+                void frameRatePostChange(char *displayFrameRate);
+                static void FrameRatePostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
 
                 static FrameRateImplementation* _instance;
 
@@ -132,13 +137,10 @@ namespace WPEFramework {
                 PluginHost::IShell* _service;
                 std::list<Exchange::IFrameRate::INotification*> _framerateNotification;
 
-                //Notification callbacks
                 void dispatchOnFpsEvent(int average, int min, int max);
                 void dispatchOnDisplayFrameRateChangingEvent(const string& displayFrameRate);
                 void dispatchOnDisplayFrameRateChangedEvent(const string& displayFrameRate);
-
                 void DispatchDSMGRDisplayFramerateChangeEvent(Event event, const JsonValue params);
-                static void _iarmbusEventHandlerCB(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
 
             private:
                 int m_fpsCollectionFrequencyInMs;

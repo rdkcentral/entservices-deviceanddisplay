@@ -113,9 +113,10 @@ namespace WPEFramework {
                 Core::hresult StartFpsCollection(bool& success) override;
                 Core::hresult StopFpsCollection(bool& success) override;
                 Core::hresult UpdateFps(int newFpsValue, bool& success) override;
-                Core::hresult GetCollectionFrequency(int& frequency, bool& success) override;
+				Core::hresult GetCollectionFrequency(int& frequency, bool& success) override;
                 //End methods
 
+                void fpsCollectionUpdate( int averageFps, int minFps, int maxFps);
                 virtual void enableFpsCollection() {}
                 virtual void disableFpsCollection() {}
                 void onReportFpsTimer();

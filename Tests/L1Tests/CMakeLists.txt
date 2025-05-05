@@ -130,7 +130,7 @@ if (RDK_SERVICES_L1_TEST)
        message ("Found mock libraries ${TESTMOCKLIB_LIBRARIES} library")
        target_link_libraries(${MODULE_NAME} ${TESTMOCKLIB_LIBRARIES})
    else (TESTMOCKLIB_LIBRARIES)
-       message ("Require ${TESTMOCKLIB_LIBRARIES} library")
+       message (" Require ${TESTMOCKLIB_LIBRARIES} library")
    endif (TESTMOCKLIB_LIBRARIES)
 endif (RDK_SERVICES_L1_TEST)
 

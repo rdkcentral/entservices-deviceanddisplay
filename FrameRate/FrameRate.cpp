@@ -43,7 +43,7 @@ namespace WPEFramework
     namespace Plugin
     {
         /*
-         *Register Warehouse module as wpeframework plugin
+         *Register FrameRate module as wpeframework plugin
          **/
         SERVICE_REGISTRATION(FrameRate, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 

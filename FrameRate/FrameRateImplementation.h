@@ -57,7 +57,6 @@ namespace WPEFramework {
             public:
                 enum Event
                 {
-                    //ON_FPS_EVENT,
                     DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE,
                     DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE
                 };
@@ -113,7 +112,7 @@ namespace WPEFramework {
                 Core::hresult StartFpsCollection(bool& success) override;
                 Core::hresult StopFpsCollection(bool& success) override;
                 Core::hresult UpdateFps(int newFpsValue, bool& success) override;
-				Core::hresult GetCollectionFrequency(int& frequency, bool& success) override;
+                Core::hresult GetCollectionFrequency(int& frequency, bool& success) override;
                 //End methods
 
                 void onReportFpsTimer();
@@ -148,6 +147,7 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
+
                 friend class Job;
         };
     } // namespace Plugin

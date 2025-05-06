@@ -39,7 +39,6 @@
 #define DEFAULT_MIN_FPS_VALUE 60
 #define DEFAULT_MAX_FPS_VALUE -1
 
-#define ENABLE_DEBUG 1
 #ifdef ENABLE_DEBUG
 #define DBGINFO(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
 #else
@@ -341,7 +340,7 @@ namespace WPEFramework
             if (frequency < MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS)
             {
                 LOGERR("Invalid frequency, minimum is %d ms.", MINIMUM_FPS_COLLECTION_TIME_IN_MILLISECONDS);
-                return Core::ERROR_INVALID_RANGE;
+                return Core::ERROR_INVALID_PARAMETER;
             }
 
             std::lock_guard<std::mutex> guard(m_callMutex);
@@ -415,7 +414,7 @@ namespace WPEFramework
             if (frmmode != 0 && frmmode != 1)
             {
                 LOGERR("Invalid frame mode: %d", frmmode);
-                return Core::ERROR_INVALID_RANGE;
+                return Core::ERROR_INVALID_PARAMETER;
             }
 
             std::lock_guard<std::mutex> guard(m_callMutex);
@@ -525,7 +524,7 @@ namespace WPEFramework
             {
                 LOGERR("Invalid FPS value: %d", newFpsValue);
                 success = false;
-                return Core::ERROR_INVALID_RANGE;
+                return Core::ERROR_INVALID_PARAMETER;
             }
             std::lock_guard<std::mutex> guard(m_callMutex);
 

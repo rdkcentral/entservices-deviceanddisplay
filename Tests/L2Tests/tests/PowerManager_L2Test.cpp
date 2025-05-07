@@ -84,7 +84,7 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
            return static_cast<T*>(this);
        }
 
-        void OnPowerModeChanged(const PowerState &currentState, const PowerState &newState) override
+        void OnPowerModeChanged(const PowerState currentState, const PowerState newState) override
         {
             TEST_LOG("OnPowerModeChanged event triggered ***\n");
             std::unique_lock<std::mutex> lock(m_mutex);
@@ -95,7 +95,7 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
             m_condition_variable.notify_one();
         }
 
-        void OnPowerModePreChange(const PowerState& currentState, const PowerState& newState, const int trxnId, const int stateChangeAfter) override
+        void OnPowerModePreChange(const PowerState currentState, const PowerState newState, const int trxnId, const int stateChangeAfter) override
         {
             TEST_LOG("OnPowerModePreChange event triggered ***\n");
             std::unique_lock<std::mutex> lock(m_mutex);
@@ -106,17 +106,17 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
             m_condition_variable.notify_one();
         }
 
-        void OnDeepSleepTimeout(const int &wakeupTimeout) override
+        void OnDeepSleepTimeout(const int wakeupTimeout) override
         {
             LOGINFO("OnDeepSleepTimeout: wakeupTimeout %d\n", wakeupTimeout);
         }
 
-        void OnNetworkStandbyModeChanged(const bool &enabled) override
+        void OnNetworkStandbyModeChanged(const bool enabled) override
         {
             LOGINFO("OnNetworkStandbyModeChanged: enabled %d\n", enabled);
         }
 
-        void OnThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature) override
+        void OnThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature) override
         {
             TEST_LOG("OnThermalModeChanged event triggered ***\n");
             std::unique_lock<std::mutex> lock(m_mutex);
@@ -172,11 +172,11 @@ class AsyncHandlerMock
         {
         }
 
-        MOCK_METHOD(void, OnPowerModeChanged, (const PowerState &currentState, const PowerState &newState));
-        MOCK_METHOD(void, OnPowerModePreChange, (const PowerState& currentState, const PowerState& newState, const int trxnId, const int stateChangeAfter));
-        MOCK_METHOD(void, OnDeepSleepTimeout, (const int &wakeupTimeout));
-        MOCK_METHOD(void, OnNetworkStandbyModeChanged,(const bool &enabled));
-        MOCK_METHOD(void, OnThermalModeChanged,(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature));
+        MOCK_METHOD(void, OnPowerModeChanged, (const PowerState currentState, const PowerState newState));
+        MOCK_METHOD(void, OnPowerModePreChange, (const PowerState currentState, const PowerState newState, const int trxnId, const int stateChangeAfter));
+        MOCK_METHOD(void, OnDeepSleepTimeout, (const int wakeupTimeout));
+        MOCK_METHOD(void, OnNetworkStandbyModeChanged,(const bool enabled));
+        MOCK_METHOD(void, OnThermalModeChanged,(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature));
         MOCK_METHOD(void, OnRebootBegin,(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor));
 };
 
@@ -198,31 +198,31 @@ protected:
          * @brief called when System state
          * changed notification received from IARM
          */
-        void OnPowerModeChanged(const PowerState &currentState, const PowerState &newState);
+        void OnPowerModeChanged(const PowerState currentState, const PowerState newState);
 
         /**
          * @brief called when System state
          * changed notification received from IARM
          */
-        void OnPowerModePreChange(const PowerState& currentState, const PowerState& newState, const int trxnId, const int stateChangeAfter);
+        void OnPowerModePreChange(const PowerState currentState, const PowerState newState, const int trxnId, const int stateChangeAfter);
 
         /**
          * @brief called when System state
          * changed notification received from IARM
          */
-        void OnDeepSleepTimeout(const int &wakeupTimeout);
+        void OnDeepSleepTimeout(const int wakeupTimeout);
 
         /**
          * @brief called when System state
          * changed notification received from IARM
          */
-        void OnNetworkStandbyModeChanged(const bool &enabled);
+        void OnNetworkStandbyModeChanged(const bool enabled);
 
         /**
          * @brief called when System state
          * changed notification received from IARM
          */
-        void OnThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature);
+        void OnThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature);
 
         /**
          * @brief called when System state
@@ -307,7 +307,7 @@ PowerManager_L2Test::~PowerManager_L2Test()
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
-void PowerManager_L2Test::OnPowerModeChanged(const PowerState &currentState, const PowerState &newState)
+void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)
 {
     TEST_LOG("OnPowerModeChanged event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -318,7 +318,7 @@ void PowerManager_L2Test::OnPowerModeChanged(const PowerState &currentState, con
     m_condition_variable.notify_one();
 }
 
-void PowerManager_L2Test::OnPowerModePreChange(const PowerState& currentState, const PowerState& newState, const int trxnId, const int stateChangeAfter)
+void PowerManager_L2Test::OnPowerModePreChange(const PowerState currentState, const PowerState newState, const int trxnId, const int stateChangeAfter)
 {
     TEST_LOG("OnPowerModePreChange event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -329,17 +329,17 @@ void PowerManager_L2Test::OnPowerModePreChange(const PowerState& currentState, c
     m_condition_variable.notify_one();
 }
 
-void PowerManager_L2Test::OnDeepSleepTimeout(const int &wakeupTimeout)
+void PowerManager_L2Test::OnDeepSleepTimeout(const int wakeupTimeout)
 {
     LOGINFO("OnDeepSleepTimeout: wakeupTimeout %d\n", wakeupTimeout);
 }
 
-void PowerManager_L2Test::OnNetworkStandbyModeChanged(const bool &enabled)
+void PowerManager_L2Test::OnNetworkStandbyModeChanged(const bool enabled)
 {
     LOGINFO("onNetworkStandbyModeChanged: enabled %d\n", enabled);
 }
 
-void PowerManager_L2Test::OnThermalModeChanged(const ThermalTemperature &currentThermalLevel, const ThermalTemperature &newThermalLevel, const float &currentTemperature)
+void PowerManager_L2Test::OnThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     LOGINFO("OnThermalModeChanged received: currentThermalLevel %u, newThermalLevel %u, currentTemperature %f\n", currentThermalLevel, newThermalLevel, currentTemperature);

@@ -86,6 +86,7 @@ namespace WPEFramework
             m_AVDecoderStatusLock.lock();
             m_pollThreadRun = 0;
             m_AVDecoderStatusLock.unlock();
+            m_avDecoderStatusCv.notify_one();
             m_AVPollThread.join();
             EssRMgrDestroy(m_EssRMgr);
 #endif
@@ -188,16 +189,20 @@ namespace WPEFramework
 #ifdef ENABLE_ERM
         void *DeviceDiagnosticsImplementation::AVPollThread(void *arg)
         {
-            struct timespec poll_wait = { .tv_sec = 30, .tv_nsec = 0  };
             int lastStatus = EssRMgrRes_idle;
             int status;
+            int timeoutInSec = AVDECODERSTATUS_RETRY_INTERVAL;
             DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
 
             LOGINFO("AVPollThread started");
             for (;;)
             {
-                nanosleep(&poll_wait, NULL);
                 std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
+                if (t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec)) != std::cv_status::timeout)
+                {
+                    LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
+                }
+
                 if (t->m_pollThreadRun == 0)
                     break;
 
@@ -222,7 +227,7 @@ namespace WPEFramework
             dispatchEvent(ON_AVDECODER_STATUSCHANGED, params);
         }
 
-        Core::hresult DeviceDiagnosticsImplementation::GetConfiguration(IStringIterator* const& names, Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator*& paramList)
+        Core::hresult DeviceDiagnosticsImplementation::GetConfiguration(IStringIterator* const& names, Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator*& paramList, bool& success)
         {
 	    LOGINFO("");
 
@@ -246,14 +251,15 @@ namespace WPEFramework
             {
                 paramList = Core::Service<RPC::IteratorType<Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator>> \
 				::Create<Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator>(deviceDiagnosticsList);
-        
+                success = true;
                 return Core::ERROR_NONE;
             }
 
+            success = false;
             return Core::ERROR_GENERAL;
         }
 
-        Core::hresult DeviceDiagnosticsImplementation::GetMilestones(IStringIterator*& milestones)
+        Core::hresult DeviceDiagnosticsImplementation::GetMilestones(IStringIterator*& milestones, bool& success)
         {
             uint32_t result = Core::ERROR_NONE;
             bool retAPIStatus = false;
@@ -267,18 +273,21 @@ namespace WPEFramework
                 if (!retAPIStatus)
                 {
                     LOGERR("File access failed");
+                    success = false;
                     result = Core::ERROR_GENERAL;
                 }
             }
             else 
             {
                 LOGERR("Expected file not found");
+                success = false;
                 result = Core::ERROR_GENERAL;
             }
 
             if (result == Core::ERROR_NONE)
             {
                 milestones = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
+                success = true;
             }
 
             return result;

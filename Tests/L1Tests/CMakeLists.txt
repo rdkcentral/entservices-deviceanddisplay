@@ -32,6 +32,10 @@ FetchContent_Declare(
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 FetchContent_MakeAvailable(googletest)
 
+set (TEST_SRC
+    tests/test_UtilsFile.cpp
+)
+
 set (TEST_LIB
     gmock_main
     ${NAMESPACE}Plugins::${NAMESPACE}Plugins

@@ -30,10 +30,6 @@ FetchContent_Declare(
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 FetchContent_MakeAvailable(googletest)
 
-#if(PLUGIN_WAREHOUSE)
-#    set(SRC_FILES ${SRC_FILES} tests/Warehouse_L2Test.cpp)
-#endif()
-
 if(PLUGIN_DEVICEDIAGNOSTICS)
     set(SRC_FILES ${SRC_FILES} tests/Warehouse_L2Test.cpp)
 endif()

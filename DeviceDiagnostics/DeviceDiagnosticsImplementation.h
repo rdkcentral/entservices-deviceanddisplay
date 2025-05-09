@@ -21,8 +21,10 @@
 
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #ifdef ENABLE_ERM
 #include <essos-resmgr.h>
+#define AVDECODERSTATUS_RETRY_INTERVAL 30 // sec
 #endif
 #ifdef RDK_LOG_MILESTONE
 #include "rdk_logger_milestone.h"
@@ -103,8 +105,8 @@ namespace WPEFramework
             virtual Core::hresult Register(Exchange::IDeviceDiagnostics::INotification *notification ) override ;
             virtual Core::hresult Unregister(Exchange::IDeviceDiagnostics::INotification *notification ) override;
 
-            Core::hresult GetConfiguration(IStringIterator* const& names, Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator*& paramList) override;
-            Core::hresult GetMilestones(IStringIterator*& milestones) override;
+            Core::hresult GetConfiguration(IStringIterator* const& names, Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator*& paramList, bool& success) override;
+            Core::hresult GetMilestones(IStringIterator*& milestones, bool& success) override;
             Core::hresult LogMilestone(const string& marker) override;
             Core::hresult GetAVDecoderStatus(AvDecoderStatusResult& AVDecoderStatus) override;
 
@@ -118,6 +120,7 @@ namespace WPEFramework
             std::mutex m_AVDecoderStatusLock;
             EssRMgr* m_EssRMgr;
             int m_pollThreadRun;
+            std::condition_variable m_avDecoderStatusCv;
 #endif
 
             int getMostActiveDecoderStatus();

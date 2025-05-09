@@ -540,18 +540,6 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
 
-        /**
-         * @brief This function is used to get the amount of collection interval per milliseconds.
-         * @return Integer value of Amount of milliseconds per collection interval .
-         */
-        Core::hresult FrameRateImplementation::GetCollectionFrequency(int& frequency, bool& success)
-        {
-            std::lock_guard<std::mutex> guard(m_callMutex);
-            frequency = m_fpsCollectionFrequencyInMs;
-            success = true;
-            return Core::ERROR_NONE;
-        }
-
         /************************************** Implementation specific ****************************************/
 
         /**

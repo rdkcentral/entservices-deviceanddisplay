@@ -112,7 +112,6 @@ namespace WPEFramework {
                 Core::hresult StartFpsCollection(bool& success) override;
                 Core::hresult StopFpsCollection(bool& success) override;
                 Core::hresult UpdateFps(int newFpsValue, bool& success) override;
-                Core::hresult GetCollectionFrequency(int& frequency, bool& success) override;
                 //End methods
 
                 void onReportFpsTimer();

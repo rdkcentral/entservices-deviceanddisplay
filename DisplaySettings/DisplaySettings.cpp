@@ -589,6 +589,8 @@ namespace WPEFramework {
             Exchange::ISystemMode* _remotStoreObject1 = nullptr;
             LOGINFO("Enetering DisplaySettings::Deinitialize");
             if (_powerManagerPlugin) {
+		// Unregister from PowerManagerPlugin Notification
+		_powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
                 _powerManagerPlugin.Reset();
             }
 

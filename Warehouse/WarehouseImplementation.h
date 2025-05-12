@@ -58,7 +58,7 @@ namespace WPEFramework
  
             class EXTERNAL Job : public Core::IDispatch {
             protected:
-                Job(WarehouseImplementation* warehouseImplementation, Event event, JsonValue&  params)
+                Job(WarehouseImplementation* warehouseImplementation, Event event, JsonObject& params)
                     : _warehouseImplementation(warehouseImplementation)
                     , _event(event)
                     , _params(params) {
@@ -78,7 +78,7 @@ namespace WPEFramework
                 }
 
             public:
-                static Core::ProxyType<Core::IDispatch> Create(WarehouseImplementation* warehouseImplementation, Event event, JsonValue  params) {
+                static Core::ProxyType<Core::IDispatch> Create(WarehouseImplementation* warehouseImplementation, Event event, JsonObject params) {
 #ifndef USE_THUNDER_R4
                     return (Core::proxy_cast<Core::IDispatch>(Core::ProxyType<Job>::Create(warehouseImplementation, event, params)));
 #else
@@ -111,8 +111,8 @@ namespace WPEFramework
             std::list<Exchange::IWarehouse::INotification*> _warehouseNotification;
             Utils::ThreadRAII m_resetThread;
             
-            void dispatchEvent(Event, const JsonValue &params);
-            void Dispatch(Event event, const JsonValue params);
+            void dispatchEvent(Event, const JsonObject &params);
+            void Dispatch(Event event, const JsonObject params);
             static void dsWareHouseOpnStatusChanged(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
             /*gets the SD card mount path by reading /proc/mounts, returns true on success, false otherwise*/
             bool getSDCardMountPath(string&);

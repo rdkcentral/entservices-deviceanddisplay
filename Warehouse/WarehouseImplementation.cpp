@@ -721,12 +721,12 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
 
-        void WarehouseImplementation::dispatchEvent(Event event, const JsonValue &params)
+        void WarehouseImplementation::dispatchEvent(Event event, const JsonObject &params)
         {
             Core::IWorkerPool::Instance().Submit(Job::Create(this, event, params));
         }
 
-        void WarehouseImplementation::Dispatch(Event event, const JsonValue params)
+        void WarehouseImplementation::Dispatch(Event event, const JsonObject params)
         {
             _adminLock.Lock();
         
@@ -737,7 +737,9 @@ namespace WPEFramework
                 case WAREHOUSE_EVT_RESET_DONE:
                     while (index != _warehouseNotification.end()) 
                     {
-                        (*index)->ResetDone(params.Boolean(),params.String());
+                        bool success = params["success"].Boolean();
+                        string error = params["error"].String();
+                        (*index)->ResetDone(success,error);
                         ++index;
                     }
                     break;

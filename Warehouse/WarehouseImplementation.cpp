@@ -204,7 +204,8 @@ namespace WPEFramework
         {
             IARM_Result_t err = IARM_RESULT_IPCCORE_FAIL;
             uint32_t ret = Core::ERROR_GENERAL;
-            JsonObject params;
+            string error = "";
+            bool success = false;
             bool isWareHouse = false;
             if (NULL == WarehouseImplementation::_instance) {
                 return;
@@ -215,10 +216,10 @@ namespace WPEFramework
                 ret = WarehouseImplementation::_instance->processColdFactoryReset();
                  if (ret == Core::ERROR_NONE) {
                     LOGINFO("%s reset... success.", resetType.c_str());
-                    params["success"] = true;
+                    success = true;
                 }
                 else {
-                    params["error"] = "Reset failed";
+                    error = "Reset failed";
                 }
             }
             else if (resetType.compare("FACTORY") == 0)
@@ -227,10 +228,10 @@ namespace WPEFramework
                 ret = WarehouseImplementation::_instance->processFactoryReset();
                  if (ret == Core::ERROR_NONE) {
                     LOGINFO("%s reset... success.", resetType.c_str());
-                    params["success"] = true;
+                    success = true;
                 }
                 else {
-                    params["error"] = "Reset failed";
+                    error = "Reset failed";
                 }
             }
             else if (resetType.compare("USERFACTORY") == 0)
@@ -239,10 +240,10 @@ namespace WPEFramework
                 ret = WarehouseImplementation::_instance->processUserFactoryReset();
                  if (ret == Core::ERROR_NONE) {
                     LOGINFO("%s reset... success.", resetType.c_str());
-                    params["success"] = true;
+                    success = true;
                 }
                 else {
-                    params["error"] = "Reset failed";
+                    error = "Reset failed";
                 }
             }
             else if (resetType.compare("WAREHOUSE_CLEAR") == 0)
@@ -254,7 +255,7 @@ namespace WPEFramework
                     LOGINFO("%s reset... success.", resetType.c_str());
                 }
                 else {
-                    params["error"] = "Reset failed";
+                    error = "Reset failed";
                 }
             }
             else // WAREHOUSE
@@ -265,7 +266,7 @@ namespace WPEFramework
                     isWareHouse = true;
                 }
                 else {
-                    params["error"] = "Reset failed";
+                    error = "Reset failed";
                 }
             }
 
@@ -281,16 +282,18 @@ namespace WPEFramework
 
             if (!( true == isWareHouse && true == suppressReboot)) {
                 JsonObject params;
-                params["success"] = ok;
+                success = ok;
                 if (!ok)
                 {
                     LOGWARN("%s", C_STR(Utils::formatIARMResult(err)));
-                    params["error"] = "Reset failed";
+                    error = "Reset failed";
                 }
+                params["success"] = success;
+                params["error"] = error;
                 string json;
                 params.ToString(json);
                 LOGINFO("Notify %s %s\n", "ResetDone", json.c_str());
-                WarehouseImplementation::_instance->ResetDone(ok,params["error"]);
+                WarehouseImplementation::_instance->ResetDone(success,error.c_str());
             }
         }
 #endif
@@ -395,7 +398,7 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
         
-        Core::hresult WarehouseImplementation::IsClean(const int age, bool &clean, IStringIterator*& files, bool &success)
+        Core::hresult WarehouseImplementation::IsClean(const int age, bool &clean, IStringIterator*& files, bool &success, string& error)
         {
             LOGINFO("");
             std::list<string> list;
@@ -404,9 +407,11 @@ namespace WPEFramework
             if(!customDataFile)
             {
                 LOGERR("Can't open file %s", CUSTOM_DATA_FILE);
+                error = "Can't open file " CUSTOM_DATA_FILE;
                 success = false;
                 clean = false;
                 list.push_back("");
+                files = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
                 return Core::ERROR_NONE;
             }
             
@@ -428,9 +433,11 @@ namespace WPEFramework
             {
                 std::string msg = "file " CUSTOM_DATA_FILE " doesn't have any lines with paths";
                 LOGERR("%s", msg.c_str());
+                error = msg;
                 success = false;
                 clean = false;
                 list.push_back("");
+                files = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
                 return Core::ERROR_NONE;
             }
             

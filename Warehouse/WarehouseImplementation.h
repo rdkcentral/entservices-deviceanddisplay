@@ -102,7 +102,7 @@ namespace WPEFramework
             Core::hresult ExecuteHardwareTest(WarehouseSuccess& success) override;
             Core::hresult GetHardwareTestResults(bool& success, string& testResults) override;
             Core::hresult InternalReset(const string& passPhrase, WarehouseSuccessErr& successErr) override;
-            Core::hresult IsClean(const int age, bool &clean, IStringIterator*& files, bool &success) override;
+            Core::hresult IsClean(const int age, bool &clean, IStringIterator*& files, bool &success, string& error) override;
             Core::hresult LightReset(WarehouseSuccessErr& successErr) override;
             Core::hresult ResetDevice(const bool suppressReboot, const string& resetType, WarehouseSuccessErr& successErr) override;
 

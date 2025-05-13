@@ -115,6 +115,11 @@ endmacro()
 #set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
 #add_plugin_test_ex(PLUGIN_POWERMANAGER ../mocks/PowerManagerMock.cpp "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
 
+# PLUGIN_DEVICEINFO
+#set (DEVICEINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+#set (DEVICEINFO_SRC tests/test_DeviceInfo.cpp tests/test_DeviceInfoJsonRpc.cpp tests/test_DeviceInfoWeb.cpp tests/test_DeviceVideoCapabilities.cpp)
+#add_plugin_test_ex(PLUGIN_DEVICEINFO "${DEVICEINFO_SRC}" "${DEVICEINFO_INC}" "${NAMESPACE}DeviceInfo")
+
 # PLUGIN_WAREHOUSE
 set (WAREHOUSE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/Warehouse ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" "${NAMESPACE}Warehouse")
@@ -126,6 +131,11 @@ add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_FrameRate.cpp "${FRAMERATE_INC}" 
 # PLUGIN_USERPREFERENCES
 set (USERPREFERENCES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/UserPreferences ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USERPREFERENCES_INC}" "${NAMESPACE}UserPreferences")
+
+# PLUGIN_SYSTEMSERVICES
+#set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+#add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
+
 
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 

@@ -431,9 +431,8 @@ namespace WPEFramework
             
             if (listPathsToRemove.size() == 0)
             {
-                std::string msg = "file " CUSTOM_DATA_FILE " doesn't have any lines with paths";
-                LOGERR("%s", msg.c_str());
-                error = msg;
+                LOGERR("file %s doesn't have any lines with paths", CUSTOM_DATA_FILE );
+                error = "file " CUSTOM_DATA_FILE " doesn't have any lines with paths";
                 success = false;
                 clean = false;
                 list.push_back("");
@@ -726,7 +725,7 @@ namespace WPEFramework
             Core::IWorkerPool::Instance().Submit(Job::Create(this, event, params));
         }
 
-        void WarehouseImplementation::Dispatch(Event event, const JsonObject params)
+        void WarehouseImplementation::Dispatch(Event event, const JsonObject &params)
         {
             _adminLock.Lock();
         

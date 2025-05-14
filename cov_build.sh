@@ -17,6 +17,8 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-deviceanddisplay \
 -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON \
 -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON \
 -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON \
+-DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON \
+-DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON \
 -DCOMCAST_CONFIG=OFF \
 -DRDK_SERVICES_COVERITY=ON \
 -DRDK_SERVICES_L1_TEST=ON \
@@ -49,6 +51,7 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-deviceanddisplay \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/gdialservice.h \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/secure_wrappermock.h \
+-include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/readprocMockInterface.h \
 --coverage -Wall -Werror -Wno-error=format \
 -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog \
 -DENABLE_TELEMETRY_LOGGING -DUSE_IARMBUS \

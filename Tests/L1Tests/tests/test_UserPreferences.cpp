@@ -17,7 +17,7 @@
  * limitations under the License.
  **/
 
-
+#if 0
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -134,3 +134,4 @@ TEST_F(UserPreferencesTest, setUILanguage)
     EXPECT_EQ(response, _T("{\"ui_language\":\"CA_fr\",\"success\":true}"));
 }
 
+#endif

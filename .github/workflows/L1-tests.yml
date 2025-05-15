@@ -296,6 +296,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
@@ -308,6 +309,7 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/WarehouseMock.h
           --coverage
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink
@@ -336,7 +338,7 @@ jobs:
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DPLUGIN_USERPREFERENCES=ON
-          -DPLUGIN_WAREHOUSE=OFF
+          -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEINFO=OFF
           -DPLUGIN_DISPLAYINFO=OFF
           -DPLUGIN_DISPLAYSETTINGS=OFF
@@ -375,6 +377,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
@@ -388,6 +391,7 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/thunder/Communicator.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/WarehouseMock.h
           --coverage
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog
@@ -414,7 +418,7 @@ jobs:
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_USERPREFERENCES=OFF
-          -DPLUGIN_WAREHOUSE=OFF
+          -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON

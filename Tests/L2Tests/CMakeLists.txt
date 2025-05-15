@@ -19,7 +19,7 @@
 set(PLUGIN_NAME L2TestsDD)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 set(THUNDER_PORT 9998)
-set(BUILD_SHARED_LIBS ON)
+#set(BUILD_SHARED_LIBS ON)
 #set(CMAKE_CXX_STANDARD 11)
 find_package(${NAMESPACE}Plugins REQUIRED)
 
@@ -98,7 +98,8 @@ target_include_directories(
     ${CMAKE_INSTALL_PREFIX}/include
     )
 
-install(TARGETS ${MODULE_NAME} DESTINATION lib)
+#install(TARGETS ${MODULE_NAME} DESTINATION lib)
+install(TARGETS ${MODULE_NAME} DESTINATION lib/${STORAGE_DIRECTORY}/plugins)
 
 write_config(${PLUGIN_NAME})
 

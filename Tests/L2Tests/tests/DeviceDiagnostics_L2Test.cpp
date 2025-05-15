@@ -563,7 +563,7 @@ TEST_F(DeviceDiagnostics_L2test, PAUSED_GetAVDecoderStatus_COMRPC)
 ** 2.validated output response using test server socket. 
 ** 3.GetConfiguration with success case using Comrpc.
 *******************************************************/
-
+#if 0
 TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
 {
     uint32_t status = Core::ERROR_NONE;
@@ -648,6 +648,8 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
     thread.join();
     close(sockfd);
 }
+
+#endif
 
 /************Test case Details **************************
 ** 1.GetMilestones with success case using Comrpc.

@@ -126,6 +126,11 @@ TEST_F(DeviceDiagnosticsTest, getConfiguration)
 {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     ASSERT_TRUE(sockfd != -1);
+
+    //for port reuse
+    int pt = 1;
+    ASSERT_FALSE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &pt, sizeof(pt)) < 0);
+
     sockaddr_in sockaddr;
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_addr.s_addr = INADDR_ANY;

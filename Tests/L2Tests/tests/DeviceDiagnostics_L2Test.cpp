@@ -563,7 +563,7 @@ TEST_F(DeviceDiagnostics_L2test, PAUSED_GetAVDecoderStatus_COMRPC)
 ** 2.validated output response using test server socket. 
 ** 3.GetConfiguration with success case using Comrpc.
 *******************************************************/
-#if 0
+
 TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
 {
     uint32_t status = Core::ERROR_NONE;
@@ -591,6 +591,11 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
     // server snippet
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     ASSERT_TRUE(sockfd != -1);
+
+    //for port reuse
+    int pt = 1;
+    ASSERT_FALSE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &pt, sizeof(pt)) < 0);
+
     sockaddr_in sockaddr;
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_addr.s_addr = INADDR_ANY;
@@ -649,7 +654,7 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
     close(sockfd);
 }
 
-#endif
+
 
 /************Test case Details **************************
 ** 1.GetMilestones with success case using Comrpc.

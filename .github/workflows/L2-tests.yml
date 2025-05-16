@@ -145,6 +145,12 @@ jobs:
           ref: ${{env.INTERFACES_REF}}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
+      - name: Apply patches entservices-apis
+        run: |
+          cd $GITHUB_WORKSPACE/entservices-apis
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/patches/RDKEMW-1007.patch
+          cd -
+
       - name: Build entservices-apis
         run: >
           cmake
@@ -336,7 +342,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
-          -DPLUGIN_SYSTEMSERVICES=OFF
+          -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DPLUGIN_DISPLAYSETTINGS=ON

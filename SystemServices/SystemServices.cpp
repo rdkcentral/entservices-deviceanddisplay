@@ -112,7 +112,7 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define DEVICESTATE_FILE OPFLASH_STORE "/devicestate.txt"
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
-
+#define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
 /**
  * @struct firmwareUpdate
  * @brief This structure contains information of firmware update.
@@ -550,6 +550,7 @@ namespace WPEFramework {
             registerMethod("getBootTypeInfo", &SystemServices::getBootTypeInfo, this);
             registerMethod("getBuildType", &SystemServices::getBuildType, this);
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
+            registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
         }
 
         SystemServices::~SystemServices()
@@ -5257,5 +5258,30 @@ namespace WPEFramework {
             }
         }//end of setMigrationStatus method
 
+        /**
+         * @brief : API to query MigrationStatus details
+         *
+         * @param1[in]  : {"params":{}}
+         * @param2[out] : "result":{<key>:<Migration Status Details>,"success":<bool>}
+         * @return      : Core::<StatusCode>
+        */
+       uint32_t SystemServices::getMigrationStatus(const JsonObject& parameters, JsonObject& response)
+       {
+           LOGINFOMETHOD();
+           bool status = false;
+           std::string migrationstatus;
+           RFC_ParamData_t param = {0};
+           WDMP_STATUS wdmpstatus = getRFCParameter((char*)"thunderapi", TR181_MIGRATIONSTATUS, &param);
+           if (WDMP_SUCCESS == wdmpstatus) {
+                migrationstatus = param.value;
+                LOGINFO("Current ENTOS Migration Status is: %s\n", migrationstatus.c_str());
+                response["MigrationStatus"] = migrationstatus;
+                status = true;
+            }
+            else {
+                LOGINFO("Failed to get RFC parameter for Migration Status \n");
+            }
+            returnResponse(status);
+       }
     } /* namespace Plugin */
 } /* namespace WPEFramework */

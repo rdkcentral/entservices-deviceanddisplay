@@ -180,6 +180,11 @@ jobs:
           #token : ${{ secrets.RDKCM_RDKE }}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
+      - name: Apply patches entservices-apis
+        run: |
+          cd $GITHUB_WORKSPACE/entservices-apis
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/patches/RDKEMW-1007.patch
+          cd -
 
       - name: Build entservices-apis
         run: >
@@ -334,7 +339,7 @@ jobs:
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
-          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
+          -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DPLUGIN_USERPREFERENCES=ON
           -DPLUGIN_WAREHOUSE=OFF
           -DPLUGIN_DEVICEINFO=OFF
@@ -342,7 +347,7 @@ jobs:
           -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_SYSTEMSERVICES=OFF
+          -DPLUGIN_SYSTEMSERVICES=ON
           &&
           cmake --build build/entservices-deviceanddisplay -j8
           &&
@@ -415,7 +420,7 @@ jobs:
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_USERPREFERENCES=OFF
           -DPLUGIN_WAREHOUSE=OFF
-          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
+          -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF

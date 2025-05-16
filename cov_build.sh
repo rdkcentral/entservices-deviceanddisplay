@@ -1,5 +1,6 @@
 #!/bin/bash
 set -x
+set -e
 ##############################
 GITHUB_WORKSPACE="${PWD}"
 ls -la ${GITHUB_WORKSPACE}
@@ -16,6 +17,8 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-deviceanddisplay \
 -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON \
 -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON \
 -DCMAKE_DISABLE_FIND_PACKAGE_DS=ON \
+-DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON \
+-DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON \
 -DCOMCAST_CONFIG=OFF \
 -DRDK_SERVICES_COVERITY=ON \
 -DRDK_SERVICES_L1_TEST=ON \
@@ -28,6 +31,7 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-deviceanddisplay \
 -DPLUGIN_USERPREFERENCES=ON \
 -DPLUGIN_DEVICEDIAGNOSTICS=ON \
 -DPLUGIN_FRAMERATE=ON \
+-DPLUGIN_SYSTEMSERVICES=ON \
 -DCMAKE_CXX_FLAGS="-DEXCEPTIONS_ENABLE=ON \
 -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers \
 -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers/audiocapturemgr \
@@ -47,6 +51,7 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-deviceanddisplay \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/gdialservice.h \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/secure_wrappermock.h \
+-include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/readprocMockInterface.h \
 --coverage -Wall -Werror -Wno-error=format \
 -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog \
 -DENABLE_TELEMETRY_LOGGING -DUSE_IARMBUS \
@@ -58,4 +63,3 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-deviceanddisplay \
 cmake --build build/entservices-deviceanddisplay --target install
 echo "======================================================================================"
 exit 0
-

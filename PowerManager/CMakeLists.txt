@@ -131,7 +131,7 @@ endif (RDK_SERVICES_L2_TEST)
 
 if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
-    target_link_libraries(powermanagerGTest PRIVATE ${PROCPS_LIBRARIES})
+    #target_link_libraries(powermanagerGTest PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
 
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE rdk/iarmmgrs-hal .)
@@ -152,10 +152,12 @@ target_link_libraries(${PLUGIN_IMPLEMENTATION}
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 
+if(FALSE)
 target_link_libraries(powermanagerGTest
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+endif()
 
 install(TARGETS ${PLUGIN_IMPLEMENTATION}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)

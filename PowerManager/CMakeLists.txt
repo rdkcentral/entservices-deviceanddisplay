@@ -21,6 +21,7 @@ set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Implementation)
 
 set(PLUGIN_POWERMANAGER_AUTOSTART "true" CACHE STRING "Automatically start PowerManager plugin")
 set(PLUGIN_POWERMANAGER_STARTUPORDER "30" CACHE STRING "To configure startup order of PowerManager plugin")
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -48,7 +49,16 @@ install(TARGETS ${MODULE_NAME}
 
 add_library(${PLUGIN_IMPLEMENTATION} SHARED
     PowerManagerImplementation.cpp
-    Module.cpp)
+    Module.cpp
+    PowerUtils.cpp
+    Settings.cpp
+    DeepSleepController.cpp
+    PowerController.cpp
+    RebootController.cpp
+    ThermalController.cpp
+    libIBus.c # TODO: for stubs, remove L1
+    secure_wrapper.c # TODO: for stubs, remove L1
+)
 
 include_directories(
    ../helpers)
@@ -56,6 +66,56 @@ include_directories(
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
+
+set(CMAKE_CXX_VISIBILITY_PRESET "default")
+set(CMAKE_VISIBILITY_INLINES_HIDDEN 0)
+
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+target_compile_options(${PLUGIN_IMPLEMENTATION} PRIVATE -DUSE_THUNDER_R4=1)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+add_executable(
+  powermanagerGTest
+  PowerManagerImplementation.cpp
+  Module.cpp
+  PowerUtils.cpp
+  Settings.cpp
+  DeepSleepController.cpp
+  PowerController.cpp
+  RebootController.cpp
+  libIBus.c
+  secure_wrapper.c
+  Tests/PowerManagerHalMock.cpp
+  Tests/RfcMock.cpp
+  Tests/TestPowerManager.cpp
+)
+
+target_include_directories(
+  powermanagerGTest
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/Tests
+  ${CMAKE_CURRENT_SOURCE_DIR}/../helpers
+)
+
+target_link_libraries(
+  powermanagerGTest
+  PRIVATE
+  GTest::gtest_main
+  GTest::gmock_main
+)
 
 if (RDK_SERVICE_L2_TEST)
    find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
@@ -69,7 +129,10 @@ endif (RDK_SERVICES_L2_TEST)
 
 if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
+    target_link_libraries(powermanagerGTest PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
+
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE rdk/iarmmgrs-hal .)
 
 find_package(DS)
 if (DS_FOUND)
@@ -83,6 +146,11 @@ else (DS_FOUND)
 endif(DS_FOUND)
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
+    PRIVATE
+        CompileSettingsDebug::CompileSettingsDebug
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+
+target_link_libraries(powermanagerGTest
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins)

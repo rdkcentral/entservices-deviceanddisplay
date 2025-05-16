@@ -21,7 +21,7 @@
 
 #include "Module.h"
 
-#include <boost/variant.hpp>
+#include "UtilsLogging.h"
 #include <memory>
 #include <unordered_map>
 
@@ -44,24 +44,18 @@
 #define ENABLE_THERMAL_PROTECTION
 #endif
 
-#if defined(HAS_API_SYSTEM) && defined(HAS_API_POWERSTATE)
-#include "pwrMgr.h"
-#endif /* HAS_API_SYSTEM && HAS_API_POWERSTATE */
-
 #include "AckController.h"
+
+#include "DeepSleepController.h"
+#include "PowerController.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
-using ParamsType = boost::variant<std::pair<WPEFramework::Exchange::IPowerManager::PowerState, WPEFramework::Exchange::IPowerManager::PowerState>,
-    std::tuple<std::string, std::string, std::string>,
-    uint32_t,
-    std::tuple<ThermalTemperature, ThermalTemperature, float>,
-    bool>;
 
 namespace WPEFramework {
 namespace Plugin {
-    class PowerManagerImplementation : public Exchange::IPowerManager {
+    class PowerManagerImplementation : public Exchange::IPowerManager, public DeepSleepController::INotification, public ThermalController::INotification {
     public:
         using PreModeChangeController = AckController;
         using PreModeChangeTimer = AckTimer<PreModeChangeController>;
@@ -126,51 +120,6 @@ namespace Plugin {
             std::function<void()> _lambda;
         };
 
-        class EXTERNAL Job : public Core::IDispatch {
-        protected:
-            Job(PowerManagerImplementation* powerManagerImplementation, Event event,
-                ParamsType params)
-                : _powerManagerImplementation(powerManagerImplementation)
-                , _event(event)
-                , _params(params)
-            {
-                if (_powerManagerImplementation != nullptr) {
-                    _powerManagerImplementation->AddRef();
-                }
-            }
-
-        public:
-            Job() = delete;
-            Job(const Job&) = delete;
-            Job& operator=(const Job&) = delete;
-            ~Job()
-            {
-                if (_powerManagerImplementation != nullptr) {
-                    _powerManagerImplementation->Release();
-                }
-            }
-
-        public:
-            static Core::ProxyType<Core::IDispatch> Create(PowerManagerImplementation* powermanagerImplementation, Event event, ParamsType params)
-            {
-#ifndef USE_THUNDER_R4
-                return (Core::proxy_cast<Core::IDispatch>(Core::ProxyType<Job>::Create(powermanagerImplementation, event, params)));
-#else
-                return (Core::ProxyType<Core::IDispatch>(Core::ProxyType<Job>::Create(powermanagerImplementation, event, params)));
-#endif
-            }
-
-            virtual void Dispatch()
-            {
-                _powerManagerImplementation->Dispatch(_event, _params);
-            }
-
-        private:
-            PowerManagerImplementation* _powerManagerImplementation;
-            const Event _event;
-            ParamsType _params;
-        };
-
     public:
         virtual Core::hresult Register(Exchange::IPowerManager::IRebootNotification* notification) override;
         virtual Core::hresult Unregister(Exchange::IPowerManager::IRebootNotification* notification) override;
@@ -207,13 +156,6 @@ namespace Plugin {
         Core::hresult AddPowerModePreChangeClient(const string& clientName, uint32_t& clientId) override;
         Core::hresult RemovePowerModePreChangeClient(const uint32_t clientId) override;
 
-        Core::hresult SetDevicePowerState(const int& keyCode, PowerState powerState);
-        PowerState ConvertToPwrMgrPowerState(IARM_Bus_PWRMgr_PowerState_t state);
-        IARM_Bus_Daemon_SysMode_t ConvertToDaemonSystemMode(SystemMode sysMode);
-        IARM_Bus_PWRMgr_PowerState_t ConvertToIarmBusPowerState(PowerState state);
-        WakeupReason ConvertToDeepSleepWakeupReason(DeepSleep_WakeupReason_t wakeupReason);
-        ThermalTemperature ConvertToThermalState(IARM_Bus_PWRMgr_ThermalState_t thermalState);
-
         static PowerManagerImplementation* _instance;
 
     private:
@@ -240,13 +182,16 @@ namespace Plugin {
         void dispatchRebootBeginEvent(const string& rebootReasonCustom, const string& rebootReasonOther, const string& rebootRequestor);
         void dispatchThermalModeChangedEvent(const ThermalTemperature& currentThermalLevel, const ThermalTemperature& newThermalLevel, const float& currentTemperature);
         void dispatchNetworkStandbyModeChangedEvent(const bool& enabled);
-        void Dispatch(Event event, ParamsType params);
-
-        void InitializeIARM();
-        void DeinitializeIARM();
 
         void submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId);
-        void PowerModePreChangeCompletionHandler(const int keyCode, PowerState powerState);
+        void powerModePreChangeCompletionHandler(const int keyCode, PowerState powerState);
+        Core::hresult setDevicePowerState(const int& keyCode, PowerState currentState, PowerState powerState, const std::string& reason);
+
+        // DeepSleepController::INotification
+        virtual void onDeepSleepTimerWakeup(const int wakeupTimeout) override;
+        virtual void onDeepSleepUserWakeup(const bool userWakeup) override;
+        virtual void onDeepSleepFailed() override;
+        virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) override;
 
         template <typename T>
         uint32_t Register(std::list<T*>& list, T* notification);
@@ -254,6 +199,12 @@ namespace Plugin {
         uint32_t Unregister(std::list<T*>& list, T* notification);
 
         static uint32_t _nextClientId; // static counter for unique client ID generation.
+
+        // maintain this last
+        DeepSleepController _deepSleepController;
+        PowerController _powerController;
+        ThermalController _thermalController;
+
         friend class Job;
     };
 } // namespace Plugin

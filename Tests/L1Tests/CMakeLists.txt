@@ -136,6 +136,10 @@ add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USER
 #set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 #add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
 
+# PLUGIN_DEVICEDIAGNOSTICS
+set (DEVICEDIAGNOSTICS_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceDiagnostics ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+set (DEVICEDIAGNOSTICS_LIBS ${NAMESPACE}DeviceDiagnostics ${NAMESPACE}DeviceDiagnosticsImplementation)
+add_plugin_test_ex(PLUGIN_DEVICEDIAGNOSTICS tests/test_DeviceDiagnostics.cpp "${DEVICEDIAGNOSTICS_INC}" "${DEVICEDIAGNOSTICS_LIBS}")
 
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 

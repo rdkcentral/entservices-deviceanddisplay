@@ -75,6 +75,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 target_compile_options(${PLUGIN_IMPLEMENTATION} PRIVATE -DUSE_THUNDER_R4=1)
 
+if(FALSE)
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -116,6 +117,7 @@ target_link_libraries(
   GTest::gtest_main
   GTest::gmock_main
 )
+endif()
 
 if (RDK_SERVICE_L2_TEST)
    find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)

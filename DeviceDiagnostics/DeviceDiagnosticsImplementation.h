@@ -107,7 +107,7 @@ namespace WPEFramework
 
             Core::hresult GetConfiguration(IStringIterator* const& names, Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator*& paramList, bool& success) override;
             Core::hresult GetMilestones(IStringIterator*& milestones, bool& success) override;
-            Core::hresult LogMilestone(const string& marker) override;
+            Core::hresult LogMilestone(const string& marker, bool& success) override;
             Core::hresult GetAVDecoderStatus(AvDecoderStatusResult& AVDecoderStatus) override;
 
         private:

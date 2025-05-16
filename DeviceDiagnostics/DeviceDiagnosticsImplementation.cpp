@@ -293,18 +293,20 @@ namespace WPEFramework
             return result;
         }
 
-        Core::hresult DeviceDiagnosticsImplementation::LogMilestone(const string& marker)
+        Core::hresult DeviceDiagnosticsImplementation::LogMilestone(const string& marker, bool& success)
         {
 	    LOGINFO("");
             if (marker.empty())
             {
                 LOGERR("Empty marker' parameter");
+                success = false;
                 return Core::ERROR_GENERAL;
             }
 
 #ifdef RDK_LOG_MILESTONE
             logMilestone(marker.c_str());
 #endif
+            success = true;
             return Core::ERROR_NONE; 
 
         }

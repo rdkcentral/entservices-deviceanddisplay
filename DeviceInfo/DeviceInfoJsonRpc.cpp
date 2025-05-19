@@ -167,6 +167,7 @@ namespace Plugin {
         string sku;
 
         auto result = _deviceInfo->Sku(sku);
+        LOGINFO("result from get_modelid: %d, SKU: %s", result, sku);
         if (result == Core::ERROR_NONE) {
             Core::EnumerateType<JsonData::DeviceInfo::ModelidData::SkuType> value(sku.c_str(), false);
             if (value.IsSet()) {

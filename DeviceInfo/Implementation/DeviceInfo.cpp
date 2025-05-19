@@ -105,6 +105,7 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::Sku(string& sku) const
     {
+        LOGINFO("ENTERING SKU TO GET device.properties");
         return (GetFileRegex(_T("/etc/device.properties"),
                     std::regex("^MODEL_NUM(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), sku)
                    == Core::ERROR_NONE)

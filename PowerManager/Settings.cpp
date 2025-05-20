@@ -151,6 +151,7 @@ public:
         bool ok = false;
         PWRMgr_Settings_t pwrSettings = {};
         const auto read_size = sizeof(PWRMgr_Settings_t) - PADDING_SIZE;
+        struct stat buf;
 
         if (header.length == read_size) {
             LOGINFO("[PwrMgr] Length of Persistence matches with Current Data Size \r\n");
@@ -177,7 +178,7 @@ public:
                 LOGINFO("Persisted network standby mode is: %s \r\n", pwrSettings.nwStandbyMode ? ("Enabled") : ("Disabled"));
 #ifdef PLATCO_BOOTTO_STANDBY
                 if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-                    Settings._powerState = PowerState::POWER_STATE_STANDBY;
+                    settings._powerState = PowerState::POWER_STATE_STANDBY;
                     LOGINFO("Setting default powerstate to standby\n\r");
                 }
 #endif
@@ -219,6 +220,7 @@ public:
 void Settings::initDefaults()
 {
     LOGINFO("Initial Creation of UIMGR Settings\r\n");
+    struct stat buf;
     _magic = _UIMGR_SETTINGS_MAGIC;
     _version = 1;
     _powerState = PowerState::POWER_STATE_ON;
@@ -229,8 +231,8 @@ void Settings::initDefaults()
     // To-do:
     // pSettings->nwStandbyMode = nwStandbyMode_gs;
 #ifdef PLATCO_BOOTTO_STANDBY
-    if (stat("/tmp/pwrmgr_restarted", &buf) != 0)
-        pSettings->powerState = PWRMGR_POWERSTATE_STANDBY;
+    //if (stat("/tmp/pwrmgr_restarted", &buf) != 0)
+        //pSettings->powerState = PWRMGR_POWERSTATE_STANDBY;
 #endif
 }
 
@@ -338,7 +340,7 @@ Settings Settings::Load(const std::string& path)
             /* no data in settings file */
 #ifdef PLATCO_BOOTTO_STANDBY
             if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-                g_powerStateBeforeReboot = PowerState::POWER_STATE_UNKNOWN;
+                //g_powerStateBeforeReboot = PowerState::POWER_STATE_UNKNOWN;
                 LOGINFO("Setting powerStateBeforeReboot to UNKNOWN");
             }
 #endif

@@ -289,7 +289,7 @@ public:
 
         _powerMode = powerMode;
 
-        for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
+        for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask <= WakeupSrcType::WAKEUP_SRC_RF4CE; mask <<= 1) {
             WakeupSrcType wakeupSrc = (WakeupSrcType)mask;
             bool supported = false;
 
@@ -312,7 +312,7 @@ public:
     {
         bool failed = false;
 
-        for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
+        for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask <= WakeupSrcType::WAKEUP_SRC_RF4CE; mask <<= 1) {
             WakeupSrcType wakeupSrc = (WakeupSrcType)mask;
 
             bool supported = false, enabled = false;

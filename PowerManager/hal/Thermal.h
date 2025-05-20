@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "mfr_temperature.h"
+#include "mfrMgr.h"
 
 namespace hal {
 namespace Thermal {

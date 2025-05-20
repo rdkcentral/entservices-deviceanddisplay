@@ -56,7 +56,6 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     PowerController.cpp
     RebootController.cpp
     ThermalController.cpp
-    libIBus.c # TODO: for stubs, remove L1
     secure_wrapper.c # TODO: for stubs, remove L1
 )
 

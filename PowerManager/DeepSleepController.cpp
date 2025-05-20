@@ -339,7 +339,7 @@ void DeepSleepController::deepSleepTimerWakeup(const std::chrono::steady_clock::
     } else {
         auto pending = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(_deepSleepWakeupTimeoutSec) - elapsed).count();
 
-        LOGERR("DeepSleep wakeupReason: UNKNOWN, timeout: %ds, elapsed: %lds, pending: %ldms",
+        LOGERR("DeepSleep wakeupReason: UNKNOWN, timeout: %ds, elapsed: %llds, pending: %lldms",
             _deepSleepWakeupTimeoutSec, std::chrono::duration_cast<std::chrono::seconds>(elapsed).count(), pending);
 
         auto pendingTime = WPEFramework::Core::Time::Now().Add(pending);

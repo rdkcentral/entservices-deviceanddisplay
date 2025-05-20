@@ -23,6 +23,7 @@
 #include <core/Portability.h>
 #include <interfaces/IPowerManager.h>
 
+#include "libIBus.h"
 #include "PowerUtils.h"
 #include "UtilsLogging.h"
 
@@ -38,8 +39,8 @@ class ThermalImpl : public hal::Thermal::IPlatform {
     using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
 public:
-    ThermalImpl = default;
-    ~ThermalImpl = default;
+    ThermalImpl() = default;
+    ~ThermalImpl() = default;
 
     ThermalTemperature conv(IARM_Bus_PWRMgr_ThermalState_t state) const
     {
@@ -201,7 +202,7 @@ public:
             curTemperature = param.curSoCTemperature;
             wifiTemperature = param.curWiFiTemperature;
             retValue = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("SoC Temperature : %d and Wifi Temperature : %d\n",(int)(*curTemperature), (int)(*wifiTemperature));
+            LOGINFO("SoC Temperature : %d and Wifi Temperature : %d\n",(int)(curTemperature), (int)(wifiTemperature));
         } else {
             LOGERR("Failed IARM_BUS_MFRLIB_API_GetTemperature\n");
         }

@@ -37,9 +37,9 @@ using IPlatform = hal::power::IPlatform;
 using DefaultImpl = PowerImpl;
 
 PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr<IPlatform> platform)
-    : _platform(std::move(platform))
-    , _powerStateBeforeReboot(PowerState::POWER_STATE_UNKNOWN)
+    : _powerStateBeforeReboot(PowerState::POWER_STATE_UNKNOWN)
     , _lastKnownPowerState(PowerState::POWER_STATE_ON)
+    , _platform(std::move(platform))
     , _settings(Settings::Load(m_settingsFile))
     , _deepSleepWakeupSettings(_settings)
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())

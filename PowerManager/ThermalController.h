@@ -51,6 +51,9 @@
 #define THERMAL_PROTECTION_GROUP  "Thermal_Config"
 #define THERMAL_SHUTDOWN_REASON   "THERMAL_SHUTDOWN"
 
+
+class ThermalController {
+
 #ifndef MFR_TEMP_CLOCK_READ
 /* Temperature (in celcus) at which box will ALWAYS be rebooted */
 constexpr int REBOOT_CRITICAL    = 120;
@@ -121,12 +124,10 @@ constexpr int DECLOCK_GRACE_INTERVAL = 60;
 
 #endif //MFR_TEMP_CLOCK_READ
 
-
-class ThermalController {
-
+    using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
+    using IPlatform = hal::Thermal::IPlatform;
 
 private:
-    INotification& _parent;
     std::unique_ptr<IPlatform> _platform;
     using DefaultImpl = ThermalImpl;
 
@@ -145,14 +146,14 @@ private:
     Thresholds declockThreshold = {DECLOCK_CRITICAL,DECLOCK_CONCERN,DECLOCK_SAFE,DECLOCK_GRACE_INTERVAL};
 
     // the interval at which temperature will be polled from lower layers
-    static int thermal_poll_interval        = POLL_INTERVAL; //in seconds
+    static inline int thermal_poll_interval        = POLL_INTERVAL; //in seconds
     // the interval after which reboot will happen if the temperature goes above reboot threshold
 
     //Did we already read config params once ?
-    static bool read_config_param           = FALSE;
+    static inline bool read_config_param           = FALSE;
 
     // Is feature enabled ?
-    static bool isFeatureEnabled            = TRUE;
+    static inline bool isFeatureEnabled            = TRUE;
     //Current temperature level
     volatile ThermalTemperature m_cur_Thermal_Level;
     ///Current temperature reading in celcius
@@ -170,7 +171,6 @@ private:
 
 public:
     class INotification {
-        using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
         public:
             virtual ~INotification() = default;
@@ -202,6 +202,8 @@ public:
     ~ThermalController();
 
 private:
+    INotification& _parent;
+
     ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform);
 
     void initializeThermalProtection();

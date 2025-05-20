@@ -97,13 +97,13 @@ void RebootController::heartbeatMsg()
         auto uptime = now<std::chrono::seconds>();
         if (_standbyRebootThreshold.IsThresholdExceeded(uptime)) {
             if (_standbyRebootThreshold.IsGraceIntervalExceeded(_settings.InactiveDuration())) {
-                LOGINFO("Going to reboot after %ld\n", uptime);
+                LOGINFO("Going to reboot after %lld\n", uptime);
                 sleep(10);
                 system("sh /rebootNow.sh -s PwrMgr -o 'Standby Maintenance reboot'");
             }
 
             if (_forcedRebootThreshold.IsThresholdExceeded(uptime)) {
-                LOGINFO("Going to force reboot after %ld\n", uptime);
+                LOGINFO("Going to force reboot after %lld\n", uptime);
                 sleep(10);
                 system("sh /rebootNow.sh -s PwrMgr -o 'Forced Maintenance reboot'");
             }

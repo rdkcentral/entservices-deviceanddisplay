@@ -19,6 +19,7 @@
 
 #include "secure_wrapper.h"
 #include "ThermalController.h"
+#include "rfcapi.h"
 
 using DefaultImpl = ThermalImpl;
 
@@ -249,7 +250,7 @@ void ThermalController::deepSleepIfNeeded()
         logThermalShutdownReason();
         LOGINFO("Going to deepsleep since the temperature is above %d", deepsleepThreshold.critical);
         v_secure_system("/lib/rdk/alertSystem.sh pwrMgrMain \"Going to deepsleep due to temperature runaway\"");
-        _parent.SetPowerState(0, POWER_STATE_STANDBY_DEEP_SLEEP,"");
+        _parent.SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP,"");
     }
     else if (!deepSleepZone && m_cur_Thermal_Value >= deepsleepThreshold.concern)
     {
@@ -273,10 +274,10 @@ void ThermalController::deepSleepIfNeeded()
             LOGINFO("Going to deepsleep since the temperature reached %d and stayed above %d for %d seconds",
                 deepsleepThreshold.concern, deepsleepThreshold.safe, deepsleepThreshold.graceInterval);
             v_secure_system("/lib/rdk/alertSystem.sh pwrMgrMain \"Going to deepsleep due to over temperature\"");
-            _parent.SetPowerState(0, POWER_STATE_STANDBY_DEEP_SLEEP,"");
+            _parent.SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP,"");
         }
         else {
-            LOGINFO("Still in the deep sleep zone! Entering deep sleep in %u seconds unless the temperature falls below %u!", deepsleepThreshold.graceInterval-difftime, deepsleepThreshold.safe );
+            LOGINFO("Still in the deep sleep zone! Entering deep sleep in %lu seconds unless the temperature falls below %u!", deepsleepThreshold.graceInterval-difftime, deepsleepThreshold.safe );
         }
     }
 }
@@ -385,8 +386,7 @@ void ThermalController::_PollThermalLevels(void *)
     int fifteenMinInterval = 900/thermal_poll_interval; //15 *60 seconds/interval
 
 
-    LOGINFO("Enter - Start monitoring temeperature every %d seconds log interval: %d",
-        IARM_BUS_PWRMGR_NAME, thermal_poll_interval, thermalLogInterval);
+    LOGINFO("Enter - Start monitoring temeperature every %d seconds log interval: %d", thermal_poll_interval, thermalLogInterval);
 
     while(TRUE)
     {
@@ -466,7 +466,7 @@ bool ThermalController::updateRFCStatus()
 char* ThermalController::read_ConfigProperty(const char* key)
 {
     char *value = nullptr;
-    int dataLen;
+    uint32_t dataLen;
     RFC_ParamData_t param;
     // RFC parameter storage
     const uint32_t MAX_THERMAL_RFC =  16;

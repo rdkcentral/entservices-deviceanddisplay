@@ -126,6 +126,7 @@ static constexpr int DECLOCK_GRACE_INTERVAL = 60;
 
     using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
     using IPlatform = hal::Thermal::IPlatform;
+    using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
 private:
     std::unique_ptr<IPlatform> _platform;
@@ -146,14 +147,14 @@ private:
     Thresholds declockThreshold = {DECLOCK_CRITICAL,DECLOCK_CONCERN,DECLOCK_SAFE,DECLOCK_GRACE_INTERVAL};
 
     // the interval at which temperature will be polled from lower layers
-    static int thermal_poll_interval        = POLL_INTERVAL; //in seconds
+    int thermal_poll_interval        = POLL_INTERVAL; //in seconds
     // the interval after which reboot will happen if the temperature goes above reboot threshold
 
     //Did we already read config params once ?
-    static bool read_config_param           = FALSE;
+    bool read_config_param           = FALSE;
 
     // Is feature enabled ?
-    static bool isFeatureEnabled            = TRUE;
+    bool isFeatureEnabled            = TRUE;
     //Current temperature level
     volatile ThermalTemperature m_cur_Thermal_Level;
     ///Current temperature reading in celcius

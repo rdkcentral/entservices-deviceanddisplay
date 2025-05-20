@@ -48,6 +48,7 @@
 
 #include "DeepSleepController.h"
 #include "PowerController.h"
+#include "ThermalController.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;

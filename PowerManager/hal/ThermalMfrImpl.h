@@ -45,11 +45,11 @@ public:
     ThermalTemperature conv(PWRMgr_ThermalState_t state) const
     {
         switch (state) {
-        case IARM_BUS_PWRMGR_TEMPERATURE_NORMAL:
+        case PWRMGR_TEMPERATURE_NORMAL:
             return ThermalTemperature::THERMAL_TEMPERATURE_NORMAL;
-        case IARM_BUS_PWRMGR_TEMPERATURE_HIGH:
+        case PWRMGR_TEMPERATURE_HIGH:
             return ThermalTemperature::THERMAL_TEMPERATURE_HIGH;
-        case IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL:
+        case PWRMGR_TEMPERATURE_CRITICAL:
             return ThermalTemperature::THERMAL_TEMPERATURE_CRITICAL;
         default:
             return ThermalTemperature::THERMAL_TEMPERATURE_UNKNOWN;
@@ -60,13 +60,13 @@ public:
     {
         switch (state) {
         case ThermalTemperature::THERMAL_TEMPERATURE_NORMAL:
-            return IARM_BUS_PWRMGR_TEMPERATURE_NORMAL;
+            return PWRMGR_TEMPERATURE_NORMAL;
         case ThermalTemperature::THERMAL_TEMPERATURE_HIGH:
-            return IARM_BUS_PWRMGR_TEMPERATURE_HIGH;
+            return PWRMGR_TEMPERATURE_HIGH;
         case ThermalTemperature::THERMAL_TEMPERATURE_CRITICAL:
-            return IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL;
+            return PWRMGR_TEMPERATURE_CRITICAL;
         default:
-            return IARM_BUS_PWRMGR_TEMPERATURE_NORMAL;
+            return PWRMGR_TEMPERATURE_NORMAL;
         }
     }
 

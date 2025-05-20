@@ -220,7 +220,7 @@ public:
 void Settings::initDefaults()
 {
     LOGINFO("Initial Creation of UIMGR Settings\r\n");
-    struct stat buf;
+    //struct stat buf;
     _magic = _UIMGR_SETTINGS_MAGIC;
     _version = 1;
     _powerState = PowerState::POWER_STATE_ON;

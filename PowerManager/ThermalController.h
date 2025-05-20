@@ -56,71 +56,71 @@ class ThermalController {
 
 #ifndef MFR_TEMP_CLOCK_READ
 /* Temperature (in celcus) at which box will ALWAYS be rebooted */
-constexpr int REBOOT_CRITICAL    = 120;
+static constexpr int REBOOT_CRITICAL    = 120;
 /* Temperature (in celcus) at which box will be rebooted after grace_interval has passed
    Timer is started 2 minutes late to give deepsleep logic a chance to work */
-constexpr int REBOOT_CONCERN = 120;
+static constexpr int REBOOT_CONCERN = 120;
 /* Temperature (in celcus) at which box is considered safe and will stop reboot consideration */
-constexpr int REBOOT_SAFE        = 110;
+static constexpr int REBOOT_SAFE        = 110;
 /* Temperature (in celcus) at which box will go to deepsleep/reboot after grace_interval has passed */
-constexpr int GRACE_INTERVAL = 600;
+static constexpr int GRACE_INTERVAL = 600;
 /* Temperature (in celcus) at which box will ALWAYS go to deep sleep */
-constexpr int DEEPSLEEP_CRITICAL = 115;
+static constexpr int DEEPSLEEP_CRITICAL = 115;
 /* Temperature (in celcus) at which box will ALWAYS be switched to the middle clock mode */
-constexpr int DEEPSLEEP_CONCERN = 110;
+static constexpr int DEEPSLEEP_CONCERN = 110;
 /* Temperature (in celcus) at which box is considered safe and will stop deep sleep consideration */
-constexpr int DEEPSLEEP_SAFE = 100;
+static constexpr int DEEPSLEEP_SAFE = 100;
 /* Temperature (in celcus) at which box will ALWAYS be switched to the LOWEST clock mode */
-constexpr int DECLOCK_CRITICAL = 110;
+static constexpr int DECLOCK_CRITICAL = 110;
 /* Temperature (in celcus) at which box will ALWAYS be switched to the middle clock mode */
-constexpr int DECLOCK_CONCERN = 100;
+static constexpr int DECLOCK_CONCERN = 100;
 /* Temperature (in celcus) at which box will be switched back to highest clock mode after 'thermal_declock_grace_interval' has passed */
-constexpr int DECLOCK_SAFE = 90;
+static constexpr int DECLOCK_SAFE = 90;
 /* The amount of time (in seconds) that must pass after to switch from a lower clock mode to a higher clock mode
 
     ***NOTE: All temperature based declock logic will be disabled if 'thermal_declock_grace_interval' is set to 0 ***   */
-constexpr int DECLOCK_GRACE_INTERVAL = 60;
+static constexpr int DECLOCK_GRACE_INTERVAL = 60;
 // the interval at which temperature will be polled from lower layers
 // the interval after which reboot will happen if the temperature goes above reboot threshold
-constexpr int POLL_INTERVAL = 30;
+static constexpr int POLL_INTERVAL = 30;
 
 #else //MFR_TEMP_CLOCK_READ
 /* Temperature (in celcus) at which box will ALWAYS be rebooted */
-constexpr int REBOOT_CRITICAL    = 110;
+static constexpr int REBOOT_CRITICAL    = 110;
 /* Temperature (in celcus) at which box will be rebooted after grace_interval has passed
    Timer is started 2 minutes late to give deepsleep logic a chance to work */
-constexpr int REBOOT_CONCERN     = 102;
+static constexpr int REBOOT_CONCERN     = 102;
 /* Temperature (in celcus) at which box is considered safe and will stop reboot consideration */
-constexpr int REBOOT_SAFE        = 100;
+static constexpr int REBOOT_SAFE        = 100;
 
 /* Temperature (in celcus) at which box will ALWAYS go to deep sleep */
-constexpr int DEEPSLEEP_CRITICAL     = 105;
+static constexpr int DEEPSLEEP_CRITICAL     = 105;
 
 /* Temperature (in celcus) at which box will ALWAYS be switched to the middle clock mode */
-constexpr int DEEPSLEEP_CONCERN      = 100;
+static constexpr int DEEPSLEEP_CONCERN      = 100;
 
 /* Temperature (in celcus) at which box is considered safe and will stop deep sleep consideration */
-constexpr int DEEPSLEEP_SAFE         = 90;
+static constexpr int DEEPSLEEP_SAFE         = 90;
 
 /* Temperature (in celcus) at which box will ALWAYS be switched to the LOWEST clock mode */
-constexpr int DECLOCK_CRITICAL   = 100;
+static constexpr int DECLOCK_CRITICAL   = 100;
 /* Temperature (in celcus) at which box will ALWAYS be switched to the middle clock mode */
-constexpr int DECLOCK_CONCERN    = 90;
+static constexpr int DECLOCK_CONCERN    = 90;
 
 /* Temperature (in celcus) at which box will be switched back to highest clock mode after 'thermal_declock_grace_interval' has passed */
-constexpr int DECLOCK_SAFE       = 80;
+static constexpr int DECLOCK_SAFE       = 80;
 
 /* Temperature (in celcus) at which box will go to deepsleep/reboot after grace_interval has passed */
-constexpr int GRACE_INTERVAL     = 600;
+static constexpr int GRACE_INTERVAL     = 600;
 
 // the interval at which temperature will be polled from lower layers
 // the interval after which reboot will happen if the temperature goes above reboot threshold
-constexpr int POLL_INTERVAL      = 30;
+static constexpr int POLL_INTERVAL      = 30;
 
 /* The amount of time (in seconds) that must pass after to switch from a lower clock mode to a higher clock mode
 
     ***NOTE: All temperature based declock logic will be disabled if 'thermal_declock_grace_interval' is set to 0 ***   */
-constexpr int DECLOCK_GRACE_INTERVAL = 60;
+static constexpr int DECLOCK_GRACE_INTERVAL = 60;
 
 #endif //MFR_TEMP_CLOCK_READ
 
@@ -134,7 +134,7 @@ private:
     bool _rebootZone = false;
 
     class Thresholds {
-        protected:
+        public:
             int critical;
             int concern;
             int safe;
@@ -146,14 +146,14 @@ private:
     Thresholds declockThreshold = {DECLOCK_CRITICAL,DECLOCK_CONCERN,DECLOCK_SAFE,DECLOCK_GRACE_INTERVAL};
 
     // the interval at which temperature will be polled from lower layers
-    static inline int thermal_poll_interval        = POLL_INTERVAL; //in seconds
+    static int thermal_poll_interval        = POLL_INTERVAL; //in seconds
     // the interval after which reboot will happen if the temperature goes above reboot threshold
 
     //Did we already read config params once ?
-    static inline bool read_config_param           = FALSE;
+    static bool read_config_param           = FALSE;
 
     // Is feature enabled ?
-    static inline bool isFeatureEnabled            = TRUE;
+    static bool isFeatureEnabled            = TRUE;
     //Current temperature level
     volatile ThermalTemperature m_cur_Thermal_Level;
     ///Current temperature reading in celcius

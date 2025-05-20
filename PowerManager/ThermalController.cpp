@@ -23,9 +23,9 @@
 using DefaultImpl = ThermalImpl;
 
 ThermalController::ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform)
-    :_parent(parent)
-    , _platform(std::move(platform))
+    : _platform(std::move(platform))
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
+    ,_parent(parent)
 {
     initializeThermalProtection();
 }
@@ -77,7 +77,7 @@ uint32_t ThermalController::SetTemperatureThresholds(float tempHigh,float tempCr
 
     LOGINFO("Setting thermal threshold : %f , %f ", tempHigh,tempCritical);  //CID:127982 ,127475,103705 - Print_args
     result = platform().SetTemperatureThresholds(tempHigh,tempCritical);
-    retCode = result?WPEFramework::Core::ERROR_NONE:IARM_RESULT_IPCCORE_FAIL;
+    retCode = result?WPEFramework::Core::ERROR_NONE:WPEFramework::Core::ERROR_GENERAL;
 
     return retCode;
 }
@@ -133,7 +133,7 @@ void ThermalController::initializeThermalProtection()
         if (declockThreshold.graceInterval > 0) {
             LOGINFO("Thermal Monitor [DECLOCK] Thresholds -- Critical:%d Concern:%d Safe:%d Grace Interval:%d",
                 declockThreshold.critical, declockThreshold.concern, declockThreshold.safe, declockThreshold.graceInterval);
-            platform().GetClockSpeed(&cur_Cpu_Speed);
+            platform().GetClockSpeed(cur_Cpu_Speed);
             LOGINFO("Thermal Monitor [DECLOCK] Default Frequency %d", cur_Cpu_Speed);
             /* Discover clock rate for this system. Only discover if the rate is 0 */
             platform().DetemineClockSpeeds( PLAT_CPU_SPEED_NORMAL, PLAT_CPU_SPEED_SCALED, PLAT_CPU_SPEED_MINIMAL);
@@ -181,14 +181,15 @@ bool ThermalController::isThermalProtectionEnabled()
 void ThermalController::logThermalShutdownReason()
 {
     //command is echo THERMAL_SHUTDOWN_REASON > STANDBY_REASON_FILE
-    int cmdSize =  strlen(THERMAL_SHUTDOWN_REASON) + strlen(STANDBY_REASON_FILE) + 10;
-    char logCommand[cmdSize]= {'0'};
-    snprintf(logCommand,cmdSize,"echo %s > %s",THERMAL_SHUTDOWN_REASON, STANDBY_REASON_FILE);
-    v_secure_system(logCommand);
+    //int cmdSize =  strlen(THERMAL_SHUTDOWN_REASON) + strlen(STANDBY_REASON_FILE) + 10;
+    //char logCommand[cmdSize]= {'0'};
+    //snprintf(logCommand,cmdSize,"echo %s > %s",THERMAL_SHUTDOWN_REASON, STANDBY_REASON_FILE);
+    v_secure_system("echo %s > %s",THERMAL_SHUTDOWN_REASON, STANDBY_REASON_FILE);
 }
 
 void ThermalController::rebootIfNeeded()
 {
+    static struct timeval monitorTime;
     struct timeval tv;
     long difftime = 0;
 
@@ -225,7 +226,7 @@ void ThermalController::rebootIfNeeded()
             v_secure_system("/rebootNow.sh -s Power_Thermmgr -o 'Rebooting the box as the stb temperature is still above critical level after 20 seconds...'");
         }
         else {
-            LOGINFO("Still in the reboot zone! Will go for reboot in %u seconds unless the temperature falls below %u!", rebootThreshold.graceInterval-difftime, rebootThreshold.safe );
+            LOGINFO("Still in the reboot zone! Will go for reboot in %lu seconds unless the temperature falls below %u!", rebootThreshold.graceInterval-difftime, rebootThreshold.safe );
         }
     }
 }

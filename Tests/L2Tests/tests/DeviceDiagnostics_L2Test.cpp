@@ -355,7 +355,7 @@ TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
         &async_handler);
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    message = "{\"AVDecoderStatus\":\"{\\\"avDecoderStatusChange\\\":\\\"ACTIVE\\\"}\"}";
+    message = "{\"avDecoderStatusChange\":\"{\\\"avDecoderStatusChange\\\":\\\"ACTIVE\\\"}\"}";
     expected_status.FromString(message);
     EXPECT_CALL(async_handler, onAVDecoderStatusChanged(MatchRequestStatus(expected_status)))
         .WillOnce(Invoke(this, &DeviceDiagnostics_L2test::onAVDecoderStatusChanged));
@@ -391,6 +391,7 @@ TEST_F(DeviceDiagnostics_L2test, GetMilestones_JSONRPC)
     JsonObject params, result;
     status = InvokeServiceMethod("org.rdk.DeviceDiagnostics.1", "getMilestones", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_TRUE(result["success"].Boolean());
 }
 
 /************Test case Details **************************
@@ -407,7 +408,7 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_JSONRPC)
     JsonObject result;
     status = InvokeServiceMethod("org.rdk.DeviceDiagnostics.1", "getConfiguration", params, result);
     EXPECT_EQ(Core::ERROR_GENERAL, status);
-
+    EXPECT_FALSE(result["success"].Boolean());
 }
 
 /************Test case Details **************************
@@ -436,12 +437,14 @@ TEST_F(DeviceDiagnostics_L2test, LogMilestone_COMRPC)
     }
 
     string marker;
-    status = m_devdiagplugin->LogMilestone(marker);
+    bool success = true;
+    status = m_devdiagplugin->LogMilestone(marker, success);
     EXPECT_EQ(status, Core::ERROR_GENERAL);
     if (status != Core::ERROR_GENERAL) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
+    EXPECT_FALSE(success);
 
     RdkLoggerMilestone::getInstance().impl = p_rdkloggerImplMock;
     ON_CALL(*p_rdkloggerImplMock, logMilestone(::testing::_))
@@ -455,7 +458,8 @@ TEST_F(DeviceDiagnostics_L2test, LogMilestone_COMRPC)
         });
 
     marker = "2024-01-10 10:15:40 [INFO] Test Marker.";
-    status = m_devdiagplugin->LogMilestone(marker);
+    status = m_devdiagplugin->LogMilestone(marker, success);
+    EXPECT_TRUE(success);
     std::ifstream verifyFile("/opt/logs/rdk_milestones.log");
     ASSERT_TRUE(verifyFile.is_open()) << "Failed to open milestone log.";
     std::string line;
@@ -567,6 +571,7 @@ TEST_F(DeviceDiagnostics_L2test, PAUSED_GetAVDecoderStatus_COMRPC)
 TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
 {
     uint32_t status = Core::ERROR_NONE;
+    bool success = true;
     std::list<std::string> keys = {
         "Device.X_CISCO_COM_LED.RedPwm"
     };
@@ -574,7 +579,8 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
     names = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(keys));
     Exchange::IDeviceDiagnostics::IDeviceDiagnosticsParamListIterator* paramList = nullptr;
     // Error case server not started
-    status = m_devdiagplugin->GetConfiguration(names, paramList);
+    status = m_devdiagplugin->GetConfiguration(names, paramList,success);
+    EXPECT_EQ(success,false);
     EXPECT_EQ(status, Core::ERROR_GENERAL);
     if (status != Core::ERROR_GENERAL) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
@@ -610,7 +616,7 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
         char buffer[2048] = { 0 };
         ASSERT_TRUE(read(connection, buffer, 2048) > 0);
         EXPECT_EQ(string(buffer), string(_T("POST / HTTP/1.1\r\nHost: 127.0.0.1:10999\r\nAccept: */*\r\nContent-Length: 98\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n{\"paramList\":[{\"name\":\"Device.X_CISCO_COM_LED.RedPwm\"},{\"name\":\"Device.DeviceInfo.Manufacturer\"}]}")));
-        std::string response = _T("HTTP/1.1 200\n\rContent-type: application/json\n\r[{\"name\":\"Device.X_CISCO_COM_LED.RedPwm\",\"value\":\"123\"},{\"name\":\"Device.DeviceInfo.Manufacturer\",\"value\":\"RDK\"}]");
+        std::string response = _T("HTTP/1.1 200\n\rContent-type: application/json\n\r{\"paramList\":[{\"name\":\"Device.X_CISCO_COM_LED.RedPwm\",\"value\":\"123\"},{\"name\":\"Device.DeviceInfo.Manufacturer\",\"value\":\"RDK\"}],\"success\":true}");
         send(connection, response.c_str(), response.size(), 0);
         close(connection);
     });
@@ -620,8 +626,10 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
         "Device.DeviceInfo.Manufacturer"
     };
     WPEFramework::RPC::IStringIterator* val;
+    success = false;
     val = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(key));
-    status = m_devdiagplugin->GetConfiguration(val, paramList);
+    status = m_devdiagplugin->GetConfiguration(val, paramList,success);
+    EXPECT_EQ(success, true);
 
     EXPECT_EQ(status, Core::ERROR_NONE);
     if (status != Core::ERROR_NONE) {
@@ -654,8 +662,6 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
     close(sockfd);
 }
 
-
-
 /************Test case Details **************************
 ** 1.GetMilestones with success case using Comrpc.
 ** 2.GetMilestones with failure case by removing rdk_milestone log file using comrpc.
@@ -664,14 +670,16 @@ TEST_F(DeviceDiagnostics_L2test, GetConfiguration_COMRPC)
 TEST_F(DeviceDiagnostics_L2test, GetMilestones_COMRPC)
 {
     uint32_t status = Core::ERROR_NONE;
+    bool success = false;
     WPEFramework::RPC::IStringIterator* result = nullptr;
 
-    status = m_devdiagplugin->GetMilestones(result);
+    status = m_devdiagplugin->GetMilestones(result,success);
     EXPECT_EQ(status, Core::ERROR_NONE);
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
+    EXPECT_EQ(success, true);
     if (result != nullptr) {
         string milestone;
         while (result->Next(milestone) == true) {
@@ -685,11 +693,12 @@ TEST_F(DeviceDiagnostics_L2test, GetMilestones_COMRPC)
     remove("/opt/logs/rdk_milestones.log");
 
     // Expected file not found
-    status = m_devdiagplugin->GetMilestones(result);
+    status = m_devdiagplugin->GetMilestones(result,success);
     EXPECT_EQ(status, Core::ERROR_GENERAL);
     if (status != Core::ERROR_GENERAL) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
+    EXPECT_EQ(success, false);
     EXPECT_EQ(result, nullptr);
 }

@@ -71,6 +71,8 @@ namespace WPEFramework
         FrameRateImplementation::~FrameRateImplementation()
         {
             DeinitializeIARM();
+            // Connect the timer callback handle for triggering FrameRate notifications.
+            m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
         }
 
         // IARM EventHandler
@@ -80,7 +82,6 @@ namespace WPEFramework
         {
             if (Utils::IARM::init())
             {
-                IARM_Result_t res;
                 IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
                 IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
             }
@@ -90,7 +91,6 @@ namespace WPEFramework
         {
             if (Utils::IARM::isConnected())
             {
-                IARM_Result_t res;
                 IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
                 IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
             }
@@ -212,6 +212,7 @@ namespace WPEFramework
 
         Core::hresult FrameRateImplementation::Register(Exchange::IFrameRate::INotification *notification)
         {
+            Core::hresult status = Core::ERROR_NONE;
             ASSERT(nullptr != notification);
             _adminLock.Lock();
 
@@ -219,18 +220,19 @@ namespace WPEFramework
             if (std::find(_framerateNotification.begin(), _framerateNotification.end(), notification) != _framerateNotification.end())
             {
                 LOGERR("Same notification is registered already");
-                return Core::ERROR_ALREADY_CONNECTED;
+                status = Core::ERROR_ALREADY_CONNECTED;
             }
 
             _framerateNotification.push_back(notification);
             notification->AddRef();
 
             _adminLock.Unlock();
-            return Core::ERROR_NONE;
+            return status;
         }
 
         Core::hresult FrameRateImplementation::Unregister(Exchange::IFrameRate::INotification *notification)
         {
+            Core::hresult status = Core::ERROR_GENERAL;
             ASSERT(nullptr != notification);
             _adminLock.Lock();
 
@@ -240,12 +242,12 @@ namespace WPEFramework
             {
                 (*itr)->Release();
                 _framerateNotification.erase(itr);
-                return Core::ERROR_NONE;
+                status = Core::ERROR_NONE;
             }
             LOGERR("Notification %p not found in _framerateNotification", notification);
 
             _adminLock.Unlock();
-            return Core::ERROR_GENERAL;
+            return status;
         }
 
         /***************************************** Methods **********************************************/

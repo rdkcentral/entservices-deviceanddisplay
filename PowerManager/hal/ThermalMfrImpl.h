@@ -189,7 +189,7 @@ public:
         return retValue;
     }
 
-    virtual uint32_t GetTemperature(mfrTemperatureState_t &curState, float &curTemperature, float &wifiTemperature) const override
+    virtual uint32_t GetTemperature(ThermalTemperature &curState, float &curTemperature, float &wifiTemperature) const override
     {
         uint32_t retValue = WPEFramework::Core::ERROR_GENERAL;
 
@@ -198,7 +198,7 @@ public:
 
         iarm_result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetTemperature, (void *)&param, sizeof(IARM_Bus_MFRLib_ThermalSoCTemp_Param_t));
         if (IARM_RESULT_SUCCESS == iarm_result) {
-            curState = (mfrTemperatureState_t)param.curState;
+            curState = conv((PWRMgr_ThermalState_t)param.curState);
             curTemperature = param.curSoCTemperature;
             wifiTemperature = param.curWiFiTemperature;
             retValue = WPEFramework::Core::ERROR_NONE;

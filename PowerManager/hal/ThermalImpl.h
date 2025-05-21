@@ -188,7 +188,7 @@ public:
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    virtual uint32_t GetTemperature(mfrTemperatureState_t &curState, float &curTemperature, float &wifiTemperature) const override
+    virtual uint32_t GetTemperature(ThermalTemperature &curState, float &curTemperature, float &wifiTemperature) const override
     {
         mfrTemperatureState_t state;
         int temperatureValue;
@@ -230,7 +230,7 @@ public:
         if (result == mfrERR_NONE)
         {
             LOGINFO("Got MFR Temperatures SoC:%d Wifi:%d", temperatureValue, wifiTempValue);
-            curState = (mfrTemperatureState_t )state;
+            curState = conv((PWRMgr_ThermalState_t)state);
             curTemperature = temperatureValue;
             wifiTemperature = wifiTempValue;
             retValue = WPEFramework::Core::ERROR_NONE;

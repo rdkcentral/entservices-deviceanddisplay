@@ -53,8 +53,7 @@
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
-using Exchange = WPEFramework::Exchange;
-	
+
 namespace WPEFramework {
 namespace Plugin {
     class PowerManagerImplementation : public Exchange::IPowerManager, public DeepSleepController::INotification, public ThermalController::INotification {

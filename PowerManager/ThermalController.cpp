@@ -375,7 +375,7 @@ void ThermalController::declockIfNeeded()
 //Thread entry function to monitor thermal levels of the device.
 void ThermalController::_PollThermalLevels(void *)
 {
-    mfrTemperatureState_t state;
+    ThermalTemperature state;
     float current_Temp = 0;
     float current_WifiTemp = 0;
 
@@ -391,16 +391,15 @@ void ThermalController::_PollThermalLevels(void *)
     while(TRUE)
     {
         int result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
-        ThermalTemperature new_Thermal_Level = platform().conv((PWRMgr_ThermalState_t)state);
         if(result)
         {
-            if(m_cur_Thermal_Level != new_Thermal_Level)//State changed, need to broadcast
+            if(m_cur_Thermal_Level != state)//State changed, need to broadcast
             {
-                LOGINFO("Temeperature level changed %d -> %d :  ", m_cur_Thermal_Level,new_Thermal_Level );
+                LOGINFO("Temeperature level changed %d -> %d :  ", m_cur_Thermal_Level,state );
 
-                _parent.onThermalTemperatureChanged(m_cur_Thermal_Level,new_Thermal_Level,current_Temp);
+                _parent.onThermalTemperatureChanged(m_cur_Thermal_Level,state,current_Temp);
 
-                m_cur_Thermal_Level = (ThermalTemperature)state;
+                m_cur_Thermal_Level = state;
             }
             //PACEXI5-2127 - BEGIN
             if(0 == (pollCount % fifteenMinInterval))

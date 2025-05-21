@@ -19,9 +19,6 @@
 
 #pragma once
 
-#include "mfr_temperature.h"
-#include "mfrMgr.h"
-
 namespace hal {
 namespace Thermal {
     class IPlatform {
@@ -35,8 +32,8 @@ namespace Thermal {
         virtual uint32_t GetClockSpeed(uint32_t &speed) const = 0;
         virtual uint32_t SetClockSpeed(uint32_t speed) = 0;
         virtual uint32_t DetemineClockSpeeds(uint32_t &cpu_rate_Normal, uint32_t &cpu_rate_Scaled, uint32_t &cpu_rate_Minimal) = 0;
-        virtual uint32_t GetTemperature(mfrTemperatureState_t &curState, float &curTemperature, float &wifiTemperature) const = 0;
+        virtual uint32_t GetTemperature(ThermalTemperature &curState, float &curTemperature, float &wifiTemperature) const = 0;
 
     };
 }
-
+}

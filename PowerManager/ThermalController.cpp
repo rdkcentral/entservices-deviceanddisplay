@@ -250,7 +250,7 @@ void ThermalController::deepSleepIfNeeded()
         logThermalShutdownReason();
         LOGINFO("Going to deepsleep since the temperature is above %d", deepsleepThreshold.critical);
         v_secure_system("/lib/rdk/alertSystem.sh pwrMgrMain \"Going to deepsleep due to temperature runaway\"");
-        _parent.SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP,"");
+        _parent.onDeepSlepForThermalChange();
     }
     else if (!deepSleepZone && m_cur_Thermal_Value >= deepsleepThreshold.concern)
     {
@@ -274,7 +274,7 @@ void ThermalController::deepSleepIfNeeded()
             LOGINFO("Going to deepsleep since the temperature reached %d and stayed above %d for %d seconds",
                 deepsleepThreshold.concern, deepsleepThreshold.safe, deepsleepThreshold.graceInterval);
             v_secure_system("/lib/rdk/alertSystem.sh pwrMgrMain \"Going to deepsleep due to over temperature\"");
-            _parent.SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP,"");
+            _parent.onDeepSlepForThermalChange();
         }
         else {
             LOGINFO("Still in the deep sleep zone! Entering deep sleep in %lu seconds unless the temperature falls below %u!", deepsleepThreshold.graceInterval-difftime, deepsleepThreshold.safe );
@@ -391,7 +391,7 @@ void ThermalController::_PollThermalLevels(void *)
     while(TRUE)
     {
         int result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
-        ThermalTemperature new_Thermal_Level = conv((PWRMgr_ThermalState_t)state);
+        ThermalTemperature new_Thermal_Level = platform().conv((PWRMgr_ThermalState_t)state);
         if(result)
         {
             if(m_cur_Thermal_Level != new_Thermal_Level)//State changed, need to broadcast

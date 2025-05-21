@@ -725,5 +725,15 @@ namespace Plugin {
 
         dispatchThermalModeChangedEvent(cur_Thermal_Level, new_Thermal_Level, current_Temp);
     }
+
+    void PowerManagerImplementation::onDeepSlepForThermalChange()
+    {
+        LOGINFO("Entry");
+
+        /*Scheduled maintanace reboot is disabled. Instead state will change to LIGHT_SLEEP*/
+        LOGINFO("Set Device to deep sleep on Thermal change");
+        SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "DeepSleep on Thermal change");
+    }
+
 }
 }

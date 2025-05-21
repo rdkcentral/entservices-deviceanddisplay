@@ -53,7 +53,8 @@
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
-
+using Exchange = WPEFramework::Exchange;
+	
 namespace WPEFramework {
 namespace Plugin {
     class PowerManagerImplementation : public Exchange::IPowerManager, public DeepSleepController::INotification, public ThermalController::INotification {
@@ -193,6 +194,7 @@ namespace Plugin {
         virtual void onDeepSleepUserWakeup(const bool userWakeup) override;
         virtual void onDeepSleepFailed() override;
         virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) override;
+        virtual void onDeepSlepForThermalChange() override;
 
         template <typename T>
         uint32_t Register(std::list<T*>& list, T* notification);

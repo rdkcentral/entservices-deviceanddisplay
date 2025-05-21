@@ -21,13 +21,16 @@
 
 #include "UtilsIarm.h"
 #include "UtilsLogging.h"
+#include "PowerUtils.h"
 
-#include "rdk/iarmmgrs-hal/pwrMgr.h"
+#include <core/Portability.h>
+#include <interfaces/IPowerManager.h>
 
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 #define IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut "SetDeepSleepTimeOut" /*!< Sets the timeout for deep sleep*/
 
 using PreModeChangeTimer = WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeTimer;
+using util = PowerUtils;
 
 template <>
 WPEFramework::Core::TimerType<PreModeChangeTimer> PreModeChangeTimer::timerThread(16 * 1024, "ACK TIMER");
@@ -67,66 +70,32 @@ bool convert(string str3, string firm)
 
 namespace WPEFramework {
 namespace Plugin {
-    static void _iarmPowerEventHandler(const char* owner, IARM_EventId_t eventId, void* data, size_t len);
 
     SERVICE_REGISTRATION(PowerManagerImplementation, 1, 0);
     PowerManagerImplementation* PowerManagerImplementation::_instance = nullptr;
+
     PowerManagerImplementation::PowerManagerImplementation()
         : m_powerStateBeforeReboot(POWER_STATE_UNKNOWN)
         , m_networkStandbyMode(false)
         , m_networkStandbyModeValid(false)
         , m_powerStateBeforeRebootValid(false)
         , _modeChangeController(nullptr)
+        , _deepSleepController(DeepSleepController::Create(*this))
+        , _powerController(PowerController::Create(_deepSleepController))
     {
         PowerManagerImplementation::_instance = this;
-
-#if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
-        InitializeIARM();
-#endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
+        Utils::IARM::init();
     }
 
     PowerManagerImplementation::~PowerManagerImplementation()
     {
-        DeinitializeIARM();
     }
 
-#if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
-    void PowerManagerImplementation::InitializeIARM()
-    {
-        if (Utils::IARM::init()) {
-            IARM_Result_t res = IARM_RESULT_INVALID_PARAM;
-            IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, _iarmPowerEventHandler));
-            IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_REBOOTING, _iarmPowerEventHandler));
-            IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED, _iarmPowerEventHandler));
-            IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_DEEPSLEEP_TIMEOUT, _iarmPowerEventHandler));
-
-#ifdef ENABLE_THERMAL_PROTECTION
-            IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_THERMAL_MODECHANGED, _iarmPowerEventHandler));
-#endif // ENABLE_THERMAL_PROTECTION
-        }
-    }
-
-    void PowerManagerImplementation::DeinitializeIARM()
-    {
-        if (Utils::IARM::isConnected()) {
-            IARM_Result_t res = IARM_RESULT_INVALID_PARAM;
-            IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, _iarmPowerEventHandler));
-            IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_REBOOTING, _iarmPowerEventHandler));
-            IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED, _iarmPowerEventHandler));
-            IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_DEEPSLEEP_TIMEOUT, _iarmPowerEventHandler));
-
-#ifdef ENABLE_THERMAL_PROTECTION
-            IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_THERMAL_MODECHANGED, _iarmPowerEventHandler));
-#endif // ENABLE_THERMAL_PROTECTION
-        }
-    }
-#endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
-
-    void PowerManagerImplementation::dispatchPowerModeChangedEvent(const PowerState& currentState, const PowerState& newState)
+    void PowerManagerImplementation::dispatchPowerModeChangedEvent(const PowerState& prevState, const PowerState& newState)
     {
         auto index = _modeChangedNotifications.begin();
         while (index != _modeChangedNotifications.end()) {
-            (*index)->OnPowerModeChanged(currentState, newState);
+            (*index)->OnPowerModeChanged(prevState, newState);
             ++index;
         }
     }
@@ -165,121 +134,6 @@ namespace Plugin {
             (*index)->OnNetworkStandbyModeChanged(enabled);
             ++index;
         }
-    }
-
-    void PowerManagerImplementation::Dispatch(Event event, ParamsType params)
-    {
-        _adminLock.Lock();
-
-        switch (event) {
-        case PWRMGR_EVENT_POWERMODE_CHANGED:
-            if (const auto* pairValue = boost::get<std::pair<PowerState, PowerState>>(&params)) {
-                PowerState currentState = pairValue->first, newState = pairValue->second;
-                dispatchPowerModeChangedEvent(currentState, newState);
-            }
-            break;
-
-        case PWRMGR_EVENT_DEEPSLEEP_TIMEOUT:
-            if (const uint32_t* value = boost::get<uint32_t>(&params)) {
-                dispatchDeepSleepTimeoutEvent(*value);
-            }
-            break;
-
-        case PWRMGR_EVENT_REBOOTING:
-            if (const auto* tupleValue = boost::get<std::tuple<std::string, std::string, std::string>>(&params)) {
-                string rebootReasonCustom = std::get<0>(*tupleValue), rebootReasonOther = std::get<1>(*tupleValue), rebootRequestor = std::get<2>(*tupleValue);
-                dispatchRebootBeginEvent(rebootReasonCustom, rebootReasonOther, rebootRequestor);
-            }
-            break;
-
-        case PWRMGR_EVENT_THERMAL_MODECHANGED:
-            if (const auto* thermData = boost::get<std::tuple<ThermalTemperature, ThermalTemperature, float>>(&params)) {
-                ThermalTemperature currentThermalLevel = std::get<0>(*thermData), newThermalLevel = std::get<1>(*thermData);
-                float currentTemperature = std::get<2>(*thermData);
-                dispatchThermalModeChangedEvent(currentThermalLevel, newThermalLevel, currentTemperature);
-            }
-            break;
-
-        case PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED:
-            if (const bool* boolValue = boost::get<bool>(&params)) {
-                dispatchNetworkStandbyModeChangedEvent(*boolValue);
-            }
-            break;
-
-        default:
-            LOGERR("Unhandled event: %d", event);
-        } // switch (event)
-
-        _adminLock.Unlock();
-    }
-
-    static void _iarmPowerEventHandler(const char* owner, IARM_EventId_t eventId, void* data, size_t len)
-    {
-        switch (eventId) {
-        case IARM_BUS_PWRMGR_EVENT_MODECHANGED: {
-            IARM_Bus_PWRMgr_EventData_t* eventData = (IARM_Bus_PWRMgr_EventData_t*)data;
-            auto pairParam = std::make_pair(PowerManagerImplementation::_instance->ConvertToPwrMgrPowerState(eventData->data.state.curState),
-                PowerManagerImplementation::_instance->ConvertToPwrMgrPowerState(eventData->data.state.newState));
-
-            LOGINFO("IARM Event triggered for PowerStateChange. Old State %u, New State: %u",
-                eventData->data.state.curState, eventData->data.state.newState);
-
-            Core::IWorkerPool::Instance().Submit(PowerManagerImplementation::Job::Create(PowerManagerImplementation::_instance,
-                PowerManagerImplementation::PWRMGR_EVENT_POWERMODE_CHANGED,
-                pairParam));
-        } break;
-
-        case IARM_BUS_PWRMGR_EVENT_REBOOTING: {
-            IARM_Bus_PWRMgr_RebootParam_t* eventData = (IARM_Bus_PWRMgr_RebootParam_t*)data;
-            auto tupleParam = std::make_tuple(eventData->reboot_reason_custom,
-                eventData->reboot_reason_other,
-                eventData->requestor);
-
-            LOGINFO("IARM Event triggered for reboot. reboot_reason_custom: %s, requestor: %s, reboot_reason_other: %s",
-                eventData->reboot_reason_custom, eventData->requestor, eventData->reboot_reason_other);
-
-            Core::IWorkerPool::Instance().Submit(PowerManagerImplementation::Job::Create(PowerManagerImplementation::_instance,
-                PowerManagerImplementation::PWRMGR_EVENT_REBOOTING,
-                tupleParam));
-        } break;
-
-        case IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED: {
-            IARM_Bus_PWRMgr_EventData_t* eventData = (IARM_Bus_PWRMgr_EventData_t*)data;
-
-            LOGINFO("IARM Event triggered for NetworkStandbyMode. NetworkStandbyMode: %u", eventData->data.bNetworkStandbyMode);
-
-            Core::IWorkerPool::Instance().Submit(PowerManagerImplementation::Job::Create(PowerManagerImplementation::_instance,
-                PowerManagerImplementation::PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED,
-                eventData->data.bNetworkStandbyMode));
-        } break;
-
-        case IARM_BUS_PWRMGR_EVENT_THERMAL_MODECHANGED: {
-            IARM_Bus_PWRMgr_EventData_t* eventData = (IARM_Bus_PWRMgr_EventData_t*)data;
-            auto tupleParam = std::make_tuple(PowerManagerImplementation::_instance->ConvertToThermalState(eventData->data.therm.curLevel),
-                PowerManagerImplementation::_instance->ConvertToThermalState(eventData->data.therm.newLevel),
-                (int)eventData->data.therm.curTemperature);
-
-            Core::IWorkerPool::Instance().Submit(PowerManagerImplementation::Job::Create(PowerManagerImplementation::_instance,
-                PowerManagerImplementation::PWRMGR_EVENT_THERMAL_MODECHANGED,
-                tupleParam));
-
-            LOGINFO("THERMAL_MODECHANGED event received, curLevel: %u, newLevel: %u, curTemperature: %f",
-                eventData->data.therm.curLevel, eventData->data.therm.newLevel, eventData->data.therm.curTemperature);
-        } break;
-
-        case IARM_BUS_PWRMGR_EVENT_DEEPSLEEP_TIMEOUT: {
-            IARM_BUS_PWRMgr_DeepSleepTimeout_EventData_t* eventData = (IARM_BUS_PWRMgr_DeepSleepTimeout_EventData_t*)data;
-
-            Core::IWorkerPool::Instance().Submit(PowerManagerImplementation::Job::Create(PowerManagerImplementation::_instance,
-                PowerManagerImplementation::PWRMGR_EVENT_DEEPSLEEP_TIMEOUT,
-                eventData->timeout));
-
-            LOGINFO("IARM Event triggered for deep sleep timeout: %u", eventData->timeout);
-        } break;
-
-        default:
-            LOGWARN("Unhandled IARM event: %d", eventId);
-        } // switch (eventId)
     }
 
     template <typename T>
@@ -405,232 +259,65 @@ namespace Plugin {
         return errorCode;
     }
 
-    IARM_Bus_PWRMgr_PowerState_t PowerManagerImplementation::ConvertToIarmBusPowerState(PowerState state)
-    {
-        IARM_Bus_PWRMgr_PowerState_t powerState = IARM_BUS_PWRMGR_POWERSTATE_OFF;
-
-        switch (state) {
-        case POWER_STATE_OFF:
-            powerState = IARM_BUS_PWRMGR_POWERSTATE_OFF;
-            break;
-        case POWER_STATE_STANDBY:
-            powerState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
-            break;
-        case POWER_STATE_ON:
-            powerState = IARM_BUS_PWRMGR_POWERSTATE_ON;
-            break;
-        case POWER_STATE_STANDBY_LIGHT_SLEEP:
-            powerState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP;
-            break;
-        case POWER_STATE_STANDBY_DEEP_SLEEP:
-            powerState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP;
-            break;
-        default:
-            powerState = IARM_BUS_PWRMGR_POWERSTATE_OFF;
-            LOGERR("Unknown power state: %d, defaulting to IARM_BUS_PWRMGR_POWERSTATE_OFF", state);
-            break;
-        }
-
-        return powerState;
-    }
-
-    PowerState PowerManagerImplementation::ConvertToPwrMgrPowerState(IARM_Bus_PWRMgr_PowerState_t state)
-    {
-        PowerState powerState;
-
-        switch (state) {
-        case IARM_BUS_PWRMGR_POWERSTATE_OFF:
-            powerState = POWER_STATE_OFF;
-            break;
-        case IARM_BUS_PWRMGR_POWERSTATE_STANDBY:
-            powerState = POWER_STATE_STANDBY;
-            break;
-        case IARM_BUS_PWRMGR_POWERSTATE_ON:
-            powerState = POWER_STATE_ON;
-            break;
-        case IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP:
-            powerState = POWER_STATE_STANDBY_LIGHT_SLEEP;
-            break;
-        case IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP:
-            powerState = POWER_STATE_STANDBY_DEEP_SLEEP;
-            break;
-        default:
-            powerState = POWER_STATE_UNKNOWN;
-            LOGERR("Unknown IARM power state: %d, defaulting to POWER_STATE_UNKNOWN", state);
-            break;
-        }
-
-        return powerState;
-    }
-
-    WakeupReason PowerManagerImplementation::ConvertToDeepSleepWakeupReason(DeepSleep_WakeupReason_t deepSleepWakeupReason)
-    {
-        WakeupReason wakeupReason;
-
-        switch (deepSleepWakeupReason) {
-        case DEEPSLEEP_WAKEUPREASON_IR:
-            wakeupReason = WAKEUP_REASON_IR;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_RCU_BT:
-            wakeupReason = WAKEUP_REASON_BLUETOOTH;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_RCU_RF4CE:
-            wakeupReason = WAKEUP_REASON_RF4CE;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_GPIO:
-            wakeupReason = WAKEUP_REASON_GPIO;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_LAN:
-            wakeupReason = WAKEUP_REASON_LAN;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_WLAN:
-            wakeupReason = WAKEUP_REASON_WIFI;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_TIMER:
-            wakeupReason = WAKEUP_REASON_TIMER;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_FRONT_PANEL:
-            wakeupReason = WAKEUP_REASON_FRONTPANEL;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_WATCHDOG:
-            wakeupReason = WAKEUP_REASON_WATCHDOG;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_SOFTWARE_RESET:
-            wakeupReason = WAKEUP_REASON_SOFTWARERESET;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_THERMAL_RESET:
-            wakeupReason = WAKEUP_REASON_THERMALRESET;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_WARM_RESET:
-            wakeupReason = WAKEUP_REASON_WARMRESET;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_COLDBOOT:
-            wakeupReason = WAKEUP_REASON_COLDBOOT;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_STR_AUTH_FAILURE:
-            wakeupReason = WAKEUP_REASON_STRAUTHFAIL;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_CEC:
-            wakeupReason = WAKEUP_REASON_CEC;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_PRESENCE:
-            wakeupReason = WAKEUP_REASON_PRESENCE;
-            break;
-        case DEEPSLEEP_WAKEUPREASON_VOICE:
-            wakeupReason = WAKEUP_REASON_VOICE;
-            break;
-        default:
-            wakeupReason = WAKEUP_REASON_UNKNOWN;
-            LOGERR("Unknown deep sleep wakeup reason: %d, defaulting to WAKEUP_REASON_UNKNOWN", deepSleepWakeupReason);
-            break;
-        }
-
-        return wakeupReason;
-    }
-
-    ThermalTemperature PowerManagerImplementation::ConvertToThermalState(IARM_Bus_PWRMgr_ThermalState_t thermalState)
-    {
-        ThermalTemperature pwrMgrThermState;
-
-        switch (thermalState) {
-        case IARM_BUS_PWRMGR_TEMPERATURE_NORMAL:
-            pwrMgrThermState = THERMAL_TEMPERATURE_NORMAL;
-            break;
-        case IARM_BUS_PWRMGR_TEMPERATURE_HIGH:
-            pwrMgrThermState = THERMAL_TEMPERATURE_HIGH;
-            break;
-        case IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL:
-            pwrMgrThermState = THERMAL_TEMPERATURE_CRITICAL;
-            break;
-        default:
-            pwrMgrThermState = THERMAL_TEMPERATURE_UNKNOWN;
-            LOGERR("Unknown thermal state: %d, defaulting to THERMAL_TEMPERATURE_UNKNOWN", thermalState);
-            break;
-        }
-
-        return pwrMgrThermState;
-    }
-
-    IARM_Bus_Daemon_SysMode_t PowerManagerImplementation::ConvertToDaemonSystemMode(SystemMode sysMode)
-    {
-        IARM_Bus_Daemon_SysMode_t systemMode = IARM_BUS_SYS_MODE_NORMAL;
-
-        switch (sysMode) {
-        case SYSTEM_MODE_NORMAL:
-            systemMode = IARM_BUS_SYS_MODE_NORMAL;
-            break;
-        case SYSTEM_MODE_EAS:
-            systemMode = IARM_BUS_SYS_MODE_EAS;
-            break;
-        case SYSTEM_MODE_WAREHOUSE:
-            systemMode = IARM_BUS_SYS_MODE_WAREHOUSE;
-            break;
-        default:
-            systemMode = IARM_BUS_SYS_MODE_NORMAL;
-            LOGERR("Unknown system mode: %d, defaulting to IARM_BUS_SYS_MODE_NORMAL", sysMode);
-            break;
-        }
-
-        return systemMode;
-    }
-
     Core::hresult PowerManagerImplementation::GetPowerState(PowerState& currentState, PowerState& prevState) const
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_GetPowerState_Param_t param = {};
+        _adminLock.Lock();
 
-        LOGINFO("impl called for GetPowerState()");
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState,
-            (void*)&param, sizeof(param));
+        uint32_t errorCode = _powerController.GetPowerState(currentState, prevState);
 
-        if (IARM_RESULT_SUCCESS == res) {
-            currentState = PowerManagerImplementation::_instance->ConvertToPwrMgrPowerState(param.curState);
-            prevState = PowerManagerImplementation::_instance->ConvertToPwrMgrPowerState(param.prevState);
-            errorCode = Core::ERROR_NONE;
-        }
+        _adminLock.Unlock();
 
-        LOGINFO("getPowerState called, currentState : %u, prevState : %u", currentState, prevState);
+        LOGINFO("currentState : %s, prevState : %s, errorCode = %d", util::str(currentState), util::str(prevState), errorCode);
 
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::SetDevicePowerState(const int& keyCode, PowerState powerState)
+    Core::hresult PowerManagerImplementation::setDevicePowerState(const int& keyCode, PowerState prevState, PowerState newState, const std::string& reason)
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_SetPowerState_Param_t param = {};
+        uint32_t errorCode = _powerController.SetPowerState(keyCode, newState, reason);
 
-        param.newState = PowerManagerImplementation::_instance->ConvertToIarmBusPowerState(powerState);
-
-        if (POWER_STATE_UNKNOWN != powerState) {
-            param.keyCode = keyCode;
-            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_SetPowerState,
-                (void*)&param, sizeof(param));
-
-            if (IARM_RESULT_SUCCESS == res) {
-                errorCode = Core::ERROR_NONE;
-            }
-        } else {
-            LOGWARN("Invalid power state is received %u", powerState);
+        if (Core::ERROR_NONE != errorCode) {
+            LOGERR("Failed to set power state, errorCode: %d", errorCode);
+            return errorCode;
         }
 
-        LOGINFO("SetDevicePowerState keyCode: %d, powerState: %u, errorcode: %u", keyCode, powerState, errorCode);
+        // We don't do a thread switching here, as it may move device to deep sleep mode
+        // even before client receiving the event
+        dispatchPowerModeChangedEvent(prevState, newState);
+
+        LOGINFO("keyCode: %d, prevState: %s, newState: %s, reason: %s, errorcode: %u", keyCode, util::str(prevState), util::str(newState), reason.c_str(), errorCode);
+
+        if (PowerState::POWER_STATE_STANDBY_DEEP_SLEEP == newState) {
+            LOGINFO("newState is DEEP SLEEP, activating deep sleep mode");
+            _powerController.ActivateDeepSleep();
+        }
 
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState powerState, const string& standbyReason)
+    Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
-        PowerState currentState = POWER_STATE_UNKNOWN;
+        PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
 
-        Core::hresult errorCode = GetPowerState(currentState, prevState);
+        uint32_t errorCode = GetPowerState(currState, prevState);
 
         if (Core::ERROR_NONE != errorCode) {
             LOGERR("Failed to get current power state, errorCode: %d", errorCode);
             return errorCode;
         }
 
-        if (currentState != powerState) {
+        if (currState != newState) {
+
+            if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
+                if (_deepSleepController.IsDeepSleepInProgress()) {
+                    LOGINFO("deepsleep in  progress  ignoring %s request", util::str(newState));
+                    return Core::ERROR_NONE;
+                }
+                // deep sleep not in progress, wakeup from deep sleep
+                LOGINFO("Device wakeup from DEEP_SLEEP to %s", util::str(newState));
+                _deepSleepController.Deactivate();
+            }
 
             _adminLock.Lock();
 
@@ -649,21 +336,21 @@ namespace Plugin {
             _adminLock.Unlock();
 
             // dispatch pre power mode change notifications
-            submitPowerModePreChangeEvent(currentState, powerState, transactionId);
+            submitPowerModePreChangeEvent(currState, newState, transactionId);
 
             // like in `Job` class we avoid impl destruction before handler is invoked
             this->AddRef();
 
             _modeChangeController->Schedule(POWER_MODE_PRECHANGE_TIMEOUT_SEC * 1000,
-                [this, keyCode, powerState](bool /*isTimedout*/) mutable {
-                    PowerModePreChangeCompletionHandler(keyCode, powerState);
+                [this, keyCode, currState, newState, reason](bool /*isTimedout*/) mutable {
+                    powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
                 });
         } else {
             LOGINFO("Requested power state is same as current power state, no action required");
         }
 
-        LOGINFO("SetPowerState keyCode: %d, currentState: %u, powerState: %u, errorCode: %d",
-                keyCode, currentState, powerState, Core::ERROR_NONE);
+        LOGINFO("SetPowerState keyCode: %d, currentState: %s, newState: %s, errorCode: %d",
+            keyCode, util::str(currState), util::str(newState), Core::ERROR_NONE);
 
         return Core::ERROR_NONE;
     }
@@ -678,387 +365,230 @@ namespace Plugin {
                     }));
         }
 
-        LOGINFO("currentState : %u, newState : %u, transactionId : %d", currentState, newState, transactionId);
+        LOGINFO("currentState : %s, newState : %s, transactionId : %d", util::str(currentState), util::str(newState), transactionId);
     }
 
     Core::hresult PowerManagerImplementation::GetTemperatureThresholds(float& high, float& critical) const
     {
+        _adminLock.Lock();
+
+        // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_GetTempThresholds_Param_t param = {};
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_GetTemperatureThresholds,
-            (void*)&param,
-            sizeof(param));
+        _adminLock.Unlock();
 
-        if (IARM_RESULT_SUCCESS == res) {
-            high = param.tempHigh;
-            critical = param.tempCritical;
-            LOGINFO("Got current temperature thresholds: high: %f, critical: %f", high, critical);
-            errorCode = Core::ERROR_NONE;
-        } else {
-            high = critical = 0;
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
-        }
+        LOGINFO("high: %f, critical: %f, errorCode: %u", high, critical, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetTemperatureThresholds(const float high, const float critical)
     {
+        _adminLock.Lock();
+
+        // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
-        JsonObject args;
-        IARM_Bus_PWRMgr_SetTempThresholds_Param_t param = {};
 
-        param.tempHigh = high;
-        param.tempCritical = critical;
+        _adminLock.Unlock();
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_SetTemperatureThresholds,
-            (void*)&param,
-            sizeof(param));
-
-        if (IARM_RESULT_SUCCESS == res) {
-            LOGINFO("Set new temperature thresholds: high: %f, critical: %f", high, critical);
-            errorCode = Core::ERROR_NONE;
-        } else {
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
-        }
+        LOGINFO("high: %f, critical: %f, errorCode: %u", high, critical, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetOvertempGraceInterval(int& graceInterval) const
     {
+        _adminLock.Lock();
+
+        // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_GetOvertempGraceInterval_Param_t param = {};
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_GetOvertempGraceInterval,
-            (void*)&param,
-            sizeof(param));
+        _adminLock.Unlock();
 
-        if (IARM_RESULT_SUCCESS == res) {
-            graceInterval = param.graceInterval;
-            LOGINFO("Got current overtemparature grace inetrval: %d", graceInterval);
-            errorCode = Core::ERROR_NONE;
-        } else {
-            graceInterval = 0;
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
-        }
+        LOGINFO("graceInterval: %d, errorCode: %u", graceInterval, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetOvertempGraceInterval(const int graceInterval)
     {
+        _adminLock.Lock();
+
+        // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_SetOvertempGraceInterval_Param_t param = {};
-        param.graceInterval = graceInterval;
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_SetOvertempGraceInterval,
-            (void*)&param,
-            sizeof(param));
+        _adminLock.Unlock();
 
-        if (IARM_RESULT_SUCCESS == res) {
-            LOGINFO("Set new overtemparature grace interval: %d", graceInterval);
-            errorCode = Core::ERROR_NONE;
-        } else {
-            LOGWARN("[%s] IARM Call failed.", __FUNCTION__);
-        }
+        LOGINFO("graceInterval: %d, errorCode: %u", graceInterval, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetThermalState(float& temperature) const
     {
+        _adminLock.Lock();
+
+        // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
-#ifdef ENABLE_THERMAL_PROTECTION
-        IARM_Bus_PWRMgr_GetThermalState_Param_t param = {};
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_GetThermalState, (void*)&param, sizeof(param));
+        _adminLock.Unlock();
 
-        if (IARM_RESULT_SUCCESS == res) {
-            temperature = param.curTemperature;
-            LOGINFO("Current core temperature is : %f ", temperature);
-            errorCode = Core::ERROR_NONE;
-        } else {
-            LOGERR("[%s] IARM Call failed.", __FUNCTION__);
-        }
-#else
-        temperature = -1;
-        errorCode = Core::ERROR_GENERAL;
-        LOGWARN("Thermal Protection disabled for this platform");
-#endif
+        LOGINFO("temperature: %f, errorCode: %u", temperature, errorCode);
+
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetDeepSleepTimer(const int timeOut)
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_SetDeepSleepTimeOut_Param_t param = {};
-        param.timeout = timeOut;
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut, (void*)&param,
-            sizeof(param));
+        _adminLock.Lock();
 
-        if (IARM_RESULT_SUCCESS == res) {
-            errorCode = Core::ERROR_NONE;
-        }
+        uint32_t errorCode = _powerController.SetDeepSleepTimer(timeOut);
+
+        _adminLock.Unlock();
+
+        LOGINFO("timeOut: %d, errorCode: %u", timeOut, errorCode);
+
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetLastWakeupReason(WakeupReason& wakeupReason) const
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        DeepSleep_WakeupReason_t deepSleepWakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
+        _adminLock.Lock();
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_GetLastWakeupReason, (void*)&deepSleepWakeupReason,
-            sizeof(deepSleepWakeupReason));
+        uint32_t errorCode = _deepSleepController.GetLastWakeupReason(wakeupReason);
 
-        if (IARM_RESULT_SUCCESS == res) {
-            wakeupReason = PowerManagerImplementation::_instance->ConvertToDeepSleepWakeupReason(deepSleepWakeupReason);
-            errorCode = Core::ERROR_NONE;
-        }
-        LOGINFO("WakeupReason: %d, errorCode: %u", wakeupReason, errorCode);
+        _adminLock.Unlock();
+
+        LOGINFO("wakeupReason: %u, errorCode: %u", wakeupReason, errorCode);
+
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetLastWakeupKeyCode(int& keycode) const
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        DeepSleepMgr_WakeupKeyCode_Param_t param = {};
+        _adminLock.Lock();
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_GetLastWakeupKeyCode, (void*)&param,
-            sizeof(param));
-        if (IARM_RESULT_SUCCESS == res) {
-            errorCode = Core::ERROR_NONE;
-            keycode = param.keyCode;
-        }
+        // TODO: yet to implement
+        uint32_t errorCode = _deepSleepController.GetLastWakeupKeyCode(keycode);
 
-        LOGINFO("WakeupKeyCode : %d, errorcode: %u", keycode, errorCode);
+        _adminLock.Unlock();
+
+        LOGINFO("Wakeup keycode: %d, errorCode: %u", keycode, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Reboot(const string& rebootRequestor, const string& rebootReasonCustom, const string& rebootReasonOther)
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        string requestor = "PowerManager";
-        string customReason = "No custom reason provided";
-        string otherReason = "No other reason supplied";
+        const string defaultArg = "Unknown";
+        const string requestor = rebootRequestor.empty() ? defaultArg : rebootRequestor;
+        const string customReason = rebootReasonCustom.empty() ? defaultArg : rebootReasonCustom;
+        const string otherReason = rebootReasonOther.empty() ? defaultArg : rebootReasonOther;
 
-        if (!rebootRequestor.empty()) {
-            requestor = rebootRequestor;
-        }
+        dispatchRebootBeginEvent(requestor, customReason, otherReason);
 
-        if (!rebootReasonCustom.empty()) {
-            customReason = rebootReasonCustom;
-            otherReason = customReason;
-        }
+        _adminLock.Lock();
 
-        if (!rebootReasonOther.empty()) {
-            otherReason = rebootReasonOther;
-        }
+        uint32_t errorCode = _powerController.Reboot(rebootRequestor, rebootReasonCustom, rebootReasonOther);
 
-        IARM_Bus_PWRMgr_RebootParam_t rebootParam;
+        _adminLock.Unlock();
 
-        strncpy(rebootParam.requestor, requestor.c_str(), sizeof(rebootParam.requestor));
-        rebootParam.requestor[sizeof(rebootParam.requestor) - 1] = '\0';
-
-        strncpy(rebootParam.reboot_reason_custom, customReason.c_str(), sizeof(rebootParam.reboot_reason_custom));
-        rebootParam.reboot_reason_custom[sizeof(rebootParam.reboot_reason_custom) - 1] = '\0';
-
-        strncpy(rebootParam.reboot_reason_other, otherReason.c_str(), sizeof(rebootParam.reboot_reason_other));
-        rebootParam.reboot_reason_other[sizeof(rebootParam.reboot_reason_other) - 1] = '\0';
-
-        IARM_Result_t iarmcallstatus = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_Reboot, &rebootParam, sizeof(rebootParam));
-
-        if (IARM_RESULT_SUCCESS == iarmcallstatus) {
-            errorCode = Core::ERROR_NONE;
-        }
-
-        LOGINFO("requestor %s, custom reason: %s, other reason: %s, iarmstatus: %d, errorcode: %u", rebootParam.requestor, rebootParam.reboot_reason_custom,
-            rebootParam.reboot_reason_other, iarmcallstatus, errorCode);
+        LOGINFO("requestor %s, custom reason: %s, other reason: %s, errorcode: %u", requestor.c_str(), customReason.c_str(), otherReason.c_str(), errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetNetworkStandbyMode(const bool standbyMode)
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_NetworkStandbyMode_Param_t param = {};
+        _adminLock.Lock();
 
-        param.bStandbyMode = standbyMode;
+        uint32_t errorCode = _powerController.SetNetworkStandbyMode(standbyMode);
 
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_SetNetworkStandbyMode, (void*)&param,
-            sizeof(param));
-
-        if (IARM_RESULT_SUCCESS == res) {
-            errorCode = Core::ERROR_NONE;
-            m_networkStandbyModeValid = false;
-        }
+        _adminLock.Unlock();
 
         LOGINFO("standbyMode : %s, errorcode: %u",
-            (param.bStandbyMode) ? ("Enabled") : ("Disabled"), errorCode);
+            (standbyMode) ? ("Enabled") : ("Disabled"), errorCode);
+
+        if (Core::ERROR_NONE == errorCode) {
+            dispatchNetworkStandbyModeChangedEvent(standbyMode);
+        }
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetNetworkStandbyMode(bool& standbyMode)
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        _adminLock.Lock();
 
-        if (m_networkStandbyModeValid) {
-            standbyMode = m_networkStandbyMode;
-            errorCode = Core::ERROR_NONE;
-            LOGINFO("Got cached NetworkStandbyMode: '%s'", m_networkStandbyMode ? "true" : "false");
-        } else {
-            IARM_Bus_PWRMgr_NetworkStandbyMode_Param_t param = {};
-            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-                IARM_BUS_PWRMGR_API_GetNetworkStandbyMode, (void*)&param,
-                sizeof(param));
-            standbyMode = param.bStandbyMode;
+        uint32_t errorCode = _powerController.GetNetworkStandbyMode(standbyMode);
 
-            LOGINFO("current NwStandbyMode is: %s, res: %d",
-                (standbyMode ? ("Enabled") : ("Disabled")), res);
+        _adminLock.Unlock();
 
-            if (IARM_RESULT_SUCCESS == res) {
-                errorCode = Core::ERROR_NONE;
-                m_networkStandbyMode = standbyMode;
-                m_networkStandbyModeValid = true;
-            }
-        }
+        LOGINFO("Current NwStandbyMode is: %s, errorCode: %d",
+            (standbyMode ? ("Enabled") : ("Disabled")), errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        _adminLock.Lock();
 
-        LOGINFO(" Power State stored: %x srcType:%x  config :%x ", powerMode, srcType, config);
-        if (srcType) {
-            IARM_Bus_PWRMgr_WakeupSrcConfig_Param_t param = {};
-            param.pwrMode = powerMode >> 1;
-            param.srcType = srcType >> 1;
-            param.config = config >> 1;
+        uint32_t errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcType, config);
 
-            if ((config & (1 << WAKEUPSRC_WIFI)) || (config & (1 << WAKEUPSRC_LAN))) {
-                m_networkStandbyModeValid = false;
-            }
-            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-                IARM_BUS_PWRMGR_API_SetWakeupSrcConfig, (void*)&param,
-                sizeof(param));
-            if (IARM_RESULT_SUCCESS == res) {
-                errorCode = Core::ERROR_NONE;
-            }
+        _adminLock.Unlock();
 
-            LOGINFO(" Power State stored: %x, srcType: %x,  config: %x, IARM status: %d", powerMode, param.srcType, param.config, res);
-        }
+        LOGINFO("Power State stored: %x, srcType: %x,  config: %x, errorCode: %d", powerMode, srcType, config, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_PWRMgr_WakeupSrcConfig_Param_t param = { 0, 0, 0 };
-        IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-            IARM_BUS_PWRMGR_API_GetWakeupSrcConfig, (void*)&param,
-            sizeof(param));
+        _adminLock.Lock();
 
-        if (IARM_RESULT_SUCCESS == res) {
-            LOGINFO("res:%d srcType :%x  config :%x ", res, param.srcType, param.config);
-            errorCode = Core::ERROR_NONE;
+        uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
 
-            srcType = param.srcType << 1;
-            powerMode = param.pwrMode << 1;
-            config = param.config << 1;
-            LOGINFO("res:%d srcType :%x  config :%x ", res, srcType, config);
-        }
+        _adminLock.Unlock();
+
+        LOGINFO("Power State stored: %x, srcType: %x,  config: %x, errorCode: %d", powerMode, srcType, config, errorCode);
+
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
-        IARM_Bus_CommonAPI_SysModeChange_Param_t modeParam;
+        _adminLock.Lock();
 
-        modeParam.oldMode = PowerManagerImplementation::_instance->ConvertToDaemonSystemMode(currentMode);
-        modeParam.newMode = PowerManagerImplementation::_instance->ConvertToDaemonSystemMode(newMode);
+        // TODO: yet to implement
+        uint32_t errorCode = Core::ERROR_GENERAL;
 
-        LOGINFO("switched to mode '%d' to '%d'", currentMode, newMode);
+        _adminLock.Unlock();
 
-        if (IARM_RESULT_SUCCESS == IARM_Bus_Call(IARM_BUS_DAEMON_NAME, "DaemonSysModeChange", &modeParam, sizeof(modeParam))) {
-            errorCode = Core::ERROR_NONE;
-        }
-
-        LOGINFO("switched to mode '%d', errorcode: %u", newMode, errorCode);
+        LOGINFO("currentMode: %u, newMode: %u, errorCode: %u", currentMode, newMode, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot)
     {
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        _adminLock.Lock();
 
-        if (m_powerStateBeforeRebootValid) {
-            powerStateBeforeReboot = m_powerStateBeforeReboot;
+        uint32_t errorCode = _powerController.GetPowerStateBeforeReboot(powerStateBeforeReboot);
 
-            errorCode = Core::ERROR_NONE;
-            LOGINFO("Got cached powerStateBeforeReboot: '%u'", m_powerStateBeforeReboot);
-        } else {
-            IARM_Bus_PWRMgr_GetPowerStateBeforeReboot_Param_t param;
-            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
-                IARM_BUS_PWRMGR_API_GetPowerStateBeforeReboot, (void*)&param,
-                sizeof(param));
+        _adminLock.Unlock();
 
-            LOGWARN("current powerStateBeforeReboot is: %s IARM status: %d",
-                param.powerStateBeforeReboot, res);
-
-            if (!strcmp("ON", param.powerStateBeforeReboot)) {
-                powerStateBeforeReboot = POWER_STATE_ON;
-            } else if (!strcmp("OFF", param.powerStateBeforeReboot)) {
-                powerStateBeforeReboot = POWER_STATE_OFF;
-            } else if (!strcmp("STANDBY", param.powerStateBeforeReboot)) {
-                powerStateBeforeReboot = POWER_STATE_STANDBY;
-            } else if (!strcmp("DEEP_SLEEP", param.powerStateBeforeReboot)) {
-                powerStateBeforeReboot = POWER_STATE_STANDBY_DEEP_SLEEP;
-            } else if (!strcmp("LIGHT_SLEEP", param.powerStateBeforeReboot)) {
-                powerStateBeforeReboot = POWER_STATE_STANDBY_LIGHT_SLEEP;
-            } else {
-                powerStateBeforeReboot = POWER_STATE_UNKNOWN;
-            }
-
-            if (IARM_RESULT_SUCCESS == res) {
-                errorCode = Core::ERROR_NONE;
-                m_powerStateBeforeReboot = powerStateBeforeReboot;
-                m_powerStateBeforeRebootValid = true;
-            }
-        }
+        LOGWARN("current powerStateBeforeReboot is: %s, errorCode: %d",
+            util::str(powerStateBeforeReboot), errorCode);
 
         return errorCode;
     }
 
-    void PowerManagerImplementation::PowerModePreChangeCompletionHandler(const int keyCode, PowerState powerState)
+    void PowerManagerImplementation::powerModePreChangeCompletionHandler(const int keyCode, PowerState currentState, PowerState newState, const std::string& reason)
     {
-        LOGINFO("PowerModePreChangeCompletionHandler triggered keyCode: %d, powerState: %u", keyCode, powerState);
+        LOGINFO("PowerModePreChangeCompletionHandler triggered keyCode: %d, powerState: %s", keyCode, util::str(newState));
 
-        SetDevicePowerState(keyCode, powerState);
-
-        // After moving power HAL to plugin, we might need context switching
-        // Core::IWorkerPool::Instance().Submit(
-        //     PowerManagerImplementation::LambdaJob::Create(this,
-        //         [this, keyCode, powerState]() {
-        //             SetDevicePowerState(keyCode, powerState);
-        //         }));
+        setDevicePowerState(keyCode, currentState, newState, reason);
 
         // release the refCount taken in SetPowerState => _modeChangeController->Schedule
         this->Release();
@@ -1069,7 +599,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::PowerModePreChangeComplete(const uint32_t clientId, const int transactionId)
     {
-        Core::hresult errorCode = Core::ERROR_INVALID_PARAMETER;
+        uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
         _adminLock.Lock();
 
@@ -1086,7 +616,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::DelayPowerModeChangeBy(const uint32_t clientId, const int transactionId, const int delayPeriod)
     {
-        Core::hresult errorCode = Core::ERROR_INVALID_PARAMETER;
+        uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
         _adminLock.Lock();
 
@@ -1136,7 +666,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::RemovePowerModePreChangeClient(const uint32_t clientId)
     {
-        Core::hresult errorCode = Core::ERROR_INVALID_PARAMETER;
+        uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
         std::string clientName;
 
         _adminLock.Lock();
@@ -1159,6 +689,43 @@ namespace Plugin {
         LOGINFO("client: %s, clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
 
         return errorCode;
+    }
+
+    void PowerManagerImplementation::onDeepSleepTimerWakeup(const int wakeupTimeout)
+    {
+        LOGINFO("DeepSleep timedout: %d", wakeupTimeout);
+        dispatchDeepSleepTimeoutEvent(wakeupTimeout);
+
+#if !defined(_DISABLE_SCHD_REBOOT_AT_DEEPSLEEP)
+        LOGINFO("Reboot the box due to Deep Sleep Timer Expiry : %d", wakeupTimeout);
+        _deepSleepController.MaintenanceReboot();
+#else
+        /*Scheduled maintanace reboot is disabled. Instead state will change to LIGHT_SLEEP*/
+        LOGINFO("Set Device to light sleep on Deep Sleep timer expiry");
+        SetPowerState(0, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "DeepSleep timedout");
+#endif // _DISABLE_SCHD_REBOOT_AT_DEEPSLEEP
+    }
+
+    void PowerManagerImplementation::onDeepSleepUserWakeup(const bool userWakeup)
+    {
+        PowerState newState = PowerState::POWER_STATE_ON;
+
+#ifdef PLATCO_BOOTTO_STANDBY
+        newState = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP;
+#endif
+        LOGINFO("User triggered wakeup from DEEP_SLEEP, moving to powerState: %s", util::str(newState));
+        SetPowerState(0, newState, "DeepSleep userwakeup");
+    }
+
+    void PowerManagerImplementation::onDeepSleepFailed()
+    {
+        PowerState newState = PowerState::POWER_STATE_ON;
+
+#ifdef PLATCO_BOOTTO_STANDBY
+        newState = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP;
+#endif
+        LOGINFO("Failed to enter DeepSleep, moving to powerState: %s", util::str(newState));
+        SetPowerState(0, newState, "DeepSleep failed");
     }
 }
 }

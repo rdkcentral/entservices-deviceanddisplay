@@ -223,6 +223,6 @@ private:
     bool read_ConfigProps();
 
     //Thread entry function to monitor thermal levels of the device.
-    void _PollThermalLevels(void *);
+    void _PollThermalLevels();
 
 };

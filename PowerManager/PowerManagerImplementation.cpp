@@ -415,7 +415,8 @@ namespace Plugin {
         LOGINFO("Entry");
         _adminLock.Lock();
 
-        ThermalTemperature curLevel = THERMAL_TEMPERATURE_UNKNOWN, float curTemperature = 0;
+        ThermalTemperature curLevel = THERMAL_TEMPERATURE_UNKNOWN;
+        float curTemperature = 0;
 
         errorCode = _thermalController.GetThermalState(curLevel,curTemperature);
         temperature = curTemperature;

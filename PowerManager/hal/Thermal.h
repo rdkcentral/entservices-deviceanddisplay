@@ -25,7 +25,7 @@ namespace Thermal {
         using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
     public:
-        virtual ~IPlatform() = default;
+        virtual ~IPlatform() {}
 
         virtual uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical) const = 0;
         virtual uint32_t SetTemperatureThresholds(float tempHigh,float tempCritical) = 0;

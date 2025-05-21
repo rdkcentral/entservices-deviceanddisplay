@@ -4590,15 +4590,16 @@ namespace WPEFramework {
             if (Core::ERROR_NONE == retStatus) {
                 LOGWARN(" %s: %d retStatus:%d srcType :%x  config :%x \n",__FUNCTION__,__LINE__,retStatus,srcType,config);
                 status = true;
-                for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <=  WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_RF4CE; src++)
+                for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <  WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_MAX; src <<= 1)
                 {
                      JsonObject sourceConfig;
-                     if(srcType & (1<<src))
+                     if(srcType & src)
                      {
-                        sourceConfig[getWakeupSrcString(src)] = (config & (1<<src))?true:false;
+                        sourceConfig[getWakeupSrcString(src)] = (config & src) ? true : false;
                         wakeupSrc.Add(sourceConfig);
                      }
                 }
+
                 if(powerState == (1<<WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) )
                 {
                     response["powerState"] = "LIGHT_SLEEP";
@@ -4611,6 +4612,7 @@ namespace WPEFramework {
                 {
                     response["powerState"] = "DEFAULT";
                 }
+
                 if(wakeupSrc.Length() > 0)
                 {
                     response["wakeupSources"] = wakeupSrc;

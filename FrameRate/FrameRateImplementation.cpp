@@ -71,8 +71,11 @@ namespace WPEFramework
         FrameRateImplementation::~FrameRateImplementation()
         {
             DeinitializeIARM();
-            // Connect the timer callback handle for triggering FrameRate notifications.
-            m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
+            //Stop the timer if running
+            if (m_reportFpsTimer.isActive())
+            {
+                m_reportFpsTimer.stop();
+            }
         }
 
         // IARM EventHandler

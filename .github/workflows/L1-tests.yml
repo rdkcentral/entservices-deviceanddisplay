@@ -486,6 +486,7 @@ jobs:
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DPLUGIN_SYSTEMSERVICES=ON
           &&
           cmake --build build/entservices-testframework -j8
           &&

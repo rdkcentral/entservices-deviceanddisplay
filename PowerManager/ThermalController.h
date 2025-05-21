@@ -196,7 +196,7 @@ public:
         return ThermalController(parent, std::move(impl));
     }
 
-    inline IPlatform& platform()
+    inline IPlatform& platform() const
     {
         ASSERT(_platform != nullptr);
         return *_platform;

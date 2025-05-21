@@ -177,6 +177,7 @@ private:
     // Thread id of polling thread
     std::thread *thermalThreadId = nullptr;
 
+    ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform);
 public:
     class INotification {
 
@@ -212,8 +213,6 @@ public:
 
 private:
     INotification& _parent;
-
-    ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform);
 
     void initializeThermalProtection();
     bool isThermalProtectionEnabled();

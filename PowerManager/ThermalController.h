@@ -57,6 +57,10 @@
 
 class ThermalController {
 
+    // delete copy constructor and assignment operator
+    ThermalController(const ThermalController&) = delete;
+    ThermalController& operator=(const ThermalController&) = delete;
+
 #ifndef MFR_TEMP_CLOCK_READ
 /* Temperature (in celcus) at which box will ALWAYS be rebooted */
 static constexpr int REBOOT_CRITICAL    = 120;
@@ -198,10 +202,10 @@ public:
         return *_platform;
     }
 
-    uint32_t GetThermalState(ThermalTemperature &curLevel, float &curTemperature);
-    uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical);
+    uint32_t GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const;
+    uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical) const;
     uint32_t SetTemperatureThresholds(float tempHigh,float tempCritical);
-    uint32_t GetOvertempGraceInterval(int &graceInterval);
+    uint32_t GetOvertempGraceInterval(int &graceInterval) const;
     uint32_t SetOvertempGraceInterval(int graceInterval);
 
     ~ThermalController();

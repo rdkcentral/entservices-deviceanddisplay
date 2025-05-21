@@ -44,7 +44,7 @@ ThermalController::~ThermalController()
     }
 }
 
-uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float &curTemperature)
+uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const
 {
     uint32_t retCode = WPEFramework::Core::ERROR_NONE;
 
@@ -56,7 +56,7 @@ uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float 
     return retCode;
 }
 
-uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &tempCritical)
+uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &tempCritical) const
 {
     uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
     int result = 0;
@@ -83,7 +83,7 @@ uint32_t ThermalController::SetTemperatureThresholds(float tempHigh,float tempCr
     return retCode;
 }
 
-uint32_t ThermalController::GetOvertempGraceInterval(int &graceInterval)
+uint32_t ThermalController::GetOvertempGraceInterval(int &graceInterval) const
 {
     uint32_t retCode = WPEFramework::Core::ERROR_NONE;
 

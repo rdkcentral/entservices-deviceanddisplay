@@ -57,10 +57,6 @@
 
 class ThermalController {
 
-    // delete copy constructor and assignment operator
-    ThermalController(const ThermalController&) = delete;
-    ThermalController& operator=(const ThermalController&) = delete;
-
 #ifndef MFR_TEMP_CLOCK_READ
 /* Temperature (in celcus) at which box will ALWAYS be rebooted */
 static constexpr int REBOOT_CRITICAL    = 120;

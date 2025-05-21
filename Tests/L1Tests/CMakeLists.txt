@@ -24,7 +24,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(${NAMESPACE}Plugins REQUIRED)
-find_package(GTest REQUIRED)
+#find_package(GTest REQUIRED)
 
 set (TEST_SRC
     tests/test_UtilsFile.cpp
@@ -146,12 +146,12 @@ if (RDK_SERVICES_L1_TEST)
    endif (TESTMOCKLIB_LIBRARIES)
 endif (RDK_SERVICES_L1_TEST)
 
-include(GoogleTest)
+#include(GoogleTest)
 include_directories(${TEST_INC})
 
 target_link_directories(${MODULE_NAME} PUBLIC ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib/wpeframework/plugins)
 
-target_link_libraries(${MODULE_NAME} gtest_main gmock gtest ${TEST_LIB})
+target_link_libraries(${MODULE_NAME} ${TEST_LIB})
 
 target_include_directories(${MODULE_NAME}
         PUBLIC

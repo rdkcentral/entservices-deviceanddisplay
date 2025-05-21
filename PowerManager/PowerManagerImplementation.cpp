@@ -360,7 +360,7 @@ namespace Plugin {
         LOGINFO("Entry");
         _adminLock.Lock();
 
-        uint32_t errorCode = _thermalController->GetTemperatureThresholds(high,critical);
+        uint32_t errorCode = _thermalController.GetTemperatureThresholds(high,critical);
 
         _adminLock.Unlock();
 
@@ -374,7 +374,7 @@ namespace Plugin {
         LOGINFO("Entry");
         _adminLock.Lock();
 
-        uint32_t errorCode = _thermalController->SetTemperatureThresholds(high,critical);
+        uint32_t errorCode = _thermalController.SetTemperatureThresholds(high,critical);
 
         _adminLock.Unlock();
         LOGINFO("Set temperature thresholds: high: %f, critical: %f, errorCode: %u", high, critical, errorCode);
@@ -387,7 +387,7 @@ namespace Plugin {
         LOGINFO("Entry");
         _adminLock.Lock();
 
-        uint32_t errorCode = _thermalController->GetOvertempGraceInterval(graceInterval);
+        uint32_t errorCode = _thermalController.GetOvertempGraceInterval(graceInterval);
 
         _adminLock.Unlock();
         LOGINFO("Got current overtemparature grace inetrval: %d", graceInterval);
@@ -400,7 +400,7 @@ namespace Plugin {
         LOGINFO("Entry");
         _adminLock.Lock();
 
-        uint32_t errorCode = _thermalController->SetOvertempGraceInterval(graceInterval);
+        uint32_t errorCode = _thermalController.SetOvertempGraceInterval(graceInterval);
 
         _adminLock.Unlock();
         LOGINFO("Set new overtemparature grace interval: %d, errorCode: %u", graceInterval, errorCode);
@@ -417,7 +417,7 @@ namespace Plugin {
 
         ThermalTemperature curLevel = THERMAL_TEMPERATURE_UNKNOWN, float curTemperature = 0;
 
-        errorCode = _thermalController->GetThermalState(curLevel,curTemperature);
+        errorCode = _thermalController.GetThermalState(curLevel,curTemperature);
         temperature = curTemperature;
         _adminLock.Unlock();
         LOGINFO("Current core temperature is : %f, errorCode: %u", temperature, errorCode);

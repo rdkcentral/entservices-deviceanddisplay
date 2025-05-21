@@ -373,7 +373,7 @@ void ThermalController::declockIfNeeded()
 }
 
 //Thread entry function to monitor thermal levels of the device.
-void ThermalController::_PollThermalLevels(void *)
+void ThermalController::_PollThermalLevels()
 {
     ThermalTemperature state;
     float current_Temp = 0;

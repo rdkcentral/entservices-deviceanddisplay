@@ -185,7 +185,7 @@ namespace Plugin {
         void dispatchNetworkStandbyModeChangedEvent(const bool& enabled);
 
         void submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId);
-        void powerModePreChangeCompletionHandler(const int keyCode, PowerState powerState);
+        void powerModePreChangeCompletionHandler(const int keyCode, PowerState currentState, PowerState powerState, const std::string& reason);
         Core::hresult setDevicePowerState(const int& keyCode, PowerState currentState, PowerState powerState, const std::string& reason);
 
         // DeepSleepController::INotification

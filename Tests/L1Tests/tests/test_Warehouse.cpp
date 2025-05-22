@@ -475,6 +475,7 @@ TEST_F(WarehouseInitializedTest, isClean)
     EXPECT_TRUE(Core::File(customDataFile).Exists());
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("isClean"), _T("{}"), response));
     EXPECT_EQ(response, _T("{\"clean\":false,\"files\":[\"\"],\"success\":false,\"error\":\"file \\/lib\\/rdk\\/wh_api_5.conf doesn't have any lines with paths\"}"));
+    std::remove("/opt/user_preferences.conf");
 
     // Invoke isClean - Create empty conf file
     fileConf.Write(customDataFileContent, sizeof(customDataFileContent));

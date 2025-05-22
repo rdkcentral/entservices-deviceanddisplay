@@ -132,12 +132,8 @@ static constexpr int DECLOCK_GRACE_INTERVAL = 60;
     using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
     using DefaultImpl = ThermalImpl;
 
-    // delete copy constructor and assignment operator
-    ThermalController(const ThermalController&) = delete;
-    ThermalController& operator=(const ThermalController&) = delete;
-
 private:
-    std::unique_ptr<IPlatform> _platform;
+    std::shared_ptr<IPlatform> _platform;
 
     bool _rebootZone = false;
 
@@ -188,7 +184,7 @@ public:
     };
 
 private:
-    ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform);
+    ThermalController (INotification& parent, std::shared_ptr<IPlatform> platform);
 
     inline IPlatform& platform() const
     {
@@ -217,7 +213,7 @@ public:
     static ThermalController Create(INotification& parent, Args&&... args)
     {
         static_assert(std::is_base_of<IPlatform, IMPL>::value, "Impl must derive from hal::Thermal::IPlatform");
-        auto impl = std::unique_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
+        auto impl = std::shared_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
         ASSERT(impl != nullptr);
         return ThermalController(parent, std::move(impl));
     }

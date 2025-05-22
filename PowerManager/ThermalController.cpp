@@ -23,7 +23,7 @@
 
 using DefaultImpl = ThermalImpl;
 
-ThermalController::ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform)
+ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
     ,_parent(parent)

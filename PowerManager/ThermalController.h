@@ -183,24 +183,6 @@ public:
             virtual void onDeepSlepForThermalChange() = 0;
     };
 
-public:
-    template <typename IMPL = DefaultImpl, typename... Args>
-    static ThermalController Create(INotification& parent, Args&&... args)
-    {
-        static_assert(std::is_base_of<IPlatform, IMPL>::value, "Impl must derive from hal::ThermalController::IPlatform");
-        auto impl = std::unique_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
-        ASSERT(impl != nullptr);
-        return ThermalController(parent, std::move(impl));
-    }
-
-    uint32_t GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const;
-    uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical) const;
-    uint32_t SetTemperatureThresholds(float tempHigh,float tempCritical);
-    uint32_t GetOvertempGraceInterval(int &graceInterval) const;
-    uint32_t SetOvertempGraceInterval(int graceInterval);
-
-    ~ThermalController();
-
 private:
     ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform);
 
@@ -225,5 +207,23 @@ private:
 
     //Thread entry function to monitor thermal levels of the device.
     void _PollThermalLevels();
+
+public:
+    template <typename IMPL = DefaultImpl, typename... Args>
+    static ThermalController Create(INotification& parent, Args&&... args)
+    {
+        static_assert(std::is_base_of<IPlatform, IMPL>::value, "Impl must derive from hal::ThermalController::IPlatform");
+        auto impl = std::unique_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
+        ASSERT(impl != nullptr);
+        return ThermalController(parent, std::move(impl));
+    }
+
+    uint32_t GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const;
+    uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical) const;
+    uint32_t SetTemperatureThresholds(float tempHigh,float tempCritical);
+    uint32_t GetOvertempGraceInterval(int &graceInterval) const;
+    uint32_t SetOvertempGraceInterval(int graceInterval);
+
+    ~ThermalController();
 
 };

@@ -173,7 +173,6 @@ private:
     // Thread id of polling thread
     std::thread *thermalThreadId = nullptr;
 
-    ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform);
 public:
     class INotification {
 
@@ -184,6 +183,7 @@ public:
             virtual void onDeepSlepForThermalChange() = 0;
     };
 
+public:
     template <typename IMPL = DefaultImpl, typename... Args>
     static ThermalController Create(INotification& parent, Args&&... args)
     {
@@ -191,12 +191,6 @@ public:
         auto impl = std::unique_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
         ASSERT(impl != nullptr);
         return ThermalController(parent, std::move(impl));
-    }
-
-    inline IPlatform& platform() const
-    {
-        ASSERT(_platform != nullptr);
-        return *_platform;
     }
 
     uint32_t GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const;
@@ -208,6 +202,14 @@ public:
     ~ThermalController();
 
 private:
+    ThermalController (INotification& parent, std::unique_ptr<IPlatform> platform);
+
+    inline IPlatform& platform() const
+    {
+        ASSERT(_platform != nullptr);
+        return *_platform;
+    }
+
     INotification& _parent;
 
     void initializeThermalProtection();

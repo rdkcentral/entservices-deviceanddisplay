@@ -1190,6 +1190,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_iscleanTest)
     //Clean the /lib/rdk/wh_api_5.conf file after the API call
     std::ofstream clear("/lib/rdk/wh_api_5.conf", std::ios::trunc);
     clear.close();
+    std::remove("/opt/user_preferences.conf");
 }
 
 /********************************************************

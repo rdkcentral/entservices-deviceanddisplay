@@ -1186,6 +1186,10 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_iscleanTest)
 
     fileConf.Destroy();
     filePref.Destroy();
+
+    //Clean the /lib/rdk/wh_api_5.conf file after the API call
+    std::ofstream clear("/lib/rdk/wh_api_5.conf", std::ios::trunc);
+    clear.close();
 }
 
 /********************************************************
@@ -1288,6 +1292,10 @@ TEST_F(Warehouse_L2Test, Write_To_DeviceProperties)
     TEST_LOG("error: %s",error.c_str());
     EXPECT_EQ(Core::ERROR_NONE, status);
     EXPECT_TRUE(success);
+
+    //Clean the file after the API call
+    std::ofstream clear("/lib/rdk/wh_api_5.conf", std::ios::trunc);
+    clear.close();
 }
 
 /********************************************************

@@ -6,12 +6,12 @@ on:
       - 'feature/*'
 
 jobs:
-  Trigger-testframework-L1-tests:
+  dispatch:
     runs-on: ubuntu-22.04
     steps:
       - name: Trigger L1-tests in testframework repo
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.RDKCM_RDKE }}    # or another PAT with access
-          repository: rdkcentral/entservices-testframework       # your actual repo here
+          token: ${{ secrets.RDKCM_RDKE }}  # MUST be a real PAT, not GITHUB_TOKEN
+          repository: rdkcentral/entservices-testframework
           event-type: run-l1-tests

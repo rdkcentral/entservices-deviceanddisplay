@@ -31,7 +31,6 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 find_library(POWER_HAL_LIB NAMES iarmmgrs-power-hal)
 find_library(DEEPSLEEP_HAL_LIB NAMES iarmmgrs-deepsleep-hal)
-find_package(RFC REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
     PowerManager.cpp
@@ -148,9 +147,9 @@ else (DS_FOUND)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 endif(DS_FOUND)
 
-if (RFC_FOUND)
-  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_LIBRARIES})
-  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_INCLUDE_DIRS})
+find_library(RFC rfcapi)
+if (RFC)
+  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC})
 endif()
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}

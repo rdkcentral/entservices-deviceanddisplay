@@ -30,16 +30,11 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 find_package(PowerHal REQUIRED)
 find_package(DeepSleepHal REQUIRED)
+find_package(RFC REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
     PowerManager.cpp
     Module.cpp)
-
-# target_include_directories(${MODULE_NAME}
-#   PRIVATE
-#     ${CMAKE_CURRENT_LIST_DIR}
-#     ${CMAKE_CURRENT_LIST_DIR}/../helpers
-# )
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
@@ -67,12 +62,6 @@ include_directories(
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/../helpers
 )
-
-# target_include_directories(${PLUGIN_IMPLEMENTATION}
-#   PRIVATE
-#     ${CMAKE_CURRENT_LIST_DIR}
-#     ${CMAKE_CURRENT_LIST_DIR}/../helpers
-# )
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
         CXX_STANDARD 11
@@ -114,6 +103,11 @@ target_link_libraries(${PLUGIN_IMPLEMENTATION}
     ${POWER_HAL_LIBRARIES}
     ${DEEPSLEEP_HAL_LIBRARIES}
 )
+
+if (RFC_FOUND)
+  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_LIBRARIES})
+  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_INCLUDE_DIRS})
+endif()
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE

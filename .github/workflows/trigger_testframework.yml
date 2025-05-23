@@ -1,0 +1,18 @@
+name: Trigger testframework L1-tests
+
+on:
+  push:
+    branches: [ main, develop, 'sprint/**', 'release/**', feature/* ]
+  pull_request:
+    branches: [ main, develop, 'sprint/**', 'release/**' ]
+
+jobs:
+  Trigger-testframework-L1-tests:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Trigger L1-tests in testframework repo
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.RDKCM_RDKE }}    # or another PAT with access
+          repository: rdkcentral/entservices-testframework       # your actual repo here
+          event-type: run-l1-tests

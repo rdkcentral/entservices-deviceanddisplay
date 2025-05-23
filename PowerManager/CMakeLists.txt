@@ -31,7 +31,7 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 find_library(POWER_HAL_LIB NAMES iarmmgrs-power-hal)
 find_library(DEEPSLEEP_HAL_LIB NAMES iarmmgrs-deepsleep-hal)
-find_package(RFC)
+find_package(RFC REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
     PowerManager.cpp
@@ -59,7 +59,6 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     PowerController.cpp
     RebootController.cpp
     ThermalController.cpp
-    secure_wrapper.c # TODO: for stubs, remove L1
 )
 
 include_directories(
@@ -144,11 +143,15 @@ if (DS_FOUND)
     add_definitions(-DDS_FOUND)
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_INCLUDE_DIRS})
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${DS_LIBRARIES} ${RFC_LIBRARIES} ${POWER_HAL_LIB} ${DEEPSLEEP_HAL_LIB})
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${DS_LIBRARIES} ${POWER_HAL_LIB} ${DEEPSLEEP_HAL_LIB})
 else (DS_FOUND)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 endif(DS_FOUND)
+
+if (RFC_FOUND)
+  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_LIBRARIES})
+  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_INCLUDE_DIRS})
+endif()
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE

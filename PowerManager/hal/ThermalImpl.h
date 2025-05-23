@@ -42,34 +42,34 @@ class ThermalImpl : public hal::Thermal::IPlatform {
     ThermalImpl& operator=(const ThermalImpl&) = delete;
 
 public:
-    ThermalImpl = default;
-    ~ThermalImpl = default;
+    ThermalImpl() = default;
+    ~ThermalImpl() = default;
 
-    ThermalTemperature conv(IARM_Bus_PWRMgr_ThermalState_t state) const
+    ThermalTemperature conv(PWRMgr_ThermalState_t state) const
     {
         switch (state) {
-        case IARM_BUS_PWRMGR_TEMPERATURE_NORMAL:
+        case PWRMGR_TEMPERATURE_NORMAL:
             return ThermalTemperature::THERMAL_TEMPERATURE_NORMAL;
-        case IARM_BUS_PWRMGR_TEMPERATURE_HIGH:
+        case PWRMGR_TEMPERATURE_HIGH:
             return ThermalTemperature::THERMAL_TEMPERATURE_HIGH;
-        case IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL:
+        case PWRMGR_TEMPERATURE_CRITICAL:
             return ThermalTemperature::THERMAL_TEMPERATURE_CRITICAL;
         default:
             return ThermalTemperature::THERMAL_TEMPERATURE_UNKNOWN;
         }
     }
 
-    IARM_Bus_PWRMgr_ThermalState_t conv(ThermalTemperature state) const
+    PWRMgr_ThermalState_t conv(ThermalTemperature state) const
     {
         switch (state) {
         case ThermalTemperature::THERMAL_TEMPERATURE_NORMAL:
-            return IARM_BUS_PWRMGR_TEMPERATURE_NORMAL;
+            return PWRMGR_TEMPERATURE_NORMAL;
         case ThermalTemperature::THERMAL_TEMPERATURE_HIGH:
-            return IARM_BUS_PWRMGR_TEMPERATURE_HIGH;
+            return PWRMGR_TEMPERATURE_HIGH;
         case ThermalTemperature::THERMAL_TEMPERATURE_CRITICAL:
-            return IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL;
+            return PWRMGR_TEMPERATURE_CRITICAL;
         default:
-            return IARM_BUS_PWRMGR_TEMPERATURE_NORMAL;
+            return PWRMGR_TEMPERATURE_NORMAL;
         }
     }
 
@@ -103,7 +103,7 @@ public:
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
-        if(0 >= fscanf(fp, "%u", speed)) {
+        if(0 >= fscanf(fp, "%u", &speed)) {
             LOGERR("Unable to get the speed");
         }
         fclose(fp);  //CID:103784 - checked return
@@ -137,7 +137,7 @@ public:
         fprintf(fp, "%u", speed);
         fclose(fp);
 
-        if (GetClockSpeed(&cur_speed) != WPEFramework::Core::ERROR_NONE ) {
+        if (GetClockSpeed(cur_speed) != WPEFramework::Core::ERROR_NONE ) {
             LOGERR("Failed to read current CPU speed");
             return WPEFramework::Core::ERROR_NONE;
         }
@@ -174,7 +174,7 @@ public:
         }
 
         /* Ensure frequencies are sorted */
-        qsort( (void*)freqList, numFreqs, sizeof(freqList[0]), uint32_compare );
+        qsort( (void*)freqList.data(), numFreqs, sizeof(freqList[0]), uint32_compare );
         LOGERR("Scaling Frequency List:");
         for(i=0; i < numFreqs; i++) LOGINFO ("    %uhz", freqList[i]);
 
@@ -206,7 +206,7 @@ public:
        This helps test functionallity without actually haveing to heat up the box */
     {
         FILE *fp;
-        state = (mfrTemperatureState_t)IARM_BUS_PWRMGR_TEMPERATURE_NORMAL;
+        state = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;
         temperatureValue=50.0;
         wifiTempValue=50.0;
         result = mfrERR_NONE;

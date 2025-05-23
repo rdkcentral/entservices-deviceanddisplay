@@ -1,4 +1,3 @@
-
 /**
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
@@ -34,6 +33,7 @@
 #include "ThunderPortability.h"
 #include "WorkerPoolImplementation.h"
 #include "COMLinkMock.h"
+#include <fstream>
 
 using namespace WPEFramework;
 
@@ -465,11 +465,7 @@ TEST_F(WarehouseInitializedTest, isClean)
     const uint8_t customDataFileContent[] = "[files]\n/opt/user_preferences.conf\n";
 
     //Verify user_preferences.conf doesn't exist
-    if (std::remove("/opt/user_preferences.conf") != 0) {
-        perror("Failed to delete config file");
-    } else {
-        printf("Config file deleted successfully.\n");
-    }
+    EXPECT_TRUE(std::ifstream("/opt/user_preferences.conf").good() ? std::remove("/opt/user_preferences.conf") == 0 : true);
     
     // Invoke isClean - No conf file
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("isClean"), _T("{}"), response));

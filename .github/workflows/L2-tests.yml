@@ -142,7 +142,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: ${{env.INTERFACES_REF}}
+          ref: RDKEMW-2653_ISystemMode_V1
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
       - name: Apply patches entservices-apis
@@ -344,7 +344,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
+          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
           -DPLUGIN_DISPLAYSETTINGS=ON
           -DPLUGIN_WAREHOUSE=OFF
           -DUSE_THUNDER_R4=ON
@@ -423,7 +423,7 @@ jobs:
           -DPLUGIN_SYSTEMSERVICES=OFF
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DISPLAYSETTINGS=ON
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
+          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
           -DPLUGIN_WAREHOUSE=OFF
           -DPLUGIN_AVINPUT=OFF
           -DPLUGIN_AVOUTPUT=OFF

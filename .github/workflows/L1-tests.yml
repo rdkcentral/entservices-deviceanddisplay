@@ -18,6 +18,7 @@ jobs:
   L1-tests:
     name: Build and run unit tests
     runs-on: ubuntu-22.04
+    if: github.event_name == 'push' || github.event_name == 'repository_dispatch'
     strategy:
       matrix:
         compiler: [ gcc, clang ]

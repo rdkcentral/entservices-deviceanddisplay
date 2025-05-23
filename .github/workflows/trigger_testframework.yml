@@ -3,7 +3,7 @@ name: Trigger testframework L1-tests
 on:
   push:
     branches:
-      - feature/*'
+      - 'feature/*'
 
 jobs:
   Trigger-testframework-L1-tests:

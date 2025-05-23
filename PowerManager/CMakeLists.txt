@@ -35,6 +35,12 @@ add_library(${MODULE_NAME} SHARED
     PowerManager.cpp
     Module.cpp)
 
+# target_include_directories(${MODULE_NAME}
+#   PRIVATE
+#     ${CMAKE_CURRENT_LIST_DIR}
+#     ${CMAKE_CURRENT_LIST_DIR}/../helpers
+# )
+
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
@@ -54,13 +60,19 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     PowerUtils.cpp
     DeepSleepController.cpp
     PowerController.cpp
-    RebootController.cpp)
-
-target_include_directories(${PLUGIN_IMPLEMENTATION}
-  PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
-    ../helpers
+    RebootController.cpp
 )
+
+include_directories(
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/../helpers
+)
+
+# target_include_directories(${PLUGIN_IMPLEMENTATION}
+#   PRIVATE
+#     ${CMAKE_CURRENT_LIST_DIR}
+#     ${CMAKE_CURRENT_LIST_DIR}/../helpers
+# )
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
         CXX_STANDARD 11

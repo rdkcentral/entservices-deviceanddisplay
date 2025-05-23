@@ -111,9 +111,9 @@ private:
 
 private:
     const std::string m_settingsFile = "/opt/uimgr_settings.bin";
+    std::unique_ptr<IPlatform> _platform;
     PowerState _powerStateBeforeReboot;
     PowerState _lastKnownPowerState;
-    std::unique_ptr<IPlatform> _platform;
     Settings _settings;
     DeepSleepWakeupSettings _deepSleepWakeupSettings;
     WPEFramework::Core::IWorkerPool& _workerPool;

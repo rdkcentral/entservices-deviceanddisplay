@@ -464,6 +464,13 @@ TEST_F(WarehouseInitializedTest, isClean)
     const string customDataFile = _T("/lib/rdk/wh_api_5.conf");
     const uint8_t customDataFileContent[] = "[files]\n/opt/user_preferences.conf\n";
 
+    //Verify user_preferences.conf doesn't exist
+    if (std::remove("/opt/user_preferences.conf") != 0) {
+        perror("Failed to delete config file");
+    } else {
+        printf("Config file deleted successfully.\n");
+    }
+    
     // Invoke isClean - No conf file
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("isClean"), _T("{}"), response));
     EXPECT_EQ(response, _T("{\"clean\":false,\"files\":[\"\"],\"success\":false,\"error\":\"Can't open file \\/lib\\/rdk\\/wh_api_5.conf\"}"));
@@ -475,7 +482,6 @@ TEST_F(WarehouseInitializedTest, isClean)
     EXPECT_TRUE(Core::File(customDataFile).Exists());
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("isClean"), _T("{}"), response));
     EXPECT_EQ(response, _T("{\"clean\":false,\"files\":[\"\"],\"success\":false,\"error\":\"file \\/lib\\/rdk\\/wh_api_5.conf doesn't have any lines with paths\"}"));
-    std::remove("/opt/user_preferences.conf");
 
     // Invoke isClean - Create empty conf file
     fileConf.Write(customDataFileContent, sizeof(customDataFileContent));

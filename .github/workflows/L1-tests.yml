@@ -3,7 +3,7 @@ name: L1-tests
 on:
   push:
     branches:
-      - feature/*
+      - feature/*'
   repository_dispatch:
     types: [run-l1-tests]
 

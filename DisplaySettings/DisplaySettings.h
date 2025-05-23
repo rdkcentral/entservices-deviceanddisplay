@@ -234,7 +234,7 @@ namespace WPEFramework {
 	    INTERFACE_ENTRY(Exchange::IDeviceOptimizeStateActivator)
             END_INTERFACE_MAP
 
-	    void Request(const string& newState);
+	    Core::hresult Request(const string& newState);
 
         private:
             void InitializeIARM();

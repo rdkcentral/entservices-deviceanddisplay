@@ -6074,7 +6074,7 @@ void DisplaySettings::sendMsgThread()
 
 	    return mode;
         }
-   void DisplaySettings::Request(const string& newState)
+    Core::hresult DisplaySettings::Request(const string& newState)
 	{
 		vector<string> connectedDisplays;
 		getConnectedVideoDisplaysHelper(connectedDisplays);
@@ -6102,7 +6102,9 @@ void DisplaySettings::sendMsgThread()
 		if( 0 == (int)connectedDisplays.size())
 		{
 			LOGWARN("No display connected to device (or)device's powerstate is not ON");
+            return Core::ERROR_GENERAL;
 		}
+        return Core::ERROR_NONE;
 	}
     } // namespace Plugin
 } // namespace WPEFramework

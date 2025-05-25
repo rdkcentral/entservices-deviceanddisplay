@@ -3460,7 +3460,18 @@ namespace WPEFramework {
             bool resp = false;
             float temperature;
 #ifdef ENABLE_THERMAL_PROTECTION
-            resp = CThermalMonitor::instance()->getCoreTemperature(temperature);
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+
+            ASSERT (_powerManagerPlugin);
+            if (_powerManagerPlugin){
+                retStatus = _powerManagerPlugin->GetThermalState(&temperature);
+            }
+            if (Core::ERROR_NONE == retStatus) {
+                LOGWARN("Current core temperature is : %f ",temperature);
+                resp = true;
+            } else {
+                LOGWARN("[%s] PWRMGR GetThermalState Call failed.", __FUNCTION__);
+            }
             LOGWARN("core temperature is %.1f degrees centigrade\n",
                     temperature);
 #else
@@ -3598,8 +3609,30 @@ namespace WPEFramework {
         {
             JsonObject value;
             float high = 0.0, critical = 0.0, temperature = 0.0;
-            bool resp1 = CThermalMonitor::instance()->getCoreTempThresholds(high, critical);
-            bool resp2 = CThermalMonitor::instance()->getCoreTemperature(temperature);
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+            Core::hresult retStatusTemp = Core::ERROR_GENERAL;
+
+
+            ASSERT (nullptr != _powerManagerPlugin);
+            if (nullptr != _powerManagerPlugin){
+                retStatus = _powerManagerPlugin->GetTemperatureThresholds(high, critical);
+                retStatusTemp = _powerManagerPlugin->GetThermalState(temperature);
+            }
+
+            if (Core::ERROR_NONE == retStatus) {
+                LOGWARN("Got current temperature thresholds: high: %f, critical: %f ", high, critical);
+                resp1 = true;
+            } else {
+                high = critical = 0;
+                LOGWARN("[%s] PwrMgr Call GetTemperatureThresholds and GetThermalState failed.", __FUNCTION__);
+            }
+
+            if (Core::ERROR_NONE == retStatusTemp) {
+                LOGWARN("GetThermalState Got current temperature %f", temperature);
+                resp2 = true;
+            } else {
+                LOGWARN("[%s] PwrMgr Call GetThermalState failed.", __FUNCTION__);
+            }
             LOGWARN("Got current temperature thresholds: WARN: %f, MAX: %f, ret[resp1 = %d resp = %d]\n",
                     high, critical, resp1, resp2);
             if (resp1) {
@@ -3627,7 +3660,9 @@ namespace WPEFramework {
             JsonObject args;
             float high = 0.0;
             float critical = 0.0;
-	    bool resp = false;
+            bool resp = false;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+
 	    if (parameters.HasLabel("thresholds")) {
 		    args.FromString(parameters["thresholds"].String());
 		    string warn = args["WARN"].String();
@@ -3636,13 +3671,23 @@ namespace WPEFramework {
 		    high = atof(warn.c_str());
 		    critical = atof(max.c_str());
 
-		    resp =  CThermalMonitor::instance()->setCoreTempThresholds(high, critical);
-		    LOGWARN("Set temperature thresholds: WARN: %f, MAX: %f\n", high, critical);
+		    ASSERT (nullptr != _powerManagerPlugin);
+		    if (nullptr != _powerManagerPlugin){
+		        retStatus = _powerManagerPlugin->SetTemperatureThresholds(high, critical);
+		    }
+
+		    if (Core::ERROR_NONE == retStatus) {
+		        resp = true;
+		    } else {
+		        LOGWARN("[%s] PwrMgr Call SetTemperatureThresholds failed.", __FUNCTION__);
+		    }
+		    LOGWARN("Set temperature thresholds: WARN: %f, MAX: %f resp: %d\n", high, critical,resp);
 	    } else {
 		    populateResponseWithError(SysSrv_MissingKeyValues, response);
 	    }
             returnResponse(resp);
         }
+
 
 	/***
          * @brief : To retrieve Overtemparature grace interval value.
@@ -3654,7 +3699,21 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             int graceInterval = 0;
-            bool resp = CThermalMonitor::instance()->getOvertempGraceInterval(graceInterval);
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+            bool resp=false;
+
+            ASSERT (nullptr != _powerManagerPlugin);
+            if (nullptr != _powerManagerPlugin){
+                retStatus = _powerManagerPlugin->GetOvertempGraceInterval(&graceInterval);
+            }
+
+            if (Core::ERROR_NONE == retStatus) {
+                LOGWARN("Got current overtemparature grace inetrval: %d", graceInterval);
+                resp = true;
+            } else {
+                graceInterval = 0;
+                LOGWARN("[%s] PwrMgr GetOvertempGraceInterval Call failed.", __FUNCTION__);
+            }
             LOGWARN("Got current grace interval: %d ret[resp = %d]\n",
                     graceInterval, resp);
             if (resp) {
@@ -3674,18 +3733,30 @@ namespace WPEFramework {
         {
             int graceInterval  = 0;
             bool resp = false;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             if (parameters.HasLabel("graceInterval")) {
                     string grace = parameters["graceInterval"].String();
 
                     graceInterval = atoi(grace.c_str());
 
-                    resp =  CThermalMonitor::instance()->setOvertempGraceInterval(graceInterval);
+                    ASSERT (nullptr != _powerManagerPlugin);
+                    if (nullptr != _powerManagerPlugin){
+                        retStatus = _powerManagerPlugin->SetOvertempGraceInterval(graceInterval);
+                    }
+
+                    if (Core::ERROR_NONE == retStatus) {
+                        LOGWARN("Set new overtemparature grace interval: %d", graceInterval);
+                        resp = true;
+                    } else {
+                        LOGWARN("[%s] PwrMgr SetOvertempGraceInterval Call failed", __FUNCTION__);
+                    }
                     LOGWARN("Set Grace Interval : %d\n", graceInterval);
             } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
             }
             returnResponse(resp);
         }
+
 #endif /* ENABLE_THERMAL_PROTECTION */
 
         /***

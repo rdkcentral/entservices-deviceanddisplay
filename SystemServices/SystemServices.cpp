@@ -3464,7 +3464,7 @@ namespace WPEFramework {
 
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetThermalState(&temperature);
+                retStatus = _powerManagerPlugin->GetThermalState(temperature);
             }
             if (Core::ERROR_NONE == retStatus) {
                 LOGWARN("Current core temperature is : %f ",temperature);
@@ -3611,7 +3611,8 @@ namespace WPEFramework {
             float high = 0.0, critical = 0.0, temperature = 0.0;
             Core::hresult retStatus = Core::ERROR_GENERAL;
             Core::hresult retStatusTemp = Core::ERROR_GENERAL;
-
+            bool resp1 = false;
+            bool resp2 = false;
 
             ASSERT (nullptr != _powerManagerPlugin);
             if (nullptr != _powerManagerPlugin){
@@ -3704,7 +3705,7 @@ namespace WPEFramework {
 
             ASSERT (nullptr != _powerManagerPlugin);
             if (nullptr != _powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetOvertempGraceInterval(&graceInterval);
+                retStatus = _powerManagerPlugin->GetOvertempGraceInterval(graceInterval);
             }
 
             if (Core::ERROR_NONE == retStatus) {

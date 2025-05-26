@@ -14,4 +14,4 @@ jobs:
           curl -X POST https://api.github.com/repos/rdkcentral/entservices-testframework/dispatches \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: token ${{ secrets.RDKCM_RDKE }}" \
-            -d '{"event_type": "run-l1-tests"}'
+            -d '{"event_type": "run-l1-tests", "client_payload": { "branch": "feature/L1-workflow" }}'

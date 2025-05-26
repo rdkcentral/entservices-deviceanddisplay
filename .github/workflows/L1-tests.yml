@@ -5,7 +5,7 @@ on:
     branches:
       - 'feature/**'
   repository_dispatch:
-    types: [run-l1-tests-1]
+    types: [run-l1-tests]
 
 env:
   BUILD_TYPE: Debug

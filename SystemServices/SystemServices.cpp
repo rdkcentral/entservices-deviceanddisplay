@@ -3458,7 +3458,7 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             bool resp = false;
-            float temperature;
+            float temperature = 0.0;
 #ifdef ENABLE_THERMAL_PROTECTION
             Core::hresult retStatus = Core::ERROR_GENERAL;
 

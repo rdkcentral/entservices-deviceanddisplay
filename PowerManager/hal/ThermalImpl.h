@@ -184,7 +184,7 @@ public:
         }
 
         /* Ensure frequencies are sorted */
-        qsort( (void*)freqList.data(), numFreqs, sizeof(freqList[0]), uint32_compare );
+        qsort( (void*)freqList.data(), numFreqs, sizeof(freqList[0]), ThermalImpl::uint32_compare );
         LOGERR("Scaling Frequency List:");
         for(i=0; i < numFreqs; i++) LOGINFO ("    %uhz", freqList[i]);
 

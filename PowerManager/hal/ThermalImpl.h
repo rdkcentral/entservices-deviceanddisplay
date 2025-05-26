@@ -45,6 +45,16 @@ public:
     ThermalImpl() = default;
     ~ThermalImpl() = default;
 
+    static int uint32_compare( const void* a, const void* b)
+    {
+        const uint32_t l = * ((const uint32_t*) a);
+        const uint32_t r = * ((const uint32_t*) b);
+
+        if ( l == r ) return 0;
+        else if ( l < r ) return -1;
+        else return 1;
+    }
+
     ThermalTemperature conv(PWRMgr_ThermalState_t state) const
     {
         switch (state) {

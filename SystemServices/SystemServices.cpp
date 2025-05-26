@@ -3614,8 +3614,8 @@ namespace WPEFramework {
             bool resp1 = false;
             bool resp2 = false;
 
-            ASSERT (nullptr != _powerManagerPlugin);
-            if (nullptr != _powerManagerPlugin){
+            ASSERT (_powerManagerPlugin);
+            if (_powerManagerPlugin){
                 retStatus = _powerManagerPlugin->GetTemperatureThresholds(high, critical);
                 retStatusTemp = _powerManagerPlugin->GetThermalState(temperature);
             }
@@ -3672,8 +3672,8 @@ namespace WPEFramework {
 		    high = atof(warn.c_str());
 		    critical = atof(max.c_str());
 
-		    ASSERT (nullptr != _powerManagerPlugin);
-		    if (nullptr != _powerManagerPlugin){
+		    ASSERT (_powerManagerPlugin);
+		    if (_powerManagerPlugin){
 		        retStatus = _powerManagerPlugin->SetTemperatureThresholds(high, critical);
 		    }
 
@@ -3703,8 +3703,8 @@ namespace WPEFramework {
             Core::hresult retStatus = Core::ERROR_GENERAL;
             bool resp=false;
 
-            ASSERT (nullptr != _powerManagerPlugin);
-            if (nullptr != _powerManagerPlugin){
+            ASSERT (_powerManagerPlugin);
+            if (_powerManagerPlugin){
                 retStatus = _powerManagerPlugin->GetOvertempGraceInterval(graceInterval);
             }
 
@@ -3740,8 +3740,8 @@ namespace WPEFramework {
 
                     graceInterval = atoi(grace.c_str());
 
-                    ASSERT (nullptr != _powerManagerPlugin);
-                    if (nullptr != _powerManagerPlugin){
+                    ASSERT (_powerManagerPlugin);
+                    if (_powerManagerPlugin){
                         retStatus = _powerManagerPlugin->SetOvertempGraceInterval(graceInterval);
                     }
 

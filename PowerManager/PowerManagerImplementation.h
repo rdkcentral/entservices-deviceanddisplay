@@ -39,6 +39,7 @@
 // controllers
 #include "DeepSleepController.h"
 #include "PowerController.h"
+#include "ThermalController.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
@@ -46,7 +47,7 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 
 namespace WPEFramework {
 namespace Plugin {
-    class PowerManagerImplementation : public Exchange::IPowerManager, public DeepSleepController::INotification {
+    class PowerManagerImplementation : public Exchange::IPowerManager, public DeepSleepController::INotification, public ThermalController::INotification {
     public:
         using PreModeChangeController = AckController;
         using PreModeChangeTimer = AckTimer<PreModeChangeController>;
@@ -183,6 +184,8 @@ namespace Plugin {
         virtual void onDeepSleepTimerWakeup(const int wakeupTimeout) override;
         virtual void onDeepSleepUserWakeup(const bool userWakeup) override;
         virtual void onDeepSleepFailed() override;
+        virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) override;
+        virtual void onDeepSlepForThermalChange() override;
 
         template <typename T>
         uint32_t Register(std::list<T*>& list, T* notification);
@@ -194,6 +197,7 @@ namespace Plugin {
         // maintain this last
         DeepSleepController _deepSleepController;
         PowerController _powerController;
+        ThermalController _thermalController;
 
         friend class Job;
     };

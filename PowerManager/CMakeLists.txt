@@ -57,6 +57,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     PowerController.cpp
     RebootController.cpp
     Settings.cpp
+    ThermalController.cpp
 )
 
 include_directories(

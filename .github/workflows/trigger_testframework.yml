@@ -1,0 +1,11 @@
+name: testframework trigger
+on:
+  push:
+    branches: [ main, 'sprint/**', 'release/**', feature/workflow_trigger, develop ]
+  pull_request:
+    branches: [ main, 'sprint/**', 'release/**' ]
+jobs:
+  trigger-verification:
+    uses: rdkcentral/entservices-testframework/.github/workflows/L1-tests.yml@feature/workflow_trigger
+    secrets:
+      RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}

@@ -6,5 +6,4 @@ on:
     branches: [ main, 'sprint/**', 'release/**' ]
 jobs:
   trigger-verification:
-    uses: rdkcentral/entservices-infra/.github/workflows/L1-tests.yml@develop
-
+    uses: rdkcentral/entservices-infra/.github/workflows/L1-tests.yml@workflow_trigger

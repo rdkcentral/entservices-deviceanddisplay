@@ -2,8 +2,7 @@ name: Trigger testframework L1-tests
 
 on:
   push:
-    branches:
-      - 'feature/**'
+    branches: [ main, develop, 'sprint/**', 'release/**', 'feature/**' ]
 
 jobs:
   dispatch:

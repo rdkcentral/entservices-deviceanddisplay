@@ -2,8 +2,9 @@ name: L1-tests
 
 on:
   push:
-    branches:
-      - 'feature/**'
+    branches: [ main, develop, 'sprint/**', 'release/**', 'feature/**' ]
+  pull_request:
+    branches: [ main, develop, 'sprint/**', 'release/**' ]
   repository_dispatch:
     types: [run-l1-tests]
 

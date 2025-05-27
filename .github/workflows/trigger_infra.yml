@@ -1,0 +1,10 @@
+name: trigger infra L1
+on:
+  push:
+    branches: [ main, 'sprint/**', 'release/**', workflow_trigger, develop ]
+  pull_request:
+    branches: [ main, 'sprint/**', 'release/**' ]
+jobs:
+  trigger-verification:
+    uses: rdkcentral/entservices-infra/.github/workflows/L1-tests.yml@develop
+

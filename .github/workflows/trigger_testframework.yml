@@ -8,9 +8,9 @@ jobs:
   dispatch:
     runs-on: ubuntu-22.04
     steps:
-      - name: Trigger L1-tests in testframework repo using curl
-        run: |
-          curl -X POST https://api.github.com/repos/rdkcentral/entservices-testframework/dispatches \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: token ${{ secrets.RDKCM_RDKE }}" \
-            -d '{"event_type": "run-l1-tests", "client_payload": { "branch": "feature/L1-workflow" }}'
+      - name: Trigger L1-tests in testframework repo
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.RDKCM_RDKE }}
+          repository: rdkcentral/entservices-testframework
+          event-type: run-l1-tests

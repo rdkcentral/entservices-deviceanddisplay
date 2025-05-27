@@ -1,7 +1,7 @@
 name: testframework trigger
 on:
   push:
-    branches: [ main, 'sprint/**', 'release/**', feature/workflow_trigger, develop ]
+    branches: [ main, 'sprint/**', 'release/**', 'feature/**', develop ]
   pull_request:
     branches: [ main, 'sprint/**', 'release/**' ]
 jobs:

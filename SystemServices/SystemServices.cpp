@@ -1,21 +1,21 @@
-/**
-* If not stated otherwise in this file or this component's LICENSE
-* file the following copyright and licenses apply:
-*
-* Copyright 2025 RDK Management
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-**/
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2025 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <stdlib.h>
 #include <errno.h>
@@ -3467,12 +3467,12 @@ namespace WPEFramework {
                 retStatus = _powerManagerPlugin->GetThermalState(temperature);
             }
             if (Core::ERROR_NONE == retStatus) {
-                LOGWARN("Current core temperature is : %f ",temperature);
+                LOGINFO("Current core temperature is : %f ",temperature);
                 resp = true;
             } else {
                 LOGWARN("[%s] PWRMGR GetThermalState Call failed.", __FUNCTION__);
             }
-            LOGWARN("core temperature is %.1f degrees centigrade\n",
+            LOGINFO("core temperature is %.1f degrees centigrade\n",
                     temperature);
 #else
             temperature = -1;
@@ -3610,31 +3610,30 @@ namespace WPEFramework {
             JsonObject value;
             float high = 0.0, critical = 0.0, temperature = 0.0;
             Core::hresult retStatus = Core::ERROR_GENERAL;
-            Core::hresult retStatusTemp = Core::ERROR_GENERAL;
             bool resp1 = false;
             bool resp2 = false;
 
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){
                 retStatus = _powerManagerPlugin->GetTemperatureThresholds(high, critical);
-                retStatusTemp = _powerManagerPlugin->GetThermalState(temperature);
             }
 
             if (Core::ERROR_NONE == retStatus) {
-                LOGWARN("Got current temperature thresholds: high: %f, critical: %f ", high, critical);
+                LOGINFO("Got current temperature thresholds: high: %f, critical: %f ", high, critical);
                 resp1 = true;
+                retStatus = _powerManagerPlugin->GetThermalState(temperature);
             } else {
                 high = critical = 0;
-                LOGWARN("[%s] PwrMgr Call GetTemperatureThresholds and GetThermalState failed.", __FUNCTION__);
+                LOGWARN("[%s] PwrMgr Call GetTemperatureThresholds failed.", __FUNCTION__);
             }
 
-            if (Core::ERROR_NONE == retStatusTemp) {
-                LOGWARN("GetThermalState Got current temperature %f", temperature);
+            if (Core::ERROR_NONE == retStatus) {
+                LOGINFO("GetThermalState Got current temperature %f", temperature);
                 resp2 = true;
             } else {
                 LOGWARN("[%s] PwrMgr Call GetThermalState failed.", __FUNCTION__);
             }
-            LOGWARN("Got current temperature thresholds: WARN: %f, MAX: %f, ret[resp1 = %d resp = %d]\n",
+            LOGINFO("Got current temperature thresholds: WARN: %f, MAX: %f, ret[resp1 = %d resp = %d]\n",
                     high, critical, resp1, resp2);
             if (resp1) {
                 value["WARN"] = to_string(high);
@@ -3682,7 +3681,7 @@ namespace WPEFramework {
 		    } else {
 		        LOGWARN("[%s] PwrMgr Call SetTemperatureThresholds failed.", __FUNCTION__);
 		    }
-		    LOGWARN("Set temperature thresholds: WARN: %f, MAX: %f resp: %d\n", high, critical,resp);
+		    LOGINFO("Set temperature thresholds: WARN: %f, MAX: %f resp: %d\n", high, critical,resp);
 	    } else {
 		    populateResponseWithError(SysSrv_MissingKeyValues, response);
 	    }
@@ -3709,13 +3708,13 @@ namespace WPEFramework {
             }
 
             if (Core::ERROR_NONE == retStatus) {
-                LOGWARN("Got current overtemparature grace inetrval: %d", graceInterval);
+                LOGINFO("Got current overtemparature grace inetrval: %d", graceInterval);
                 resp = true;
             } else {
                 graceInterval = 0;
                 LOGWARN("[%s] PwrMgr GetOvertempGraceInterval Call failed.", __FUNCTION__);
             }
-            LOGWARN("Got current grace interval: %d ret[resp = %d]\n",
+            LOGINFO("Got current grace interval: %d ret[resp = %d]\n",
                     graceInterval, resp);
             if (resp) {
                 response["graceInterval"] = to_string(graceInterval);
@@ -3746,12 +3745,12 @@ namespace WPEFramework {
                     }
 
                     if (Core::ERROR_NONE == retStatus) {
-                        LOGWARN("Set new overtemparature grace interval: %d", graceInterval);
+                        LOGINFO("Set new overtemparature grace interval: %d", graceInterval);
                         resp = true;
                     } else {
                         LOGWARN("[%s] PwrMgr SetOvertempGraceInterval Call failed", __FUNCTION__);
                     }
-                    LOGWARN("Set Grace Interval : %d\n", graceInterval);
+                    LOGINFO("Set Grace Interval : %d\n", graceInterval);
             } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
             }
@@ -3958,19 +3957,19 @@ namespace WPEFramework {
         uint32_t SystemServices::enableXREConnectionRetention(const JsonObject& parameters,
                 JsonObject& response)
 	{
-		bool enable = false, retstatus = false;
+		bool enable = false, retStatus = false;
 		int status = SysSrv_Unexpected;
 		if (parameters.HasLabel("enable")) {
 			enable = parameters["enable"].Boolean();
 			if ((status = enableXREConnectionRetentionHelper(enable)) == SysSrv_OK) {
-				retstatus = true;
+				retStatus = true;
 			} else {
 				populateResponseWithError(status, response);
 			}
 		} else {
 			populateResponseWithError(SysSrv_MissingKeyValues, response);
 		}
-		returnResponse(retstatus);
+		returnResponse(retStatus);
 	}
 
         /***

@@ -426,14 +426,14 @@ namespace Plugin {
         Core::hresult errorCode = Core::ERROR_GENERAL;
 #ifdef ENABLE_THERMAL_PROTECTION
         LOGINFO("Entry");
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         ThermalTemperature curLevel = THERMAL_TEMPERATURE_UNKNOWN;
         float curTemperature = 0;
 
         errorCode = _thermalController.GetThermalState(curLevel,curTemperature);
         temperature = curTemperature;
-        _adminLock.Unlock();
+        _apiLock.Unlock();
         LOGINFO("Current core temperature is : %f, errorCode: %u", temperature, errorCode);
 #else
         temperature = -1;

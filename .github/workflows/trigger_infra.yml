@@ -7,5 +7,3 @@ on:
 jobs:
   trigger-verification:
     uses: rdkcentral/entservices-infra/.github/workflows/L1-tests.yml@workflow_trigger
-    secrets:
-      RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}

@@ -1,4 +1,4 @@
-name: trigger_testframework
+name: trigger testframework L1
 on:
   push:
     branches: [ main, 'sprint/**', 'release/**', workflow_trigger, develop ]

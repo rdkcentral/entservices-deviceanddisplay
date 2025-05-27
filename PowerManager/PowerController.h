@@ -30,6 +30,7 @@
 #include <interfaces/IPowerManager.h> // for IPowerManager
 
 #include "DeepSleepController.h" // for DeepSleepController (ptr only)
+#include "RebootController.h"    // for RebootController
 #include "Settings.h"            // for Settings
 #include "hal/PowerImpl.h"       // for IPlatform, PowerImpl
 

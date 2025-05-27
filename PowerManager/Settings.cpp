@@ -81,7 +81,9 @@ public:
     static bool Load(int fd, const Settings::Header& header, Settings& settings)
     {
         bool ok = false;
+#ifdef PLATCO_BOOTTO_STANDBY
         struct stat buf = {};
+#endif
         PWRMgr_Settings_t pwrSettings = {};
         const auto read_size = Size();
 
@@ -153,7 +155,9 @@ void Settings::initDefaults()
 Settings Settings::Load(const std::string& path)
 {
     Settings settings{};
+#ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
+#endif
     int fd = open(path.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRUSR);
     bool ok = false;
 

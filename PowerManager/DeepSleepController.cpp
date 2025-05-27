@@ -329,7 +329,6 @@ void DeepSleepController::enterDeepSleepNow()
 
 void DeepSleepController::deepSleepTimerWakeup(const std::chrono::steady_clock::time_point& startTime)
 {
-#define USE_WAKEUP_TIMER_EVT
 #ifdef USE_WAKEUP_TIMER_EVT
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
     uint32_t errorCode = platform().GetLastWakeupReason(wakeupReason);

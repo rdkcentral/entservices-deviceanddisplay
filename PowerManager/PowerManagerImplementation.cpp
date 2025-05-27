@@ -142,7 +142,7 @@ namespace Plugin {
         uint32_t status = Core::ERROR_GENERAL;
 
         ASSERT(nullptr != notification);
-        _adminLock.Lock();
+        _callbackLock.Lock();
 
         // Make sure we can't register the same notification callback multiple times
         if (std::find(list.begin(), list.end(), notification) == list.end()) {
@@ -151,7 +151,7 @@ namespace Plugin {
             status = Core::ERROR_NONE;
         }
 
-        _adminLock.Unlock();
+        _callbackLock.Unlock();
         return status;
     }
 
@@ -161,7 +161,7 @@ namespace Plugin {
         uint32_t status = Core::ERROR_GENERAL;
 
         ASSERT(nullptr != notification);
-        _adminLock.Lock();
+        _callbackLock.Lock();
 
         // Make sure we can't unregister the same notification callback multiple times
         auto itr = std::find(list.begin(), list.end(), notification);
@@ -171,7 +171,7 @@ namespace Plugin {
             status = Core::ERROR_NONE;
         }
 
-        _adminLock.Unlock();
+        _callbackLock.Unlock();
         return status;
     }
 
@@ -261,11 +261,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetPowerState(PowerState& currentState, PowerState& prevState) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetPowerState(currentState, prevState);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("currentState : %s, prevState : %s, errorCode = %d", util::str(currentState), util::str(prevState), errorCode);
 
@@ -319,7 +319,7 @@ namespace Plugin {
                 _deepSleepController.Deactivate();
             }
 
-            _adminLock.Lock();
+            _apiLock.Lock();
 
             if (_modeChangeController) {
                 LOGWARN("Power state change is already in progress, cancel old request");
@@ -333,7 +333,7 @@ namespace Plugin {
                 _modeChangeController->AckAwait(client.first);
             }
 
-            _adminLock.Unlock();
+            _apiLock.Unlock();
 
             // dispatch pre power mode change notifications
             submitPowerModePreChangeEvent(currState, newState, transactionId);
@@ -370,12 +370,12 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetTemperatureThresholds(float& high, float& critical) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("high: %f, critical: %f, errorCode: %u", high, critical, errorCode);
 
@@ -384,12 +384,12 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetTemperatureThresholds(const float high, const float critical)
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("high: %f, critical: %f, errorCode: %u", high, critical, errorCode);
 
@@ -398,12 +398,12 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetOvertempGraceInterval(int& graceInterval) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("graceInterval: %d, errorCode: %u", graceInterval, errorCode);
 
@@ -412,12 +412,12 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetOvertempGraceInterval(const int graceInterval)
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("graceInterval: %d, errorCode: %u", graceInterval, errorCode);
 
@@ -426,12 +426,12 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetThermalState(float& temperature) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         // TODO: yet to implement
         Core::hresult errorCode = Core::ERROR_GENERAL;
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("temperature: %f, errorCode: %u", temperature, errorCode);
 
@@ -440,11 +440,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetDeepSleepTimer(const int timeOut)
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.SetDeepSleepTimer(timeOut);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("timeOut: %d, errorCode: %u", timeOut, errorCode);
 
@@ -453,11 +453,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetLastWakeupReason(WakeupReason& wakeupReason) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _deepSleepController.GetLastWakeupReason(wakeupReason);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("wakeupReason: %u, errorCode: %u", wakeupReason, errorCode);
 
@@ -466,12 +466,12 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetLastWakeupKeyCode(int& keycode) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         // TODO: yet to implement
         uint32_t errorCode = _deepSleepController.GetLastWakeupKeyCode(keycode);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("Wakeup keycode: %d, errorCode: %u", keycode, errorCode);
 
@@ -487,11 +487,11 @@ namespace Plugin {
 
         dispatchRebootBeginEvent(requestor, customReason, otherReason);
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.Reboot(rebootRequestor, rebootReasonCustom, rebootReasonOther);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("requestor %s, custom reason: %s, other reason: %s, errorcode: %u", requestor.c_str(), customReason.c_str(), otherReason.c_str(), errorCode);
 
@@ -500,11 +500,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetNetworkStandbyMode(const bool standbyMode)
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.SetNetworkStandbyMode(standbyMode);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("standbyMode : %s, errorcode: %u",
             (standbyMode) ? ("Enabled") : ("Disabled"), errorCode);
@@ -518,11 +518,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetNetworkStandbyMode(bool& standbyMode)
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetNetworkStandbyMode(standbyMode);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("Current NwStandbyMode is: %s, errorCode: %d",
             (standbyMode ? ("Enabled") : ("Disabled")), errorCode);
@@ -532,11 +532,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcType, config);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("Power State stored: %x, srcType: %x,  config: %x, errorCode: %d", powerMode, srcType, config, errorCode);
 
@@ -545,11 +545,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("Power State stored: %x, srcType: %x,  config: %x, errorCode: %d", powerMode, srcType, config, errorCode);
 
@@ -558,12 +558,12 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         // TODO: yet to implement
         uint32_t errorCode = Core::ERROR_GENERAL;
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("currentMode: %u, newMode: %u, errorCode: %u", currentMode, newMode, errorCode);
 
@@ -572,11 +572,11 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot)
     {
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetPowerStateBeforeReboot(powerStateBeforeReboot);
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGWARN("current powerStateBeforeReboot is: %s, errorCode: %d",
             util::str(powerStateBeforeReboot), errorCode);
@@ -601,13 +601,13 @@ namespace Plugin {
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         if (_modeChangeController) {
             errorCode = _modeChangeController->Ack(clientId, transactionId);
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("clientId: %u, transactionId: %d, errorcode: %u", clientId, transactionId, errorCode);
 
@@ -618,13 +618,13 @@ namespace Plugin {
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         if (_modeChangeController) {
             errorCode = _modeChangeController->Reschedule(clientId, transactionId, delayPeriod * 1000);
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("DelayPowerModeChangeBy clientId: %u, transactionId: %d, delayPeriod: %d, errorcode: %u", clientId, transactionId, delayPeriod, errorCode);
 
@@ -638,7 +638,7 @@ namespace Plugin {
             return Core::ERROR_INVALID_PARAMETER;
         }
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         auto it = std::find_if(_modeChangeClients.cbegin(), _modeChangeClients.cend(),
             [&clientName](const std::pair<uint32_t, string>& client) {
@@ -653,7 +653,7 @@ namespace Plugin {
             clientId = it->first;
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("client: %s, clientId: %u", clientName.c_str(), clientId);
 
@@ -669,7 +669,7 @@ namespace Plugin {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
         std::string clientName;
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         auto it = _modeChangeClients.find(clientId);
 
@@ -684,7 +684,7 @@ namespace Plugin {
             errorCode = Core::ERROR_NONE;
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("client: %s, clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
 

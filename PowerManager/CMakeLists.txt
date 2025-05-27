@@ -56,6 +56,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DeepSleepController.cpp
     PowerController.cpp
     RebootController.cpp
+    Settings.cpp
 )
 
 include_directories(

@@ -34,7 +34,7 @@ jobs:
         # Cache Thunder/ThunderInterfaces.
         # https://github.com/actions/cache
         # https://docs.github.com/en/rest/actions/cache
-        # Modify the key if changing the list.
+        # Modify the key if changing the list
         if: ${{ !env.ACT }}
         id: cache
         uses: actions/cache@v3

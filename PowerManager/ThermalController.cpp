@@ -59,9 +59,8 @@ uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float 
 uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &tempCritical) const
 {
     uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-    int result = 0;
 
-    result = platform().GetTemperatureThresholds(tempHigh,tempCritical);
+    retCode = platform().GetTemperatureThresholds(tempHigh,tempCritical);
 
     retCode = WPEFramework::Core::ERROR_NONE;
     LOGINFO("Current thermal threshold : %f , %f, error code: %u ", tempHigh,tempCritical, retCode);

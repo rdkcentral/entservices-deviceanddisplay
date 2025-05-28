@@ -62,11 +62,9 @@ uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &temp
     int result = 0;
 
     result = platform().GetTemperatureThresholds(tempHigh,tempCritical);
-    if ( result )
-    {
-        retCode = WPEFramework::Core::ERROR_NONE;
-        LOGINFO("Current thermal threshold : %f , %f ", tempHigh,tempCritical);
-    }
+
+    retCode = WPEFramework::Core::ERROR_NONE;
+    LOGINFO("Current thermal threshold : %f , %f, error code: %u ", tempHigh,tempCritical, retCode);
 
     return retCode;
 }
@@ -74,11 +72,10 @@ uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &temp
 uint32_t ThermalController::SetTemperatureThresholds(float tempHigh,float tempCritical)
 {
     uint32_t retCode = WPEFramework::Core::ERROR_NONE;
-    int result = 0;
 
     LOGINFO("Setting thermal threshold : %f , %f ", tempHigh,tempCritical);  //CID:127982 ,127475,103705 - Print_args
-    result = platform().SetTemperatureThresholds(tempHigh,tempCritical);
-    retCode = result?WPEFramework::Core::ERROR_NONE:WPEFramework::Core::ERROR_GENERAL;
+
+    retCode = platform().SetTemperatureThresholds(tempHigh,tempCritical);
 
     return retCode;
 }
@@ -390,8 +387,8 @@ void ThermalController::_PollThermalLevels()
 
     while(TRUE)
     {
-        int result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
-        if(result)
+        uint32_t result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
+        if(WPEFramework::Core::ERROR_NONE == result)
         {
             if(m_cur_Thermal_Level != state)//State changed, need to broadcast
             {

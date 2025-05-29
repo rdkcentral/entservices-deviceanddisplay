@@ -7,7 +7,7 @@
 find_package(PkgConfig)
 
 find_library(MFR_LIBRARIES NAMES RDKMfrLib)
-find_path(MFR_INCLUDE_DIRS NAMES mfr_temperature.h PATH_SUFFIXES mfr/include)
+find_path(MFR_INCLUDE_DIRS NAMES mfr_temperature.h PATH_SUFFIXES /usr/include/mfr/include)
 
 set(MFR_INCLUDE_DIRS ${MFR_INCLUDE_DIRS})
 set(MFR_INCLUDE_DIRS ${MFR_INCLUDE_DIRS} CACHE PATH "Path to MFR include")

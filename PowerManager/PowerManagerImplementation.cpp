@@ -82,6 +82,7 @@ namespace Plugin {
         , _modeChangeController(nullptr)
         , _deepSleepController(DeepSleepController::Create(*this))
         , _powerController(PowerController::Create(_deepSleepController))
+        , _thermalController(ThermalController::Create(*this))
     {
         PowerManagerImplementation::_instance = this;
         Utils::IARM::init();
@@ -372,8 +373,7 @@ namespace Plugin {
     {
         _apiLock.Lock();
 
-        // TODO: yet to implement
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        Core::hresult errorCode = _thermalController.GetTemperatureThresholds(high,critical);
 
         _apiLock.Unlock();
 
@@ -386,8 +386,7 @@ namespace Plugin {
     {
         _apiLock.Lock();
 
-        // TODO: yet to implement
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        Core::hresult errorCode = _thermalController.SetTemperatureThresholds(high,critical);
 
         _apiLock.Unlock();
 
@@ -400,8 +399,7 @@ namespace Plugin {
     {
         _apiLock.Lock();
 
-        // TODO: yet to implement
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        Core::hresult errorCode = _thermalController.GetOvertempGraceInterval(graceInterval);
 
         _apiLock.Unlock();
 
@@ -414,8 +412,7 @@ namespace Plugin {
     {
         _apiLock.Lock();
 
-        // TODO: yet to implement
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        Core::hresult errorCode = _thermalController.SetOvertempGraceInterval(graceInterval);
 
         _apiLock.Unlock();
 
@@ -426,15 +423,23 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::GetThermalState(float& temperature) const
     {
+        Core::hresult errorCode = Core::ERROR_GENERAL;
+#ifdef ENABLE_THERMAL_PROTECTION
+        LOGINFO("Entry");
         _apiLock.Lock();
 
-        // TODO: yet to implement
-        Core::hresult errorCode = Core::ERROR_GENERAL;
+        ThermalTemperature curLevel = THERMAL_TEMPERATURE_UNKNOWN;
+        float curTemperature = 0;
 
+        errorCode = _thermalController.GetThermalState(curLevel,curTemperature);
+        temperature = curTemperature;
         _apiLock.Unlock();
-
-        LOGINFO("temperature: %f, errorCode: %u", temperature, errorCode);
-
+        LOGINFO("Current core temperature is : %f, errorCode: %u", temperature, errorCode);
+#else
+        temperature = -1;
+        errorCode = Core::ERROR_GENERAL;
+        LOGWARN("Thermal Protection disabled for this platform");
+#endif
         return errorCode;
     }
 
@@ -727,5 +732,24 @@ namespace Plugin {
         LOGINFO("Failed to enter DeepSleep, moving to powerState: %s", util::str(newState));
         SetPowerState(0, newState, "DeepSleep failed");
     }
+
+    void PowerManagerImplementation::onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,
+                                                                const ThermalTemperature new_Thermal_Level, const float current_Temp)
+    {
+        LOGINFO("THERMAL_MODECHANGED event received, curLevel: %u, newLevel: %u, curTemperature: %f",
+                cur_Thermal_Level, new_Thermal_Level, current_Temp);
+
+        dispatchThermalModeChangedEvent(cur_Thermal_Level, new_Thermal_Level, current_Temp);
+    }
+
+    void PowerManagerImplementation::onDeepSlepForThermalChange()
+    {
+        LOGINFO("Entry");
+
+        /*Scheduled maintanace reboot is disabled. Instead state will change to LIGHT_SLEEP*/
+        LOGINFO("Set Device to deep sleep on Thermal change");
+        SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "DeepSleep on Thermal change");
+    }
+
 }
 }

@@ -85,8 +85,8 @@ if(PROCPS_LIBRARIES)
 endif(PROCPS_LIBRARIES)
 
 if (MFR_FOUND)
-  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_LIBRARIES})
-  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_INCLUDE_DIRS})
+  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_LIBRARY})
+  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_INCLUDE_DIR})
 endif()
 
 find_package(DS)

@@ -85,6 +85,7 @@ namespace WPEFramework
         {
             if (Utils::IARM::init())
             {
+                IARM_Result_t res;
                 IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
                 IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
             }
@@ -94,6 +95,7 @@ namespace WPEFramework
         {
             if (Utils::IARM::isConnected())
             {
+                IARM_Result_t res;
                 IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
                 IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
             }

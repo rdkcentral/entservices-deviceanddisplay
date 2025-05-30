@@ -126,7 +126,8 @@ add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" 
 
 # PLUGIN_FRAMERATE
 set (FRAMERATE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/FrameRate ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_FrameRate.cpp "${FRAMERATE_INC}" "${NAMESPACE}FrameRate")
+set (FRAMERATE_LIBS ${NAMESPACE}FrameRate ${NAMESPACE}FrameRateImplementation)
+add_plugin_test_ex(PLUGIN_FRAMERATE tests/test_FrameRate.cpp "${FRAMERATE_INC}" "${FRAMERATE_LIBS}")
 
 # PLUGIN_USERPREFERENCES
 set (USERPREFERENCES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/UserPreferences ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)

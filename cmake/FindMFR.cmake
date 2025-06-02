@@ -1,21 +1,26 @@
 # - Try to find MFR components
 # Once done this will define
 #  MFR_FOUND - System has MFR
-#  MFR_LIBRARIES - The libraries needed to use  MFR
-#  MFR_INCLUDE_DIRS - The headers needed to use MFR
+#  MFR_LIBRARY - The libraries needed to use  MFR
+#  MFR_INCLUDE_DIR - The headers needed to use MFR
 
-find_package(PkgConfig)
-
-find_library(MFR_LIBRARY NAMES RDKMfrLib)
 find_path(MFR_INCLUDE_DIR NAMES mfr_temperature.h PATH_SUFFIXES /usr/include/mfr/include)
+find_library(MFR_LIBRARY NAMES RDKMfrLib)
+# Set the results
+if(MFR_INCLUDE_DIR AND MFR_LIBRARY)
+  set(MFR_FOUND TRUE)
+  set(MFR_INCLUDE_DIRS ${MFR_INCLUDE_DIR})
+  set(MFRLIBRARIES ${MFR_LIBRARY})
+else()
+  set(MFR_FOUND FALSE)
+endif()
 
-set(MFR_INCLUDE_DIR ${MFR_INCLUDE_DIR})
-set(MFR_INCLUDE_DIR ${MFR_INCLUDE_DIR} CACHE PATH "Path to MFR include")
+# Provide user feedback
+if(MFR_FOUND)
+  message(STATUS "Found mfr libs @ ${MFRLIBRARIES}")
+  message(STATUS "Found mfr includes @ ${MFR_INCLUDE_DIRS}")
+else()
+  message(WARNING "Could not find plat_power")
+endif()
 
-#include(FindPackageHandleStandardArgs)
-#FIND_PACKAGE_HANDLE_STANDARD_ARGS(MFR DEFAULT_MSG MFR_INCLUDE_DIR MFR_LIBRARY)
-
-mark_as_advanced(
-    MFR_INCLUDE_DIR
-)
-
+mark_as_advanced(MFR_INCLUDE_DIR MFR_LIBRARY)

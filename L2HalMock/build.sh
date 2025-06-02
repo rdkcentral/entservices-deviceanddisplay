@@ -6,14 +6,9 @@ SelectedPlugins="$1"
 echo "Building for Plugins: $SelectedPlugins"
 
 # Check for the presence of "string to find"
-if grep -q "HdmiCecSource" <<< "$SelectedPlugins"; then
+if grep -q "PowerManager" <<< "$SelectedPlugins"; then
   echo "Found: $SelectedPlugins"
-  HdmiCecSource="ON"
-fi
-
-if grep -q "HdmiCecSink" <<< "$SelectedPlugins"; then
-  echo "Found: $SelectedPlugins"
-  HdmiCecSink="ON"
+  PowerManager="ON"
 fi
 
 # Define ANSI color codes for green
@@ -38,6 +33,13 @@ echo -e "${GREEN}========================================Building Thunder=======
 git clone -b R4_4 https://github.com/rdkcentral/Thunder.git 
 cmake -G Ninja -S Thunder -B $WORKSPACE/build/Thunder -DBINDING="127.0.0.1" -DCMAKE_BUILD_TYPE="Debug" -DCMAKE_INSTALL_PREFIX="$WORKSPACE/install/usr" -DCMAKE_MODULE_PATH="${WORKSPACE}/install/usr/include/WPEFramework/Modules" -DDATA_PATH="${WORKSPACE}/install/usr/share/WPEFramework" -DPERSISTENT_PATH="${WORKSPACE}/install/var/wpeframework" -DPORT="55555" -DPROXYSTUB_PATH="${WORKSPACE}/install/usr/lib/wpeframework/proxystubs" -DSYSTEM_PATH="${WORKSPACE}/install/usr/lib/wpeframework/plugins" -DVOLATILE_PATH="tmp"
 cmake --build $WORKSPACE/build/Thunder --target install
+
+cd $WORKSPACE
+echo -e "${GREEN}========================================Entservices-apis===============================================${NC}"
+git clone -b main https://github.com/rdkcentral/entservices-apis.git
+cmake -S . -B build/entservices-apis -DEXCEPTIONS_ENABLE=OFF -DCMAKE_INSTALL_PREFIX="$WORKSPACE/install/usr" -DCMAKE_MODULE_PATH="$SCRIPTS_DIR/ThunderTools/install/include/WPEFramework/Modules" &&
+cmake --build build/entservices-apis -j8 &&
+cmake --install build/entservices-apis
 
 echo -e "${GREEN}========================================Do peru sync===============================================${NC}"
 (cp $SCRIPTS_DIR/peru.yaml . && peru sync && peru sync --no-cache)
@@ -150,14 +152,6 @@ echo -e "${GREEN}========================================Build HdmiCecSource====
 cd $WORKSPACE/install/usr/include/WPEFramework/Modules/
 patch -s -p0 < $SCRIPTS_DIR/patches/rdkservices/FindConfigGenerator_cmake.patch
 
-if grep -q "HdmiCecSource" <<< "$SelectedPlugins"; then
-cp $SCRIPTS_DIR/patches/rdkservices/properties/HdmiCecSource/device.properties /etc/
-fi
-
-if grep -q "HdmiCecSink" <<< "$SelectedPlugins"; then
-cp $SCRIPTS_DIR/patches/rdkservices/properties/HdmiCecSink/device.properties /etc/
-fi
-
 cd $WORKSPACE/
 #Run time dependency 
 mkdir -p $WORKSPACE/install/etc/WPEFramework/plugins
@@ -185,19 +179,13 @@ cd /usr/include/
 mkdir rdk
 cd /usr/include/rdk
 
-
-sed -i 's/sendNotify/Notify/g' $RDK_DIR/HdmiCecSource/HdmiCecSource.cpp
-sed -i 's/sendNotify/Notify/g' $RDK_DIR/HdmiCecSink/HdmiCecSink.cpp
-sed -i 's/sendNotify/Notify/g' $RDK_DIR/HdcpProfile/HdcpProfile.cpp
-
 cd $RDK_DIR;
 cmake -S . -B build \
 -DCMAKE_INSTALL_PREFIX="$WORKSPACE/install/usr" \
 -DCMAKE_MODULE_PATH="$WORKSPACE/install/usr/include/WPEFramework/Modules" \
 -DRDK_SERVICE_L2HALMOCK=ON \
 -DUSE_THUNDER_R4=ON \
--DPLUGIN_HDMICECSOURCE=$HdmiCecSource \
--DPLUGIN_HDMICECSINK=$HdmiCecSink \
+-DPLUGIN_POWERMANAGER=$PowerManager \
 -DCOMCAST_CONFIG=OFF \
 -DCEC_INCLUDE_DIRS="$SCRIPTS_DIR/workspace/deps/rdk/hdmicec/ccec/include" \
 -DOSAL_INCLUDE_DIRS="$SCRIPTS_DIR/workspace/deps/rdk/hdmicec/osal/include" \

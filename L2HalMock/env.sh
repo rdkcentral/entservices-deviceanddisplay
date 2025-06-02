@@ -81,6 +81,11 @@ export GLIB_HEADER_PATH=$CROSS_TOOLCHAIN/include/glib-2.0
 export PLATFORM_SOC=L2HalMock
 export UTILS_PATH=$IARM_MGRS/utils
 
+export DS_LIBRARIES=${DS_PATH}/install/lib
+export DS_INCLUDE_DIRS=${DS_PATH}/ds/include
+export IARMBUS_LIBRARIES=${IARM_PATH}/install
+export IARMBUS_INCLUDE_DIRS=${IARM_PATH}/core/include
+
 # Temporary
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
 

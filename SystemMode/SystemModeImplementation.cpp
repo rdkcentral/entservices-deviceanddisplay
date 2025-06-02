@@ -249,7 +249,7 @@ Core::hresult SystemModeImplementation::GetState(const SystemMode pSystemMode, G
 
 }
 
-uint32_t SystemModeImplementation::ClientActivated(const string& callsign , const string& systemMode)
+Core::hresult SystemModeImplementation::ClientActivated(const string& callsign , const string& systemMode)
 {
 	SystemMode pSystemMode ;
 	auto it = SystemModeInterfaceMap.find(systemMode);
@@ -326,7 +326,7 @@ uint32_t SystemModeImplementation::ClientActivated(const string& callsign , cons
 	}
 	return 0;	
 }
-uint32_t SystemModeImplementation::ClientDeactivated(const string& callsign ,const string& systemMode)
+Core::hresult SystemModeImplementation::ClientDeactivated(const string& callsign ,const string& systemMode)
 {
 	SystemMode pSystemMode ;
 

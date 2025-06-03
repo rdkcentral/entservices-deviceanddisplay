@@ -169,7 +169,7 @@ namespace Plugin {
 
     void PowerManagerImplementation::Dispatch(Event event, ParamsType params)
     {
-        _adminLock.Lock();
+        _callbackLock.Lock();
 
         switch (event) {
         case PWRMGR_EVENT_POWERMODE_CHANGED:
@@ -210,7 +210,7 @@ namespace Plugin {
             LOGERR("Unhandled event: %d", event);
         } // switch (event)
 
-        _adminLock.Unlock();
+        _callbackLock.Unlock();
     }
 
     static void _iarmPowerEventHandler(const char* owner, IARM_EventId_t eventId, void* data, size_t len)
@@ -288,7 +288,7 @@ namespace Plugin {
         uint32_t status = Core::ERROR_GENERAL;
 
         ASSERT(nullptr != notification);
-        _adminLock.Lock();
+        _callbackLock.Lock();
 
         // Make sure we can't register the same notification callback multiple times
         if (std::find(list.begin(), list.end(), notification) == list.end()) {
@@ -297,7 +297,7 @@ namespace Plugin {
             status = Core::ERROR_NONE;
         }
 
-        _adminLock.Unlock();
+        _callbackLock.Unlock();
         return status;
     }
 
@@ -307,7 +307,7 @@ namespace Plugin {
         uint32_t status = Core::ERROR_GENERAL;
 
         ASSERT(nullptr != notification);
-        _adminLock.Lock();
+        _callbackLock.Lock();
 
         // Make sure we can't unregister the same notification callback multiple times
         auto itr = std::find(list.begin(), list.end(), notification);
@@ -317,7 +317,7 @@ namespace Plugin {
             status = Core::ERROR_NONE;
         }
 
-        _adminLock.Unlock();
+        _callbackLock.Unlock();
         return status;
     }
 
@@ -632,7 +632,7 @@ namespace Plugin {
 
         if (currentState != powerState) {
 
-            _adminLock.Lock();
+            _apiLock.Lock();
 
             if (_modeChangeController) {
                 LOGWARN("Power state change is already in progress, cancel old request");
@@ -646,7 +646,7 @@ namespace Plugin {
                 _modeChangeController->AckAwait(client.first);
             }
 
-            _adminLock.Unlock();
+            _apiLock.Unlock();
 
             // dispatch pre power mode change notifications
             submitPowerModePreChangeEvent(currentState, powerState, transactionId);
@@ -1071,13 +1071,13 @@ namespace Plugin {
     {
         Core::hresult errorCode = Core::ERROR_INVALID_PARAMETER;
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         if (_modeChangeController) {
             errorCode = _modeChangeController->Ack(clientId, transactionId);
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("clientId: %u, transactionId: %d, errorcode: %u", clientId, transactionId, errorCode);
 
@@ -1088,13 +1088,13 @@ namespace Plugin {
     {
         Core::hresult errorCode = Core::ERROR_INVALID_PARAMETER;
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         if (_modeChangeController) {
             errorCode = _modeChangeController->Reschedule(clientId, transactionId, delayPeriod * 1000);
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("DelayPowerModeChangeBy clientId: %u, transactionId: %d, delayPeriod: %d, errorcode: %u", clientId, transactionId, delayPeriod, errorCode);
 
@@ -1108,7 +1108,7 @@ namespace Plugin {
             return Core::ERROR_INVALID_PARAMETER;
         }
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         auto it = std::find_if(_modeChangeClients.cbegin(), _modeChangeClients.cend(),
             [&clientName](const std::pair<uint32_t, string>& client) {
@@ -1123,7 +1123,7 @@ namespace Plugin {
             clientId = it->first;
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("client: %s, clientId: %u", clientName.c_str(), clientId);
 
@@ -1139,7 +1139,7 @@ namespace Plugin {
         Core::hresult errorCode = Core::ERROR_INVALID_PARAMETER;
         std::string clientName;
 
-        _adminLock.Lock();
+        _apiLock.Lock();
 
         auto it = _modeChangeClients.find(clientId);
 
@@ -1154,7 +1154,7 @@ namespace Plugin {
             errorCode = Core::ERROR_NONE;
         }
 
-        _adminLock.Unlock();
+        _apiLock.Unlock();
 
         LOGINFO("client: %s, clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
 

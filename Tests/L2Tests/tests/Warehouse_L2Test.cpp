@@ -651,7 +651,7 @@ TEST_F(Warehouse_L2Test, Warehouse_ColdFactory_ResetDone)
 ** 3. Subscribe and Triggered resetDone Event
 ** 3. Verify the event UserFactory resetDone getting triggered using comrpc
 *******************************************************/
-#if 0
+
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 {
     uint32_t status = Core::ERROR_NONE;
@@ -675,7 +675,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
     signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
     EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
 }
-#endif
+
 /********************************************************
 ************Test case Details **************************
 ** 1. Triggered resetDevice Method
@@ -683,6 +683,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 ** 3. Subscribe and Triggered resetDone Event
 ** 3. Verify the event UserFactory resetDone getting triggered using jsonrpc
 *******************************************************/
+#if 0
 TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
@@ -735,7 +736,7 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
-
+#endif
 /********************************************************
 ************Test case Details **************************
 ** 1. Triggered lightReset Method

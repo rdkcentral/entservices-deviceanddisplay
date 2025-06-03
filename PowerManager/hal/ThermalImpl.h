@@ -93,10 +93,11 @@ public:
         if(mfrERR_NONE == response)
         {
             result = WPEFramework::Core::ERROR_NONE;
-            high = (float)tempHigh;
-            critical = (float)tempCritical;
-            LOGINFO("High Temperature: %0.6f, [%d] and Critical Temperature: %0.6f, [%d]",tempHigh, high, tempCritical, critical);
+            tempHigh = (float)high;
+            tempCritical = (float)critical;
         }
+
+        LOGINFO("High Temperature: %0.6f, [%d] and Critical Temperature: %0.6f, [%d], response: %u",tempHigh, high, tempCritical, critical,response);
 
         return result;
     }

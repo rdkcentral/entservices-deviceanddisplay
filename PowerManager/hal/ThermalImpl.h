@@ -86,11 +86,16 @@ public:
     virtual uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical) const override
     {
         uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+        int high;
+        int critical;
 
-        mfrError_t response = mfrGetTempThresholds((int*)&tempHigh, (int*)&tempCritical);
+        mfrError_t response = mfrGetTempThresholds(&high, &critical);
         if(mfrERR_NONE == response)
         {
             result = WPEFramework::Core::ERROR_NONE;
+            high = (float)tempHigh;
+            critical = (float)tempCritical;
+            LOGINFO("High Temperature: %0.6f, [%d] and Critical Temperature: %0.6f, [%d]",tempHigh, high, tempCritical, critical);
         }
 
         return result;

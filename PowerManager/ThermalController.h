@@ -193,6 +193,7 @@ private:
     }
 
     INotification& _parent;
+    bool _stopThermalPoll;
 
     void initializeThermalProtection();
     bool isThermalProtectionEnabled();

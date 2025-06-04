@@ -27,12 +27,14 @@ ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPl
     : _platform(std::move(platform))
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
     ,_parent(parent)
+    ,_stopThermalPoll(true)
 {
     initializeThermalProtection();
 }
 
 ThermalController::~ThermalController()
 {
+    _stopThermalPoll = true;
     if ( nullptr != thermalThreadId )
     {
         if (thermalThreadId->joinable())
@@ -146,6 +148,8 @@ void ThermalController::initializeThermalProtection()
         {
             LOGINFO("*****Critical*** Fails to set temperature thresholds.. ");
         }
+
+        _stopThermalPoll = false;
 
         thermalThreadId = new std::thread(&ThermalController::_PollThermalLevels, this);
 
@@ -384,7 +388,7 @@ void ThermalController::_PollThermalLevels()
 
     LOGINFO("Enter - Start monitoring temeperature every %d seconds log interval: %d", thermal_poll_interval, thermalLogInterval);
 
-    while(TRUE)
+    while(!_stopThermalPoll)
     {
         uint32_t result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
         if(WPEFramework::Core::ERROR_NONE == result)

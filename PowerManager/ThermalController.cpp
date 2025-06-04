@@ -142,7 +142,7 @@ void ThermalController::initializeThermalProtection()
         }
 #endif
 
-        if(!platform().SetTemperatureThresholds(declockThreshold.concern, declockThreshold.critical))
+        if(WPEFramework::Core::ERROR_NONE != platform().SetTemperatureThresholds(declockThreshold.concern, declockThreshold.critical))
         {
             LOGINFO("*****Critical*** Fails to set temperature thresholds.. ");
         }

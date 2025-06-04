@@ -108,8 +108,6 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define LOG_UPLOAD_STATUS_ABORTED "UPLOAD_ABORTED"
 #define GET_STB_DETAILS_SCRIPT_READ_COMMAND "read"
 
-#define PRIVACY_MODE_FILE "/opt/secure/persistent/System/privacymode.txt"
-
 #define OPFLASH_STORE "/opt/secure/persistent/opflashstore"
 #define DEVICESTATE_FILE OPFLASH_STORE "/devicestate.txt"
 #define BLOCKLIST "blocklist"
@@ -545,8 +543,6 @@ namespace WPEFramework {
             registerMethod("setFriendlyName", &SystemServices::setFriendlyName, this);
             registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this);
 
-            registerMethod("setPrivacyMode", &SystemServices::setPrivacyMode, this);
-            registerMethod("getPrivacyMode", &SystemServices::getPrivacyMode, this);
             registerMethod("setFSRFlag", &SystemServices::setFSRFlag, this);
             registerMethod("getFSRFlag", &SystemServices::getFSRFlag, this);
             registerMethod("setBlocklistFlag", &SystemServices::setBlocklistFlag, this);
@@ -5175,56 +5171,6 @@ namespace WPEFramework {
             LOGINFOMETHOD();
 
             response["startReason"] = (Utils::fileExists(SYSTEM_SERVICE_THUNDER_RESTARTED_FILE))?"RESTART":"NORMAL";
-            returnResponse(true);
-        }
-
-        uint32_t SystemServices::setPrivacyMode(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            string privacyMode = parameters["privacyMode"].String();
-
-            if (privacyMode != "SHARE" && privacyMode != "DO_NOT_SHARE")
-            {
-                LOGERR("Wrong privacyMode value: '%s'", privacyMode.c_str());
-                returnResponse(false);
-            }
-            
-            makePersistentDir();
-
-            ofstream optfile;
-    		
-            optfile.open(PRIVACY_MODE_FILE, ios::out);
-            if (optfile)
-            {
-                optfile << privacyMode;
-                optfile.close();
-            }
-
-            JsonObject params;
-            params["privacyMode"] = privacyMode;
-            sendNotify(EVT_ONPRIVACYMODECHANGED, params);
-
-            returnResponse(true);
-        }
-
-        uint32_t SystemServices::getPrivacyMode(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            string privacyMode = "";
-
-            string optOutStatus;
-
-            getFileContent(PRIVACY_MODE_FILE, privacyMode);
-            if (privacyMode != "SHARE" && privacyMode != "DO_NOT_SHARE")
-            {
-                LOGWARN("Wrong privacyMode value: '%s', returning default", privacyMode.c_str());
-                privacyMode = "SHARE";
-            }
-
-            response["privacyMode"] = privacyMode;
-
             returnResponse(true);
         }
 

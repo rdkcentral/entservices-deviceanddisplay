@@ -28,6 +28,7 @@ find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
+find_package(MFR REQUIRED)
 find_package(PowerHal REQUIRED)
 find_package(DeepSleepHal REQUIRED)
 find_package(RFC REQUIRED)
@@ -57,6 +58,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     PowerController.cpp
     RebootController.cpp
     Settings.cpp
+    ThermalController.cpp
 )
 
 include_directories(
@@ -81,6 +83,11 @@ endif (RDK_SERVICES_L2_TEST)
 if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
+
+if (MFR_FOUND)
+  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_LIBRARIES})
+  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_INCLUDE_DIRS})
+endif()
 
 find_package(DS)
 if (DS_FOUND)

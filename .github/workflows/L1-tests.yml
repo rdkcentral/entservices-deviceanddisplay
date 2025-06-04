@@ -2,7 +2,7 @@ name: L1-tests
 
 on:
   push:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
+    branches: [ main, develop, 'sprint/**', 'release/**', feature/test_L1_system ]
   pull_request:
     branches: [ main, develop, 'sprint/**', 'release/**' ]
 
@@ -483,6 +483,7 @@ jobs:
           -DPLUGIN_USERPREFERENCES=ON
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
+          -DPLUGIN_SYSTEMSERVICES=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF

@@ -217,31 +217,31 @@ public:
 
         mfrError_t result = mfrGetTemperature(&state, &temperatureValue, &wifiTempValue);
 
-#if 0
+#if 1
     /* Leave this debug code here commented out (or otherwise disabled by default). This is used in testing to allow manually controlling the returned temperature.
        This helps test functionallity without actually haveing to heat up the box */
     {
         FILE *fp;
-        state = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;
-        temperatureValue=50.0;
-        wifiTempValue=50.0;
+        //state = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;
+        //temperatureValue=50.0;
+        //wifiTempValue=50.0;
         result = mfrERR_NONE;
 
-        fp = fopen ("/opt/force_temp.soc", "r");
+        fp = fopen ("/tmp/force_temp.soc", "r");
         if (fp) {
             fscanf(fp, "%d", &temperatureValue);
             fclose(fp);
         }
 
-        fp = fopen ("/opt/force_temp.wifi", "r");
+        fp = fopen ("/tmp/force_temp.wifi", "r");
         if (fp) {
             fscanf(fp, "%d", &wifiTempValue);
             fclose(fp);
         }
 
-        fp = fopen ("/opt/force_temp.state", "r");
+        fp = fopen ("/tmp/force_temp.state", "r");
         if (fp) {
-            fscanf(fp, "%d", &state);
+            fscanf(fp, "%d", (int*)&state);
             fclose(fp);
         }
     }

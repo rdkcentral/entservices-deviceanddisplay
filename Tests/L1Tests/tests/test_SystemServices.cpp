@@ -38,6 +38,7 @@
 #include "ThunderPortability.h"
 
 using namespace WPEFramework;
+using ::testing::Matcher;
 
 class SystemServicesTest : public ::testing::Test {
 protected:
@@ -86,28 +87,28 @@ protected:
         p_readprocImplMock = new NiceMock<readprocImplMock>;
         ProcImpl::setImpl(p_readprocImplMock);
 
-        EXPECT_CALL(PowerManagerMock::Mock(), static_cast<uint32_t(PowerManagerMock::*)(Exchange::IPowerManager::INetworkStandbyModeChangedNotification)> (&PowerManagerMock::Register)(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification) -> uint32_t {
                     _networkStandbyModeChangedNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), static_cast<uint32_t(PowerManagerMock::*)(Exchange::IPowerManager::IRebootNotification)> (&PowerManagerMock::Register)(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IRebootNotification>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IRebootNotification* notification) -> uint32_t {
                     _rebootNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), static_cast<uint32_t(PowerManagerMock::*)(Exchange::IPowerManager::IThermalModeChangedNotification)> (&PowerManagerMock::Register)(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IThermalModeChangedNotification>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IThermalModeChangedNotification* notification) -> uint32_t {
                     _thermalModeChangedNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), static_cast<uint32_t(PowerManagerMock::*)(Exchange::IPowerManager::IModeChangedNotification)> (&PowerManagerMock::Register)(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IModeChangedNotification>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IModeChangedNotification* notification) -> uint32_t {
                     _modeChangedNotification = notification;

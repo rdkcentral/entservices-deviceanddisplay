@@ -42,14 +42,14 @@ namespace Plugin {
 
     private:
         // IDeviceInfo interface
-        uint32_t SerialNumber(string& serialNumber) const override;
-        uint32_t Sku(string& sku) const override;
-        uint32_t Make(string& make) const override;
-        uint32_t Model(string& model) const override;
-        uint32_t DeviceType(string& deviceType) const override;
-        uint32_t SocName(string& socName) const override;
-        uint32_t DistributorId(string& distributorId) const override;
-        uint32_t Brand(string& brand) const override;
+        Core::hresult SerialNumber(string& serialNumber) const override;
+        Core::hresult Sku(string& sku) const override;
+        Core::hresult Make(string& make) const override;
+        Core::hresult Model(string& model) const override;
+        Core::hresult DeviceType(string& deviceType) const override;
+        Core::hresult SocName(string& socName) const override;
+        Core::hresult DistributorId(string& distributorId) const override;
+        Core::hresult Brand(string& brand) const override;
     };
 }
 }

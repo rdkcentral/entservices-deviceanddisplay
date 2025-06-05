@@ -87,28 +87,28 @@ protected:
         p_readprocImplMock = new NiceMock<readprocImplMock>;
         ProcImpl::setImpl(p_readprocImplMock);
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>(::testing::_)))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::INetworkStandbyModeChangedNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification) -> uint32_t {
                     _networkStandbyModeChangedNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IRebootNotification>(::testing::_)))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IRebootNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IRebootNotification* notification) -> uint32_t {
                     _rebootNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IThermalModeChangedNotification>(::testing::_)))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IThermalModeChangedNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IThermalModeChangedNotification* notification) -> uint32_t {
                     _thermalModeChangedNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IModeChangedNotification>(::testing::_)))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(Matcher<Exchange::IPowerManager::IModeChangedNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IModeChangedNotification* notification) -> uint32_t {
                     _modeChangedNotification = notification;

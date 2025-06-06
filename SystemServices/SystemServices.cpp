@@ -1,21 +1,21 @@
-/**
-* If not stated otherwise in this file or this component's LICENSE
-* file the following copyright and licenses apply:
-*
-* Copyright 2020 RDK Management
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-**/
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2025 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <stdlib.h>
 #include <errno.h>
@@ -108,13 +108,11 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define LOG_UPLOAD_STATUS_ABORTED "UPLOAD_ABORTED"
 #define GET_STB_DETAILS_SCRIPT_READ_COMMAND "read"
 
-#define PRIVACY_MODE_FILE "/opt/secure/persistent/System/privacymode.txt"
-
 #define OPFLASH_STORE "/opt/secure/persistent/opflashstore"
 #define DEVICESTATE_FILE OPFLASH_STORE "/devicestate.txt"
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
-
+#define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
 /**
  * @struct firmwareUpdate
  * @brief This structure contains information of firmware update.
@@ -545,8 +543,6 @@ namespace WPEFramework {
             registerMethod("setFriendlyName", &SystemServices::setFriendlyName, this);
             registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this);
 
-            registerMethod("setPrivacyMode", &SystemServices::setPrivacyMode, this);
-            registerMethod("getPrivacyMode", &SystemServices::getPrivacyMode, this);
             registerMethod("setFSRFlag", &SystemServices::setFSRFlag, this);
             registerMethod("getFSRFlag", &SystemServices::getFSRFlag, this);
             registerMethod("setBlocklistFlag", &SystemServices::setBlocklistFlag, this);
@@ -554,6 +550,7 @@ namespace WPEFramework {
             registerMethod("getBootTypeInfo", &SystemServices::getBootTypeInfo, this);
             registerMethod("getBuildType", &SystemServices::getBuildType, this);
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
+            registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
         }
 
         SystemServices::~SystemServices()
@@ -620,6 +617,10 @@ namespace WPEFramework {
         void SystemServices::Deinitialize(PluginHost::IShell*)
         {
             if (_powerManagerPlugin) {
+                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
+                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
+                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());		    
                 _powerManagerPlugin.Reset();
             }
 
@@ -3453,10 +3454,21 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             bool resp = false;
-            float temperature;
+            float temperature = 0.0;
 #ifdef ENABLE_THERMAL_PROTECTION
-            resp = CThermalMonitor::instance()->getCoreTemperature(temperature);
-            LOGWARN("core temperature is %.1f degrees centigrade\n",
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+
+            ASSERT (_powerManagerPlugin);
+            if (_powerManagerPlugin){
+                retStatus = _powerManagerPlugin->GetThermalState(temperature);
+            }
+            if (Core::ERROR_NONE == retStatus) {
+                LOGINFO("Current core temperature is : %f ",temperature);
+                resp = true;
+            } else {
+                LOGWARN("[%s] PWRMGR GetThermalState Call failed.", __FUNCTION__);
+            }
+            LOGINFO("core temperature is %.1f degrees centigrade\n",
                     temperature);
 #else
             temperature = -1;
@@ -3593,9 +3605,31 @@ namespace WPEFramework {
         {
             JsonObject value;
             float high = 0.0, critical = 0.0, temperature = 0.0;
-            bool resp1 = CThermalMonitor::instance()->getCoreTempThresholds(high, critical);
-            bool resp2 = CThermalMonitor::instance()->getCoreTemperature(temperature);
-            LOGWARN("Got current temperature thresholds: WARN: %f, MAX: %f, ret[resp1 = %d resp = %d]\n",
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+            bool resp1 = false;
+            bool resp2 = false;
+
+            ASSERT (_powerManagerPlugin);
+            if (_powerManagerPlugin){
+                retStatus = _powerManagerPlugin->GetTemperatureThresholds(high, critical);
+            }
+
+            if (Core::ERROR_NONE == retStatus) {
+                LOGINFO("Got current temperature thresholds: high: %f, critical: %f ", high, critical);
+                resp1 = true;
+                retStatus = _powerManagerPlugin->GetThermalState(temperature);
+            } else {
+                high = critical = 0;
+                LOGWARN("[%s] PwrMgr Call GetTemperatureThresholds failed.", __FUNCTION__);
+            }
+
+            if (Core::ERROR_NONE == retStatus) {
+                LOGINFO("GetThermalState Got current temperature %f", temperature);
+                resp2 = true;
+            } else {
+                LOGWARN("[%s] PwrMgr Call GetThermalState failed.", __FUNCTION__);
+            }
+            LOGINFO("Got current temperature thresholds: WARN: %f, MAX: %f, ret[resp1 = %d resp = %d]\n",
                     high, critical, resp1, resp2);
             if (resp1) {
                 value["WARN"] = to_string(high);
@@ -3622,7 +3656,9 @@ namespace WPEFramework {
             JsonObject args;
             float high = 0.0;
             float critical = 0.0;
-	    bool resp = false;
+            bool resp = false;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+
 	    if (parameters.HasLabel("thresholds")) {
 		    args.FromString(parameters["thresholds"].String());
 		    string warn = args["WARN"].String();
@@ -3631,13 +3667,23 @@ namespace WPEFramework {
 		    high = atof(warn.c_str());
 		    critical = atof(max.c_str());
 
-		    resp =  CThermalMonitor::instance()->setCoreTempThresholds(high, critical);
-		    LOGWARN("Set temperature thresholds: WARN: %f, MAX: %f\n", high, critical);
+		    ASSERT (_powerManagerPlugin);
+		    if (_powerManagerPlugin){
+		        retStatus = _powerManagerPlugin->SetTemperatureThresholds(high, critical);
+		    }
+
+		    if (Core::ERROR_NONE == retStatus) {
+		        resp = true;
+		    } else {
+		        LOGWARN("[%s] PwrMgr Call SetTemperatureThresholds failed.", __FUNCTION__);
+		    }
+		    LOGINFO("Set temperature thresholds: WARN: %f, MAX: %f resp: %d\n", high, critical,resp);
 	    } else {
 		    populateResponseWithError(SysSrv_MissingKeyValues, response);
 	    }
             returnResponse(resp);
         }
+
 
 	/***
          * @brief : To retrieve Overtemparature grace interval value.
@@ -3649,8 +3695,22 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             int graceInterval = 0;
-            bool resp = CThermalMonitor::instance()->getOvertempGraceInterval(graceInterval);
-            LOGWARN("Got current grace interval: %d ret[resp = %d]\n",
+            Core::hresult retStatus = Core::ERROR_GENERAL;
+            bool resp=false;
+
+            ASSERT (_powerManagerPlugin);
+            if (_powerManagerPlugin){
+                retStatus = _powerManagerPlugin->GetOvertempGraceInterval(graceInterval);
+            }
+
+            if (Core::ERROR_NONE == retStatus) {
+                LOGINFO("Got current overtemparature grace inetrval: %d", graceInterval);
+                resp = true;
+            } else {
+                graceInterval = 0;
+                LOGWARN("[%s] PwrMgr GetOvertempGraceInterval Call failed.", __FUNCTION__);
+            }
+            LOGINFO("Got current grace interval: %d ret[resp = %d]\n",
                     graceInterval, resp);
             if (resp) {
                 response["graceInterval"] = to_string(graceInterval);
@@ -3669,18 +3729,30 @@ namespace WPEFramework {
         {
             int graceInterval  = 0;
             bool resp = false;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             if (parameters.HasLabel("graceInterval")) {
                     string grace = parameters["graceInterval"].String();
 
                     graceInterval = atoi(grace.c_str());
 
-                    resp =  CThermalMonitor::instance()->setOvertempGraceInterval(graceInterval);
-                    LOGWARN("Set Grace Interval : %d\n", graceInterval);
+                    ASSERT (_powerManagerPlugin);
+                    if (_powerManagerPlugin){
+                        retStatus = _powerManagerPlugin->SetOvertempGraceInterval(graceInterval);
+                    }
+
+                    if (Core::ERROR_NONE == retStatus) {
+                        LOGINFO("Set new overtemparature grace interval: %d", graceInterval);
+                        resp = true;
+                    } else {
+                        LOGWARN("[%s] PwrMgr SetOvertempGraceInterval Call failed", __FUNCTION__);
+                    }
+                    LOGINFO("Set Grace Interval : %d\n", graceInterval);
             } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
             }
             returnResponse(resp);
         }
+
 #endif /* ENABLE_THERMAL_PROTECTION */
 
         /***
@@ -3881,19 +3953,19 @@ namespace WPEFramework {
         uint32_t SystemServices::enableXREConnectionRetention(const JsonObject& parameters,
                 JsonObject& response)
 	{
-		bool enable = false, retstatus = false;
+		bool enable = false, retStatus = false;
 		int status = SysSrv_Unexpected;
 		if (parameters.HasLabel("enable")) {
 			enable = parameters["enable"].Boolean();
 			if ((status = enableXREConnectionRetentionHelper(enable)) == SysSrv_OK) {
-				retstatus = true;
+				retStatus = true;
 			} else {
 				populateResponseWithError(status, response);
 			}
 		} else {
 			populateResponseWithError(SysSrv_MissingKeyValues, response);
 		}
-		returnResponse(retstatus);
+		returnResponse(retStatus);
 	}
 
         /***
@@ -5102,56 +5174,6 @@ namespace WPEFramework {
             returnResponse(true);
         }
 
-        uint32_t SystemServices::setPrivacyMode(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            string privacyMode = parameters["privacyMode"].String();
-
-            if (privacyMode != "SHARE" && privacyMode != "DO_NOT_SHARE")
-            {
-                LOGERR("Wrong privacyMode value: '%s'", privacyMode.c_str());
-                returnResponse(false);
-            }
-            
-            makePersistentDir();
-
-            ofstream optfile;
-    		
-            optfile.open(PRIVACY_MODE_FILE, ios::out);
-            if (optfile)
-            {
-                optfile << privacyMode;
-                optfile.close();
-            }
-
-            JsonObject params;
-            params["privacyMode"] = privacyMode;
-            sendNotify(EVT_ONPRIVACYMODECHANGED, params);
-
-            returnResponse(true);
-        }
-
-        uint32_t SystemServices::getPrivacyMode(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            string privacyMode = "";
-
-            string optOutStatus;
-
-            getFileContent(PRIVACY_MODE_FILE, privacyMode);
-            if (privacyMode != "SHARE" && privacyMode != "DO_NOT_SHARE")
-            {
-                LOGWARN("Wrong privacyMode value: '%s', returning default", privacyMode.c_str());
-                privacyMode = "SHARE";
-            }
-
-            response["privacyMode"] = privacyMode;
-
-            returnResponse(true);
-        }
-
         /***
          * @brief : To set the fsr flag into the emmc raw area.
          * @param1[in] : {"params":{"fsrFlag":<bool>}
@@ -5311,5 +5333,30 @@ namespace WPEFramework {
             }
         }//end of setMigrationStatus method
 
+        /**
+         * @brief : API to query MigrationStatus details
+         *
+         * @param1[in]  : {"params":{}}
+         * @param2[out] : "result":{<key>:<Migration Status Details>,"success":<bool>}
+         * @return      : Core::<StatusCode>
+        */
+       uint32_t SystemServices::getMigrationStatus(const JsonObject& parameters, JsonObject& response)
+       {
+           LOGINFOMETHOD();
+           bool status = false;
+           std::string migrationstatus;
+           RFC_ParamData_t param = {0};
+           WDMP_STATUS wdmpstatus = getRFCParameter((char*)"thunderapi", TR181_MIGRATIONSTATUS, &param);
+           if (WDMP_SUCCESS == wdmpstatus) {
+                migrationstatus = param.value;
+                LOGINFO("Current ENTOS Migration Status is: %s\n", migrationstatus.c_str());
+                response["MigrationStatus"] = migrationstatus;
+                status = true;
+            }
+            else {
+                LOGINFO("Failed to get RFC parameter for Migration Status \n");
+            }
+            returnResponse(status);
+       }
     } /* namespace Plugin */
 } /* namespace WPEFramework */

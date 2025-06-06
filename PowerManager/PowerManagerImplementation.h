@@ -222,7 +222,10 @@ namespace Plugin {
         bool m_networkStandbyModeValid;
         bool m_powerStateBeforeRebootValid;
 
-        mutable Core::CriticalSection _adminLock;
+        // lock to guard all apis of PowerManager
+        mutable Core::CriticalSection _apiLock;
+        // lock to guard all notification from PowerManager to clients and also their callback register & unregister
+        mutable Core::CriticalSection _callbackLock;
         Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> _engine;
         Core::ProxyType<RPC::CommunicatorClient> _communicatorClient;
         PluginHost::IShell* _controller;

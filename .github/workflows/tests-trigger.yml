@@ -8,6 +8,6 @@ on:
 
 jobs:
   trigger-verification:
-	uses: rdkcentral/entservices-deviceandisplay/.github/workflows/L1-tests.yml@feature/RDKEMW-3513-yml
+	uses: rdkcentral/entservices-deviceandisplay/.github/workflows/L1-tests.yml
 	with:
 	  message: "Hello from main workflow!"

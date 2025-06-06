@@ -2,12 +2,14 @@ name: main-workflow
 
 on:
   push:
-    branches: [ main, develop, 'sprint/**', 'release/**', feature/RDKEMW-3513-yml, develop ]
+    branches: [ main, develop, 'sprint/**', 'release/**', feature/RDKEMW-3513-yml ]
   pull_request:
     branches: [ main, develop, 'sprint/**', 'release/**' ]
 
 jobs:
   say-hello:
-     runs-on: ubuntu-22.04
-     steps:
-       - run: echo "Message: HELLO KK"
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Hello World
+        run: |
+           echo "Message: HELLO KK"

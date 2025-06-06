@@ -9,4 +9,4 @@ on:
 jobs:
   say-hello:
     runs-on: ubuntu-22.04
-    uses: ./L1-tests.yml
+    uses: ./L1-tests.yml@feature/RDKEMW-3513-yml

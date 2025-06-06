@@ -9,5 +9,8 @@ on:
 jobs:
   say-hello:
     runs-on: ubuntu-22.04
-    run: |
-      ./.github/workflows/L1-tests.yml
+    steps:
+      - name: Hello World
+        run: |
+           ./.github/workflows/L1-tests.yml
+

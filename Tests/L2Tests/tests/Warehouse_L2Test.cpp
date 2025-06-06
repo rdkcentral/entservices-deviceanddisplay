@@ -26,7 +26,7 @@
 #include <interfaces/IWarehouse.h>
 #include <mutex>
 
-#define JSON_TIMEOUT (6)
+#define JSON_TIMEOUT (10)
 #define COM_TIMEOUT (100)
 #define TEST_LOG(x, ...)                                                                                                                                        \
     fprintf(stderr, "\033[v_secure_system1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); \

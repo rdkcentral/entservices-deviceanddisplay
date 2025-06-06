@@ -7,7 +7,7 @@ on:
     branches: [ main, develop, 'sprint/**', 'release/**' ]
 
 jobs:
-  trigger-verification:
-	uses: .github/workflows/L1-tests.yml
-	with:
-	  message: "Hello from main workflow!"
+  say-hello:
+     runs-on: ubuntu-22.04
+     steps:
+       - run: echo "Message: HELLO KK"

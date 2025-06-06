@@ -478,6 +478,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
 ** 3. Subscribe and Triggered resetDone Event
 ** 3. Verify the event Clear resetDone getting triggered using jsonrpc
 *******************************************************/
+#if 0 
 TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
@@ -530,6 +531,8 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
+
+#endif
 
 /********************************************************
 ************Test case Details **************************

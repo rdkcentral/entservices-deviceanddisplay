@@ -9,4 +9,5 @@ on:
 jobs:
   say-hello:
     runs-on: ubuntu-22.04
-    uses: ./.github/workflows/L1-tests.yml
+    run: |
+      ./.github/workflows/L1-tests.yml

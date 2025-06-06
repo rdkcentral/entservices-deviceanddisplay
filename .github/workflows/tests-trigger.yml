@@ -7,7 +7,7 @@ on:
     branches: [ main, develop, 'sprint/**', 'release/**' ]
 
 jobs:
-  main-workflow:
-	uses: ./.github/workflows/L1-tests.yml@feature/RDKEMW-3513-yml
+  trigger-verification:
+	uses: rdkcentral/entservices-deviceandisplay/.github/workflows/L1-tests.yml@feature/RDKEMW-3513-yml
 	with:
 	  message: "Hello from main workflow!"

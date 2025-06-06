@@ -1,0 +1,16 @@
+name: main-workflow
+
+on:
+  push:
+    branches: [ main, develop, 'sprint/**', 'release/**' ]
+  pull_request:
+    branches: [ main, develop, 'sprint/**', 'release/**' ]
+
+jobs:
+  say-hello:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Hello World
+        run: |
+           ./.github/workflows/L1-tests.yml
+

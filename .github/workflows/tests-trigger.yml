@@ -9,10 +9,8 @@ on:
 jobs:
   say-hello:
     runs-on: ubuntu-22.04
+    uses: rdkcentral/entservices-deviceanddisplay/.github/workflows/L1-tests.yml@feature/RDKEMW-3513-yml
     steps:
       - name: Hello World
         run: |
            echo "Message: HELLO KK"
-
-      - name: Trigger L1
-        uses: rdkcentral/entservices-deviceanddisplay/.github/workflows/L1-tests.yml@feature/RDKEMW-3513-yml

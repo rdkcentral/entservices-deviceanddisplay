@@ -2,10 +2,6 @@ name: L1-tests
 
 on:
   workflow_call:
-    inputs:
-      message:
-        required: false
-        type: string
 
 env:
   BUILD_TYPE: Debug

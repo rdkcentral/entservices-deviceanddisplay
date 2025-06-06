@@ -1,10 +1,11 @@
 name: L1-tests
 
 on:
-  push:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
-  pull_request:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
+  workflow_call:
+    inputs:
+      message:
+        required: false
+        type: string
 
 env:
   BUILD_TYPE: Debug

@@ -113,7 +113,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: feature/RDK-yml-cleanup-TF
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
@@ -478,11 +478,6 @@ jobs:
           -DCMAKE_BUILD_TYPE=Debug
           -DDS_FOUND=ON
           -DHAS_FRONT_PANEL=ON
-          -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_FRAMERATE=ON
-          -DPLUGIN_USERPREFERENCES=ON
-          -DPLUGIN_WAREHOUSE=ON
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF

@@ -136,6 +136,13 @@ add_plugin_test_ex(PLUGIN_DEVICEDIAGNOSTICS tests/test_DeviceDiagnostics.cpp "${
 
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 
+set_source_files_properties(
+        tests/test_DeviceAudioCapabilities.cpp
+        tests/test_DeviceVideoCapabilities.cpp
+        tests/test_SystemServices.cpp
+        tests/test_Warehouse.cpp
+        PROPERTIES COMPILE_FLAGS "-fexceptions")
+
 if (RDK_SERVICES_L1_TEST)
    find_library(TESTMOCKLIB_LIBRARIES NAMES L1TestMocklib)
    if (TESTMOCKLIB_LIBRARIES)

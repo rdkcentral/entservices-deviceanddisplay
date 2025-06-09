@@ -409,8 +409,8 @@ namespace WPEFramework {
         void UserPreferences::Notification::OnVoiceGuidanceHintsChanged(const bool hints)  {
 
         }
-        void UserPreferences::Notification::AddRef() const {
-            
+        uint32_t UserPreferences::Notification::AddRef() const {
+            return 0;
         }
 
         uint32_t UserPreferences::Notification::Release() const {

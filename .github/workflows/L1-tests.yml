@@ -2,6 +2,9 @@ name: L1-tests
 
 on:
   workflow_call:
+    secrets:
+      RDKCM_RDKE:
+        required: true
 
 env:
   BUILD_TYPE: Debug

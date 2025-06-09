@@ -9,6 +9,6 @@ on:
 jobs:
   say-hello:
     uses: ./.github/workflows/L1-tests.yml
-    with:
-      token: ${{ secrets.RDKCM_RDKE }}
+    secrets:
+      RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
 

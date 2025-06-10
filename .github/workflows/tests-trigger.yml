@@ -7,8 +7,17 @@ on:
     branches: [ main, develop, 'sprint/**', 'release/**' ]
 
 jobs:
-  say-hello:
+  trigger-L1:
     uses: ./.github/workflows/L1-tests.yml
     secrets:
       RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
 
+  trigger-L2:
+    uses: ./.github/workflows/L2-tests.yml
+    secrets:
+      RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
+
+  trigger-L2-OOP:
+    uses: ./.github/workflows/L2-tests-oop.yml
+    secrets:
+      RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}

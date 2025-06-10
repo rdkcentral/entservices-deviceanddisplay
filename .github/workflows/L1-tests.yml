@@ -114,6 +114,7 @@ jobs:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
           ref: develop
+          token: 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
           #token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay

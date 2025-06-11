@@ -409,13 +409,6 @@ namespace WPEFramework {
         void UserPreferences::Notification::OnVoiceGuidanceHintsChanged(const bool hints)  {
 
         }
-        uint32_t UserPreferences::Notification::AddRef() const {
-            return 0;
-        }
-
-        uint32_t UserPreferences::Notification::Release() const {
-           return 0;
-        }
 
         //Begin methods
         uint32_t UserPreferences::getUILanguage(const JsonObject& parameters, JsonObject& response) {

@@ -54,9 +54,6 @@ namespace WPEFramework {
                     void OnVoiceGuidanceChanged(const bool enabled) override;
                     void OnVoiceGuidanceRateChanged(const double rate) override;
                     void OnVoiceGuidanceHintsChanged(const bool hints) override;
-                    uint32_t AddRef() const override;
-                    uint32_t Release() const override;
-                    
     
                 private:
                     UserPreferences* _parent;

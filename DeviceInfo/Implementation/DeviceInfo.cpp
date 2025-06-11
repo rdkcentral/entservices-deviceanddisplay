@@ -105,6 +105,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Sku(string& sku) const
     {
+        LOGINFO("ENTERING SKU TO GET device.properties");
         return (GetFileRegex(_T("/etc/device.properties"),
                     std::regex("^MODEL_NUM(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), sku)
                    == Core::ERROR_NONE)
@@ -159,25 +160,17 @@ namespace Plugin {
                 // as it doesnt comply with plugin spec. See RDKEMW-276
                 device_type = deviceType.c_str();
                 deviceType = (strcmp("mediaclient", device_type) == 0) ? "IpStb" :
-                    (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "TV";
+                    (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
             }
         }
         return result;
     }
 
-#if defined(MACHINE_SOC_NAME)
-#define xsocstr(s) lsocstr(s)
-#define lsocstr(s) #s
-#endif
 
     Core::hresult DeviceInfoImplementation::SocName(string& socName)  const
     {
-#if defined(MACHINE_SOC_NAME)
-        socName = xsocstr(MACHINE_SOC_NAME);
-        return Core::ERROR_NONE;
-#else
-        return Core::ERROR_GENERAL;
-#endif
+        return (GetFileRegex(_T("/etc/device.properties"),
+                std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), socName));
     }
 
     Core::hresult DeviceInfoImplementation::DistributorId(string& distributorId) const

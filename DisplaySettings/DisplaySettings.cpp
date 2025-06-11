@@ -95,6 +95,7 @@ bool isStbHDRcapabilitiesCache = false;
 static int  hdmiArcPortId = -1;
 static int retryPowerRequestCount = 0;
 static int  hdmiArcVolumeLevel = 0;
+static bool cec_cache_muted = false;
 bool audioPortInitActive = false;
 std::vector<int> sad_list;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
@@ -4366,7 +4367,7 @@ namespace WPEFramework {
                     	mode = aPort.getStereoMode(); //get Last User set stereo mode and set
 			if(pEnable) 
 			{
-                            if(m_hdmiInAudioDeviceConnected == true)
+                if(m_hdmiInAudioDeviceConnected == true)
 			    {
 			       if(m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_eARC)
 			       {  // EARC case
@@ -4378,6 +4379,19 @@ namespace WPEFramework {
 				  } else {
 				     LOGINFO("eARC is already enabled. Value of m_arcEarcAudioEnabled is %d: \n", m_arcEarcAudioEnabled);
 				  }
+                  //EARC MUTE
+                  LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
+                  #if 1
+                  if(cec_cache_muted)
+                  {
+                        LOGINFO("gsk:start:requestSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        //requestSetAudioMuteStatus();
+                        LOGINFO("gsk:end:requestSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        LOGINFO("gsk:DisplaySettings::setEnableAudioPort After EARC MUTE \n");
+                  }
+                  LOGWARN("gsk:DisplaySettings::setEnableAudioPort After ***NO*** EARC MUTE \n");
+                  #endif
+
 			       }/* EARC case end */
 			       else if (m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC) 
 			       {
@@ -5206,6 +5220,9 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("muteStatus") && parameters.HasLabel("volumeLevel")) {
                 hdmiArcVolumeLevel =  stoi(parameters["volumeLevel"].String());
+                /GSK EARC save the mute.
+                cec_cache_muted =  stoi(parameters["muteStatus"].String());
+                LOGINFO("gsk:cec_cache_muted: %d", cec_cache_muted);
             } else {
                 LOGERR("Field 'muteStatus' and 'volumeLevel' could not be found in the event's payload.");
             }

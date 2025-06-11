@@ -173,12 +173,8 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::SocName(string& socName)  const
     {
-#if defined(MACHINE_SOC_NAME)
-        socName = xsocstr(MACHINE_SOC_NAME);
-        return Core::ERROR_NONE;
-#else
-        return Core::ERROR_GENERAL;
-#endif
+        return (GetFileRegex(_T("/etc/device.properties"),
+                std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), socName));
     }
 
     uint32_t DeviceInfoImplementation::DistributorId(string& distributorId) const

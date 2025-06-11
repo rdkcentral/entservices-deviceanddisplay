@@ -5220,7 +5220,7 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("muteStatus") && parameters.HasLabel("volumeLevel")) {
                 hdmiArcVolumeLevel =  stoi(parameters["volumeLevel"].String());
-                /GSK EARC save the mute.
+                //GSK EARC save the mute.
                 cec_cache_muted =  stoi(parameters["muteStatus"].String());
                 LOGINFO("gsk:cec_cache_muted: %d", cec_cache_muted);
             } else {

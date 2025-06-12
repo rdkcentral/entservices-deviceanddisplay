@@ -263,6 +263,7 @@ namespace WPEFramework {
 	    bool setUpHdmiCecSinkArcRouting (bool arcEnable);
 	    bool requestShortAudioDescriptor();
             bool requestAudioDevicePowerStatus();
+        bool requestSetAudioMuteStatus();
 	    bool sendHdmiCecSinkAudioDevicePowerOn();
 	    bool getHdmiCecSinkCecEnableStatus();
 	    bool getHdmiCecSinkAudioDeviceConnectedStatus();

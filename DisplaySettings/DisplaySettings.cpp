@@ -532,6 +532,8 @@ namespace WPEFramework {
 
         const string DisplaySettings::Initialize(PluginHost::IShell* service)
         {
+
+            LOGINFO("DisplaySettings::Initialize HRB Entry ...\n");
 	    Exchange::ISystemMode* _remotStoreObject = nullptr;
             ASSERT(service != nullptr);
             ASSERT(m_service == nullptr);
@@ -580,6 +582,7 @@ namespace WPEFramework {
                     Utils::String::updateSystemModeFile( "DEVICE_OPTIMIZE", "callsign", "org.rdk.DisplaySettings","add") ;
             }
 
+            LOGINFO("DisplaySettings::Initialize HRB Completed...\n");
             // On success return empty, to indicate there is no error text.
             return (string());
         }

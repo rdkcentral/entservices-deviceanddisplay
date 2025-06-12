@@ -47,6 +47,7 @@ namespace Plugin {
     {
         string message;
 
+        LOGINFO("DisplayInfo::Initialize HRB Entry ...\n");
         ASSERT(service != nullptr);
         ASSERT(_service == nullptr);
         ASSERT(_connectionProperties == nullptr);
@@ -103,6 +104,7 @@ namespace Plugin {
             Deinitialize(service);
         }
 
+        LOGINFO("DisplayInfo::Initialize HRB Completed ...\n");
         return message;
     }
 

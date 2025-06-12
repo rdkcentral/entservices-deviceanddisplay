@@ -560,6 +560,8 @@ namespace WPEFramework {
 
         const string SystemServices::Initialize(PluginHost::IShell* service)
         {
+
+          LOGINFO("SystemServices::Initialize HRB Entry ...\n");
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
             InitializeIARM();
 #endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
@@ -610,6 +612,7 @@ namespace WPEFramework {
                 LOGINFO("Success Getting the friendly name value :%s \n",m_friendlyName.c_str());
             }
 
+            LOGINFO("SystemServices::Initialize HRB Completed ...\n");
             /* On Success; return empty to indicate no error text. */
             return (string());
         }

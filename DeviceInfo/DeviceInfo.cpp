@@ -48,7 +48,7 @@ namespace Plugin {
 
     /* virtual */ const string DeviceInfo::Initialize(PluginHost::IShell* service)
     {
-        LOGINFO("DeviceInfo::Initialize HRB Entry ...\n");
+        //LOGINFO("DeviceInfo::Initialize HRB Entry ...\n");
         ASSERT(_service == nullptr);
         ASSERT(service != nullptr);
 
@@ -72,7 +72,7 @@ namespace Plugin {
 
         // On success return empty, to indicate there is no error text.
 
-        LOGINFO("DeviceInfo::Initialize HRB Completed ...\n");
+        //LOGINFO("DeviceInfo::Initialize HRB Completed ...\n");
         return ((_subSystem != nullptr)
                    && (_deviceInfo != nullptr)
                    && (_deviceAudioCapabilities != nullptr)

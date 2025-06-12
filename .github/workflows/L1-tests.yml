@@ -343,6 +343,12 @@ jobs:
 
       - name: Build entservices-deviceanddisplay
         run: >
+          cd $GITHUB_WORKSPACE/entservices-deviceanddisplay
+          &&
+          git branch
+          &&
+          cd -
+          &&
           cmake -G Ninja
           -S "$GITHUB_WORKSPACE/entservices-deviceanddisplay"
           -B build/entservices-deviceanddisplay

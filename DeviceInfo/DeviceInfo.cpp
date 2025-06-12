@@ -19,6 +19,8 @@
 
 #include "DeviceInfo.h"
 #include <time.h>
+#include "UtilsLogging.h"
+#include "tracing/Logging.h"
 
 #define API_VERSION_NUMBER_MAJOR 1
 #define API_VERSION_NUMBER_MINOR 1

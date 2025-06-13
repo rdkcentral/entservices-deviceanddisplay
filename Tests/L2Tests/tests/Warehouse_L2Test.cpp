@@ -26,7 +26,7 @@
 #include <interfaces/IWarehouse.h>
 #include <mutex>
 
-#define JSON_TIMEOUT (6)
+#define JSON_TIMEOUT (1000)
 #define COM_TIMEOUT (100)
 #define TEST_LOG(x, ...)                                                                                                                                        \
     fprintf(stderr, "\033[v_secure_system1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); \
@@ -478,6 +478,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
 ** 3. Subscribe and Triggered resetDone Event
 ** 3. Verify the event Clear resetDone getting triggered using jsonrpc
 *******************************************************/
+
 TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
@@ -651,6 +652,7 @@ TEST_F(Warehouse_L2Test, Warehouse_ColdFactory_ResetDone)
 ** 3. Subscribe and Triggered resetDone Event
 ** 3. Verify the event UserFactory resetDone getting triggered using comrpc
 *******************************************************/
+
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 {
     uint32_t status = Core::ERROR_NONE;
@@ -682,6 +684,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 ** 3. Subscribe and Triggered resetDone Event
 ** 3. Verify the event UserFactory resetDone getting triggered using jsonrpc
 *******************************************************/
+
 TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);

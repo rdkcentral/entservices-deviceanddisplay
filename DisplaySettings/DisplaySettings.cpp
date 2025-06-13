@@ -4327,7 +4327,7 @@ namespace WPEFramework {
             if ((getServiceState(m_service, HDMICECSINK_CALLSIGN, state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED)) {
                 LOGINFO("%s is active", HDMICECSINK_CALLSIGN);
                 getHdmiCecSinkPlugin();
-                LOGINFO("*****debug*****\n");
+                LOGINFO("*****debug1*****\n");
                 if (!m_client) {
                     LOGERR("HdmiCecSink plugin not accessible\n");
                 }
@@ -4339,19 +4339,19 @@ namespace WPEFramework {
                     param["keyCode"] = 0x43;
                     //logicalAddress = param["logicalAddress"].String();
                     //keyCode = param["keyCode"].String();
-                    LOGINFO("*****debug*****\n");
-                    //LOGINFO("Requesting EARC Set mute with  parameters: logicalAddress = 0x%d, keyCode = 0x%d \n", param["logicalAddress"].String().c_str(), param["keyCode"].String().c_str());
+                    LOGINFO("*****debug2*****\n");
+                    LOGINFO("Requesting EARC Set mute with  parameters: logicalAddress = %s, keyCode = %s \n", param["logicalAddress"].String().c_str(), param["keyCode"].String().c_str());
                     //LOGINFO("Requesting EARC Set mute with  parameters: logicalAddress = %s, keyCode = %s \n", logicalAddress.c_str(), keyCode.c_str());
                     {
                         Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
                         m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressedWrapper", param, hdmiCecSinkResult);
                     }
-                    LOGINFO("*****debug*****\n");
+                    LOGINFO("*****debug3*****\n");
                     if (!hdmiCecSinkResult["success"].Boolean()) {
                         success = false;
                         LOGERR("HdmiCecSink Plugin returned error\n");
                     }
-                    LOGINFO("*****debug*****\n");
+                    LOGINFO("*****debug4*****\n");
                 }
             }
             else {
@@ -4902,6 +4902,13 @@ void DisplaySettings::sendMsgThread()
 					result = DisplaySettings::_instance->setUpHdmiCecSinkArcRouting(false);
 				}
                 break;
+
+                case SEND_AUDIO_DEVICE_MUTE_MSG:
+				{
+					LOGINFO(" Send request for ARC to mute");
+					//gsk need to call the requestSetAudioMuteStatus();
+				}
+                break;
 		
 				default:
 				{
@@ -5366,6 +5373,19 @@ void DisplaySettings::sendMsgThread()
 			    // Notify UI that Audio device is connected and is in ON state
                             LOGINFO("Triggered from HPD: eARC audio device power on: Notify UI !!! \n");
                             connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, true);
+                //gsk Call the mute status.
+                //EARC MUTE
+                  LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
+                  #if 1
+                  if(cec_cache_muted)
+                  {
+                        LOGINFO("gsk:start:requestSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        requestSetAudioMuteStatus();
+                        LOGINFO("gsk:end:requestSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        LOGINFO("gsk:DisplaySettings::setEnableAudioPort After EARC MUTE \n");
+                  }
+                  LOGWARN("gsk:DisplaySettings::setEnableAudioPort After ***NO*** EARC MUTE \n");
+                  #endif
 			} else {
 				LOGINFO("arc already enabled m_arcEarcAudioEnabled =%d", m_arcEarcAudioEnabled);
 			}

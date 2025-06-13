@@ -35,16 +35,16 @@ typedef enum _PWRMgr_ThermalState_t {
     PWRMGR_TEMPERATURE_CRITICAL
 } PWRMgr_ThermalState_t;
 
-class ThermalImpl : public hal::Thermal::IPlatform {
+class ThermalMfrImpl : public hal::Thermal::IPlatform {
     using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
     // delete copy constructor and assignment operator
-    ThermalImpl(const ThermalImpl&) = delete;
-    ThermalImpl& operator=(const ThermalImpl&) = delete;
+    ThermalMfrImpl(const ThermalMfrImpl&) = delete;
+    ThermalMfrImpl& operator=(const ThermalMfrImpl&) = delete;
 
 public:
-    ThermalImpl() = default;
-    ~ThermalImpl() = default;
+    ThermalMfrImpl() = default;
+    ~ThermalMfrImpl() = default;
 
     ThermalTemperature conv(PWRMgr_ThermalState_t state) const
     {

@@ -130,7 +130,11 @@ static constexpr int DECLOCK_GRACE_INTERVAL = 60;
     using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
     using IPlatform = hal::Thermal::IPlatform;
     using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
+#ifdef MFR_TEMP_CLOCK_READ
+    using DefaultImpl = ThermalMfrImpl;
+#else
     using DefaultImpl = ThermalImpl;
+#endif
 
 private:
     std::shared_ptr<IPlatform> _platform;
@@ -193,6 +197,7 @@ private:
     }
 
     INotification& _parent;
+    bool _stopThread;
 
     void initializeThermalProtection();
     bool isThermalProtectionEnabled();

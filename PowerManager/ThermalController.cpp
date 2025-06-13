@@ -27,12 +27,14 @@ ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPl
     : _platform(std::move(platform))
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
     ,_parent(parent)
+    ,_stopThread(true)
 {
     initializeThermalProtection();
 }
 
 ThermalController::~ThermalController()
 {
+    _stopThread = true;
     if ( nullptr != thermalThreadId )
     {
         if (thermalThreadId->joinable())
@@ -147,6 +149,8 @@ void ThermalController::initializeThermalProtection()
             LOGINFO("*****Critical*** Fails to set temperature thresholds.. ");
         }
 
+        _stopThread = false;
+
         thermalThreadId = new std::thread(&ThermalController::_PollThermalLevels, this);
 
         if (nullptr == thermalThreadId )
@@ -245,7 +249,6 @@ void ThermalController::deepSleepIfNeeded()
     {
         logThermalShutdownReason();
         LOGINFO("Going to deepsleep since the temperature is above %d", deepsleepThreshold.critical);
-        v_secure_system("/lib/rdk/alertSystem.sh pwrMgrMain \"Going to deepsleep due to temperature runaway\"");
         _parent.onDeepSlepForThermalChange();
     }
     else if (!deepSleepZone && m_cur_Thermal_Value >= deepsleepThreshold.concern)
@@ -269,7 +272,6 @@ void ThermalController::deepSleepIfNeeded()
             logThermalShutdownReason();
             LOGINFO("Going to deepsleep since the temperature reached %d and stayed above %d for %d seconds",
                 deepsleepThreshold.concern, deepsleepThreshold.safe, deepsleepThreshold.graceInterval);
-            v_secure_system("/lib/rdk/alertSystem.sh pwrMgrMain \"Going to deepsleep due to over temperature\"");
             _parent.onDeepSlepForThermalChange();
         }
         else {
@@ -384,7 +386,7 @@ void ThermalController::_PollThermalLevels()
 
     LOGINFO("Enter - Start monitoring temeperature every %d seconds log interval: %d", thermal_poll_interval, thermalLogInterval);
 
-    while(TRUE)
+    while(!_stopThread)
     {
         uint32_t result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
         if(WPEFramework::Core::ERROR_NONE == result)

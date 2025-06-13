@@ -51,7 +51,7 @@ if(PLUGIN_USERPREFERENCES)
 endif()
 
 if(PLUGIN_POWERMANAGER)
-    set(SRC_FILES ${SRC_FILES} tests/PowerManager_L2Test.cpp)
+    set(SRC_FILES ${SRC_FILES} tests/test_PowerManager.cpp)
 endif()
 
 add_library(${MODULE_NAME} SHARED ${SRC_FILES})
@@ -94,6 +94,7 @@ target_include_directories(
     ../../../entservices-testframework/Tests/mocks/devicesettings
     ../../../entservices-testframework/Tests/mocks/MockPlugin
     ../../../entservices-testframework/Tests/L2Tests/L2TestsPlugin
+    ../../../entservices-deviceanddisplay/PowerManager
     ${CMAKE_INSTALL_PREFIX}/include
     )
 

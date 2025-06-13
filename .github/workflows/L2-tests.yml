@@ -88,8 +88,8 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
-          token: ${{ secrets.RDKCM_RDKE }}
+          ref: 50374568bcddbd609b7bafd6017b9734508a1b88
+          # token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Apply patches ThunderTools
         run: |  
@@ -143,7 +143,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: ${{env.INTERFACES_REF}}
+          ref: b10ae27da948d345270d9926dc54dbb046ef29df
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
       - name: Apply patches entservices-apis
@@ -253,7 +253,12 @@ jobs:
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DCMAKE_CXX_FLAGS="
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers"
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfr_temperature.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/plat_power.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfrTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/deepSleepMgr.h"
           &&
           cmake --build build/mocks -j8
           &&
@@ -326,6 +331,10 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds/dsUtl.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/essos-resmgr.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/rdk_logger_milestone.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfr_temperature.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/plat_power.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfrTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/deepSleepMgr.h
           -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink
           -DUSE_IARMBUS
@@ -346,7 +355,7 @@ jobs:
           -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
-          -DPLUGIN_DISPLAYSETTINGS=ON
+          -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_WAREHOUSE=ON
           -DUSE_THUNDER_R4=ON
           -DPLUGIN_L2Tests=ON
@@ -405,6 +414,10 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvTypes.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/essos-resmgr.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/rdk_logger_milestone.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfr_temperature.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/plat_power.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfrTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/deepSleepMgr.h
           -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -DUSE_IARMBUS
           -DENABLE_ERM
@@ -423,7 +436,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DPLUGIN_SYSTEMSERVICES=OFF
           -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_DISPLAYSETTINGS=ON
+          -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_AVINPUT=OFF

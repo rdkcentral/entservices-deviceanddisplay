@@ -113,8 +113,9 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
-          token: ${{ secrets.RDKCM_RDKE }}
+          ref: de805a149ee1635cbc7d1c7f51462bb4267cde83
+          # ref: develop
+          # token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
         uses: actions/checkout@v3
@@ -176,7 +177,8 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: ${{env.INTERFACES_REF}}
+          ref: b10ae27da948d345270d9926dc54dbb046ef29df
+          # ref: ${{env.INTERFACES_REF}}
           #token : ${{ secrets.RDKCM_RDKE }}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
@@ -264,6 +266,7 @@ jobs:
           systemaudioplatform.h
           gdialservice.h
           gdialservicecommon.h
+          deepSleepMgr.h
           &&
           cp -r /usr/include/gstreamer-1.0/gst /usr/include/glib-2.0/* /usr/lib/x86_64-linux-gnu/glib-2.0/include/* /usr/local/include/trower-base64/base64.h .
 
@@ -318,6 +321,10 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfr_temperature.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/plat_power.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfrTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/deepSleepMgr.h
           --coverage
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,pclose -Wl,-wrap,setmntent -Wl,-wrap,getmntent
@@ -375,6 +382,10 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/wpa_ctrl_mock.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfr_temperature.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/plat_power.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfrTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/deepSleepMgr.h
           --coverage
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,pclose -Wl,-wrap,setmntent -Wl,-wrap,getmntent
@@ -401,8 +412,8 @@ jobs:
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
-          -DPLUGIN_USERPREFERENCES=ON
+          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
+          -DPLUGIN_USERPREFERENCES=OFF
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEINFO=OFF
           -DPLUGIN_DISPLAYINFO=OFF
@@ -455,6 +466,10 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/readprocMockInterface.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/thunder/Communicator.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfr_temperature.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/plat_power.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/mfrTypes.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/deepSleepMgr.h
           --coverage
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog
@@ -480,9 +495,9 @@ jobs:
           -DHAS_FRONT_PANEL=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_FRAMERATE=ON
-          -DPLUGIN_USERPREFERENCES=ON
+          -DPLUGIN_USERPREFERENCES=OFF
           -DPLUGIN_WAREHOUSE=ON
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
+          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF

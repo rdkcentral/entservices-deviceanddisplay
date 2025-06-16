@@ -98,7 +98,7 @@ cp -r $WORKSPACE/deps/rdk/iarmmgrs-emulator/ir/*.so $WORKSPACE/deps/rdk/iarmmgrs
 
 echo "Entering directory $PWD"
 cp $SCRIPTS_DIR/env.sh $WORKSPACE/env.sh
-cp $SCRIPTS_DIR/invokeEnv.sh $WORKSPACE/deps/rdk/env.sh
+# cp $SCRIPTS_DIR/invokeEnv.sh $WORKSPACE/deps/rdk/env.sh
 cd $WORKSPACE
 set -e #exit on error
 source ./env.sh

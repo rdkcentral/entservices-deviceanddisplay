@@ -4318,7 +4318,7 @@ namespace WPEFramework {
         }
 
         //GSK 
-        bool DisplaySettings::requestSetAudioMuteStatus()
+        bool DisplaySettings::sendSetAudioMuteStatus()
         {
             bool success = true;
             //string keyCode, logicalAddress;
@@ -4358,6 +4358,8 @@ namespace WPEFramework {
                 success = false;
                 LOGERR("HdmiCecSink plugin not ready\n");
             }
+            //cec_cache_muted = false;
+            //LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus After EARC MUTE set: cec_cache_muted=%d \n", cec_cache_muted);
             LOGINFO("*****end*****\n");
             return success;
         }
@@ -4909,6 +4911,14 @@ void DisplaySettings::sendMsgThread()
 					//gsk need to call the requestSetAudioMuteStatus();
 				}
                 break;
+                
+                case SEND_AUDIO_DEVICE_MUTE_MSG:
+				{
+					LOGINFO(" Send request for ARC to mute");
+					//gsk need to call the sendSetAudioMuteStatus();
+                    result = DisplaySettings::_instance->sendSetAudioMuteStatus();
+				}
+                break;
 		
 				default:
 				{
@@ -5375,13 +5385,13 @@ void DisplaySettings::sendMsgThread()
                             connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, true);
                 //gsk Call the mute status.
                 //EARC MUTE
-                  LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
-                  #if 1
+                  //LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
+                  #if 0
                   if(cec_cache_muted)
                   {
-                        LOGINFO("gsk:start:requestSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
-                        requestSetAudioMuteStatus();
-                        LOGINFO("gsk:end:requestSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        LOGINFO("gsk:start:sendSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        //sendSetAudioMuteStatus();
+                        LOGINFO("gsk:end:sendSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
                         LOGINFO("gsk:DisplaySettings::setEnableAudioPort After EARC MUTE \n");
                   }
                   LOGWARN("gsk:DisplaySettings::setEnableAudioPort After ***NO*** EARC MUTE \n");
@@ -5428,6 +5438,25 @@ void DisplaySettings::sendMsgThread()
 		   if (m_arcEarcAudioEnabled == false) {
                        LOGINFO("Triggered from HPD: eARC audio device power on: Notify UI !!! \n");
                        connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, true);
+                //gsk Call the mute status.
+                //EARC MUTE
+                  LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
+                  #if 1
+                  if(cec_cache_muted)
+                  {
+                        LOGINFO("gsk:start: sendMsgToQueue SEND_AUDIO_DEVICE_MUTE_MSG AKA sendSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        //sendSetAudioMuteStatus();
+                        sendMsgToQueue(SEND_AUDIO_DEVICE_MUTE_MSG, NULL);
+                        LOGINFO("gsk:end: sendMsgToQueue SEND_AUDIO_DEVICE_MUTE_MSG AKA sendSetAudioMuteStatus() to HDMICEC_SINK plugin\n");
+                        LOGINFO("gsk:DisplaySettings::onAudioDevicePowerStatusEventHandler After EARC MUTE \n");
+                        //cec_cache_muted = 0;
+                        //LOGINFO("gsk:DisplaySettings::onAudioDevicePowerStatusEventHandler After EARC MUTE \n");
+                  }
+                  else {
+
+                        LOGINFO("gsk:DisplaySettings::onAudioDevicePowerStatusEventHandler  eARC MUTE  cec_cache_muted=%d\n", cec_cache_muted);
+                  }
+                  #endif
 		   } else {
 		       LOGINFO("Arc enabled already m_arcEarcAudioEnabled =%d", m_arcEarcAudioEnabled);
 		   }

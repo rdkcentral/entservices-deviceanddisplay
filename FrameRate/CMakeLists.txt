@@ -68,18 +68,7 @@ if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
 
-# find_package(IARMBus)
-# if (DEFINED IARMBUS_FOUND AND IARMBUS_FOUND)
-#     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
-#     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
-# elseif (DEFINED IARMBus_FOUND AND IARMBus_FOUND)
-#     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBus_INCLUDE_DIRS})
-#     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBus_LIBRARIES})
-# else ()
-#     message(FATAL_ERROR "Failed to find required IARMBus package.")
-# endif ()
-
-# TODO: fix this logical issue with IARMBus
+# TODO: fix this logical issue at else case with IARMBus
 find_package(IARMBus)
 if (IARMBus_FOUND)
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})

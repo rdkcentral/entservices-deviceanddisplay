@@ -198,7 +198,7 @@ class PowerImpl : public hal::power::IPlatform {
             return "DEEP_SLEEP";
         case PWRMGR_POWERSTATE_MAX:
         default:
-            LOGERR("Unkown PowerState: %d", state);
+            LOGERR("Unknown PowerState: %d", state);
             return "UNKNOWN";
         }
     }
@@ -207,22 +207,21 @@ class PowerImpl : public hal::power::IPlatform {
     {
         pmStatus_t result = PLAT_API_SetWakeupSrc(conv(wakeSrcType), enabled);
 
-        supported = (result >= 0);
+        supported = !(result > 0);
 
         uint32_t retCode = conv(result);
 
         LOGINFO("wakeSrc: %s, enabled: %d, supported: %d, result: %s, retCode: %d",
             str(conv(wakeSrcType)), enabled, supported, str(result), retCode);
 
-        // IARM PwrMgr never returns failure, wrong but then unifying the behaviour
-        return WPEFramework::Core::ERROR_NONE;
+        return retCode;
     }
 
     uint32_t GetWakeupSrc(WakeupSrcType wakeSrcType, bool& enabled, bool& supported) const
     {
         pmStatus_t result = PLAT_API_GetWakeupSrc(conv(wakeSrcType), &enabled);
 
-        supported = (result >= 0);
+        supported = !(result > 0);
 
         uint32_t retCode = conv(result);
 
@@ -315,10 +314,9 @@ public:
 
         for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
             WakeupSrcType wakeupSrc = (WakeupSrcType)mask;
+
             bool supported = false, enabled = false;
-
             uint32_t result = GetWakeupSrc(wakeupSrc, enabled, supported);
-
             if (WPEFramework::Core::ERROR_NONE == result) {
                 // success
                 wakeupSrcMasks |= wakeupSrc;
@@ -329,19 +327,20 @@ public:
                     // disabled
                     config &= ~wakeupSrc;
                 }
-            } else if (supported) {
+            } else if (!supported) {
                 // not supported
                 wakeupSrcMasks &= ~wakeupSrc;
             } else {
-                // failed, latch failed status (for prints)
+                // failed, latch failed status
                 failed = true;
             }
         }
         powerMode = _powerMode;
+        uint32_t retCode = failed ? WPEFramework::Core::ERROR_GENERAL : WPEFramework::Core::ERROR_NONE;
 
-        LOGINFO("PowerMode: %d, config: %d, src: %d, any failed = %d", powerMode, config, wakeupSrcMasks, failed);
+        LOGINFO("PowerMode: %d, config: %d, src: %d, retCode: %d", powerMode, config, wakeupSrcMasks, retCode);
 
-        return WPEFramework::Core::ERROR_NONE;
+        return retCode;
     }
 
 private:

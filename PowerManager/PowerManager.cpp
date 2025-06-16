@@ -51,13 +51,13 @@ namespace WPEFramework
     PowerManager::PowerManager() : _service(nullptr), _connectionId(0), _powerManager(nullptr), _powermanagersNotification(this)
     {
         SYSLOG(Logging::Startup, (_T("PowerManager Constructor")));
-        LOGINFO("ctor");
+        LOGINFO("CTOR");
     }
 
     PowerManager::~PowerManager()
     {
         SYSLOG(Logging::Shutdown, (string(_T("PowerManager Destructor"))));
-        LOGINFO("dtor");
+        LOGINFO("DTOR");
     }
 
     const string PowerManager::Initialize(PluginHost::IShell* service)

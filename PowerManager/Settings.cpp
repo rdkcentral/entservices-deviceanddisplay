@@ -144,12 +144,12 @@ public:
     }
 };
 
-using DefaultSettings = SettingsV1;
+using DefaultSettingsVersion = SettingsV1;
 
 // Create initial settings
 void Settings::initDefaults()
 {
-    DefaultSettings::initDefaults(*this);
+    DefaultSettingsVersion::initDefaults(*this);
 }
 
 Settings Settings::Load(const std::string& path)
@@ -194,21 +194,32 @@ Settings Settings::Load(const std::string& path)
             settings.save(fd);
         }
 
-#ifdef PLATCO_BOOTTO_STANDBY
-        if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-            settings._powerState = PowerState::POWER_STATE_STANDBY;
-        }
-#endif
-
         fsync(fd);
         close(fd);
     }
+
+    if (!ok) {
+        LOGERR("Failed to load settings file");
+
+#ifdef PLATCO_BOOTTO_STANDBY
+        // If we are in boot to standby mode, set powerState to standby
+        if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
+            LOGINFO("Boot to standby mode detected, setting powerState to UNKNOWN since PowerManager plugin was restarted");
+            settings._powerState = PowerState::POWER_STATE_UNKNOWN;
+        } else {
+            LOGINFO("PowerManager Plugin was restarted");
+        }
+#endif
+    }
+
+    settings._powerStateBeforeReboot = settings._powerState;
+
     return settings;
 }
 
 bool Settings::save(int fd)
 {
-    return DefaultSettings::Save(fd, *this);
+    return DefaultSettingsVersion::Save(fd, *this);
 }
 
 bool Settings::Save(const std::string& path)

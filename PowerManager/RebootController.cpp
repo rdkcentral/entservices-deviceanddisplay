@@ -35,8 +35,7 @@
 
 using Timestamp = std::chrono::steady_clock::time_point;
 using TimestampSec = std::chrono::time_point<std::chrono::steady_clock, std::chrono::seconds>;
-
-#define HEARTBEAT_INTERVAL_SEC 300
+static constexpr const int HEARTBEAT_INTERVAL_SEC = 300;
 
 RebootController::RebootController(const Settings& settings)
     : _workerPool(WPEFramework::Core::WorkerPool::Instance())
@@ -72,7 +71,8 @@ void RebootController::heartbeatMsg()
 {
     time_t curr = 0;
     time(&curr);
-    LOGINFO("POWER Mgr: HeartBeat at %s", ctime(&curr));
+
+    LOGINFO("PowerManager plugin: HeartBeat at %s", ctime(&curr));
 
     if (!_rfcUpdated) {
         bool enabled = isStandbyRebootEnabled();
@@ -110,9 +110,7 @@ void RebootController::heartbeatMsg()
         }
     }
 
-    _workerPool.Schedule(
-        WPEFramework::Core::Time::Now().Add(300 * 1000),
-        _heartbeatJob);
+    scheduleHeartbeat();
 }
 
 int RebootController::fetchRFCValueInt(const char* key)

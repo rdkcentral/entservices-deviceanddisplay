@@ -29,12 +29,14 @@
 #include "secure_wrapper.h" // for v_secure_system
 
 #include "PowerController.h"
+#include "PowerUtils.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using IPlatform = hal::power::IPlatform;
 using DefaultImpl = PowerImpl;
+using util = PowerUtils;
 
 PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr<IPlatform> platform)
     : _platform(std::move(platform))
@@ -53,12 +55,10 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     // Settings initialization will never fail
     // It will either be deserialized from file or initialized to default values
     int wakeupSrcConfig = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_LAN;
-    int wakeupSrcValue = 0;
-    if (_settings.nwStandbyMode()) {
-        wakeupSrcValue |= WakeupSrcType::WAKEUP_SRC_WIFI;
-        wakeupSrcValue |= WakeupSrcType::WAKEUP_SRC_LAN;
-    }
+    int wakeupSrcValue = _settings.nwStandbyMode() ? wakeupSrcConfig : 0;
     this->platform().SetWakeupSrcConfig(0, wakeupSrcConfig, wakeupSrcValue);
+
+    init();
 }
 
 void PowerController::init()
@@ -76,6 +76,41 @@ void PowerController::init()
 
     // settings already loaded in constructor
     _lastKnownPowerState = _settings.powerState();
+
+    LOGINFO("Settings on init powerState: %s, powerStateBeforeReboot: %s, networkStandbyMode: %s, deepSleepTimeout: %d",
+        util::str(_settings.powerState()),
+        util::str(_settings.powerStateBeforeReboot()),
+        _settings.nwStandbyMode() ? "Enabled" : "Disabled",
+        _settings.deepSleepTimeout());
+
+    do {
+        // Sync power state with platform
+        PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
+        PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
+
+        uint32_t errorCode = GetPowerState(currentState, prevState);
+
+        if (WPEFramework::Core::ERROR_NONE != errorCode) {
+            LOGINFO("Failed to get current power state from platform: %u", errorCode);
+            break;
+        }
+
+        if (_settings.powerState() == currentState) {
+            LOGINFO("Bootup powerState is already in sync with hardware: %s", util::str(currentState));
+            break;
+        }
+
+        errorCode = SetPowerState(0, _settings.powerState(), "Initialization");
+        if (WPEFramework::Core::ERROR_NONE == errorCode) {
+            break;
+        }
+
+        LOGINFO("Bootup failed to sync powerState with hardware, update settings file to powerState: %s",
+            util::str(currentState));
+
+        _settings.SetPowerState(currentState);
+        _settings.Save(m_settingsFile);
+    } while (false);
 }
 
 void PowerController::invokeDeepSleep()
@@ -126,6 +161,11 @@ uint32_t PowerController::SetNetworkStandbyMode(const bool standbyMode)
         LOGINFO("Network Standby mode is already set to %s", standbyMode ? "Enabled" : "Disabled");
         return WPEFramework::Core::ERROR_NONE;
     }
+
+    int wakeupSrcConfig = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_LAN;
+    int wakeupSrcValue = standbyMode ? wakeupSrcConfig : 0;
+
+    this->platform().SetWakeupSrcConfig(0, wakeupSrcConfig, wakeupSrcValue);
 
     _settings.SetNwStandbyMode(standbyMode);
 

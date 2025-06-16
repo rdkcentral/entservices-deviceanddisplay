@@ -34,6 +34,7 @@ class Settings {
     static constexpr const char* kSettingsFilePath = "/opt/uimgr_settings.bin";
     static constexpr const int kDeepSleepTimeoutSec = 8 * 60 * 60; // 8 hours
 
+    // Common header across all settings versions
     typedef struct _header_t {
         uint32_t magic;
         uint32_t version;

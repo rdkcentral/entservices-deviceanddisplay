@@ -68,7 +68,7 @@ jobs:
 
       - name: ACK External Trigger
         run: |
-           echo "Message: HELLO KK External Trigger Recieved"
+           echo "Message: HELLO KK External Trigger Recieved for L1 Tests"
 
       - name: Set up CMake
         uses: jwlawson/actions-setup-cmake@v1.13

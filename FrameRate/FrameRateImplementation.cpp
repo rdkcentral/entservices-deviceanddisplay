@@ -276,7 +276,7 @@ namespace WPEFramework
                 if (videoDevices.size() == 0)
                 {
                     LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
+                    return Core::ERROR_NOT_SUPPORTED;
                 }
 
                 char sFramerate[32] = {0};
@@ -316,7 +316,7 @@ namespace WPEFramework
                 if (videoDevices.size() == 0)
                 {
                     LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
+                    return Core::ERROR_NOT_SUPPORTED;
                 }
                 device::VideoDevice& device = videoDevices.at(0);
                 if (!device.getFRFMode(&autoFRMMode))
@@ -392,7 +392,7 @@ namespace WPEFramework
                 if (videoDevices.size() == 0)
                 {
                     LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
+                    return Core::ERROR_NOT_SUPPORTED;
                 }
                 device::VideoDevice& device = videoDevices.at(0);
                 if (!device.setDisplayframerate(sFramerate.c_str()))
@@ -432,7 +432,7 @@ namespace WPEFramework
                 if (videoDevices.size() == 0)
                 {
                     LOGERR("No video devices available.");
-                    return Core::ERROR_GENERAL;
+                    return Core::ERROR_NOT_SUPPORTED;
                 }
                 device::VideoDevice& device = videoDevices.at(0);
                 if (!device.setFRFMode(frmmode))

@@ -569,7 +569,7 @@ jobs:
           LD_LIBRARY_PATH=$GITHUB_WORKSPACE/install/usr/lib:$GITHUB_WORKSPACE/install/usr/lib/wpeframework/plugins:${LD_LIBRARY_PATH}
           valgrind
           --tool=memcheck
-          --log-file=valgrind_log
+          --log-file=valgrind_log_L2_oop
           --leak-check=yes
           --show-reachable=yes
           --track-fds=yes
@@ -614,7 +614,7 @@ jobs:
           name: artifacts
           path: |
             coverage/
-            valgrind_log
+            valgrind_log_L2_oop
             rdkL2TestResultsWithoutValgrind.json
             rdkL2TestResultsWithValgrind.json
           if-no-files-found: warn

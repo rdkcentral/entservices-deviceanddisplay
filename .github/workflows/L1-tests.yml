@@ -622,7 +622,7 @@ jobs:
           GTEST_OUTPUT="json:$(pwd)/rdkL1TestResults.json"
           valgrind
           --tool=memcheck
-          --log-file=valgrind_log
+          --log-file=valgrind_log_L1
           --leak-check=yes
           --show-reachable=yes
           --track-fds=yes
@@ -663,7 +663,7 @@ jobs:
           name: artifacts
           path: |
             coverage/
-            valgrind_log
+            valgrind_log_L1
             rdkL1TestResultsWithoutValgrind.json
             rdkL1TestResultsWithValgrind.json
           if-no-files-found: warn

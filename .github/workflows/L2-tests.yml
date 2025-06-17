@@ -575,7 +575,7 @@ jobs:
           PATH=$GITHUB_WORKSPACE/install/usr/bin:${PATH}
           LD_LIBRARY_PATH=$GITHUB_WORKSPACE/install/usr/lib:$GITHUB_WORKSPACE/install/usr/lib/wpeframework/plugins:${LD_LIBRARY_PATH}
           RdkServicesL2Test &&
-          cp -rf $(pwd)/rdkL2TestResults.json $GITHUB_WORKSPACE/rdkL2TestResultsWithoutValgrind.json &&
+          cp -rf $(pwd)/rdkL2TestResults.json $GITHUB_WORKSPACE/rdkL2TestResultsWithoutValgrind_L2.json &&
           rm -rf $(pwd)/rdkL2TestResults.json
 
       - name: Run unit tests with valgrind
@@ -585,13 +585,13 @@ jobs:
           LD_LIBRARY_PATH=$GITHUB_WORKSPACE/install/usr/lib:$GITHUB_WORKSPACE/install/usr/lib/wpeframework/plugins:${LD_LIBRARY_PATH}
           valgrind
           --tool=memcheck
-          --log-file=valgrind_log_L2
+          --log-file=valgrind_log
           --leak-check=yes
           --show-reachable=yes
           --track-fds=yes
           --fair-sched=try
           RdkServicesL2Test &&
-          cp -rf $(pwd)/rdkL2TestResults.json $GITHUB_WORKSPACE/rdkL2TestResultsWithValgrind.json &&
+          cp -rf $(pwd)/rdkL2TestResults.json $GITHUB_WORKSPACE/rdkL2TestResultsWithValgrind_L2.json &&
           rm -rf $(pwd)/rdkL2TestResults.json
 
       - name: Generate coverage
@@ -629,8 +629,8 @@ jobs:
           name: artifacts
           path: |
             coverage/
-            valgrind_log_L2
-            rdkL2TestResultsWithoutValgrind.json
-            rdkL2TestResultsWithValgrind.json
+            valgrind_log
+            rdkL2TestResultsWithoutValgrind_L2.json
+            rdkL2TestResultsWithValgrind_L2.json
           if-no-files-found: warn
 

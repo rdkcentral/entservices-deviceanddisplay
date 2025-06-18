@@ -16,11 +16,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <iomanip> // for setfill
+#include <sstream>
+
 #include "plat_power.h"
 
 #include "UtilsLogging.h"
+#include "PowerUtils.h"
 
 #include "Settings.h"
+
+using util = PowerUtils;
 
 class SettingsV1 {
 
@@ -72,6 +78,25 @@ class SettingsV1 {
         return pwrState;
     }
 
+    static PowerState conv(PWRMgr_PowerState_t state)
+    {
+        switch (state) {
+        case PWRMGR_POWERSTATE_OFF:
+            return PowerState::POWER_STATE_OFF;
+        case PWRMGR_POWERSTATE_ON:
+            return PowerState::POWER_STATE_ON;
+        case PWRMGR_POWERSTATE_STANDBY:
+            return PowerState::POWER_STATE_STANDBY;
+        case PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP:
+            return PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP;
+        case PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP:
+            return PowerState::POWER_STATE_STANDBY_DEEP_SLEEP;
+        case PWRMGR_POWERSTATE_MAX:
+        default:
+            return PowerState::POWER_STATE_UNKNOWN;
+        }
+    }
+
 public:
     inline static constexpr size_t Size()
     {
@@ -81,24 +106,26 @@ public:
     static bool Load(int fd, const Settings::Header& header, Settings& settings)
     {
         bool ok = false;
-#ifdef PLATCO_BOOTTO_STANDBY
-        struct stat buf = {};
-#endif
         PWRMgr_Settings_t pwrSettings = {};
-        const auto read_size = Size();
+        const auto expected_size = Size();
 
-        if (header.length == read_size) {
-            LOGINFO("[PwrMgr] Length of Persistence matches with Current Data Size \r\n");
+        if (header.length == expected_size) {
             lseek(fd, 0, SEEK_SET);
-            const auto ret = read(fd, &pwrSettings, read_size);
-            if (ret != read_size) {
+            const auto read_size = read(fd, &pwrSettings, expected_size);
+            if (read_size != expected_size) {
                 // failure
-                LOGERR("Unable to read full length");
+                LOGERR("Unable to read full length expected: %zu, actual %zu", expected_size, read_size);
             } else {
-                LOGINFO("Persisted deep_sleep_delay = %d Secs \r\n", pwrSettings.deep_sleep_timeout);
 
-                LOGINFO("Persisted network standby mode is: %s \r\n", pwrSettings.nwStandbyMode ? ("Enabled") : ("Disabled"));
+                settings._magic = pwrSettings.magic;
+                settings._version = pwrSettings.version;
+                settings._powerState = conv(pwrSettings.powerState);
+                settings._deepSleepTimeout = pwrSettings.deep_sleep_timeout;
+                settings._nwStandbyMode = pwrSettings.nwStandbyMode;
+
 #ifdef PLATCO_BOOTTO_STANDBY
+                struct stat buf = {};
+
                 if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
                     settings._powerState = PowerState::POWER_STATE_STANDBY;
                     LOGINFO("Setting default powerstate to standby\n\r");
@@ -106,6 +133,8 @@ public:
 #endif
                 ok = true;
             }
+        } else {
+            LOGERR("Invalid header size expected: %zu, actual: %u", Size(), header.length);
         }
 
         return ok;
@@ -214,6 +243,7 @@ Settings Settings::Load(const std::string& path)
 
     settings._powerStateBeforeReboot = settings._powerState;
 
+    LOGINFO("Final settings: %s", settings.str().c_str());
     return settings;
 }
 
@@ -237,4 +267,18 @@ bool Settings::Save(const std::string& path)
     close(fd);
 
     return ok;
+}
+
+std::string Settings::str() const
+{
+    std::stringstream ss;
+
+    ss << "magic: " << std::hex << _magic
+       << "\n\tversion: " << _version
+       << "\n\tpowerState: " << util::str(_powerState)
+       << "\n\tpowerStateBeforeReboot " << util::str(_powerStateBeforeReboot)
+       << "\n\tdeepsleep timeout sec: " << _deepSleepTimeout
+       << "\n\tnwStandbyMode: " << (_nwStandbyMode ? "enabled" : "disabled");
+
+    return ss.str();
 }

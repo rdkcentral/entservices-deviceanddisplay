@@ -23,6 +23,7 @@
 
 #include <core/Time.h>
 #include <interfaces/IPowerManager.h>
+#include <limits>
 
 class SettingsV1;
 
@@ -43,7 +44,9 @@ class Settings {
 
     // Note constructor is private to prevent instantiation without loading from file
     Settings()
-        : _powerState(PowerState::POWER_STATE_ON)
+        : _magic(0)
+        , _version(std::numeric_limits<uint32_t>::max())
+        , _powerState(PowerState::POWER_STATE_ON)
         , _powerStateBeforeReboot(PowerState::POWER_STATE_ON)
         , _deepSleepTimeout(kDeepSleepTimeoutSec)
         , _nwStandbyMode(false)
@@ -85,6 +88,8 @@ public:
     inline PowerState powerStateBeforeReboot() const { return _powerStateBeforeReboot; }
     inline uint32_t deepSleepTimeout() const { return _deepSleepTimeout; }
     inline bool nwStandbyMode() const { return _nwStandbyMode; }
+
+    std::string str() const;
 
 private:
     void initDefaults();

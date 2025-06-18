@@ -43,6 +43,8 @@ namespace Plugin {
         Property<DevicetypeData>(_T("devicetype"), &DeviceInfo::get_devicetype, nullptr, this);
         Property<SocnameData>(_T("socname"), &DeviceInfo::get_socname, nullptr, this);        
         Property<DistributoridData>(_T("distributorid"), &DeviceInfo::get_distributorid, nullptr, this);
+        Property<ReleaseversionData>(_T("releaseversion"), &DeviceInfo::get_releaseversion, nullptr, this);
+        Property<ChipsetData>(_T("chipset"), &DeviceInfo::get_chipset, nullptr, this);        
         Property<SupportedaudioportsData>(_T("supportedaudioports"), &DeviceInfo::get_supportedaudioports, nullptr, this);
         Property<SupportedvideodisplaysData>(_T("supportedvideodisplays"), &DeviceInfo::get_supportedvideodisplays, nullptr, this);
         Property<HostedidData>(_T("hostedid"), &DeviceInfo::get_hostedid, nullptr, this);
@@ -68,6 +70,8 @@ namespace Plugin {
         Unregister(_T("devicetype"));
         Unregister(_T("socname"));
         Unregister(_T("distributorid"));
+        Unregister(_T("releaseversion"));
+        Unregister(_T("chipset"));        
         Unregister(_T("supportedaudioports"));
         Unregister(_T("supportedvideodisplays"));
         Unregister(_T("hostedid"));
@@ -288,6 +292,52 @@ namespace Plugin {
         }
 
         return result;
+    }
+
+        // Property: releaseversion - ReleaseVersion of the Image 
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_GENERAL: General error
+    uint32_t DeviceInfo::get_releaseversion(ReleaseversionData& response) const
+    {
+
+        string releaseversion = "";
+
+        auto result = _deviceInfo->ReleaseVersion(releaseversion);
+        if (result == Core::ERROR_NONE) {
+            response.Releaseversion = releaseversion;
+            LOGINFO("ReleaseVersion of the Image: %s\n", releaseversion.c_str());
+            return Core::ERROR_NONE;
+        }
+        else
+        {
+            LOGERR("Unable to get releaseVersion of the Image:\n");
+            return Core::ERROR_GENERAL;
+        }
+
+    }
+
+    // Property: chipset - chipset of the device
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_GENERAL: General error
+    uint32_t DeviceInfo::get_chipset(ChipsetData& response) const
+    {
+
+        string chipset  = "";
+
+        auto result = _deviceInfo->ChipSet(chipset);
+        if (result == Core::ERROR_NONE) {
+            response.Chipset = chipset;
+            LOGINFO("Chipset of the device: %s\n", chipset.c_str());
+            return Core::ERROR_NONE;
+        }
+        else
+        {
+            LOGERR("Unable to get Chipset of the device \n");
+            return Core::ERROR_GENERAL;
+        }
+
     }
 
     // Property: supportedaudioports - Audio ports supported on the device (all ports that are physically present)

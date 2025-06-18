@@ -42,7 +42,7 @@ set (TEST_INC ../../helpers)
 #                     arg2: include dir list as **string**
 #                     arg3: plugin libs to link list as **string**
 #
-# sample invocation : 
+# sample invocation :
 #    add_plugin_test_ex(PLUGIN_NAME
 #                       "test/file1.cpp;test/file2.cpp"
 #                       "../../inc_dir1;../../inc_dir2"
@@ -117,9 +117,9 @@ set (WAREHOUSE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/Warehouse
 set (WAREHOUSE_LIBS ${NAMESPACE}Warehouse ${NAMESPACE}WarehouseImplementation)
 add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" "${WAREHOUSE_LIBS}")
 
-# PLUGIN_FRAMERATE
-set (FRAMERATE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/FrameRate ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_FrameRate.cpp "${FRAMERATE_INC}" "${NAMESPACE}FrameRate")
+# PLUGIN_FRAMERATE: will get enabled by RDK-55551
+#set (FRAMERATE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/FrameRate ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+#add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_FrameRate.cpp "${FRAMERATE_INC}" "${NAMESPACE}FrameRate")
 
 # PLUGIN_USERPREFERENCES
 set (USERPREFERENCES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/UserPreferences ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)

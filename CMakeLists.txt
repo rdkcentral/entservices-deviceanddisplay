@@ -25,6 +25,16 @@ find_package(WPEFramework)
 # are located in the cmake directory. Include it in the search.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
+# This configuration enables generation of Test binaries which can be used to test respective plugins.
+option(TESTBINARIES "Generate plugin specific test binaries" OFF)
+if(TESTBINARIES)
+    message(INFO "Enabling test binaries")
+    if(PLUGIN_FRAMERATE)
+        set(FRAMERATETESTAPP ON CACHE INTERNAL "Enable FrameRate test application")
+    endif()
+    add_subdirectory(Tests)
+endif()
+
 option(COMCAST_CONFIG "Comcast services configuration" ON)
 if(COMCAST_CONFIG)
     include(services.cmake)

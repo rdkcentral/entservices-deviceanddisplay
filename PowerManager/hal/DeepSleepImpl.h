@@ -42,6 +42,27 @@ public:
             return WakeupReason::WAKEUP_REASON_WIFI;
         case DEEPSLEEP_WAKEUPREASON_TIMER:
             return WakeupReason::WAKEUP_REASON_TIMER;
+        case DEEPSLEEP_WAKEUPREASON_FRONT_PANEL:
+            return WakeupReason::WAKEUP_REASON_FRONTPANEL;
+        case DEEPSLEEP_WAKEUPREASON_WATCHDOG:
+            return WakeupReason::WAKEUP_REASON_WATCHDOG;
+        case DEEPSLEEP_WAKEUPREASON_SOFTWARE_RESET:
+            return WakeupReason::WAKEUP_REASON_SOFTWARERESET;
+        case DEEPSLEEP_WAKEUPREASON_THERMAL_RESET:
+            return WakeupReason::WAKEUP_REASON_THERMALRESET;
+        case DEEPSLEEP_WAKEUPREASON_WARM_RESET:
+            return WakeupReason::WAKEUP_REASON_WARMRESET;
+        case DEEPSLEEP_WAKEUPREASON_COLDBOOT:
+            return WakeupReason::WAKEUP_REASON_COLDBOOT;
+        case DEEPSLEEP_WAKEUPREASON_STR_AUTH_FAILURE:
+            return WakeupReason::WAKEUP_REASON_STRAUTHFAIL;
+        case DEEPSLEEP_WAKEUPREASON_CEC:
+            return WakeupReason::WAKEUP_REASON_CEC;
+        case DEEPSLEEP_WAKEUPREASON_PRESENCE:
+            return WakeupReason::WAKEUP_REASON_PRESENCE;
+        case DEEPSLEEP_WAKEUPREASON_VOICE:
+            return WakeupReason::WAKEUP_REASON_VOICE;
+        case DEEPSLEEP_WAKEUPREASON_UNKNOWN:
         default:
             LOGERR("Unknown wakeup reason: %d", reason);
             return WakeupReason::WAKEUP_REASON_UNKNOWN;

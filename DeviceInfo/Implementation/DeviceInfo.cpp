@@ -166,11 +166,6 @@ namespace Plugin {
         return result;
     }
 
-#if defined(MACHINE_SOC_NAME)
-#define xsocstr(s) lsocstr(s)
-#define lsocstr(s) #s
-#endif
-
     uint32_t DeviceInfoImplementation::SocName(string& socName)  const
     {
         return (GetFileRegex(_T("/etc/device.properties"),

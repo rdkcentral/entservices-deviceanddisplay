@@ -167,13 +167,9 @@ namespace Plugin {
 
         auto result = _deviceInfo->Sku(sku);
         if (result == Core::ERROR_NONE) {
-            Core::EnumerateType<JsonData::DeviceInfo::ModelidData::SkuType> value(sku.c_str(), false);
-            if (value.IsSet()) {
-                response.Sku = value.Value();
-            } else {
-                TRACE(Trace::Fatal, (_T("Unknown value %s"), sku.c_str()));
-                result = Core::ERROR_GENERAL;
-            }
+            response.Sku = sku;
+        } else {
+            TRACE(Trace::Fatal, (_T("SKU wasn't specified.")));
         }
 
         return result;
@@ -189,13 +185,9 @@ namespace Plugin {
 
         auto result = _deviceInfo->Make(make);
         if (result == Core::ERROR_NONE) {
-            Core::EnumerateType<JsonData::DeviceInfo::MakeData::MakeType> value(make.c_str(), false);
-            if (value.IsSet()) {
-                response.Make = value.Value();
-            } else {
-                TRACE(Trace::Fatal, (_T("Unknown value %s"), make.c_str()));
-                result = Core::ERROR_GENERAL;
-            }
+            response.Make = make;
+        } else {
+            TRACE(Trace::Fatal, (_T("Make wasn't specified.")));
         }
 
         return result;
@@ -266,13 +258,7 @@ namespace Plugin {
         auto result = _deviceInfo->SocName(socType);
 
         if (result == Core::ERROR_NONE) {
-            Core::EnumerateType<JsonData::DeviceInfo::SocnameData::SocnameType> value(socType.c_str(), false);
-            if (value.IsSet()) {
-                response.Socname = value.Value();
-            } else {
-                TRACE(Trace::Fatal, (_T("Unknown value %s"), socType.c_str()));
-                result = Core::ERROR_GENERAL;
-            }
+            response.Socname = socType;
         } else {
             TRACE(Trace::Fatal, (_T("Socname wasn't specified.")));
         }

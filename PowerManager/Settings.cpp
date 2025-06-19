@@ -21,8 +21,8 @@
 
 #include "plat_power.h"
 
-#include "UtilsLogging.h"
 #include "PowerUtils.h"
+#include "UtilsLogging.h"
 
 #include "Settings.h"
 
@@ -123,14 +123,6 @@ public:
                 settings._deepSleepTimeout = pwrSettings.deep_sleep_timeout;
                 settings._nwStandbyMode = pwrSettings.nwStandbyMode;
 
-#ifdef PLATCO_BOOTTO_STANDBY
-                struct stat buf = {};
-
-                if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-                    settings._powerState = PowerState::POWER_STATE_STANDBY;
-                    LOGINFO("Setting default powerstate to standby\n\r");
-                }
-#endif
                 ok = true;
             }
         } else {
@@ -227,21 +219,16 @@ Settings Settings::Load(const std::string& path)
         close(fd);
     }
 
-    if (!ok) {
-        LOGERR("Failed to load settings file");
-
+    if (ok) {
+        settings._powerStateBeforeReboot = settings._powerState;
 #ifdef PLATCO_BOOTTO_STANDBY
-        // If we are in boot to standby mode, set powerState to standby
+        struct stat buf = {};
         if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-            LOGINFO("Boot to standby mode detected, setting powerState to UNKNOWN since PowerManager plugin was restarted");
-            settings._powerState = PowerState::POWER_STATE_UNKNOWN;
-        } else {
-            LOGINFO("PowerManager Plugin was restarted");
+            settings._powerState = PowerState::POWER_STATE_STANDBY;
+            LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
         }
 #endif
     }
-
-    settings._powerStateBeforeReboot = settings._powerState;
 
     LOGINFO("Final settings: %s", settings.str().c_str());
     return settings;

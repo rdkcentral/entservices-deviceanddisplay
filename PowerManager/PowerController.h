@@ -78,7 +78,7 @@ public:
 
     inline uint32_t GetPowerStateBeforeReboot(PowerState& state)
     {
-        state = _powerStateBeforeReboot;
+        state = _settings.powerStateBeforeReboot();
         return WPEFramework::Core::ERROR_NONE;
     }
 
@@ -103,12 +103,6 @@ public:
     PowerController& operator=(PowerController&&) = delete;      // move assignment operator
 
     PowerController(PowerController&&) = default;
-
-private:
-    inline void setPowerStateBeforeReboot(PowerState powerState)
-    {
-        _powerStateBeforeReboot = powerState;
-    }
 
 private:
     const std::string m_settingsFile = "/opt/uimgr_settings.bin";

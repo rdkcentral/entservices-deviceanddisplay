@@ -21,9 +21,9 @@
 
 #include "PowerManagerImplementation.h"
 
+#include "PowerUtils.h"
 #include "UtilsIarm.h"
 #include "UtilsLogging.h"
-#include "PowerUtils.h"
 
 #include <core/Portability.h>
 #include <interfaces/IPowerManager.h>
@@ -88,17 +88,18 @@ namespace Plugin {
     {
         PowerManagerImplementation::_instance = this;
         Utils::IARM::init();
+        LOGINFO(">> CTOR <<");
     }
 
     PowerManagerImplementation::~PowerManagerImplementation()
     {
-        LOGINFO(">> dtor <<");
+        LOGINFO(">> DTOR <<");
     }
 
     void PowerManagerImplementation::dispatchPowerModeChangedEvent(const PowerState& prevState, const PowerState& newState)
     {
         LOGINFO(">>");
-        for (auto& notification: _modeChangedNotifications) {
+        for (auto& notification : _modeChangedNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnPowerModeChanged(prevState, newState);
             auto elapsed = std::chrono::steady_clock::now() - start;
@@ -110,13 +111,11 @@ namespace Plugin {
     void PowerManagerImplementation::dispatchDeepSleepTimeoutEvent(const uint32_t& timeout)
     {
         LOGINFO(">>");
-        std::list<Exchange::IPowerManager::IDeepSleepTimeoutNotification*>::const_iterator index(_deepSleepTimeoutNotifications.begin());
-        while (index != _deepSleepTimeoutNotifications.end()) {
+        for (auto& notification : _deepSleepTimeoutNotifications) {
             auto start = std::chrono::steady_clock::now();
-            (*index)->OnDeepSleepTimeout(timeout);
+            notification->OnDeepSleepTimeout(timeout);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IDeepSleepTimeoutNotification event", *index, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-            ++index;
+            LOGINFO("client %p took %lldms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         LOGINFO("<<");
     }
@@ -124,10 +123,11 @@ namespace Plugin {
     void PowerManagerImplementation::dispatchRebootBeginEvent(const string& rebootReasonCustom, const string& rebootReasonOther, const string& rebootRequestor)
     {
         LOGINFO(">>");
-        std::list<Exchange::IPowerManager::IRebootNotification*>::const_iterator index(_rebootNotifications.begin());
-        while (index != _rebootNotifications.end()) {
-            (*index)->OnRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
-            ++index;
+        for (auto& notification : _rebootNotifications) {
+            auto start = std::chrono::steady_clock::now();
+            notification->OnRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
+            auto elapsed = std::chrono::steady_clock::now() - start;
+            LOGINFO("client %p took %lldms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         LOGINFO("<<");
     }
@@ -135,10 +135,11 @@ namespace Plugin {
     void PowerManagerImplementation::dispatchThermalModeChangedEvent(const ThermalTemperature& currentThermalLevel, const ThermalTemperature& newThermalLevel, const float& currentTemperature)
     {
         LOGINFO(">>");
-        std::list<Exchange::IPowerManager::IThermalModeChangedNotification*>::const_iterator index(_thermalModeChangedNotifications.begin());
-        while (index != _thermalModeChangedNotifications.end()) {
-            (*index)->OnThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
-            ++index;
+        for (auto& notification : _thermalModeChangedNotifications) {
+            auto start = std::chrono::steady_clock::now();
+            notification->OnThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
+            auto elapsed = std::chrono::steady_clock::now() - start;
+            LOGINFO("client %p took %lldms to process IThermalModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         LOGINFO("<<");
     }
@@ -146,10 +147,11 @@ namespace Plugin {
     void PowerManagerImplementation::dispatchNetworkStandbyModeChangedEvent(const bool& enabled)
     {
         LOGINFO(">>");
-        std::list<Exchange::IPowerManager::INetworkStandbyModeChangedNotification*>::const_iterator index(_networkStandbyModeChangedNotifications.begin());
-        while (index != _networkStandbyModeChangedNotifications.end()) {
-            (*index)->OnNetworkStandbyModeChanged(enabled);
-            ++index;
+        for (auto& notification : _networkStandbyModeChangedNotifications) {
+            auto start = std::chrono::steady_clock::now();
+            notification->OnNetworkStandbyModeChanged(enabled);
+            auto elapsed = std::chrono::steady_clock::now() - start;
+            LOGINFO("client %p took %lldms to process INetworkStandbyModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         LOGINFO("<<");
     }
@@ -195,97 +197,111 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IRebootNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Register(_rebootNotifications, notification);
-        LOGINFO("IRebootNotification %p, errorCode: %u", notification, errorCode);
+        LOGINFO("<< IReboot %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IRebootNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Unregister(_rebootNotifications, notification);
-        LOGINFO("IRebootNotification %p, errorCode: %u", notification, errorCode);
+        LOGINFO("<< IRebootNotification %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Register(_preModeChangeNotifications, notification);
-        LOGINFO("IModePreChangeNotification %p, errorCode: %u", notification, errorCode);
+        LOGINFO("<< IModePreChange %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Unregister(_preModeChangeNotifications, notification);
-        LOGINFO("IModePreChangeNotification %p, errorCode: %u", notification, errorCode);
+        LOGINFO("<< IModePreChange %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IModeChangedNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Register(_modeChangedNotifications, notification);
-        LOGINFO("IModeChangedNotification %p, errorCode: %u", notification, errorCode);
+        LOGINFO("<< IModeChanged %p, errorCode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModeChangedNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Unregister(_modeChangedNotifications, notification);
-        LOGINFO("IModeChangedNotification %p, errorcode: %u", notification, errorCode);
+        LOGINFO("<< IModeChanged %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Register(_deepSleepTimeoutNotifications, notification);
-        LOGINFO("IDeepSleepTimeoutNotification %p, errorcode: %u", notification, errorCode);
+        LOGINFO("<< IDeepSleepTimeout %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Unregister(_deepSleepTimeoutNotifications, notification);
-        LOGINFO("IDeepSleepTimeoutNotification %p, errorcode: %u", notification, errorCode);
+        LOGINFO("<< IDeepSleepTimeout %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Register(_networkStandbyModeChangedNotifications, notification);
-        LOGINFO("INetworkStandbyModeChangedNotification %p, errorcode: %u", notification, errorCode);
+        LOGINFO("<< INetworkStandbyModeChanged %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Unregister(_networkStandbyModeChangedNotifications, notification);
-        LOGINFO("INetworkStandbyModeChangedNotification %p, errorcode: %u", notification, errorCode);
+        LOGINFO("<< INetworkStandbyModeChanged %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IThermalModeChangedNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Register(_thermalModeChangedNotifications, notification);
-        LOGINFO("IThermalModeChangedNotification %p, errorcode: %u", notification, errorCode);
+        LOGINFO("<< IThermalModeChanged %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IThermalModeChangedNotification* notification)
     {
+        LOGINFO(">>");
         Core::hresult errorCode = Unregister(_thermalModeChangedNotifications, notification);
-        LOGINFO("IThermalModeChangedNotification %p, errorcode: %u", notification, errorCode);
+        LOGINFO("<< IThermalModeChanged %p, errorcode: %u", notification, errorCode);
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetPowerState(PowerState& currentState, PowerState& prevState) const
     {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetPowerState(currentState, prevState);
 
         _apiLock.Unlock();
 
-        LOGINFO("currentState : %s, prevState : %s, errorCode = %d", util::str(currentState), util::str(prevState), errorCode);
+        LOGINFO("<< currentState : %s, prevState : %s, errorCode = %d", util::str(currentState), util::str(prevState), errorCode);
 
         return errorCode;
     }
@@ -317,6 +333,8 @@ namespace Plugin {
     {
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
+
+        LOGINFO(">>");
 
         uint32_t errorCode = GetPowerState(currState, prevState);
 
@@ -367,7 +385,7 @@ namespace Plugin {
             LOGINFO("Requested power state is same as current power state, no action required");
         }
 
-        LOGINFO("SetPowerState keyCode: %d, currentState: %s, newState: %s, errorCode: %d",
+        LOGINFO("<< SetPowerState keyCode: %d, currentState: %s, newState: %s, errorCode: %d",
             keyCode, util::str(currState), util::str(newState), Core::ERROR_NONE);
 
         return Core::ERROR_NONE;
@@ -375,6 +393,7 @@ namespace Plugin {
 
     void PowerManagerImplementation::submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId)
     {
+        LOGINFO(">>");
         for (auto& notification : _preModeChangeNotifications) {
             Core::IWorkerPool::Instance().Submit(
                 PowerManagerImplementation::LambdaJob::Create(this,
@@ -383,14 +402,16 @@ namespace Plugin {
                     }));
         }
 
-        LOGINFO("currentState : %s, newState : %s, transactionId : %d", util::str(currentState), util::str(newState), transactionId);
+        LOGINFO("<< currentState : %s, newState : %s, transactionId : %d", util::str(currentState), util::str(newState), transactionId);
     }
 
     Core::hresult PowerManagerImplementation::GetTemperatureThresholds(float& high, float& critical) const
     {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
-        Core::hresult errorCode = _thermalController.GetTemperatureThresholds(high,critical);
+        Core::hresult errorCode = _thermalController.GetTemperatureThresholds(high, critical);
 
         _apiLock.Unlock();
 
@@ -401,39 +422,45 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetTemperatureThresholds(const float high, const float critical)
     {
+        LOGINFO(">> high: %f, critical: %f", high, critical);
+
         _apiLock.Lock();
 
-        Core::hresult errorCode = _thermalController.SetTemperatureThresholds(high,critical);
+        Core::hresult errorCode = _thermalController.SetTemperatureThresholds(high, critical);
 
         _apiLock.Unlock();
 
-        LOGINFO("high: %f, critical: %f, errorCode: %u", high, critical, errorCode);
+        LOGINFO("<< errorCode: %u", errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetOvertempGraceInterval(int& graceInterval) const
     {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
         Core::hresult errorCode = _thermalController.GetOvertempGraceInterval(graceInterval);
 
         _apiLock.Unlock();
 
-        LOGINFO("graceInterval: %d, errorCode: %u", graceInterval, errorCode);
+        LOGINFO("<< graceInterval: %d, errorCode: %u", graceInterval, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetOvertempGraceInterval(const int graceInterval)
     {
+        LOGINFO(">> graceInterval: %d", graceInterval);
+
         _apiLock.Lock();
 
         Core::hresult errorCode = _thermalController.SetOvertempGraceInterval(graceInterval);
 
         _apiLock.Unlock();
 
-        LOGINFO("graceInterval: %d, errorCode: %u", graceInterval, errorCode);
+        LOGINFO("<< errorCode: %u", errorCode);
 
         return errorCode;
     }
@@ -441,61 +468,70 @@ namespace Plugin {
     Core::hresult PowerManagerImplementation::GetThermalState(float& temperature) const
     {
         Core::hresult errorCode = Core::ERROR_GENERAL;
+
+        LOGINFO(">>");
+
 #ifdef ENABLE_THERMAL_PROTECTION
-        LOGINFO("Entry");
         _apiLock.Lock();
 
         ThermalTemperature curLevel = THERMAL_TEMPERATURE_UNKNOWN;
         float curTemperature = 0;
 
-        errorCode = _thermalController.GetThermalState(curLevel,curTemperature);
+        errorCode = _thermalController.GetThermalState(curLevel, curTemperature);
         temperature = curTemperature;
         _apiLock.Unlock();
-        LOGINFO("Current core temperature is : %f, errorCode: %u", temperature, errorCode);
+        LOGINFO("<< Current core temperature is : %f, errorCode: %u", temperature, errorCode);
 #else
         temperature = -1;
         errorCode = Core::ERROR_GENERAL;
-        LOGWARN("Thermal Protection disabled for this platform");
+        LOGWARN("<< Thermal Protection disabled for this platform");
 #endif
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetDeepSleepTimer(const int timeOut)
     {
+        LOGINFO(">> timeOut: %d", timeOut);
+
+        int timeOutVal = timeOut > 86400 ? 0 : timeOut;
+
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.SetDeepSleepTimer(timeOut);
+        uint32_t errorCode = _powerController.SetDeepSleepTimer(timeOutVal);
 
         _apiLock.Unlock();
 
-        LOGINFO("timeOut: %d, errorCode: %u", timeOut, errorCode);
+        LOGINFO("<< timeOutVal: %d, errorCode: %u", timeOutVal, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetLastWakeupReason(WakeupReason& wakeupReason) const
     {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
         uint32_t errorCode = _deepSleepController.GetLastWakeupReason(wakeupReason);
 
         _apiLock.Unlock();
 
-        LOGINFO("wakeupReason: %u, errorCode: %u", wakeupReason, errorCode);
+        LOGINFO("<< wakeupReason: %u, errorCode: %u", wakeupReason, errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetLastWakeupKeyCode(int& keycode) const
     {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
-        // TODO: yet to implement
         uint32_t errorCode = _deepSleepController.GetLastWakeupKeyCode(keycode);
 
         _apiLock.Unlock();
 
-        LOGINFO("Wakeup keycode: %d, errorCode: %u", keycode, errorCode);
+        LOGINFO("<< Wakeup keycode: %d, errorCode: %u", keycode, errorCode);
 
         return errorCode;
     }
@@ -507,6 +543,8 @@ namespace Plugin {
         const string customReason = rebootReasonCustom.empty() ? defaultArg : rebootReasonCustom;
         const string otherReason = rebootReasonOther.empty() ? defaultArg : rebootReasonOther;
 
+        LOGINFO(">> requestor %s, custom reason: %s, other reason: %s", requestor.c_str(), customReason.c_str(), otherReason.c_str());
+
         dispatchRebootBeginEvent(requestor, customReason, otherReason);
 
         _apiLock.Lock();
@@ -515,38 +553,44 @@ namespace Plugin {
 
         _apiLock.Unlock();
 
-        LOGINFO("requestor %s, custom reason: %s, other reason: %s, errorcode: %u", requestor.c_str(), customReason.c_str(), otherReason.c_str(), errorCode);
+        LOGINFO("<< errorcode: %u", errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetNetworkStandbyMode(const bool standbyMode)
     {
+        LOGINFO(">> nwStandbyMode: %s", (standbyMode ? "enabled" : "disabled"));
+
         _apiLock.Lock();
 
         uint32_t errorCode = _powerController.SetNetworkStandbyMode(standbyMode);
 
         _apiLock.Unlock();
 
-        LOGINFO("standbyMode : %s, errorcode: %u",
-            (standbyMode) ? ("Enabled") : ("Disabled"), errorCode);
-
         if (Core::ERROR_NONE == errorCode) {
+            // In the original IARM Power Manager implementation, notifications were always sent
+            // out regardless of whether the network standby mode had changed. This behavior is
+            // preserved in the new code for consistency.
             dispatchNetworkStandbyModeChangedEvent(standbyMode);
         }
+
+        LOGINFO("<< errorcode: %u", errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetNetworkStandbyMode(bool& standbyMode)
     {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetNetworkStandbyMode(standbyMode);
 
         _apiLock.Unlock();
 
-        LOGINFO("Current NwStandbyMode is: %s, errorCode: %d",
+        LOGINFO("<< NwStandbyMode: %s, errorCode: %d",
             (standbyMode ? ("Enabled") : ("Disabled")), errorCode);
 
         return errorCode;
@@ -554,61 +598,72 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)
     {
+        LOGINFO(">> Power State stored: %x, srcType: %x,  config: %x", powerMode, srcType, config);
         _apiLock.Lock();
 
         uint32_t errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcType, config);
 
         _apiLock.Unlock();
 
-        LOGINFO("Power State stored: %x, srcType: %x,  config: %x, errorCode: %d", powerMode, srcType, config, errorCode);
+        LOGINFO("<< errorCode: %d", errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const
     {
+        LOGINFO(">> Power Mode stored: %x, srcType: %x,  config: %x", powerMode, srcType, config);
+
         _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
 
         _apiLock.Unlock();
 
-        LOGINFO("Power State stored: %x, srcType: %x,  config: %x, errorCode: %d", powerMode, srcType, config, errorCode);
+        LOGINFO("<< errorCode: %d", errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const
     {
+        LOGINFO(">> currentMode: %u, newMode: %u", currentMode, newMode);
+
         _apiLock.Lock();
 
-        // TODO: yet to implement
-        uint32_t errorCode = Core::ERROR_GENERAL;
+        // In the legacy implementation, this call routed to the System Plugin's SetSystemMode via IARM.
+        // Since it only contains setters and lacks getters, it appears to be an unused API.
+        // Please reach out if this API is still required.
+
+        LOGWARN("SetSystemMode is depricated, not found any module utilizing this");
+
+        uint32_t errorCode = Core::ERROR_NONE;
 
         _apiLock.Unlock();
 
-        LOGINFO("currentMode: %u, newMode: %u, errorCode: %u", currentMode, newMode, errorCode);
+        LOGINFO("<< errorCode: %u", errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot)
     {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
         uint32_t errorCode = _powerController.GetPowerStateBeforeReboot(powerStateBeforeReboot);
 
         _apiLock.Unlock();
 
-        LOGWARN("current powerStateBeforeReboot is: %s, errorCode: %d",
-            util::str(powerStateBeforeReboot), errorCode);
+        LOGINFO("<< powerStateBeforeReboot: %s, errorCode: %d", util::str(powerStateBeforeReboot), errorCode);
 
         return errorCode;
     }
 
     void PowerManagerImplementation::powerModePreChangeCompletionHandler(const int keyCode, PowerState currentState, PowerState newState, const std::string& reason)
     {
-        LOGINFO("PowerModePreChangeCompletionHandler triggered keyCode: %d, powerState: %s", keyCode, util::str(newState));
+        LOGINFO(">> PowerModePreChangeCompletionHandler triggered keyCode: %d, powerState: %s", keyCode, util::str(newState));
 
         setDevicePowerState(keyCode, currentState, newState, reason);
 
@@ -617,11 +672,15 @@ namespace Plugin {
 
         // release controller as mode change is complete now
         _modeChangeController.reset();
+
+        LOGINFO("<<");
     }
 
     Core::hresult PowerManagerImplementation::PowerModePreChangeComplete(const uint32_t clientId, const int transactionId)
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
+
+        LOGINFO(">> clientId: %u, transactionId: %d", clientId, transactionId);
 
         _apiLock.Lock();
 
@@ -631,7 +690,7 @@ namespace Plugin {
 
         _apiLock.Unlock();
 
-        LOGINFO("clientId: %u, transactionId: %d, errorcode: %u", clientId, transactionId, errorCode);
+        LOGINFO("<< errorcode: %u", errorCode);
 
         return errorCode;
     }
@@ -640,6 +699,7 @@ namespace Plugin {
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
+        LOGINFO(">> clientId: %u, transactionId: %d, delayPeriod: %d, errorcode: %u", clientId, transactionId, delayPeriod, errorCode);
         _apiLock.Lock();
 
         if (_modeChangeController) {
@@ -648,13 +708,15 @@ namespace Plugin {
 
         _apiLock.Unlock();
 
-        LOGINFO("DelayPowerModeChangeBy clientId: %u, transactionId: %d, delayPeriod: %d, errorcode: %u", clientId, transactionId, delayPeriod, errorCode);
+        LOGINFO("<< errorcode: %u", errorCode);
 
         return errorCode;
     }
 
     Core::hresult PowerManagerImplementation::AddPowerModePreChangeClient(const string& clientName, uint32_t& clientId)
     {
+        LOGINFO(">> client: %s, clientId: %u", clientName.c_str(), clientId);
+
         if (clientName.empty()) {
             LOGERR("AddPowerModePreChangeClient called with empty clientName");
             return Core::ERROR_INVALID_PARAMETER;
@@ -677,11 +739,11 @@ namespace Plugin {
 
         _apiLock.Unlock();
 
-        LOGINFO("client: %s, clientId: %u", clientName.c_str(), clientId);
-
         for (auto& clients : _modeChangeClients) {
             LOGINFO("Registered client: %s, clientId: %u", clients.second.c_str(), clients.first);
         }
+
+        LOGINFO("<< errorCode: 0");
 
         return Core::ERROR_NONE;
     }
@@ -690,6 +752,8 @@ namespace Plugin {
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
         std::string clientName;
+
+        LOGINFO(">> clientId: %d", clientId);
 
         _apiLock.Lock();
 
@@ -708,14 +772,14 @@ namespace Plugin {
 
         _apiLock.Unlock();
 
-        LOGINFO("client: %s, clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
+        LOGINFO("<< client: %s, clientId: %u, errorcode: %u", clientName.c_str(), clientId, errorCode);
 
         return errorCode;
     }
 
     void PowerManagerImplementation::onDeepSleepTimerWakeup(const int wakeupTimeout)
     {
-        LOGINFO("DeepSleep timedout: %d", wakeupTimeout);
+        LOGINFO(">> DeepSleep timedout: %d", wakeupTimeout);
         dispatchDeepSleepTimeoutEvent(wakeupTimeout);
 
 #if !defined(_DISABLE_SCHD_REBOOT_AT_DEEPSLEEP)
@@ -726,6 +790,7 @@ namespace Plugin {
         LOGINFO("Set Device to light sleep on Deep Sleep timer expiry");
         SetPowerState(0, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "DeepSleep timedout");
 #endif // _DISABLE_SCHD_REBOOT_AT_DEEPSLEEP
+        LOGINFO("<<");
     }
 
     void PowerManagerImplementation::onDeepSleepUserWakeup(const bool userWakeup)
@@ -735,8 +800,9 @@ namespace Plugin {
 #ifdef PLATCO_BOOTTO_STANDBY
         newState = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP;
 #endif
-        LOGINFO("User triggered wakeup from DEEP_SLEEP, moving to powerState: %s", util::str(newState));
+        LOGINFO(">> User triggered wakeup from DEEP_SLEEP, moving to powerState: %s", util::str(newState));
         SetPowerState(0, newState, "DeepSleep userwakeup");
+        LOGINFO("<<");
     }
 
     void PowerManagerImplementation::onDeepSleepFailed()
@@ -746,26 +812,27 @@ namespace Plugin {
 #ifdef PLATCO_BOOTTO_STANDBY
         newState = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP;
 #endif
-        LOGINFO("Failed to enter DeepSleep, moving to powerState: %s", util::str(newState));
+        LOGINFO(">> Failed to enter DeepSleep, moving to powerState: %s", util::str(newState));
         SetPowerState(0, newState, "DeepSleep failed");
+        LOGINFO("<<");
     }
 
     void PowerManagerImplementation::onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,
-                                                                const ThermalTemperature new_Thermal_Level, const float current_Temp)
+        const ThermalTemperature new_Thermal_Level, const float current_Temp)
     {
         LOGINFO("THERMAL_MODECHANGED event received, curLevel: %u, newLevel: %u, curTemperature: %f",
-                cur_Thermal_Level, new_Thermal_Level, current_Temp);
+            cur_Thermal_Level, new_Thermal_Level, current_Temp);
 
         dispatchThermalModeChangedEvent(cur_Thermal_Level, new_Thermal_Level, current_Temp);
+        LOGINFO("<<");
     }
 
     void PowerManagerImplementation::onDeepSlepForThermalChange()
     {
-        LOGINFO("Entry");
-
         /*Scheduled maintanace reboot is disabled. Instead state will change to LIGHT_SLEEP*/
-        LOGINFO("Set Device to deep sleep on Thermal change");
+        LOGINFO(">> Set device to deepsleep on ThermalChange");
         SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "DeepSleep on Thermal change");
+        LOGINFO("<<");
     }
 
 }

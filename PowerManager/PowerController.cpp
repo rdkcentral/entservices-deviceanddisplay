@@ -144,7 +144,6 @@ uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powe
         _settings.SetPowerState(powerState);
         _settings.Save(m_settingsFile);
         _lastKnownPowerState = curState;
-        setPowerStateBeforeReboot(powerState);
     }
 
     return errCode;

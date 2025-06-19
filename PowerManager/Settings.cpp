@@ -167,7 +167,7 @@ public:
 
     static void initDefaults(Settings& settings)
     {
-        LOGINFO("Initial Creation of UIMGR SettingsV1");
+        LOGINFO("Initial creation of SettingsV1");
         settings._magic = UIMGR_SETTINGS_MAGIC;
         settings._version = static_cast<uint32_t>(Settings::Version::V1);
     }
@@ -277,6 +277,7 @@ std::string Settings::str() const
        << "\n\tversion: " << _version
        << "\n\tpowerState: " << util::str(_powerState)
        << "\n\tpowerStateBeforeReboot " << util::str(_powerStateBeforeReboot)
+       << std::dec
        << "\n\tdeepsleep timeout sec: " << _deepSleepTimeout
        << "\n\tnwStandbyMode: " << (_nwStandbyMode ? "enabled" : "disabled");
 

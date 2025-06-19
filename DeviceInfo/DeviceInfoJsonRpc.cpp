@@ -43,6 +43,8 @@ namespace Plugin {
         Property<DevicetypeData>(_T("devicetype"), &DeviceInfo::get_devicetype, nullptr, this);
         Property<SocnameData>(_T("socname"), &DeviceInfo::get_socname, nullptr, this);        
         Property<DistributoridData>(_T("distributorid"), &DeviceInfo::get_distributorid, nullptr, this);
+        Property<ReleaseversionData>(_T("releaseversion"), &DeviceInfo::get_releaseversion, nullptr, this);
+        Property<ChipsetData>(_T("chipset"), &DeviceInfo::get_chipset, nullptr, this);        
         Property<SupportedaudioportsData>(_T("supportedaudioports"), &DeviceInfo::get_supportedaudioports, nullptr, this);
         Property<SupportedvideodisplaysData>(_T("supportedvideodisplays"), &DeviceInfo::get_supportedvideodisplays, nullptr, this);
         Property<HostedidData>(_T("hostedid"), &DeviceInfo::get_hostedid, nullptr, this);
@@ -68,6 +70,8 @@ namespace Plugin {
         Unregister(_T("devicetype"));
         Unregister(_T("socname"));
         Unregister(_T("distributorid"));
+        Unregister(_T("releaseversion"));
+        Unregister(_T("chipset"));        
         Unregister(_T("supportedaudioports"));
         Unregister(_T("supportedvideodisplays"));
         Unregister(_T("hostedid"));
@@ -169,13 +173,9 @@ namespace Plugin {
         auto result = _deviceInfo->Sku(sku);
         LOGINFO("result from get_modelid: %d, SKU: %s", result, sku.c_str());
         if (result == Core::ERROR_NONE) {
-            Core::EnumerateType<JsonData::DeviceInfo::ModelidData::SkuType> value(sku.c_str(), false);
-            if (value.IsSet()) {
-                response.Sku = value.Value();
-            } else {
-                TRACE(Trace::Fatal, (_T("Unknown value %s"), sku.c_str()));
-                result = Core::ERROR_GENERAL;
-            }
+            response.Sku = sku;
+        } else {
+            TRACE(Trace::Fatal, (_T("SKU wasn't specified.")));
         }
 
         return result;
@@ -191,21 +191,9 @@ namespace Plugin {
 
         auto result = _deviceInfo->Make(make);
         if (result == Core::ERROR_NONE) {
-            Core::EnumerateType<JsonData::DeviceInfo::MakeData::MakeType> value(make.c_str(), false);
-            if (value.IsSet()) {
-                response.Make = value.Value();
-            } else {
-                string make_underscore =Utils::String::replaceString(make ," " , "_" );
-                Core::EnumerateType<JsonData::DeviceInfo::MakeData::MakeType> value_underscore(make_underscore.c_str(), false);
-                if (value_underscore.IsSet()) {
-                    response.Make = value_underscore.Value();
-                }
-                else
-                {
-                    TRACE(Trace::Fatal, (_T("Unknown value %s value_underscore %s"), make.c_str() , make_underscore.c_str()));
-                    result = Core::ERROR_GENERAL;
-                }
-            }                
+            response.Make = make;
+        } else {
+            TRACE(Trace::Fatal, (_T("Make wasn't specified.")));
         }
 
         return result;
@@ -276,13 +264,7 @@ namespace Plugin {
         auto result = _deviceInfo->SocName(socType);
 
         if (result == Core::ERROR_NONE) {
-            Core::EnumerateType<JsonData::DeviceInfo::SocnameData::SocnameType> value(socType.c_str(), false);
-            if (value.IsSet()) {
-                response.Socname = value.Value();
-            } else {
-                TRACE(Trace::Fatal, (_T("Unknown value %s"), socType.c_str()));
-                result = Core::ERROR_GENERAL;
-            }
+            response.Socname = socType;
         } else {
             TRACE(Trace::Fatal, (_T("Socname wasn't specified.")));
         }
@@ -310,6 +292,52 @@ namespace Plugin {
         }
 
         return result;
+    }
+
+        // Property: releaseversion - ReleaseVersion of the Image 
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_GENERAL: General error
+    uint32_t DeviceInfo::get_releaseversion(ReleaseversionData& response) const
+    {
+
+        string releaseversion = "";
+
+        auto result = _deviceInfo->ReleaseVersion(releaseversion);
+        if (result == Core::ERROR_NONE) {
+            response.Releaseversion = releaseversion;
+            LOGINFO("ReleaseVersion of the Image: %s\n", releaseversion.c_str());
+            return Core::ERROR_NONE;
+        }
+        else
+        {
+            LOGERR("Unable to get releaseVersion of the Image:\n");
+            return Core::ERROR_GENERAL;
+        }
+
+    }
+
+    // Property: chipset - chipset of the device
+    // Return codes:
+    //  - ERROR_NONE: Success
+    //  - ERROR_GENERAL: General error
+    uint32_t DeviceInfo::get_chipset(ChipsetData& response) const
+    {
+
+        string chipset  = "";
+
+        auto result = _deviceInfo->ChipSet(chipset);
+        if (result == Core::ERROR_NONE) {
+            response.Chipset = chipset;
+            LOGINFO("Chipset of the device: %s\n", chipset.c_str());
+            return Core::ERROR_NONE;
+        }
+        else
+        {
+            LOGERR("Unable to get Chipset of the device \n");
+            return Core::ERROR_GENERAL;
+        }
+
     }
 
     // Property: supportedaudioports - Audio ports supported on the device (all ports that are physically present)

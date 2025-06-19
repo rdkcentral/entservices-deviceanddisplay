@@ -77,18 +77,11 @@ void PowerController::init()
     // settings already loaded in constructor
     _lastKnownPowerState = _settings.powerState();
 
-    LOGINFO("Settings on init powerState: %s, powerStateBeforeReboot: %s, networkStandbyMode: %s, deepSleepTimeout: %d",
-        util::str(_settings.powerState()),
-        util::str(_settings.powerStateBeforeReboot()),
-        _settings.nwStandbyMode() ? "Enabled" : "Disabled",
-        _settings.deepSleepTimeout());
-
     do {
         // Sync power state with platform
         PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-        PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
-        uint32_t errorCode = GetPowerState(currentState, prevState);
+        uint32_t errorCode = platform().GetPowerState(currentState);
 
         if (WPEFramework::Core::ERROR_NONE != errorCode) {
             LOGINFO("Failed to get current power state from platform: %u", errorCode);
@@ -101,7 +94,9 @@ void PowerController::init()
         }
 
         errorCode = SetPowerState(0, _settings.powerState(), "Initialization");
+
         if (WPEFramework::Core::ERROR_NONE == errorCode) {
+            LOGINFO("Successfull at syncing powerState %s with hardware", util::str(_settings.powerState()));
             break;
         }
 

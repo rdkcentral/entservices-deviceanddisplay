@@ -18,6 +18,8 @@
  */
 
 #include "DisplayInfo.h"
+#include "UtilsLogging.h"
+#include "tracing/Logging.h"
 
 #define API_VERSION_NUMBER_MAJOR 1
 #define API_VERSION_NUMBER_MINOR 0
@@ -47,6 +49,7 @@ namespace Plugin {
     {
         string message;
 
+        LOGINFO("DisplayInfo::Initialize HRB Entry ...\n");
         ASSERT(service != nullptr);
         ASSERT(_service == nullptr);
         ASSERT(_connectionProperties == nullptr);
@@ -103,6 +106,7 @@ namespace Plugin {
             Deinitialize(service);
         }
 
+        LOGINFO("DisplayInfo::Initialize HRB Completed ...\n");
         return message;
     }
 

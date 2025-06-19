@@ -19,6 +19,8 @@
 
 #include "DeviceInfo.h"
 #include <time.h>
+#include "UtilsLogging.h"
+#include "tracing/Logging.h"
 
 #define API_VERSION_NUMBER_MAJOR 1
 #define API_VERSION_NUMBER_MINOR 1
@@ -46,6 +48,7 @@ namespace Plugin {
 
     /* virtual */ const string DeviceInfo::Initialize(PluginHost::IShell* service)
     {
+        LOGINFO("DeviceInfo::Initialize HRB Entry ...\n");
         ASSERT(_service == nullptr);
         ASSERT(service != nullptr);
 
@@ -69,6 +72,7 @@ namespace Plugin {
 
         // On success return empty, to indicate there is no error text.
 
+        LOGINFO("DeviceInfo::Initialize HRB Completed ...\n");
         return ((_subSystem != nullptr)
                    && (_deviceInfo != nullptr)
                    && (_deviceAudioCapabilities != nullptr)

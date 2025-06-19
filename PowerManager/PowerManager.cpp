@@ -62,6 +62,7 @@ namespace WPEFramework
     {
         string message="";
 
+        LOGINFO("PowerManager::Initialize HRB Entry ...\n");
         ASSERT(nullptr != service);
         ASSERT(nullptr == _service);
         ASSERT(nullptr == _powerManager);
@@ -96,7 +97,7 @@ namespace WPEFramework
         {
            Deinitialize(service);
         }
-
+        LOGINFO("PowerManager::Initialize HRB Completed...\n");
         return message;
     }
 

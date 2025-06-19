@@ -62,6 +62,7 @@ namespace WPEFramework
     {
         string message="";
 
+        LOGINFO("SystemMode::Initialize HRB Entry ...\n");
         ASSERT(nullptr != service);
         ASSERT(nullptr == _service);
         ASSERT(nullptr == _systemMode);
@@ -88,6 +89,7 @@ namespace WPEFramework
            Deinitialize(service);
         }
 
+        LOGINFO("SystemMode::Initialize HRB Completed ...\n");
         return message;
     }
 

@@ -62,7 +62,9 @@ namespace WPEFramework
     {
         string message="";
 
-        ASSERT(nullptr != service);
+        LOGINFO("DeviceDiagnostics::Initialize HRB Entry ...\n");
+        
+	ASSERT(nullptr != service);
         ASSERT(nullptr == _service);
         ASSERT(nullptr == _deviceDiagnostics);
         ASSERT(0 == _connectionId);
@@ -88,6 +90,7 @@ namespace WPEFramework
             message = _T("DeviceDiagnostics plugin could not be initialised");
         }
         
+        LOGINFO("DeviceDiagnostics::Initialize HRB Completed ...\n");
         return message;
     }
 

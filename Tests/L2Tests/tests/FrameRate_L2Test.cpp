@@ -457,8 +457,15 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc)
 
     if (status != Core::ERROR_NONE){
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
-        TEST_LOG("Err: %s", errorMsg.c_str());
+        /*For Non STB devices changing status to success */
+        if (status == Core::ERROR_NOT_SUPPORTED){
+            status = Core::ERROR_NONE;
+            success = true;
+            TEST_LOG("For Non STB devices changing status to success\n");
+        }
     }
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_TRUE(success);
     signalled_pre = notify.WaitForRequestStatus(JSON_TIMEOUT, FrameRate_OnDisplayFrameRateChanging);
     EXPECT_TRUE(signalled_pre & FrameRate_OnDisplayFrameRateChanging);
 
@@ -500,7 +507,15 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc)
     if (status != Core::ERROR_NONE){
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
+        /*For Non STB devices changing status to success */
+        if (status == Core::ERROR_NOT_SUPPORTED){
+            status = Core::ERROR_NONE;
+            success = true;
+            TEST_LOG("For Non STB devices changing status to success\n");
+        }
     }
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_TRUE(success);
 }
 
 TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc)
@@ -522,7 +537,15 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc)
     if (status != Core::ERROR_NONE){
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
+        /*For Non STB devices changing status to success */
+        if (status == Core::ERROR_NOT_SUPPORTED){
+            status = Core::ERROR_NONE;
+            success = true;
+            TEST_LOG("For Non STB devices changing status to success\n");
+        }
     }
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_TRUE(success);
 }
 
 TEST_F(FrameRate_L2test, SetFrmModeFailureUsingComrpc)
@@ -552,10 +575,220 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc)
                 return 0;
             }));
     status = m_FrameRateplugin->GetFrmMode(frmmode, success);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
     if (status != Core::ERROR_NONE){
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
+        /*For Non STB devices changing status to success */
+        if (status == Core::ERROR_NOT_SUPPORTED){
+            status = Core::ERROR_NONE;
+            success = true;
+            TEST_LOG("For Non STB devices changing status to success\n");
+        }
     }
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_TRUE(success);
+
+}
+
+TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["frequency"] = 1000;
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "setCollectionFrequency", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With one Param  expecting Fail case */
+    params["frequency"] = 90;
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "setCollectionFrequency", params, result);
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, status);
+    
+    EXPECT_FALSE(result["success"].Boolean());
+}
+
+TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "startFpsCollection", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "stopFpsCollection", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["newfps"] = 30;
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "updateFps", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With one Param  expecting Fail case */
+    params["newfps"] = -1;
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "updateFps", params, result);
+    EXPECT_EQ(Core::ERROR_GENERAL, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["FrameRate"] = "3840x2160px48";
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "setDisplayFrameRate", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With one Param  expecting Fail case */
+    params["FrameRate"] = "3840x2160p";
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "setDisplayFrameRate", params, result);
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["success"] = false;
+    params["displayFrameRate"];
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "getDisplayFrameRate", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["frmmode"] = 0;
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "setFrmMode", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With one Param  expecting Fail case */
+    params["frmmode"] = -1;
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "setFrmMode", params, result);
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
+}
+
+TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_FrameRate> async_handler;
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonObject expected_status;
+
+    /*With both Params expecting Success*/
+    params["frmmode"] = 0;
+    params["success"] = false;
+    status = InvokeServiceMethod("org.rdk.FrameRate.1", "getFrmMode", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
 }

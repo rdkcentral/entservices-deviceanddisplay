@@ -116,7 +116,6 @@ public:
                 // failure
                 LOGERR("Unable to read full length expected: %zu, actual %zu", expected_size, read_size);
             } else {
-
                 settings._magic = pwrSettings.magic;
                 settings._version = pwrSettings.version;
                 settings._powerState = conv(pwrSettings.powerState);
@@ -201,12 +200,7 @@ Settings Settings::Load(const std::string& path)
             }
         } else {
             // no data in settings file
-#ifdef PLATCO_BOOTTO_STANDBY
-            if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-                settings._powerStateBeforeReboot = PowerState::POWER_STATE_UNKNOWN;
-                LOGINFO("Setting powerStateBeforeReboot to UNKNOWN, stat of /tmp/pwrmgr_restarted : %s", strerror(errno));
-            }
-#endif
+            LOGERR("no data in settings file");
         }
 
         if (!ok) {

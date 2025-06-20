@@ -203,7 +203,7 @@ Settings Settings::Load(const std::string& path)
             // no data in settings file
 #ifdef PLATCO_BOOTTO_STANDBY
             if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-                settings._powerStateBeforeReboot = PowerState::POWER_STATE_STANDBY;
+                settings._powerStateBeforeReboot = PowerState::POWER_STATE_UNKNOWN;
                 LOGINFO("Setting powerStateBeforeReboot to UNKNOWN, stat of /tmp/pwrmgr_restarted : %s", strerror(errno));
             }
 #endif

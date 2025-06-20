@@ -50,6 +50,8 @@ namespace Plugin {
         Core::hresult SocName(string& socName) const override;
         Core::hresult DistributorId(string& distributorId) const override;
         Core::hresult Brand(string& brand) const override;
+        Core::hresult ReleaseVersion(string& releaseVersion ) const override;
+        Core::hresult ChipSet(string& chipSet ) const override;
     };
 }
 }

@@ -74,6 +74,7 @@ namespace Plugin {
         ~TpTimer()
         {
             stop();
+            onTimeoutCallback = nullptr;
         }
 
         bool isActive()

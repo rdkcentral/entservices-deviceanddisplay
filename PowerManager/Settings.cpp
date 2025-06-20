@@ -175,9 +175,6 @@ void Settings::initDefaults()
 Settings Settings::Load(const std::string& path)
 {
     Settings settings{};
-#ifdef PLATCO_BOOTTO_STANDBY
-    struct stat buf = {};
-#endif
     int fd = open(path.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRUSR);
     bool ok = false;
 

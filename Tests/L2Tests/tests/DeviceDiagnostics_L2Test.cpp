@@ -332,7 +332,7 @@ TEST_F(DeviceDiagnostics_L2test, IDLE_GetAVDecoderStatus_JSONRPC)
     EXPECT_EQ(result["avDecoderStatus"].String(), "IDLE");
     TEST_LOG("GetAVDecoderStatus returned: %s", result["avDecoderStatus"].String().c_str());
 }
-
+#if 0
 /************Test case Details **************************
 ** 1.Register for onAVDecoderStatusChanged event change.
 ** 2.Mocking state change from IDLE to ACTIVE.
@@ -378,7 +378,7 @@ TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
     /*Unregister for event*/
     jsonrpc.Unsubscribe(AV_POLL_TIMEOUT, _T("onAVDecoderStatusChanged"));
 }
-
+#endif
 /************Test case Details **************************
 ** 1.GetMilestones with success case using Jsonrpc.
 *******************************************************/

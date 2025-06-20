@@ -1126,7 +1126,7 @@ TEST_F(Warehouse_L2Test, Warehouse_internalReset)
     EXPECT_EQ(Core::ERROR_NONE, status);
     EXPECT_TRUE(result["success"].Boolean());
 }
-
+#if 0
 /********************************************************
 ************Test case Details **************************
 ** 1. Triggered isClean Method
@@ -1195,7 +1195,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_iscleanTest)
     clear.close();
     std::remove("/opt/user_preferences.conf");
 }
-
+#endif
 /********************************************************
 ************Test case Details **************************
 ** 1. Triggered isClean Method

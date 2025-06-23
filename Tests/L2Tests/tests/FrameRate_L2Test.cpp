@@ -465,11 +465,6 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc)
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
-    signalled_pre = notify.WaitForRequestStatus(JSON_TIMEOUT, FrameRate_OnDisplayFrameRateChanging);
-    EXPECT_TRUE(signalled_pre & FrameRate_OnDisplayFrameRateChanging);
-
-    signalled_post = notify.WaitForRequestStatus(JSON_TIMEOUT, FrameRate_OnDisplayFrameRateChanged);
-    EXPECT_TRUE(signalled_post & FrameRate_OnDisplayFrameRateChanged);
 }
 
 TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc)

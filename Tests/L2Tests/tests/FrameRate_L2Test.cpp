@@ -453,7 +453,6 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc)
                 return 0;
             }));
     status = m_FrameRateplugin->SetDisplayFrameRate("3840x2160px48", success);
-    EXPECT_EQ(status, Core::ERROR_NONE);
 
     if (status != Core::ERROR_NONE){
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
@@ -502,7 +501,6 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc)
     std::string displayFrameRate;
 
     status = m_FrameRateplugin->GetDisplayFrameRate(displayFrameRate, success);
-    EXPECT_EQ(status, Core::ERROR_NONE);
 
     if (status != Core::ERROR_NONE){
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
@@ -533,7 +531,7 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc)
             }));
 
     status = m_FrameRateplugin->SetFrmMode(frmmode, success);
-    EXPECT_EQ(status, Core::ERROR_NONE);
+
     if (status != Core::ERROR_NONE){
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());

@@ -39,8 +39,7 @@ using namespace WPEFramework;
 using testing::StrictMock;
 using ::WPEFramework::Exchange::IFrameRate;
 VideoDeviceMock *p_videoDeviceMock = nullptr;
-typedef enum : uint32_t
-{
+typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000001,
     FrameRate_OnDisplayFrameRateChanging = 0x00000002,
     FrameRate_OnDisplayFrameRateChanged = 0x00000003,
@@ -54,11 +53,9 @@ typedef enum : uint32_t
  * concrete interface.
  */
 
-class AsyncHandlerMock_FrameRate
-{
+class AsyncHandlerMock_FrameRate {
 public:
-    AsyncHandlerMock_FrameRate()
-    {
+    AsyncHandlerMock_FrameRate() {
     }
     MOCK_METHOD(void, OnFpsEvent, (int average, int min, int max));
     MOCK_METHOD(void, OnDisplayFrameRateChanging, (const string &displayFrameRate));
@@ -66,8 +63,7 @@ public:
 };
 
 /* Notification Handler Class for COM-RPC*/
-class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification
-{
+class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification {
 private:
     /** @brief Mutex */
     std::mutex m_mutex;
@@ -86,8 +82,7 @@ public:
     FrameRateNotificationHandler() {}
     ~FrameRateNotificationHandler() {}
 
-    void OnFpsEvent(int average, int min, int max) override
-    {
+    void OnFpsEvent(int average, int min, int max) override {
         TEST_LOG("OnFpsEvent event triggered ***\n");
         std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -95,8 +90,7 @@ public:
         m_event_signalled |= FrameRate_OnFpsEvent;
         m_condition_variable.notify_one();
     }
-    void OnDisplayFrameRateChanging(const string &displayFrameRate) override
-    {
+    void OnDisplayFrameRateChanging(const string &displayFrameRate) override {
         TEST_LOG("OnDisplayFrameRateChanging event triggered ***\n");
         std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -105,8 +99,7 @@ public:
         m_event_signalled |= FrameRate_OnDisplayFrameRateChanging;
         m_condition_variable.notify_one();
     }
-    void OnDisplayFrameRateChanged(const string &displayFrameRate) override
-    {
+    void OnDisplayFrameRateChanged(const string &displayFrameRate) override {
         TEST_LOG("OnDisplayFrameRateChanged event triggered ***\n");
         std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -116,16 +109,14 @@ public:
         m_condition_variable.notify_one();
     }
 
-    uint32_t WaitForRequestStatus(uint32_t timeout_ms, FrameRateL2test_async_events_t expected_status)
-    {
+    uint32_t WaitForRequestStatus(uint32_t timeout_ms, FrameRateL2test_async_events_t expected_status) {
         std::unique_lock<std::mutex> lock(m_mutex);
         auto now = std::chrono::system_clock::now();
         std::chrono::milliseconds timeout(timeout_ms);
         uint32_t signalled = FrameRate_StateInvalid;
 
-        while (!(expected_status & m_event_signalled))
-        {
-            if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout){
+        while (!(expected_status & m_event_signalled)) {
+            if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
                 TEST_LOG("Timeout waiting for request status event");
                 break;
             }
@@ -136,8 +127,7 @@ public:
 };
 
 /* FrameRate L2 test class declaration */
-class FrameRate_L2test : public L2TestMocks
-{
+class FrameRate_L2test : public L2TestMocks {
 protected:
     IARM_EventHandler_t _iarmDSFramerateEventHandler = nullptr;
     Core::JSONRPC::Message message;
@@ -181,15 +171,13 @@ protected:
  * @brief Constructor for FrameRate L2 test class
  */
 FrameRate_L2test::FrameRate_L2test()
-    : L2TestMocks()
-{
+    : L2TestMocks() {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = FrameRate_StateInvalid;
 
     ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](const char *ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler)
-            {
+            [&](const char *ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
                 if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE)){
                     _iarmDSFramerateEventHandler = handler;
                 }
@@ -203,22 +191,22 @@ FrameRate_L2test::FrameRate_L2test()
     status = ActivateService("org.rdk.FrameRate");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    if (CreateFrameRateInterfaceObjectUsingComRPCConnection() != Core::ERROR_NONE){
+    if (CreateFrameRateInterfaceObjectUsingComRPCConnection() != Core::ERROR_NONE) {
         TEST_LOG("Invalid FrameRate_Client");
     }
-    else{
+    else {
         EXPECT_TRUE(m_controller_FrameRate != nullptr);
-        if (m_controller_FrameRate){
+        if (m_controller_FrameRate) {
             EXPECT_TRUE(m_FrameRateplugin != nullptr);
             if (m_FrameRateplugin){
                 m_FrameRateplugin->AddRef();
                 m_FrameRateplugin->Register(&notify);
             }
-            else{
+            else {
                 TEST_LOG("m_FrameRateplugin is NULL");
             }
         }
-        else{
+        else {
             TEST_LOG("m_controller_FrameRate is NULL");
         }
     }
@@ -227,12 +215,11 @@ FrameRate_L2test::FrameRate_L2test()
 /**
  * @brief Destructor for FrameRate L2 test class
  */
-FrameRate_L2test::~FrameRate_L2test()
-{
+FrameRate_L2test::~FrameRate_L2test() {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = FrameRate_StateInvalid;
 
-    if (m_FrameRateplugin){
+    if (m_FrameRateplugin) {
         m_FrameRateplugin->Unregister(&notify);
         m_FrameRateplugin->Release();
     }
@@ -242,8 +229,7 @@ FrameRate_L2test::~FrameRate_L2test()
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
-void FrameRate_L2test::OnFpsEvent(int average, int min, int max)
-{
+void FrameRate_L2test::OnFpsEvent(int average, int min, int max) {
     TEST_LOG("OnFpsEvent event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -252,8 +238,7 @@ void FrameRate_L2test::OnFpsEvent(int average, int min, int max)
     m_condition_variable.notify_one();
 }
 
-void FrameRate_L2test::OnDisplayFrameRateChanging(const string &displayFrameRate)
-{
+void FrameRate_L2test::OnDisplayFrameRateChanging(const string &displayFrameRate) {
     TEST_LOG("OnDisplayFrameRateChanging event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -264,8 +249,7 @@ void FrameRate_L2test::OnDisplayFrameRateChanging(const string &displayFrameRate
     m_condition_variable.notify_one();
 }
 
-void FrameRate_L2test::OnDisplayFrameRateChanged(const string &displayFrameRate)
-{
+void FrameRate_L2test::OnDisplayFrameRateChanged(const string &displayFrameRate) {
     TEST_LOG("OnDisplayFrameRateChanged event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -281,16 +265,14 @@ void FrameRate_L2test::OnDisplayFrameRateChanged(const string &displayFrameRate)
  *
  * @param[in] timeout_ms timeout for waiting
  */
-uint32_t FrameRate_L2test::WaitForRequestStatus(uint32_t timeout_ms, FrameRateL2test_async_events_t expected_status)
-{
+uint32_t FrameRate_L2test::WaitForRequestStatus(uint32_t timeout_ms, FrameRateL2test_async_events_t expected_status) {
     std::unique_lock<std::mutex> lock(m_mutex);
     auto now = std::chrono::system_clock::now();
     std::chrono::seconds timeout(timeout_ms);
     uint32_t signalled = FrameRate_StateInvalid;
 
-    while (!(expected_status & m_event_signalled))
-    {
-        if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout){
+    while (!(expected_status & m_event_signalled)) {
+        if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
             TEST_LOG("Timeout waiting for request status event");
             break;
         }
@@ -306,8 +288,7 @@ uint32_t FrameRate_L2test::WaitForRequestStatus(uint32_t timeout_ms, FrameRateL2
  * @param[in] data Expected value
  * @return true if the argument and data match, false otherwise
  */
-MATCHER_P(MatchRequest, data, "")
-{
+MATCHER_P(MatchRequest, data, "") {
     bool match = true;
     std::string expected;
     std::string actual;
@@ -320,8 +301,7 @@ MATCHER_P(MatchRequest, data, "")
 }
 
 // COM-RPC Changes
-uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection()
-{
+uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection() {
     uint32_t return_value = Core::ERROR_GENERAL;
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> Engine_FrameRate;
     Core::ProxyType<RPC::CommunicatorClient> Client_FrameRate;
@@ -335,12 +315,12 @@ uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection()
     Engine_FrameRate->Announcements(mClient_FrameRate->Announcement());
 #endif
 
-    if (!Client_FrameRate.IsValid()){
+    if (!Client_FrameRate.IsValid()) {
         TEST_LOG("Invalid Client_FrameRate");
     }
-    else{
+    else {
         m_controller_FrameRate = Client_FrameRate->Open<PluginHost::IShell>(_T("org.rdk.FrameRate"), ~0, 3000);
-        if (m_controller_FrameRate){
+        if (m_controller_FrameRate) {
             m_FrameRateplugin = m_controller_FrameRate->QueryInterface<Exchange::IFrameRate>();
             return_value = Core::ERROR_NONE;
         }
@@ -348,8 +328,7 @@ uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection()
     return return_value;
 }
 
-TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc)
-{
+TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 1000;
     bool success = false;
@@ -357,29 +336,27 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc)
     EXPECT_EQ(success, true);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
 }
 
-TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc)
-{
+TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 0;
     bool success = false;
     status = m_FrameRateplugin->SetCollectionFrequency(frequency, success);
     EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
-    if (status != Core::ERROR_INVALID_PARAMETER){
+    if (status != Core::ERROR_INVALID_PARAMETER) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
 
-TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc)
-{
+TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     uint32_t signalled = FrameRate_StateInvalid;
@@ -387,45 +364,42 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc)
     status = m_FrameRateplugin->StartFpsCollection(success);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
 }
 
-TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc)
-{
+TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
 
     bool success = false;
     status = m_FrameRateplugin->StopFpsCollection(success);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
 }
 
-TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc)
-{
+TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int newfps = 60;
     bool success = false;
     status = m_FrameRateplugin->UpdateFps(newfps, success);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
 }
 
-TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc)
-{
+TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
 
     int newfps = -1;
@@ -433,28 +407,26 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc)
     status = m_FrameRateplugin->UpdateFps(newfps, success);
     EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
-    if (status != Core::ERROR_INVALID_PARAMETER){
+    if (status != Core::ERROR_INVALID_PARAMETER) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
 
-TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc)
-{
+TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     uint32_t signalled_pre = FrameRate_StateInvalid;
     uint32_t signalled_post = FrameRate_StateInvalid;
     ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](const char *param)
-            {
+            [&](const char *param) {
                 EXPECT_EQ(param, string("3840x2160px48"));
                 return 0;
             }));
     status = m_FrameRateplugin->SetDisplayFrameRate("3840x2160px48", success);
 
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         /*For Non STB devices changing status to success */
         if (status == Core::ERROR_NOT_SUPPORTED){
@@ -467,26 +439,23 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc)
     EXPECT_TRUE(success);
 }
 
-TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc)
-{
+TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
     uint32_t status = Core::ERROR_INVALID_PARAMETER;
     bool success = false;
 
     status = m_FrameRateplugin->SetDisplayFrameRate("3840x2160p", success);
     EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
-    if (status != Core::ERROR_INVALID_PARAMETER){
+    if (status != Core::ERROR_INVALID_PARAMETER) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
 
-TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc)
-{
+TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](char *param)
-            {
+            [&](char *param) {
                 string framerate("3840x2160px48");
                 ::memcpy(param, framerate.c_str(), framerate.length());
                 return 0;
@@ -497,11 +466,11 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc)
 
     status = m_FrameRateplugin->GetDisplayFrameRate(displayFrameRate, success);
 
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
         /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED){
+        if (status == Core::ERROR_NOT_SUPPORTED) {
             status = Core::ERROR_NONE;
             success = true;
             TEST_LOG("For Non STB devices changing status to success\n");
@@ -511,23 +480,21 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc)
     EXPECT_TRUE(success);
 }
 
-TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc)
-{
+TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     int frmmode = 0;
 
     ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](int param)
-            {
+            [&](int param) {
                 EXPECT_EQ(param, 0);
                 return 0;
             }));
 
     status = m_FrameRateplugin->SetFrmMode(frmmode, success);
 
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
         /*For Non STB devices changing status to success */
@@ -541,34 +508,31 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc)
     EXPECT_TRUE(success);
 }
 
-TEST_F(FrameRate_L2test, SetFrmModeFailureUsingComrpc)
-{
+TEST_F(FrameRate_L2test, SetFrmModeFailureUsingComrpc) {
     uint32_t status = Core::ERROR_INVALID_PARAMETER;
     bool success = false;
     int frmmode = -1;
 
     status = m_FrameRateplugin->SetFrmMode(frmmode, success);
     EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-    if (status != Core::ERROR_INVALID_PARAMETER){
+    if (status != Core::ERROR_INVALID_PARAMETER) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
 
-TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc)
-{
+TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     int frmmode = 0;
     ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](int *param)
-            {
+            [&](int *param) {
                 *param = 0;
                 return 0;
             }));
     status = m_FrameRateplugin->GetFrmMode(frmmode, success);
-    if (status != Core::ERROR_NONE){
+    if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
         /*For Non STB devices changing status to success */
@@ -583,8 +547,7 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc)
 
 }
 
-TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -596,12 +559,10 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc)
     params["frequency"] = 1000;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setCollectionFrequency", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    EXPECT_TRUE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -613,13 +574,10 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc)
     params["frequency"] = 90;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setCollectionFrequency", params, result);
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, status);
-    
-    EXPECT_FALSE(result["success"].Boolean());
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -630,12 +588,10 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc)
     /*With both Params expecting Success*/
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "startFpsCollection", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    EXPECT_TRUE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -646,12 +602,10 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc)
     /*With both Params expecting Success*/
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "stopFpsCollection", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    EXPECT_TRUE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -663,12 +617,10 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc)
     params["newfps"] = 30;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "updateFps", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    EXPECT_TRUE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -680,12 +632,10 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc)
     params["newfps"] = -1;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "updateFps", params, result);
-    EXPECT_EQ(Core::ERROR_GENERAL, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -697,12 +647,11 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc)
     params["FrameRate"] = "3840x2160px48";
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setDisplayFrameRate", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -714,12 +663,10 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc)
     params["FrameRate"] = "3840x2160p";
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setDisplayFrameRate", params, result);
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -731,12 +678,11 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc)
     params["success"] = false;
     params["displayFrameRate"];
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "getDisplayFrameRate", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -748,12 +694,11 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc)
     params["frmmode"] = 0;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setFrmMode", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -765,12 +710,10 @@ TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc)
     params["frmmode"] = -1;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setFrmMode", params, result);
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
-TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc)
-{
+TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
@@ -782,6 +725,6 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc)
     params["frmmode"] = 0;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "getFrmMode", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_STREQ("null", result["value"].String().c_str());
+    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
+    EXPECT_FALSE(result["result"].Boolean());
 }

@@ -559,7 +559,8 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc) {
     params["frequency"] = 1000;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setCollectionFrequency", params, result);
-    EXPECT_TRUE(result["result"].Boolean());
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
 }
 
 TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc) {
@@ -588,7 +589,8 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc) {
     /*With both Params expecting Success*/
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "startFpsCollection", params, result);
-    EXPECT_TRUE(result["result"].Boolean());
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
 }
 
 TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
@@ -602,7 +604,8 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
     /*With both Params expecting Success*/
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "stopFpsCollection", params, result);
-    EXPECT_TRUE(result["result"].Boolean());
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
 }
 
 TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
@@ -617,7 +620,8 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
     params["newfps"] = 30;
     params["success"] = false;
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "updateFps", params, result);
-    EXPECT_TRUE(result["result"].Boolean());
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_STREQ("null", result["value"].String().c_str());
 }
 
 TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc) {

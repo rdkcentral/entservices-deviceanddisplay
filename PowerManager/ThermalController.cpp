@@ -24,14 +24,16 @@
 ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
-    ,_parent(parent)
-    ,_stopThread(true)
+    , _parent(parent)
+    , _stopThread(true)
 {
     initializeThermalProtection();
+    LOGINFO(">> CTOR <<");
 }
 
 ThermalController::~ThermalController()
 {
+    LOGINFO(">> DTOR");
     _stopThread = true;
     if ( nullptr != thermalThreadId )
     {
@@ -42,6 +44,7 @@ ThermalController::~ThermalController()
         delete thermalThreadId;
         thermalThreadId = nullptr;
     }
+    LOGINFO("<< DTOR");
 }
 
 uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const
@@ -149,7 +152,7 @@ void ThermalController::initializeThermalProtection()
 
         _stopThread = false;
 
-        thermalThreadId = new std::thread(&ThermalController::_PollThermalLevels, this);
+        thermalThreadId = new std::thread(&ThermalController::pollThermalLevels, this);
 
         if (nullptr == thermalThreadId )
         {
@@ -369,10 +372,10 @@ void ThermalController::declockIfNeeded()
 }
 
 //Thread entry function to monitor thermal levels of the device.
-void ThermalController::_PollThermalLevels()
+void ThermalController::pollThermalLevels()
 {
     ThermalTemperature state;
-    float current_Temp = 0;
+    float current_Temp     = 0;
     float current_WifiTemp = 0;
 
     unsigned int pollCount = 0;
@@ -382,7 +385,7 @@ void ThermalController::_PollThermalLevels()
     int fifteenMinInterval = 900/thermal_poll_interval; //15 *60 seconds/interval
 
 
-    LOGINFO("Enter - Start monitoring temeperature every %d seconds log interval: %d", thermal_poll_interval, thermalLogInterval);
+    LOGINFO(">> Start monitoring temeperature every %d seconds log interval: %d", thermal_poll_interval, thermalLogInterval);
 
     while(!_stopThread)
     {
@@ -427,6 +430,7 @@ void ThermalController::_PollThermalLevels()
         sleep(thermal_poll_interval);
         pollCount++;
     }
+    LOGINFO(">> Stop monitoring temeperature");
 }
 
 bool ThermalController::updateRFCStatus()

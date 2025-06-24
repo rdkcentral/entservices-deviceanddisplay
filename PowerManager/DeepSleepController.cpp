@@ -252,12 +252,8 @@ void DeepSleepController::enterDeepSleepDelayed()
     struct stat buf;
 
     LOGINFO("Deep Sleep Timer Expires :Enter to Deep sleep Mode..stop Receiver with sleep 10 before DS");
-    // To-do:
-    system("sleep 10");
 
-    if ((stat("/lib/systemd/system/lxc.service", &buf) == 0) && (stat("/opt/lxc_service_disabled", &buf) != 0)) {
-        system("systemctl stop lxc.service");
-    }
+    sleep(10);
 
     bool userWakeup = 0;
 
@@ -284,7 +280,8 @@ void DeepSleepController::enterDeepSleepDelayed()
 void DeepSleepController::enterDeepSleepNow()
 {
     LOGINFO("Enter to Deep sleep Mode..stop Receiver with sleep 2 before DS");
-    system("sleep 2");
+    sleep(2);
+
     bool failed = true;
     int retryCount = 5;
     bool userWakeup = 0;
@@ -364,9 +361,9 @@ void DeepSleepController::MaintenanceReboot()
 {
 #if !defined(_DISABLE_SCHD_REBOOT_AT_DEEPSLEEP)
     LOGINFO("Scheduled maintanace reboot is enabled");
-    system("echo 0 > /opt/.rebootFlag");
-    system("echo `/bin/timestamp` ------------- Reboot timer expired while in Deep Sleep --------------- >> /opt/logs/receiver.log");
-    system("sleep 5; /rebootNow.sh -s DeepSleepMgr -o 'Rebooting the box due to reboot timer expired while in Deep Sleep...'");
+    v_secure_system("echo 0 > /opt/.rebootFlag");
+    v_secure_system("echo `/bin/timestamp` ------------- Reboot timer expired while in Deep Sleep --------------- >> /opt/logs/receiver.log");
+    v_secure_system("sleep 5; /rebootNow.sh -s DeepSleepMgr -o 'Rebooting the box due to reboot timer expired while in Deep Sleep...'");
 #endif // !_DISABLE_SCHD_REBOOT_AT_DEEPSLEEP
 }
 

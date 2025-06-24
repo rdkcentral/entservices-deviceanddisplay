@@ -16,7 +16,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <iomanip> // for setfill
 #include <sstream>
 
 #include "plat_power.h"
@@ -31,8 +30,9 @@ using util = PowerUtils;
 class SettingsV1 {
 
     using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
+
     static constexpr const uint32_t UIMGR_SETTINGS_MAGIC = 0xFEBEEFAC;
-    static constexpr const uint32_t PADDING_SIZE = 32;
+    static constexpr const uint32_t PADDING_SIZE         = 32; // There is no strong reason to use padding, but maintained for compatibility
 
     /*LED settings*/
     typedef struct _PWRMgr_LED_Settings_t {
@@ -105,9 +105,9 @@ public:
 
     static bool Load(int fd, const Settings::Header& header, Settings& settings)
     {
-        bool ok = false;
+        bool ok                       = false;
         PWRMgr_Settings_t pwrSettings = {};
-        const auto expected_size = Size();
+        const auto expected_size      = Size();
 
         if (header.length == expected_size) {
             lseek(fd, 0, SEEK_SET);
@@ -116,11 +116,11 @@ public:
                 // failure
                 LOGERR("Unable to read full length expected: %zu, actual %zu", expected_size, read_size);
             } else {
-                settings._magic = pwrSettings.magic;
-                settings._version = pwrSettings.version;
-                settings._powerState = conv(pwrSettings.powerState);
+                settings._magic            = pwrSettings.magic;
+                settings._version          = pwrSettings.version;
+                settings._powerState       = conv(pwrSettings.powerState);
                 settings._deepSleepTimeout = pwrSettings.deep_sleep_timeout;
-                settings._nwStandbyMode = pwrSettings.nwStandbyMode;
+                settings._nwStandbyMode    = pwrSettings.nwStandbyMode;
 
                 ok = true;
             }
@@ -134,17 +134,17 @@ public:
     static bool Save(int fd, Settings& settings)
     {
         PWRMgr_Settings_t pwrSettings = {
-            .magic = settings.magic(),
-            .version = settings.version(),
-            .length = Size(), // fixed for V1
-            .powerState = conv(settings.powerState()),
+            .magic       = settings.magic(),
+            .version     = settings.version(),
+            .length      = Size(), // fixed for V1
+            .powerState  = conv(settings.powerState()),
             .ledSettings = {
                 .brightness = 0, // unused, maintained for compatibility
-                .color = 0       // unused, maintained for compatibility
+                .color      = 0  // unused, maintained for compatibility
             },
             .deep_sleep_timeout = settings.deepSleepTimeout(),
-            .nwStandbyMode = settings.nwStandbyMode(),
-            .padding = { 0 }
+            .nwStandbyMode      = settings.nwStandbyMode(),
+            .padding            = { 0 }
         };
 
         lseek(fd, 0, SEEK_SET);
@@ -159,7 +159,7 @@ public:
     static void initDefaults(Settings& settings)
     {
         LOGINFO("Initial creation of SettingsV1");
-        settings._magic = UIMGR_SETTINGS_MAGIC;
+        settings._magic   = UIMGR_SETTINGS_MAGIC;
         settings._version = static_cast<uint32_t>(Settings::Version::V1);
     }
 };
@@ -174,8 +174,8 @@ void Settings::initDefaults()
 
 Settings Settings::Load(const std::string& path)
 {
-    Settings settings{};
-    int fd = open(path.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRUSR);
+    Settings settings {};
+    int fd  = open(path.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRUSR);
     bool ok = false;
 
     if (fd >= 0) {
@@ -185,7 +185,7 @@ Settings Settings::Load(const std::string& path)
         lseek(fd, 0, SEEK_SET);
 
         const int read_size = sizeof(Header);
-        auto nbytes = read(fd, &header, read_size);
+        auto nbytes         = read(fd, &header, read_size);
 
         if (nbytes == read_size) {
             switch (header.version) {
@@ -251,11 +251,10 @@ std::string Settings::str() const
 {
     std::stringstream ss;
 
-    ss << "magic: " << std::hex << _magic
+    ss << "magic: " << std::hex << _magic << std::dec
        << "\n\tversion: " << _version
        << "\n\tpowerState: " << util::str(_powerState)
        << "\n\tpowerStateBeforeReboot " << util::str(_powerStateBeforeReboot)
-       << std::dec
        << "\n\tdeepsleep timeout sec: " << _deepSleepTimeout
        << "\n\tnwStandbyMode: " << (_nwStandbyMode ? "enabled" : "disabled");
 

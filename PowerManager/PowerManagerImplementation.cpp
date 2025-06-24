@@ -29,46 +29,21 @@
 #include <interfaces/IPowerManager.h>
 
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
-#define IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut "SetDeepSleepTimeOut" /*!< Sets the timeout for deep sleep*/
 
 using PreModeChangeTimer = WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeTimer;
-using util = PowerUtils;
+using util               = PowerUtils;
 
 template <>
 WPEFramework::Core::TimerType<PreModeChangeTimer> PreModeChangeTimer::timerThread(16 * 1024, "ACK TIMER");
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
-uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId = 0;
+uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
 
 #ifndef POWER_MODE_PRECHANGE_TIMEOUT_SEC
 #define POWER_MODE_PRECHANGE_TIMEOUT_SEC 3
 #endif
 
 using namespace std;
-string convertCase(string str)
-{
-    std::string bufferString = str;
-    transform(bufferString.begin(), bufferString.end(),
-        bufferString.begin(), ::toupper);
-    LOGINFO("%s: after transform to upper :%s", __FUNCTION__,
-        bufferString.c_str());
-    return bufferString;
-}
-
-bool convert(string str3, string firm)
-{
-    LOGINFO("INSIDE CONVERT");
-    bool status = false;
-    string firmware = convertCase(firm);
-    string str = firmware.c_str();
-    size_t found = str.find(str3);
-    if (found != string::npos) {
-        status = true;
-    } else {
-        status = false;
-    }
-    return status;
-}
 
 namespace WPEFramework {
 namespace Plugin {
@@ -362,7 +337,7 @@ namespace Plugin {
                 _modeChangeController.reset();
             }
 
-            _modeChangeController = std::unique_ptr<PreModeChangeController>(new PreModeChangeController());
+            _modeChangeController   = std::unique_ptr<PreModeChangeController>(new PreModeChangeController());
             const int transactionId = _modeChangeController->TransactionId();
 
             for (const auto& client : _modeChangeClients) {
@@ -475,15 +450,15 @@ namespace Plugin {
         _apiLock.Lock();
 
         ThermalTemperature curLevel = THERMAL_TEMPERATURE_UNKNOWN;
-        float curTemperature = 0;
+        float curTemperature        = 0;
 
-        errorCode = _thermalController.GetThermalState(curLevel, curTemperature);
+        errorCode   = _thermalController.GetThermalState(curLevel, curTemperature);
         temperature = curTemperature;
         _apiLock.Unlock();
         LOGINFO("<< Current core temperature is : %f, errorCode: %u", temperature, errorCode);
 #else
         temperature = -1;
-        errorCode = Core::ERROR_GENERAL;
+        errorCode   = Core::ERROR_GENERAL;
         LOGWARN("<< Thermal Protection disabled for this platform");
 #endif
         return errorCode;
@@ -538,10 +513,10 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::Reboot(const string& rebootRequestor, const string& rebootReasonCustom, const string& rebootReasonOther)
     {
-        const string defaultArg = "Unknown";
-        const string requestor = rebootRequestor.empty() ? defaultArg : rebootRequestor;
+        const string defaultArg   = "Unknown";
+        const string requestor    = rebootRequestor.empty() ? defaultArg : rebootRequestor;
         const string customReason = rebootReasonCustom.empty() ? defaultArg : rebootReasonCustom;
-        const string otherReason = rebootReasonOther.empty() ? defaultArg : rebootReasonOther;
+        const string otherReason  = rebootReasonOther.empty() ? defaultArg : rebootReasonOther;
 
         LOGINFO(">> requestor %s, custom reason: %s, other reason: %s", requestor.c_str(), customReason.c_str(), otherReason.c_str());
 
@@ -730,7 +705,7 @@ namespace Plugin {
             });
 
         if (it == _modeChangeClients.end()) {
-            clientId = ++_nextClientId;
+            clientId                     = ++_nextClientId;
             _modeChangeClients[clientId] = clientName;
         } else {
             // client is already registered, return the clientId

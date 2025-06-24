@@ -33,23 +33,24 @@
 #include <core/WorkerPool.h>  // for IWorkerPool, WorkerPool
 
 #include "DeepSleepController.h"
-#include "LambdaJob.h"    // for LambdaJob
-#include "UtilsLogging.h" // for LOGINFO, LOGERR
-#include "libIARM.h"      // for _IARM_Result_t, IARM_Result_t
-#include "libIBus.h"      // for IARM_Bus_Call
-#include "sysMgr.h"       // for IARM_BUS_SYSMGR_API_GetSystemStates
+#include "LambdaJob.h"      // for LambdaJob
+#include "UtilsLogging.h"   // for LOGINFO, LOGERR
+#include "libIARM.h"        // for _IARM_Result_t, IARM_Result_t
+#include "libIBus.h"        // for IARM_Bus_Call
+#include "secure_wrapper.h" // for v_secure_system
+#include "sysMgr.h"         // for IARM_BUS_SYSMGR_API_GetSystemStates
 
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-using IPlatform = hal::deepsleep::IPlatform;
+using PowerState   = WPEFramework::Exchange::IPowerManager::PowerState;
+using IPlatform    = hal::deepsleep::IPlatform;
 
 std::map<std::string, DeepSleepWakeupSettings::tzValue> DeepSleepWakeupSettings::_maptzValues;
 
 uint32_t DeepSleepWakeupSettings::getTZDiffInSec() const
 {
-    uint32_t _TZDiffTime = 6 * 3600;
+    uint32_t _TZDiffTime  = 6 * 3600;
     IARM_Result_t iResult = IARM_RESULT_SUCCESS;
-    tzValue value = tzCST06;
+    tzValue value         = tzCST06;
 
     /* Get the Time Zone Pay Load from SysMgr */
     IARM_Bus_SYSMgr_GetSystemStates_Param_t param;
@@ -60,7 +61,7 @@ uint32_t DeepSleepWakeupSettings::getTZDiffInSec() const
         } else if (param.time_zone_available.state == 2) {
             if (strlen(param.time_zone_available.payload) > 1) {
                 LOGINFO("TZ Payload - %s", param.time_zone_available.payload);
-                value = _maptzValues[param.time_zone_available.payload];
+                value       = _maptzValues[param.time_zone_available.payload];
                 _TZDiffTime = value * 3600;
 
                 LOGINFO("TZ value = %d", value);
@@ -76,18 +77,18 @@ uint32_t DeepSleepWakeupSettings::getTZDiffInSec() const
 */
 void DeepSleepWakeupSettings::initializeTimeZone()
 {
-    _maptzValues["HST11"] = tzHST11;
-    _maptzValues["HST11HDT,M3.2.0,M11.1.0"] = tzHST11HDT;
-    _maptzValues["AKST"] = tzAKST;
+    _maptzValues["HST11"]                     = tzHST11;
+    _maptzValues["HST11HDT,M3.2.0,M11.1.0"]   = tzHST11HDT;
+    _maptzValues["AKST"]                      = tzAKST;
     _maptzValues["AKST09AKDT,M3.2.0,M11.1.0"] = tzAKST09AKDT;
-    _maptzValues["PST08"] = tzPST08;
-    _maptzValues["PST08PDT,M3.2.0,M11.1.0"] = tzPST08PDT;
-    _maptzValues["MST07"] = tzMST07;
-    _maptzValues["MST07MDT,M3.2.0,M11.1.0"] = tzMST07MDT;
-    _maptzValues["CST06"] = tzCST06;
-    _maptzValues["CST06CDT,M3.2.0,M11.1.0"] = tzCST06CDT;
-    _maptzValues["EST05"] = tzEST05;
-    _maptzValues["EST05EDT,M3.2.0,M11.1.0"] = tzEST05EDT;
+    _maptzValues["PST08"]                     = tzPST08;
+    _maptzValues["PST08PDT,M3.2.0,M11.1.0"]   = tzPST08PDT;
+    _maptzValues["MST07"]                     = tzMST07;
+    _maptzValues["MST07MDT,M3.2.0,M11.1.0"]   = tzMST07MDT;
+    _maptzValues["CST06"]                     = tzCST06;
+    _maptzValues["CST06CDT,M3.2.0,M11.1.0"]   = tzCST06CDT;
+    _maptzValues["EST05"]                     = tzEST05;
+    _maptzValues["EST05EDT,M3.2.0,M11.1.0"]   = tzEST05EDT;
 }
 
 /*  Get Wakeup timeout.
@@ -96,7 +97,7 @@ void DeepSleepWakeupSettings::initializeTimeZone()
 uint32_t DeepSleepWakeupSettings::getWakeupTime() const
 {
     time_t now = 0, wakeup = 0;
-    struct tm wakeupTime = { 0 };
+    struct tm wakeupTime     = { 0 };
     uint32_t wakeupTimeInSec = 0, getTZDiffTime = 0;
     uint32_t wakeupTimeInMin = 5;
 
@@ -127,17 +128,17 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         if (wakeupTime.tm_hour >= 0 && wakeupTime.tm_hour < 2) {
             /*Calculate the wakeup time till 2 AM..*/
             wakeupTime.tm_hour = 2;
-            wakeupTime.tm_min = 0;
-            wakeupTime.tm_sec = 0;
-            wakeupTimeInSec = difftime(mktime(&wakeupTime), now);
+            wakeupTime.tm_min  = 0;
+            wakeupTime.tm_sec  = 0;
+            wakeupTimeInSec    = difftime(mktime(&wakeupTime), now);
 
         } else {
             /*Calculate the wakeup time till midnight + 2 hours for 2 AM..*/
             wakeupTime.tm_hour = 23;
-            wakeupTime.tm_min = 59;
-            wakeupTime.tm_sec = 60;
-            wakeupTimeInSec = difftime(mktime(&wakeupTime), now);
-            wakeupTimeInSec = wakeupTimeInSec + 7200; // 7200sec for 2 hours
+            wakeupTime.tm_min  = 59;
+            wakeupTime.tm_sec  = 60;
+            wakeupTimeInSec    = difftime(mktime(&wakeupTime), now);
+            wakeupTimeInSec    = wakeupTimeInSec + 7200; // 7200sec for 2 hours
         }
 
         /* Add randomness to calculated value i.e between 2AM - 3AM
@@ -145,10 +146,10 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         */
         srand(time(NULL));
         uint32_t randTimeInSec = (uint32_t)rand() % (3600) + 0; // for 1 hour window
-        wakeupTimeInSec = wakeupTimeInSec + randTimeInSec;
+        wakeupTimeInSec        = wakeupTimeInSec + randTimeInSec;
         LOGINFO("Calculated Deep Sleep Wakeup Time Before TZ setting is %d Sec", wakeupTimeInSec);
 
-        getTZDiffTime = getTZDiffInSec();
+        getTZDiffTime   = getTZDiffInSec();
         wakeupTimeInSec = wakeupTimeInSec + getTZDiffTime;
 
         LOGINFO("Calculated Deep Sleep Wakeup Time After TZ setting is %d Sec", wakeupTimeInSec);
@@ -222,8 +223,8 @@ uint32_t DeepSleepController::Deactivate()
 
 bool DeepSleepController::read_integer_conf(const char* file_name, uint32_t& val)
 {
-    bool ok = false;
-    FILE* file = fopen(file_name, "r");
+    bool ok         = false;
+    FILE* file      = fopen(file_name, "r");
     const char* err = nullptr;
 
     if (nullptr != file) {
@@ -249,8 +250,6 @@ void DeepSleepController::enterDeepSleepDelayed()
 {
     _deepSleepDelayJob.Release();
 
-    struct stat buf;
-
     LOGINFO("Deep Sleep Timer Expires :Enter to Deep sleep Mode..stop Receiver with sleep 10 before DS");
 
     sleep(10);
@@ -258,7 +257,7 @@ void DeepSleepController::enterDeepSleepDelayed()
     bool userWakeup = 0;
 
     auto startTime = std::chrono::steady_clock::now();
-    auto status = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, false);
+    auto status    = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, false);
 
     if (WPEFramework::Core::ERROR_NONE != status) {
         LOGINFO("Failed to enter deepsleep status %u", status);
@@ -282,16 +281,15 @@ void DeepSleepController::enterDeepSleepNow()
     LOGINFO("Enter to Deep sleep Mode..stop Receiver with sleep 2 before DS");
     sleep(2);
 
-    bool failed = true;
-    int retryCount = 5;
+    bool failed     = true;
+    int retryCount  = 5;
     bool userWakeup = 0;
-    std::chrono::steady_clock::time_point startTime;
+    auto startTime  = std::chrono::steady_clock::now();
 
     while (retryCount && failed) {
         LOGINFO("Device entering Deep sleep with nwStandbyMode: %s",
             (_nwStandbyMode ? "Enabled" : "Disabled"));
 
-        startTime = std::chrono::steady_clock::now();
         uint32_t errorCode = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, _nwStandbyMode);
 
         failed = WPEFramework::Core::ERROR_NONE != errorCode;
@@ -328,7 +326,8 @@ void DeepSleepController::deepSleepTimerWakeup(const std::chrono::steady_clock::
 {
 #ifdef USE_WAKEUP_TIMER_EVT
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
-    uint32_t errorCode = platform().GetLastWakeupReason(wakeupReason);
+    uint32_t errorCode        = platform().GetLastWakeupReason(wakeupReason);
+
     if (WPEFramework::Core::ERROR_NONE == errorCode && WakeupReason::WAKEUP_REASON_TIMER == wakeupReason) {
         LOGINFO("DeepSleep wakeupReason: %d, timeout: %d", wakeupReason, _deepSleepWakeupTimeoutSec);
         _parent.onDeepSleepTimerWakeup(_deepSleepWakeupTimeoutSec);

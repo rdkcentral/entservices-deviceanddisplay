@@ -22,6 +22,7 @@
 #include <core/WorkerPool.h>
 
 #include "rfcapi.h"
+#include "secure_wrapper.h"
 
 #include "LambdaJob.h"
 #include "RebootController.h"

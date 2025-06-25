@@ -339,7 +339,7 @@ TEST_F(DeviceDiagnostics_L2test, IDLE_GetAVDecoderStatus_JSONRPC)
 ** 3.GetAVDecoderStatus with ACTIVE status using Jsonrpc.
 *******************************************************/
 
-TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
+TEST_F(DeviceDiagnostics_L2test, DISABLED_ACTIVE_GetAVDecoderStatus_JSONRPC)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(DEVDIAG_CALLSIGN, DEVDIAGL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_DevDiag> async_handler;

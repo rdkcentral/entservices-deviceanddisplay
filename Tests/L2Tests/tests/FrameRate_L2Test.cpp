@@ -632,13 +632,12 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
     params["frequency"] = 1000;
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setCollectionFrequency", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
 /************Test case Details **************************
@@ -653,11 +652,9 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With one Param  expecting Fail case */
     params["frequency"] = 90;
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setCollectionFrequency", params, result);
     EXPECT_FALSE(result["result"].Boolean());
 }
@@ -672,12 +669,11 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "startFpsCollection", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
 /************Test case Details **************************
@@ -690,12 +686,11 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "stopFpsCollection", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
 /************Test case Details **************************
@@ -710,13 +705,12 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
     params["newfps"] = 30;
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "updateFps", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
+    EXPECT_FALSE(result["result"].Boolean());
 }
 
 /************Test case Details **************************
@@ -731,11 +725,9 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With one Param  expecting Fail case */
     params["newfps"] = -1;
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "updateFps", params, result);
     EXPECT_FALSE(result["result"].Boolean());
 }
@@ -754,11 +746,9 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
     params["FrameRate"] = "3840x2160px48";
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setDisplayFrameRate", params, result);
     /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
     EXPECT_FALSE(result["result"].Boolean());
@@ -776,11 +766,9 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With one Param  expecting Fail case */
     params["FrameRate"] = "3840x2160p";
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setDisplayFrameRate", params, result);
     EXPECT_FALSE(result["result"].Boolean());
 }
@@ -798,10 +786,8 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
-    params["success"] = false;
     params["displayFrameRate"];
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "getDisplayFrameRate", params, result);
     /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
@@ -821,11 +807,9 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
     params["frmmode"] = 0;
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setFrmMode", params, result);
     /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
     EXPECT_FALSE(result["result"].Boolean());
@@ -843,11 +827,9 @@ TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With one Param  expecting Fail case */
     params["frmmode"] = -1;
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setFrmMode", params, result);
     EXPECT_FALSE(result["result"].Boolean());
 }
@@ -865,11 +847,9 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    JsonObject expected_status;
 
     /*With both Params expecting Success*/
     params["frmmode"] = 0;
-    params["success"] = false;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "getFrmMode", params, result);
     /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
     EXPECT_FALSE(result["result"].Boolean());

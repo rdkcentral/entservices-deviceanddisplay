@@ -4910,12 +4910,32 @@ void DisplaySettings::sendMsgThread()
 				{
 					LOGINFO(" Send request for ARC to mute");
 					//gsk need to call the sendSetAudioMuteStatus();
-                    result = DisplaySettings::_instance->sendSetAudioMuteStatus();
-				}
+                    // Wait for the sendSetAudioMuteStatus to succeed
+                    LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus Before EARC MUTE set: cec_cache_muted=%d \n", cec_cache_muted);
+                    // Using a separate thread to avoid blocking the main thread
+                    // This is to ensure that the mute command is sent successfully
+                    // and the cec_cache_muted is updated accordingly
+                    // If the mute command fails, it will retry until it succeeds
+                    std::thread muteThread([]() {
+                        bool result = false;
+                        while ((result = DisplaySettings::_instance->sendSetAudioMuteStatus()) != true) {
+                            LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus failed, retrying...");
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // wait for 1 second before retrying
+                        }
+                        // After successful mute, update the cec_cache_muted status
+                        if (result == true) {
+                            cec_cache_muted = false; // set mute status to true
+                            LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus After EARC MUTE set: cec_cache_muted=%d \n", cec_cache_muted);
+                        } else {
+                            LOGERR("gsk:DisplaySettings::sendSetAudioMuteStatus failed \n");
+                        }
+                    });
+                    muteThread.detach();
+                }
                 break;
-		
-				default:
-				{
+
+                default:
+                {
 					LOGINFO(" Requested invalid message");
 				}
 				break;

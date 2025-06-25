@@ -1218,8 +1218,6 @@ TEST_F(Warehouse_L2Test, Warehouse_iscleanTest)
     const uint8_t userPrefLang[] = "[General]\nui_language=US_en\n";
     const string customDataFile = _T("/lib/rdk/wh_api_5.conf");
     const uint8_t customDataFileContent[] = "[files]\n/opt/user_preferences.conf\n";
-
-    EXPECT_TRUE(std::ifstream("/opt/user_preferences.conf").good() ? std::remove("/opt/user_preferences.conf") == 0 : true);
     
     // No conf file
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "isClean", params, result);

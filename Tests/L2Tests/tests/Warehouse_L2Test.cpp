@@ -1144,6 +1144,8 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_iscleanTest)
     const string customDataFile = _T("/lib/rdk/wh_api_5.conf");
     const uint8_t customDataFileContent[] = "[files]\n/opt/user_preferences.conf\n";
 
+    EXPECT_TRUE(std::ifstream("/opt/user_preferences.conf").good() ? std::remove("/opt/user_preferences.conf") == 0 : true);
+
     // No conf file
     status = m_warehouseplugin->IsClean(age, clean, files, success, error);
     TEST_LOG("error: %s",error.c_str());
@@ -1217,6 +1219,8 @@ TEST_F(Warehouse_L2Test, Warehouse_iscleanTest)
     const string customDataFile = _T("/lib/rdk/wh_api_5.conf");
     const uint8_t customDataFileContent[] = "[files]\n/opt/user_preferences.conf\n";
 
+    EXPECT_TRUE(std::ifstream("/opt/user_preferences.conf").good() ? std::remove("/opt/user_preferences.conf") == 0 : true);
+    
     // No conf file
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "isClean", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);

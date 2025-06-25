@@ -11,6 +11,11 @@ if grep -q "PowerManager" <<< "$SelectedPlugins"; then
   PowerManager="ON"
 fi
 
+if grep -q "PowerManager" <<< "$DeviceDiagnostics"; then
+  echo "Found: $SelectedPlugins"
+  DeviceDiagnostics="ON"
+fi
+
 # Define ANSI color codes for green
 GREEN='\033[0;32m'     # Green text
 NC='\033[0m'           # No color (resets to default)
@@ -186,6 +191,7 @@ cmake -S . -B build \
 -DRDK_SERVICE_L2HALMOCK=ON \
 -DUSE_THUNDER_R4=ON \
 -DPLUGIN_POWERMANAGER=$PowerManager \
+-DPLUGIN_DEVICEDIAGNOSTICS=$DeviceDiagnostics \
 -DCOMCAST_CONFIG=OFF \
 -DCEC_INCLUDE_DIRS="$SCRIPTS_DIR/workspace/deps/rdk/hdmicec/ccec/include" \
 -DOSAL_INCLUDE_DIRS="$SCRIPTS_DIR/workspace/deps/rdk/hdmicec/osal/include" \

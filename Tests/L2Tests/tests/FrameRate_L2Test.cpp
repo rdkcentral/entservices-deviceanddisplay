@@ -328,6 +328,12 @@ uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection()
     return return_value;
 }
 
+/************Test case Details **************************
+** 1.Set frequency as 1000
+** 2.Checking SetCollectionFrequency for positive check
+** 3.Confirm frequency set using Comrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 1000;
@@ -343,6 +349,12 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
     EXPECT_TRUE(success);
 }
 
+/************Test case Details **************************
+** 1.Set frequency as 0
+** 2.Checking SetCollectionFrequency for failure check
+** 3.Confirm frequency not set using Comrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 0;
@@ -355,6 +367,10 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
+
+/************Test case Details **************************
+** 1.Checking StartFpsCollection using Comrpc
+*******************************************************/
 
 TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
@@ -371,6 +387,10 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
     EXPECT_TRUE(success);
 }
 
+/************Test case Details **************************
+** 1.Checking StopFpsCollection using Comrpc
+*******************************************************/
+
 TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
 
@@ -384,6 +404,12 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
     }
     EXPECT_TRUE(success);
 }
+
+/************Test case Details **************************
+** 1.Set newfps value as 60
+** 2.Checking UpdateFps for positive check
+** 3.Confirm fps updated using Comrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
@@ -399,6 +425,12 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
     EXPECT_TRUE(success);
 }
 
+/************Test case Details **************************
+** 1.Set newfps value as -1
+** 2.Checking UpdateFps for negative check
+** 3.Confirm fps update failure using Comrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
 
@@ -412,6 +444,14 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
+
+/************Test case Details **************************
+** 1.Valid FrameRate values are set.
+** 2.Mock framerate values to set.
+** 3.Invokes SetDisplayFrameRate with valid values.
+** 4.For STB profile, set the status as success.
+** 5.Check the status of setDisplayframerate using Comrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
@@ -439,6 +479,12 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
     EXPECT_TRUE(success);
 }
 
+/************Test case Details **************************
+** 1.Invalid FrameRate values are set.
+** 2.Invokes SetDisplayFrameRate with invalid values.
+** 3.Check the failure status of setDisplayframerate using Comrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
     uint32_t status = Core::ERROR_INVALID_PARAMETER;
     bool success = false;
@@ -451,6 +497,13 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
+
+/************Test case Details **************************
+** 1.Mock framerate values.
+** 2.Invokes GetDisplayFrameRate.
+** 3.For STB profile, set the status as success.
+** 4.Check the status of GetDisplayFrameRate using Comrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
@@ -480,6 +533,13 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
     EXPECT_TRUE(success);
 }
 
+/************Test case Details **************************
+** 1.Mock FRFMode values to set.
+** 2.Invokes SetFrmMode.
+** 3.For STB profile, set the status as success.
+** 4.Check the status of SetFrmMode using Comrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
@@ -508,6 +568,12 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
     EXPECT_TRUE(success);
 }
 
+/************Test case Details **************************
+** 1.set frmmode to negative value.
+** 2.Invokes SetFrmMode with negative values.
+** 3.Check the failure status of SetFrmMode using Comrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetFrmModeFailureUsingComrpc) {
     uint32_t status = Core::ERROR_INVALID_PARAMETER;
     bool success = false;
@@ -520,6 +586,13 @@ TEST_F(FrameRate_L2test, SetFrmModeFailureUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
+
+/************Test case Details **************************
+** 1.Mock frmmode values.
+** 2.Invokes GetFrmMode.
+** 3.For STB profile, set the status as success.
+** 4.Check the status of GetFrmMode using Comrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
@@ -547,6 +620,12 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
 
 }
 
+/************Test case Details **************************
+** 1.Set frequency as 1000
+** 2.Checking SetCollectionFrequency for positive check
+** 3.Confirm frequency set using Jsonrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -561,6 +640,12 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc) {
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setCollectionFrequency", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
+
+/************Test case Details **************************
+** 1.Set frequency as 0
+** 2.Checking SetCollectionFrequency for failure check
+** 3.Confirm frequency not set using Jsonrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
@@ -577,6 +662,10 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc) {
     EXPECT_FALSE(result["result"].Boolean());
 }
 
+/************Test case Details **************************
+** 1.Checking StartFpsCollection using Jsonrpc
+*******************************************************/
+
 TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -591,6 +680,10 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc) {
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
+/************Test case Details **************************
+** 1.Checking StopFpsCollection using Jsonrpc
+*******************************************************/
+
 TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -604,6 +697,12 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "stopFpsCollection", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
+
+/************Test case Details **************************
+** 1.Set newfps value as 30
+** 2.Checking UpdateFps for positive check
+** 3.Confirm fps updated using Jsonrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
@@ -620,6 +719,12 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
+/************Test case Details **************************
+** 1.Set newfps value as -1
+** 2.Checking UpdateFps for negative check
+** 3.Confirm fps update failure using Jsonrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -634,6 +739,14 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc) {
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "updateFps", params, result);
     EXPECT_FALSE(result["result"].Boolean());
 }
+
+/************Test case Details **************************
+** 1.Valid FrameRate values are set.
+** 2.Mock framerate values to set.
+** 3.Invokes SetDisplayFrameRate with valid values.
+** 4.For STB profile, set the status as FALSE.
+** 5.Check the status of setDisplayframerate using Jsonrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
@@ -651,6 +764,12 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
     EXPECT_FALSE(result["result"].Boolean());
 }
 
+/************Test case Details **************************
+** 1.Invalid FrameRate values are set.
+** 2.Invokes SetDisplayFrameRate with invalid values.
+** 3.Check the failure status of setDisplayframerate using Jsonrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -665,6 +784,13 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc) {
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setDisplayFrameRate", params, result);
     EXPECT_FALSE(result["result"].Boolean());
 }
+
+/************Test case Details **************************
+** 1.Mock framerate values.
+** 2.Invokes GetDisplayFrameRate.
+** 3.For STB profile, set the status as FALSE.
+** 4.Check the status of GetDisplayFrameRate using Jsonrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
@@ -682,6 +808,13 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     EXPECT_FALSE(result["result"].Boolean());
 }
 
+/************Test case Details **************************
+** 1.Mock FRFMode values to set.
+** 2.Invokes SetFrmMode.
+** 3.For STB profile, set the status as FALSE.
+** 4.Check the status of SetFrmMode using Jsonrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -698,6 +831,12 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     EXPECT_FALSE(result["result"].Boolean());
 }
 
+/************Test case Details **************************
+** 1.set frmmode to negative value.
+** 2.Invokes SetFrmMode with negative values.
+** 3.Check the failure status of SetFrmMode using Jsonrpc.
+*******************************************************/
+
 TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -712,6 +851,13 @@ TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc) {
     status = InvokeServiceMethod("org.rdk.FrameRate.1", "setFrmMode", params, result);
     EXPECT_FALSE(result["result"].Boolean());
 }
+
+/************Test case Details **************************
+** 1.Mock frmmode values.
+** 2.Invokes GetFrmMode.
+** 3.For STB profile, set the status as success.
+** 4.Check the status of GetFrmMode using Jsonrpc.
+*******************************************************/
 
 TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);

@@ -357,6 +357,8 @@ TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
 
     message = "{\"avDecoderStatusChange\":\"{\\\"avDecoderStatusChange\\\":\\\"ACTIVE\\\"}\"}";
     expected_status.FromString(message);
+    ON_CALL(async_handler, onAVDecoderStatusChanged(MatchRequestStatus(expected_status)))
+        .WillOnce(Invoke(this, &DeviceDiagnostics_L2test::onAVDecoderStatusChanged));
 
     // Change the AVDecoderstatus from IDLE to ACTIVE
     EXPECT_CALL(*p_essRMgrMock, EssRMgrGetAVState(::testing::_, ::testing::_))

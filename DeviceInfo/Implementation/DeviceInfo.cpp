@@ -95,7 +95,7 @@ namespace Plugin {
         Utils::IARM::init();
     }
 
-    uint32_t DeviceInfoImplementation::SerialNumber(string& serialNumber) const
+    Core::hresult DeviceInfoImplementation::SerialNumber(string& serialNumber) const
     {
         return (GetMFRData(mfrSERIALIZED_TYPE_SERIALNUMBER, serialNumber)
                    == Core::ERROR_NONE)
@@ -103,7 +103,7 @@ namespace Plugin {
             : GetRFCData(_T("Device.DeviceInfo.SerialNumber"), serialNumber);
     }
 
-    uint32_t DeviceInfoImplementation::Sku(string& sku) const
+    Core::hresult DeviceInfoImplementation::Sku(string& sku) const
     {
         LOGINFO("ENTERING SKU TO GET device.properties");
         return (GetFileRegex(_T("/etc/device.properties"),
@@ -116,7 +116,7 @@ namespace Plugin {
                     : GetRFCData(_T("Device.DeviceInfo.ModelName"), sku));
     }
 
-    uint32_t DeviceInfoImplementation::Make(string& make) const
+    Core::hresult DeviceInfoImplementation::Make(string& make) const
     {
 
         return ( GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, make) == Core::ERROR_NONE)
@@ -124,7 +124,7 @@ namespace Plugin {
             : GetFileRegex(_T("/etc/device.properties"),std::regex("^MFG_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), make);
     }
 
-    uint32_t DeviceInfoImplementation::Model(string& model) const
+    Core::hresult DeviceInfoImplementation::Model(string& model) const
     {
         return
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
@@ -136,7 +136,7 @@ namespace Plugin {
                 std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), model);
     }
 
-    uint32_t DeviceInfoImplementation::Brand(string& brand) const
+    Core::hresult DeviceInfoImplementation::Brand(string& brand) const
     {
         brand = "Unknown";
         return
@@ -144,7 +144,7 @@ namespace Plugin {
              (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
     }
 
-    uint32_t DeviceInfoImplementation::DeviceType(string& deviceType) const
+    Core::hresult DeviceInfoImplementation::DeviceType(string& deviceType) const
     {
         const char* device_type;
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
@@ -167,13 +167,13 @@ namespace Plugin {
     }
 
 
-    uint32_t DeviceInfoImplementation::SocName(string& socName)  const
+    Core::hresult DeviceInfoImplementation::SocName(string& socName)  const
     {
         return (GetFileRegex(_T("/etc/device.properties"),
                 std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), socName));
     }
 
-    uint32_t DeviceInfoImplementation::DistributorId(string& distributorId) const
+    Core::hresult DeviceInfoImplementation::DistributorId(string& distributorId) const
     {
         return (GetFileRegex(_T("/opt/www/authService/partnerId3.dat"),
                     std::regex("^([^\\n]+)$"), distributorId)

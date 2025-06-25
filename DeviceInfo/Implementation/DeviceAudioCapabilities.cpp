@@ -44,7 +44,7 @@ namespace Plugin {
         }
     }
 
-    uint32_t DeviceAudioCapabilities::SupportedAudioPorts(RPC::IStringIterator*& supportedAudioPorts) const
+    Core::hresult DeviceAudioCapabilities::SupportedAudioPorts(RPC::IStringIterator*& supportedAudioPorts) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -72,7 +72,7 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceAudioCapabilities::AudioCapabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities) const
+    Core::hresult DeviceAudioCapabilities::AudioCapabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -116,7 +116,7 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceAudioCapabilities::MS12Capabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities) const
+    Core::hresult DeviceAudioCapabilities::MS12Capabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -154,7 +154,7 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceAudioCapabilities::SupportedMS12AudioProfiles(const string& audioPort, RPC::IStringIterator*& supportedMS12AudioProfiles) const
+    Core::hresult DeviceAudioCapabilities::SupportedMS12AudioProfiles(const string& audioPort, RPC::IStringIterator*& supportedMS12AudioProfiles) const
     {
         uint32_t result = Core::ERROR_NONE;
 

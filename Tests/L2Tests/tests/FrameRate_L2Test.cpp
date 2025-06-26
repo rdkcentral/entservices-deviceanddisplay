@@ -211,17 +211,7 @@ FrameRate_L2test::FrameRate_L2test()
         else {
             TEST_LOG("m_controller_FrameRate is NULL");
         }
-    }
-        //checking
-        p_hostImplMock  = new NiceMock <HostImplMock>;
-        device::Host::setImpl(p_hostImplMock);
-
-        device::VideoDevice videoDevice;
-        p_videoDeviceMock  = new NiceMock <VideoDeviceMock>;
-        device::VideoDevice::setImpl(p_videoDeviceMock);
-
-        ON_CALL(*p_hostImplMock, getVideoDevices())
-            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    }       
 }
 
 /**
@@ -230,21 +220,7 @@ FrameRate_L2test::FrameRate_L2test()
 FrameRate_L2test::~FrameRate_L2test() {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = FrameRate_StateInvalid;
-    //checking
-    device::VideoDevice::setImpl(nullptr);
-        if (p_videoDeviceMock != nullptr)
-        {
-            delete p_videoDeviceMock;
-            p_videoDeviceMock = nullptr;
-        }
-
-        device::Host::setImpl(nullptr);
-        if (p_hostImplMock != nullptr)
-        {
-            delete p_hostImplMock;
-            p_hostImplMock = nullptr;
-        }
-
+    
     if (m_FrameRateplugin) {
         m_FrameRateplugin->Unregister(&notify);
         m_FrameRateplugin->Release();
@@ -502,6 +478,8 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
 ** 4.Check the status of GetDisplayFrameRate using Comrpc.
 *******************************************************/
 TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](char *param) {

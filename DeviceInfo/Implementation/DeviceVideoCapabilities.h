@@ -42,11 +42,11 @@ namespace Plugin {
 
     private:
         // IDeviceVideoCapabilities interface
-        uint32_t SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays) const override;
-        uint32_t HostEDID(string& edid) const override;
-        uint32_t DefaultResolution(const string& videoDisplay, string& defaultResolution) const override;
-        uint32_t SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions) const override;
-        uint32_t SupportedHdcp(const string& videoDisplay, Exchange::IDeviceVideoCapabilities::CopyProtection& supportedHDCPVersion) const override;
+        Core::hresult SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays) const override;
+        Core::hresult HostEDID(string& edid) const override;
+        Core::hresult DefaultResolution(const string& videoDisplay, string& defaultResolution) const override;
+        Core::hresult SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions) const override;
+        Core::hresult SupportedHdcp(const string& videoDisplay, Exchange::IDeviceVideoCapabilities::CopyProtection& supportedHDCPVersion) const override;
     };
 }
 }

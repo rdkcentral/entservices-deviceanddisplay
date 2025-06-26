@@ -38,6 +38,7 @@
 #include "ThunderPortability.h"
 
 using namespace WPEFramework;
+using ::testing::Matcher;
 
 class SystemServicesTest : public ::testing::Test {
 protected:
@@ -53,7 +54,7 @@ protected:
     SleepModeMock* p_sleepModeMock = nullptr;
     HostImplMock* p_hostImplMock = nullptr;
     readprocImplMock* p_readprocImplMock = nullptr;
-    Exchange::IPowerManager::INetworkStandbyModeChangedNotification* _networkStandbyModeChangedNotification = nullptr,
+    Exchange::IPowerManager::INetworkStandbyModeChangedNotification* _networkStandbyModeChangedNotification = nullptr;
     Exchange::IPowerManager::IThermalModeChangedNotification* _thermalModeChangedNotification = nullptr;
     Exchange::IPowerManager::IRebootNotification* _rebootNotification = nullptr;
     Exchange::IPowerManager::IModeChangedNotification* _modeChangedNotification = nullptr;
@@ -86,28 +87,28 @@ protected:
         p_readprocImplMock = new NiceMock<readprocImplMock>;
         ProcImpl::setImpl(p_readprocImplMock);
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::Matcher<Exchange::IPowerManager::INetworkStandbyModeChangedNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification) -> uint32_t {
                     _networkStandbyModeChangedNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::Matcher<Exchange::IPowerManager::IRebootNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IRebootNotification* notification) -> uint32_t {
                     _rebootNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::Matcher<Exchange::IPowerManager::IThermalModeChangedNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IThermalModeChangedNotification* notification) -> uint32_t {
                     _thermalModeChangedNotification = notification;
                     return Core::ERROR_NONE;
                 });
 
-        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::_))
+        EXPECT_CALL(PowerManagerMock::Mock(), Register(::testing::Matcher<Exchange::IPowerManager::IModeChangedNotification*>(::testing::_)))
             .WillOnce(
                 [this](Exchange::IPowerManager::IModeChangedNotification* notification) -> uint32_t {
                     _modeChangedNotification = notification;
@@ -1541,7 +1542,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedFailed_withoutV
 
     WPEFramework::Plugin::SystemServices::_instance = nullptr;
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_CRITICAL, IPowerManager::THERMAL_TEMPERATURE_HIGH, 0);
 
     EXPECT_EQ(Core::ERROR_TIMEDOUT, onTemperatureThresholdChanged.Lock(100));
@@ -1565,7 +1566,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedFailed_whenNewL
 
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_CRITICAL, IPowerManager::THERMAL_TEMPERATURE_UNKNOWN, 0);
 
     EXPECT_EQ(Core::ERROR_TIMEDOUT, onTemperatureThresholdChanged.Lock(100));
@@ -1589,7 +1590,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedFailed_currLeve
 
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_UNKNOWN, IPowerManager::THERMAL_TEMPERATURE_NORMAL, 0);
 
     EXPECT_EQ(Core::ERROR_TIMEDOUT, onTemperatureThresholdChanged.Lock(100));
@@ -1613,7 +1614,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedFailed_currLeve
 
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_UNKNOWN, IPowerManager::THERMAL_TEMPERATURE_HIGH, 0);
 
     EXPECT_EQ(Core::ERROR_TIMEDOUT, onTemperatureThresholdChanged.Lock(100));
@@ -1637,7 +1638,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedFailed_currLeve
 
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_UNKNOWN, IPowerManager::THERMAL_TEMPERATURE_CRITICAL, 0);
 
     EXPECT_EQ(Core::ERROR_TIMEDOUT, onTemperatureThresholdChanged.Lock(100));
@@ -1683,7 +1684,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedSuccess_whenNor
 
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_NORMAL, IPowerManager::THERMAL_TEMPERATURE_HIGH, 100.0);
 
     EXPECT_EQ(Core::ERROR_NONE, onTemperatureThresholdChanged.Lock());
@@ -1728,7 +1729,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedSuccess_whenCri
 
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_CRITICAL, IPowerManager::THERMAL_TEMPERATURE_HIGH, 48);
 
     EXPECT_EQ(Core::ERROR_NONE, onTemperatureThresholdChanged.Lock());
@@ -1772,7 +1773,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedSuccess_whenHig
             }));
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_HIGH, IPowerManager::THERMAL_TEMPERATURE_CRITICAL, 100);
 
     EXPECT_EQ(Core::ERROR_NONE, onTemperatureThresholdChanged.Lock());
@@ -1816,7 +1817,7 @@ TEST_F(SystemServicesEventIarmTest, onTemperatureThresholdChangedSuccess_whenHig
             }));
     EVENT_SUBSCRIBE(0, _T("onTemperatureThresholdChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_thermalModeChangedNotification, nullptr);
     _thermalModeChangedNotification->OnThermalModeChanged(IPowerManager::THERMAL_TEMPERATURE_HIGH, IPowerManager::THERMAL_TEMPERATURE_NORMAL, 100);
 
     EXPECT_EQ(Core::ERROR_NONE, onTemperatureThresholdChanged.Lock());
@@ -2287,7 +2288,7 @@ TEST_F(SystemServicesEventIarmTest, onSystemPowerStateChanged_From_DEEPSLEEP_to_
 
     EVENT_SUBSCRIBE(0, _T("onSystemPowerStateChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_modeChangedNotification, nullptr);
     _modeChangedNotification->OnPowerModeChanged(IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP, IPowerManager::POWER_STATE_ON);
 
     EXPECT_EQ(Core::ERROR_NONE, onSystemPowerStateChanged.Lock());
@@ -2336,7 +2337,7 @@ TEST_F(SystemServicesEventIarmTest, onSystemPowerStateChanged_PowerState_ON_To_L
 
     EVENT_SUBSCRIBE(0, _T("onSystemPowerStateChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_modeChangedNotification, nullptr);
     _modeChangedNotification->OnPowerModeChanged(IPowerManager::POWER_STATE_ON, IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP);
 
     EXPECT_EQ(Core::ERROR_NONE, onSystemPowerStateChanged.Lock());
@@ -2379,7 +2380,7 @@ TEST_F(SystemServicesEventIarmTest, onSystemPowerStateChanged_PowerState_STANDBY
 
     EVENT_SUBSCRIBE(0, _T("onSystemPowerStateChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_modeChangedNotification, nullptr);
     _modeChangedNotification->OnPowerModeChanged(IPowerManager::POWER_STATE_STANDBY, IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP);
 
     EXPECT_EQ(Core::ERROR_NONE, onSystemPowerStateChanged.Lock());
@@ -2440,7 +2441,7 @@ TEST_F(SystemServicesEventIarmTest, onSystemPowerStateChanged_PowerState_ON_To_D
 
     EVENT_SUBSCRIBE(0, _T("onSystemPowerStateChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_modeChangedNotification, nullptr);
     _modeChangedNotification->OnPowerModeChanged(IPowerManager::POWER_STATE_ON, IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP);
 
     EXPECT_EQ(Core::ERROR_NONE, onSystemPowerStateChanged.Lock());
@@ -2475,7 +2476,7 @@ TEST_F(SystemServicesEventIarmTest, onNetworkStandbyModeChanged)
 
     EVENT_SUBSCRIBE(0, _T("onNetworkStandbyModeChanged"), _T("org.rdk.System"), message);
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_networkStandbyModeChangedNotification, nullptr);
     _networkStandbyModeChangedNotification->OnNetworkStandbyModeChanged(true);
 
     EXPECT_EQ(Core::ERROR_NONE, onNetworkStandbyModeChanged.Lock());
@@ -2508,7 +2509,7 @@ TEST_F(SystemServicesEventIarmTest, onRebootRequest)
                 return Core::ERROR_NONE;
             }));
 
-    ASSERT_NE(_notification, nullptr);
+    ASSERT_NE(_rebootNotification, nullptr);
     EVENT_SUBSCRIBE(0, _T("onRebootRequest"), _T("org.rdk.System"), message);
     _rebootNotification->OnRebootBegin("reason", "reasonOther", "requestorL1test");
 
@@ -5116,8 +5117,6 @@ TEST_F(SystemServicesEventIarmTest, onSystemModeChanged)
             }));
 
     EVENT_SUBSCRIBE(0, _T("onSystemModeChanged"), _T("org.rdk.System"), message);
-
-    ASSERT_NE(_notification, nullptr);
 
     IARM_Bus_CommonAPI_SysModeChange_Param_t param;
     param.newMode = IARM_BUS_SYS_MODE_NORMAL;

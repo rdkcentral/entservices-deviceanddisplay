@@ -38,10 +38,10 @@ namespace Plugin {
 
     private:
         // IFirmwareVersion interface
-        uint32_t Imagename(string& imagename) const override;
-        uint32_t Sdk(string& sdk) const override;
-        uint32_t Mediarite(string& mediarite) const override;
-        uint32_t Yocto(string& yocto) const override;
+        Core::hresult Imagename(string& imagename) const override;
+        Core::hresult Sdk(string& sdk) const override;
+        Core::hresult Mediarite(string& mediarite) const override;
+        Core::hresult Yocto(string& yocto) const override;
     };
 }
 }

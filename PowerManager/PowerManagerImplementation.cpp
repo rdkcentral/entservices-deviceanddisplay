@@ -799,7 +799,16 @@ namespace Plugin {
     {
         Core::hresult errorCode = Core::ERROR_GENERAL;
         IARM_Bus_PWRMgr_SetDeepSleepTimeOut_Param_t param = {};
-        param.timeout = timeOut;
+        // if maintenence time is more then 10 days set to 0
+        if(param.timeout > 864000)
+        {
+             param.timeout = 0;
+             LOGINFO("setDeepSleepTimer updated timeout to :%d",param.timeout);
+        }
+        else
+	{
+		param.timeout = timeOut;
+	}
         IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
             IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut, (void*)&param,
             sizeof(param));

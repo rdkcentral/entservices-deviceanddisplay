@@ -25,6 +25,8 @@
 #include <condition_variable>
 #include <fstream>
 #include <interfaces/IFrameRate.h>
+#include "devicesettings.h"
+#include "FrontPanelIndicatorMock.h"
 
 #define JSON_TIMEOUT (1000)
 #define COM_TIMEOUT (100)
@@ -39,6 +41,8 @@ using namespace WPEFramework;
 using testing::StrictMock;
 using ::WPEFramework::Exchange::IFrameRate;
 VideoDeviceMock *p_videoDeviceMock = nullptr;
+HostImplMock      *p_hostImplMock = nullptr;
+
 typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000001,
     FrameRate_OnDisplayFrameRateChanging = 0x00000002,
@@ -458,6 +462,9 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
     bool success = false;
     uint32_t signalled_pre = FrameRate_StateInvalid;
     uint32_t signalled_post = FrameRate_StateInvalid;
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](const char *param) {
@@ -468,12 +475,6 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
 
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
-        /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED){
-            status = Core::ERROR_NONE;
-            success = true;
-            TEST_LOG("For Non STB devices changing status to success\n");
-        }
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
@@ -506,6 +507,9 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
 *******************************************************/
 
 TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](char *param) {
@@ -522,12 +526,6 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
-        /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED) {
-            status = Core::ERROR_NONE;
-            success = true;
-            TEST_LOG("For Non STB devices changing status to success\n");
-        }
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
@@ -544,6 +542,9 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     int frmmode = 0;
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
 
     ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
@@ -557,12 +558,6 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
-        /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED){
-            status = Core::ERROR_NONE;
-            success = true;
-            TEST_LOG("For Non STB devices changing status to success\n");
-        }
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
@@ -598,6 +593,9 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     int frmmode = 0;
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](int *param) {
@@ -608,16 +606,29 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
-        /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED){
-            status = Core::ERROR_NONE;
-            success = true;
-            TEST_LOG("For Non STB devices changing status to success\n");
-        }
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
+}
 
+/************Test case Details **************************
+** 1.Checking onDisplayFrameRateChanging
+*******************************************************/
+TEST_F(FrameRate_L2test, onDisplayFrameRateChanging)
+{
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+}
+
+/************Test case Details **************************
+** 1.Checking onDisplayFrameRateChanged
+*******************************************************/
+TEST_F(FrameRate_L2test, onDisplayFrameRateChanged)
+{
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
 }
 
 /************Test case Details **************************

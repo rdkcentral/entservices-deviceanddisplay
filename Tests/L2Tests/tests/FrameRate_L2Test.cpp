@@ -43,7 +43,8 @@ using ::WPEFramework::Exchange::IFrameRate;
 VideoDeviceMock *p_videoDeviceMock = nullptr;
 
 //Checking
-    HostImplMock      *p_hostImplMock = nullptr;
+HostImplMock      *p_hostImplMock = nullptr;
+IARM_EventHandler_t _iarmDSFramerateEventHandler;
 
 typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000001,
@@ -596,6 +597,64 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
 
+}
+
+/************Test case Details **************************
+** 1.Invokes onDisplayFrameRateChanging Event.
+*******************************************************/
+TEST_F(FrameRate_L2test, onDisplayFrameRateChanging)
+{
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
+                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
+                                          "}"))); 
+		resetDone.SetEvent();
+                return Core::ERROR_NONE;
+            }));
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+}
+
+/************Test case Details **************************
+** 1.Invokes onDisplayFrameRateChanged Event.
+*******************************************************/
+TEST_F(FrameRate_L2test, onDisplayFrameRateChanged)
+{
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
+                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
+                                          "}")));
+		resetDone.SetEvent();    
+                return Core::ERROR_NONE;
+            }));
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
 /************Test case Details **************************

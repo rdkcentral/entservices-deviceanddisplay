@@ -26,6 +26,21 @@
 #include <fstream>
 #include <interfaces/IFrameRate.h>
 
+#include "FrameRate.h"
+
+#include "FactoriesImplementation.h"
+#include "HostMock.h"
+#include "IarmBusMock.h"
+#include "ServiceMock.h"
+#include "VideoDeviceMock.h"
+#include "devicesettings.h"
+#include "dsMgr.h"
+#include "ThunderPortability.h"
+#include "FrameRateImplementation.h"
+#include "FrameRateMock.h"
+#include "WorkerPoolImplementation.h"
+#include "WrapsMock.h"
+
 #define JSON_TIMEOUT (1000)
 #define COM_TIMEOUT (100)
 #define TEST_LOG(x, ...)                                                                                                                         \
@@ -39,6 +54,15 @@ using namespace WPEFramework;
 using testing::StrictMock;
 using ::WPEFramework::Exchange::IFrameRate;
 VideoDeviceMock *p_videoDeviceMock = nullptr;
+
+//Checking
+ServiceMock  *p_serviceMock  = nullptr;
+    WrapsImplMock* p_wrapsImplMock = nullptr;
+    FrameRateMock* p_framerateMock = nullptr;
+    HostImplMock      *p_hostImplMock = nullptr;
+    IARM_EventHandler_t _iarmDSFramerateEventHandler;
+    IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
+
 typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000001,
     FrameRate_OnDisplayFrameRateChanging = 0x00000002,
@@ -208,6 +232,16 @@ FrameRate_L2test::FrameRate_L2test()
             TEST_LOG("m_controller_FrameRate is NULL");
         }
     }
+        //checking
+        p_hostImplMock  = new NiceMock <HostImplMock>;
+        device::Host::setImpl(p_hostImplMock);
+
+        device::VideoDevice videoDevice;
+        p_videoDeviceMock  = new NiceMock <VideoDeviceMock>;
+        device::VideoDevice::setImpl(p_videoDeviceMock);
+
+        ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
 }
 
 /**
@@ -216,6 +250,20 @@ FrameRate_L2test::FrameRate_L2test()
 FrameRate_L2test::~FrameRate_L2test() {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = FrameRate_StateInvalid;
+    //checking
+    device::VideoDevice::setImpl(nullptr);
+        if (p_videoDeviceMock != nullptr)
+        {
+            delete p_videoDeviceMock;
+            p_videoDeviceMock = nullptr;
+        }
+
+        device::Host::setImpl(nullptr);
+        if (p_hostImplMock != nullptr)
+        {
+            delete p_hostImplMock;
+            p_hostImplMock = nullptr;
+        }
 
     if (m_FrameRateplugin) {
         m_FrameRateplugin->Unregister(&notify);

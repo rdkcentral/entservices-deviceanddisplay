@@ -26,8 +26,6 @@
 #include <fstream>
 #include <interfaces/IFrameRate.h>
 
-#include "FrameRate.h"
-
 #include "FactoriesImplementation.h"
 #include "HostMock.h"
 #include "IarmBusMock.h"

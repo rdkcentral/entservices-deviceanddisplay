@@ -622,6 +622,21 @@ TEST_F(FrameRate_L2test, setCollectionFrequency_startFpsCollection_stopFpsCollec
 	
 }
 
+
+TEST_F(FrameRate_L2test, onDisplayFrameRateChanging)
+{
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+}
+
+TEST_F(FrameRate_L2test, onDisplayFrameRateChanged)
+{
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+}
+
 /************Test case Details **************************
 ** 1.Set frequency as 1000
 ** 2.Checking SetCollectionFrequency for positive check

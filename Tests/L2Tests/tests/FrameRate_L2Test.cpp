@@ -26,19 +26,6 @@
 #include <fstream>
 #include <interfaces/IFrameRate.h>
 
-#include "FactoriesImplementation.h"
-#include "HostMock.h"
-#include "IarmBusMock.h"
-#include "ServiceMock.h"
-#include "VideoDeviceMock.h"
-#include "devicesettings.h"
-#include "dsMgr.h"
-#include "ThunderPortability.h"
-#include "FrameRateImplementation.h"
-#include "FrameRateMock.h"
-#include "WorkerPoolImplementation.h"
-#include "WrapsMock.h"
-
 #define JSON_TIMEOUT (1000)
 #define COM_TIMEOUT (100)
 #define TEST_LOG(x, ...)                                                                                                                         \

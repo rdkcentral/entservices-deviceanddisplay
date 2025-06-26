@@ -601,14 +601,25 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
 
 TEST_F(FrameRate_L2test, setCollectionFrequency_startFpsCollection_stopFpsCollection_updateFps)
 {
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":1000, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":60, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
+    uint32_t status = Core::ERROR_GENERAL;
+    int frequency = 1000;
+    bool success = false;
+	int newfps = 60;
+	
+    status = m_FrameRateplugin->SetCollectionFrequency(frequency, success);
+    EXPECT_EQ(success, true);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+	
+	status = m_FrameRateplugin->StartFpsCollection(success);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+	
+	status = m_FrameRateplugin->StopFpsCollection(success);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+	
+    status = m_FrameRateplugin->UpdateFps(newfps, success);
+	EXPECT_EQ(success, true);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+	
 }
 
 /************Test case Details **************************

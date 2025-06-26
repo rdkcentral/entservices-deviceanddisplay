@@ -48,15 +48,13 @@ typedef enum : uint32_t {
 
 /**
  * @brief Internal test mock class
- *
  * Note that this is for internal test use only and doesn't mock any actual
  * concrete interface.
  */
 
 class AsyncHandlerMock_FrameRate {
 public:
-    AsyncHandlerMock_FrameRate() {
-    }
+    AsyncHandlerMock_FrameRate() {}
     MOCK_METHOD(void, OnFpsEvent, (int average, int min, int max));
     MOCK_METHOD(void, OnDisplayFrameRateChanging, (const string &displayFrameRate));
     MOCK_METHOD(void, OnDisplayFrameRateChanged, (const string &displayFrameRate));
@@ -223,7 +221,6 @@ FrameRate_L2test::~FrameRate_L2test() {
         m_FrameRateplugin->Unregister(&notify);
         m_FrameRateplugin->Release();
     }
-
     /* Deactivate plugin in destructor */
     status = DeactivateService("org.rdk.FrameRate");
     EXPECT_EQ(Core::ERROR_NONE, status);
@@ -232,7 +229,6 @@ FrameRate_L2test::~FrameRate_L2test() {
 void FrameRate_L2test::OnFpsEvent(int average, int min, int max) {
     TEST_LOG("OnFpsEvent event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
-
     /* Notify the requester thread. */
     m_event_signalled |= FrameRate_OnFpsEvent;
     m_condition_variable.notify_one();
@@ -241,9 +237,7 @@ void FrameRate_L2test::OnFpsEvent(int average, int min, int max) {
 void FrameRate_L2test::OnDisplayFrameRateChanging(const string &displayFrameRate) {
     TEST_LOG("OnDisplayFrameRateChanging event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
-
     TEST_LOG("OnDisplayFrameRateChanging received: %s\n", displayFrameRate.c_str());
-
     /* Notify the requester thread. */
     m_event_signalled |= FrameRate_OnDisplayFrameRateChanging;
     m_condition_variable.notify_one();
@@ -252,9 +246,7 @@ void FrameRate_L2test::OnDisplayFrameRateChanging(const string &displayFrameRate
 void FrameRate_L2test::OnDisplayFrameRateChanged(const string &displayFrameRate) {
     TEST_LOG("OnDisplayFrameRateChanged event triggered ***\n");
     std::unique_lock<std::mutex> lock(m_mutex);
-
     TEST_LOG("OnDisplayFrameRateChanged received: %s\n", displayFrameRate.c_str());
-
     /* Notify the requester thread. */
     m_event_signalled |= FrameRate_OnDisplayFrameRateChanged;
     m_condition_variable.notify_one();
@@ -262,7 +254,6 @@ void FrameRate_L2test::OnDisplayFrameRateChanged(const string &displayFrameRate)
 
 /**
  * @brief waits for various status change on asynchronous calls
- *
  * @param[in] timeout_ms timeout for waiting
  */
 uint32_t FrameRate_L2test::WaitForRequestStatus(uint32_t timeout_ms, FrameRateL2test_async_events_t expected_status) {
@@ -270,21 +261,19 @@ uint32_t FrameRate_L2test::WaitForRequestStatus(uint32_t timeout_ms, FrameRateL2
     auto now = std::chrono::system_clock::now();
     std::chrono::seconds timeout(timeout_ms);
     uint32_t signalled = FrameRate_StateInvalid;
-
+    
     while (!(expected_status & m_event_signalled)) {
         if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
             TEST_LOG("Timeout waiting for request status event");
             break;
         }
     }
-
     signalled = m_event_signalled;
     return signalled;
 }
 
 /**
  * @brief Compare two request status objects
- *
  * @param[in] data Expected value
  * @return true if the argument and data match, false otherwise
  */
@@ -292,7 +281,6 @@ MATCHER_P(MatchRequest, data, "") {
     bool match = true;
     std::string expected;
     std::string actual;
-
     data.ToString(expected);
     arg.ToString(actual);
     TEST_LOG(" rec = %s, arg = %s", expected.c_str(), actual.c_str());
@@ -305,16 +293,13 @@ uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection()
     uint32_t return_value = Core::ERROR_GENERAL;
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> Engine_FrameRate;
     Core::ProxyType<RPC::CommunicatorClient> Client_FrameRate;
-
     TEST_LOG("Creating Engine_FrameRate");
     Engine_FrameRate = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
     Client_FrameRate = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(Engine_FrameRate));
-
     TEST_LOG("Creating Engine_FrameRate Announcements");
 #if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
     Engine_FrameRate->Announcements(mClient_FrameRate->Announcement());
 #endif
-
     if (!Client_FrameRate.IsValid()) {
         TEST_LOG("Invalid Client_FrameRate");
     }
@@ -333,7 +318,6 @@ uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection()
 ** 2.Checking SetCollectionFrequency for positive check
 ** 3.Confirm frequency set using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 1000;
@@ -341,7 +325,6 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
     status = m_FrameRateplugin->SetCollectionFrequency(frequency, success);
     EXPECT_EQ(success, true);
     EXPECT_EQ(status, Core::ERROR_NONE);
-
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
@@ -354,14 +337,12 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
 ** 2.Checking SetCollectionFrequency for failure check
 ** 3.Confirm frequency not set using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 0;
     bool success = false;
     status = m_FrameRateplugin->SetCollectionFrequency(frequency, success);
     EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-
     if (status != Core::ERROR_INVALID_PARAMETER) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
@@ -371,15 +352,12 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
 /************Test case Details **************************
 ** 1.Checking StartFpsCollection using Comrpc
 *******************************************************/
-
 TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     uint32_t signalled = FrameRate_StateInvalid;
-
     status = m_FrameRateplugin->StartFpsCollection(success);
     EXPECT_EQ(status, Core::ERROR_NONE);
-
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
@@ -390,10 +368,8 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
 /************Test case Details **************************
 ** 1.Checking StopFpsCollection using Comrpc
 *******************************************************/
-
 TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
-
     bool success = false;
     status = m_FrameRateplugin->StopFpsCollection(success);
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -410,7 +386,6 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
 ** 2.Checking UpdateFps for positive check
 ** 3.Confirm fps updated using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int newfps = 60;
@@ -430,7 +405,6 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
 ** 2.Checking UpdateFps for negative check
 ** 3.Confirm fps update failure using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
 
@@ -452,7 +426,6 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
 ** 4.For STB profile, set the status as success.
 ** 5.Check the status of setDisplayframerate using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
@@ -465,7 +438,6 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
                 return 0;
             }));
     status = m_FrameRateplugin->SetDisplayFrameRate("3840x2160px48", success);
-
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         /*For Non STB devices changing status to success */
@@ -484,14 +456,11 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
 ** 2.Invokes SetDisplayFrameRate with invalid values.
 ** 3.Check the failure status of setDisplayframerate using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
     uint32_t status = Core::ERROR_INVALID_PARAMETER;
     bool success = false;
-
     status = m_FrameRateplugin->SetDisplayFrameRate("3840x2160p", success);
     EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-
     if (status != Core::ERROR_INVALID_PARAMETER) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
@@ -504,7 +473,6 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
 ** 3.For STB profile, set the status as success.
 ** 4.Check the status of GetDisplayFrameRate using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
@@ -516,9 +484,7 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     std::string displayFrameRate;
-
     status = m_FrameRateplugin->GetDisplayFrameRate(displayFrameRate, success);
-
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
@@ -539,21 +505,17 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
 ** 3.For STB profile, set the status as success.
 ** 4.Check the status of SetFrmMode using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     int frmmode = 0;
-
     ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](int param) {
                 EXPECT_EQ(param, 0);
                 return 0;
             }));
-
     status = m_FrameRateplugin->SetFrmMode(frmmode, success);
-
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
@@ -573,7 +535,6 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
 ** 2.Invokes SetFrmMode with negative values.
 ** 3.Check the failure status of SetFrmMode using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetFrmModeFailureUsingComrpc) {
     uint32_t status = Core::ERROR_INVALID_PARAMETER;
     bool success = false;
@@ -593,7 +554,6 @@ TEST_F(FrameRate_L2test, SetFrmModeFailureUsingComrpc) {
 ** 3.For STB profile, set the status as success.
 ** 4.Check the status of GetFrmMode using Comrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
@@ -625,7 +585,6 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
 ** 2.Checking SetCollectionFrequency for positive check
 ** 3.Confirm frequency set using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -645,7 +604,6 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyUsingJsonrpc) {
 ** 2.Checking SetCollectionFrequency for failure check
 ** 3.Confirm frequency not set using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -662,7 +620,6 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyFailureUsingJsonrpc) {
 /************Test case Details **************************
 ** 1.Checking StartFpsCollection using Jsonrpc
 *******************************************************/
-
 TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -678,7 +635,6 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingJsonrpc) {
 /************Test case Details **************************
 ** 1.Checking StopFpsCollection using Jsonrpc
 *******************************************************/
-
 TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -696,7 +652,6 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingJsonrpc) {
 ** 2.Checking UpdateFps for positive check
 ** 3.Confirm fps updated using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -716,7 +671,6 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingJsonrpc) {
 ** 2.Checking UpdateFps for negative check
 ** 3.Confirm fps update failure using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -737,7 +691,6 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingJsonrpc) {
 ** 4.For STB profile, set the status as FALSE.
 ** 5.Check the status of setDisplayframerate using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -757,7 +710,6 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
 ** 2.Invokes SetDisplayFrameRate with invalid values.
 ** 3.Check the failure status of setDisplayframerate using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -777,7 +729,6 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingJsonrpc) {
 ** 3.For STB profile, set the status as FALSE.
 ** 4.Check the status of GetDisplayFrameRate using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -798,7 +749,6 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
 ** 3.For STB profile, set the status as FALSE.
 ** 4.Check the status of SetFrmMode using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -818,7 +768,6 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
 ** 2.Invokes SetFrmMode with negative values.
 ** 3.Check the failure status of SetFrmMode using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;
@@ -838,7 +787,6 @@ TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc) {
 ** 3.For STB profile, set the status as success.
 ** 4.Check the status of GetFrmMode using Jsonrpc.
 *******************************************************/
-
 TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc) {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(FrameRate_CALLSIGN, FrameRateL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_FrameRate> async_handler;

@@ -25,6 +25,8 @@
 #include <condition_variable>
 #include <fstream>
 #include <interfaces/IFrameRate.h>
+#include "devicesettings.h"
+#include "FrontPanelIndicatorMock.h"
 
 #define JSON_TIMEOUT (1000)
 #define COM_TIMEOUT (100)
@@ -478,6 +480,7 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateFailureUsingComrpc) {
 ** 4.Check the status of GetDisplayFrameRate using Comrpc.
 *******************************************************/
 TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
+    device::VideoDevice videoDevice;
     ON_CALL(*p_hostImplMock, getVideoDevices())
             .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))

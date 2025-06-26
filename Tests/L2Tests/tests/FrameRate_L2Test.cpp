@@ -758,7 +758,17 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-
+        
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](const char *param) {
+                EXPECT_EQ(param, string("3840x2160px48"));
+                return 0;
+            }));
+	
     /*With both Params expecting Success*/
     params["FrameRate"] = "3840x2160px48";
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setDisplayFrameRate", params, result);
@@ -797,6 +807,17 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     JsonObject params;
     JsonObject result;
 
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](char *param) {
+                string framerate("3840x2160px48");
+                ::memcpy(param, framerate.c_str(), framerate.length());
+                return 0;
+            }));
+
     /*With both Params expecting Success*/
     params["displayFrameRate"];
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "getDisplayFrameRate", params, result);
@@ -816,7 +837,16 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](int param) {
+                EXPECT_EQ(param, 0);
+                return 0;
+            }));
+	
     /*With both Params expecting Success*/
     params["frmmode"] = 0;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setFrmMode", params, result);
@@ -835,7 +865,7 @@ TEST_F(FrameRate_L2test, SetFrmModeFailureUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-
+    
     /*With one Param  expecting Fail case */
     params["frmmode"] = -1;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setFrmMode", params, result);
@@ -854,7 +884,16 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](int *param) {
+                *param = 0;
+                return 0;
+            }));
+	
     /*With both Params expecting Success*/
     params["frmmode"] = 0;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "getFrmMode", params, result);

@@ -41,12 +41,7 @@ using ::WPEFramework::Exchange::IFrameRate;
 VideoDeviceMock *p_videoDeviceMock = nullptr;
 
 //Checking
-ServiceMock  *p_serviceMock  = nullptr;
-    WrapsImplMock* p_wrapsImplMock = nullptr;
-    FrameRateMock* p_framerateMock = nullptr;
     HostImplMock      *p_hostImplMock = nullptr;
-    IARM_EventHandler_t _iarmDSFramerateEventHandler;
-    IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
 
 typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000001,

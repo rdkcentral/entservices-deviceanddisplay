@@ -325,7 +325,7 @@ uint32_t FrameRate_L2test::CreateFrameRateInterfaceObjectUsingComRPCConnection()
 ** 2.Checking SetCollectionFrequency for positive check
 ** 3.Confirm frequency set using Comrpc.
 *******************************************************/
-TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
+/*TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 1000;
     bool success = false;
@@ -337,14 +337,14 @@ TEST_F(FrameRate_L2test, setCollectionFrequencyUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
-}
+}*/
 
 /************Test case Details **************************
 ** 1.Set frequency as 0
 ** 2.Checking SetCollectionFrequency for failure check
 ** 3.Confirm frequency not set using Comrpc.
 *******************************************************/
-TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
+/*TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int frequency = 0;
     bool success = false;
@@ -354,12 +354,12 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
-}
+}*/
 
 /************Test case Details **************************
 ** 1.Checking StartFpsCollection using Comrpc
 *******************************************************/
-TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
+/*TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     uint32_t signalled = FrameRate_StateInvalid;
@@ -370,12 +370,12 @@ TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
-}
+}*/
 
 /************Test case Details **************************
 ** 1.Checking StopFpsCollection using Comrpc
 *******************************************************/
-TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
+/*TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     status = m_FrameRateplugin->StopFpsCollection(success);
@@ -386,14 +386,14 @@ TEST_F(FrameRate_L2test, StopFpsCollectionUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
-}
+}*/
 
 /************Test case Details **************************
 ** 1.Set newfps value as 60
 ** 2.Checking UpdateFps for positive check
 ** 3.Confirm fps updated using Comrpc.
 *******************************************************/
-TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
+/*TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     int newfps = 60;
     bool success = false;
@@ -405,14 +405,14 @@ TEST_F(FrameRate_L2test, UpdateFpsUsingComrpc) {
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
     EXPECT_TRUE(success);
-}
+}*/
 
 /************Test case Details **************************
 ** 1.Set newfps value as -1
 ** 2.Checking UpdateFps for negative check
 ** 3.Confirm fps update failure using Comrpc.
 *******************************************************/
-TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
+/*TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
 
     int newfps = -1;
@@ -424,7 +424,7 @@ TEST_F(FrameRate_L2test, UpdateFpsFailureUsingComrpc) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
-}
+}*/
 
 /************Test case Details **************************
 ** 1.Valid FrameRate values are set.

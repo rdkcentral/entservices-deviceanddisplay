@@ -24,7 +24,7 @@ import sys
 import datetime
 import time
 sys.path.append("../TestCases")
-from HdmiCecSource import CecUtils
+from DeviceDiagnotics import DDUtils
 from Utilities import Utils, ReportGenerator
 
 sys.path.append("Utilities")
@@ -33,6 +33,7 @@ sys.path.append("../TestCases/HdmiCecSink")
 sys.path.append("../TestCases/FrontPanel")
 sys.path.append("../TestCases/HDCPProfile")
 sys.path.append("../TestCases/PowerManager")
+sys.path.append("../TestCases/DeviceDiagnostics")
 
 
 # Define the build name of current build being tested
@@ -80,7 +81,7 @@ tc_name = result
 flag = 0
 track = 0
 
-list_of_plugins = ['HdmiCecSource','HdmiCecSink','FrontPanel','HdcpProfile','PowerManager']
+list_of_plugins = ['HdmiCecSource','HdmiCecSink','FrontPanel','HdcpProfile','PowerManager','DeviceDiagnostics']
 
 plugin_name = []
 
@@ -417,6 +418,21 @@ if track == 2 or track > 2:
         import TCID_016_DS_FrontPanel_Deactivate
     else:
         print("Skipping FrontPanel as no changes are added")
+
+     if "DeviceDiagnostics" in plugin_name:
+            #Utils.initialize_flask()
+        print("Executing Test Framework without HTTP server and Websocket")
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        import TCID_001_DS_DEVICEDIAGNOSTICS_getConfiguration
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        import TCID_002_DS_DEVICEDIAGNOSTICS_getMilestones  #commented as its descoped in source code
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        import TCID_003_DS_DEVICEDIAGNOSTICS_logMilestones
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        import TCID_004_DS_DEVICEDIAGNOSTCIS_getAVDecoderStatus
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+    else:
+        print("Skipping DeviceDiagnostics as no changes are added")
 
     if "PowerManager" in plugin_name:
         print("Executing Test Framework without HTTP server and Websocket")
@@ -857,6 +873,22 @@ if "PowerManager" in argument or "PowerManager" in result:
         import TCID_015_PowerManager_setSystemMode
         import TCID_016_PowerManager_getPowerStateBeforeReboot
         import TCID_017_PowerManager_setTemperatureThresholds
+
+if "DeviceDiagnostics" in argument or "DeviceDiagnostics" in result:
+    if track < 2:
+        flag = 6
+        Utils.info_log("Executing DeviceDiagnostics Test suite")
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        time.sleep(10)
+        print("Executing Test Framework without HTTP server and Websocket")
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        import TCID_001_DS_DEVICEDIAGNOSTICS_getConfiguration
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        import TCID_002_DS_DEVICEDIAGNOSTICS_getMilestones  #commented as its descoped in source code
+        print("\033[32m------########################################################################################################################---------.\033[0m")
+        import TCID_003_DS_DEVICEDIAGNOSTICS_logMilestones
+        time.sleep(8)
+        import TCID_004_DS_DEVICEDIAGNOSTCIS_getAVDecoderStatus
 
 if argument == "DeviceSettings":
     flag = 3

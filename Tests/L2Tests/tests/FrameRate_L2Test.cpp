@@ -437,6 +437,9 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
     bool success = false;
     uint32_t signalled_pre = FrameRate_StateInvalid;
     uint32_t signalled_post = FrameRate_StateInvalid;
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](const char *param) {
@@ -447,11 +450,11 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingComrpc) {
     if (status != Core::ERROR_NONE) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED){
+        /*if (status == Core::ERROR_NOT_SUPPORTED){
             status = Core::ERROR_NONE;
             success = true;
             TEST_LOG("For Non STB devices changing status to success\n");
-        }
+        }*/
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
@@ -498,11 +501,11 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingComrpc) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
         /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED) {
+        /*if (status == Core::ERROR_NOT_SUPPORTED) {
             status = Core::ERROR_NONE;
             success = true;
             TEST_LOG("For Non STB devices changing status to success\n");
-        }
+        }*/
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
@@ -518,6 +521,9 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     int frmmode = 0;
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](int param) {
@@ -529,11 +535,11 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingComrpc) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
         /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED){
+        /*if (status == Core::ERROR_NOT_SUPPORTED){
             status = Core::ERROR_NONE;
             success = true;
             TEST_LOG("For Non STB devices changing status to success\n");
-        }
+        }*/
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);
@@ -567,6 +573,9 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
     int frmmode = 0;
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
     ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](int *param) {
@@ -578,11 +587,11 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
         /*For Non STB devices changing status to success */
-        if (status == Core::ERROR_NOT_SUPPORTED){
+        /*if (status == Core::ERROR_NOT_SUPPORTED){
             status = Core::ERROR_NONE;
             success = true;
             TEST_LOG("For Non STB devices changing status to success\n");
-        }
+        }*/
     }
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(success);

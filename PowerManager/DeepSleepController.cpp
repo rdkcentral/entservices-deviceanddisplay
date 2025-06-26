@@ -171,6 +171,7 @@ DeepSleepController::DeepSleepController(INotification& parent, std::unique_ptr<
     , _deepSleepWakeupTimeoutSec(0)
     , _nwStandbyMode(false)
 {
+    LOGINFO(">> CTOR <<");
 }
 
 uint32_t DeepSleepController::GetLastWakeupReason(WakeupReason& wakeupReason) const

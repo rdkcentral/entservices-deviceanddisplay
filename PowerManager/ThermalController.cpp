@@ -25,7 +25,7 @@ ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPl
     : _platform(std::move(platform))
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
     , _parent(parent)
-    , _stopThread(true)
+    , _stopThread(false)
 {
     initializeThermalProtection();
     LOGINFO(">> CTOR <<");
@@ -149,8 +149,6 @@ void ThermalController::initializeThermalProtection()
         {
             LOGINFO("*****Critical*** Fails to set temperature thresholds.. ");
         }
-
-        _stopThread = false;
 
         thermalThreadId = new std::thread(&ThermalController::pollThermalLevels, this);
 
@@ -413,6 +411,12 @@ void ThermalController::pollThermalLevels()
                 LOGINFO("Current Temperature %d", (int)current_Temp );
             }
             m_cur_Thermal_Value = (int)current_Temp;
+
+            if (_stopThread)
+            {
+                LOGINFO("pollThermalLevels thread is signalled to be destroyed");
+                break;
+            }
 
             /* Check if we should enter deepsleep based on the current temperature */
             deepSleepIfNeeded();

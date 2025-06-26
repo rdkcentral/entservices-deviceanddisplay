@@ -197,7 +197,7 @@ private:
     }
 
     INotification& _parent;
-    bool _stopThread;
+    volatile bool _stopThread;
 
     void initializeThermalProtection();
     bool isThermalProtectionEnabled();

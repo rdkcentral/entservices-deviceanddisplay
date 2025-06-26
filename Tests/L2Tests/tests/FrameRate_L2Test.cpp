@@ -622,14 +622,18 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
 	
 }*/
 
-
+/************Test case Details **************************
+** 1.Checking onDisplayFrameRateChanging
+*******************************************************/
 TEST_F(FrameRate_L2test, onDisplayFrameRateChanging)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
     strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
     _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
 }
-
+/************Test case Details **************************
+** 1.Checking onDisplayFrameRateChanged
+*******************************************************/
 TEST_F(FrameRate_L2test, onDisplayFrameRateChanged)
 {
     IARM_Bus_DSMgr_EventData_t eventData;

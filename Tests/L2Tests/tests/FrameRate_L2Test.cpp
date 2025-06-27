@@ -771,9 +771,9 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
 	
     /*With both Params expecting Success*/
     params["FrameRate"] = "3840x2160px48";
-    status = InvokeServiceMethod(FrameRate_CALLSIGN, "setDisplayFrameRate", params, result);
+    status = InvokeServiceMethod(FrameRate_CALLSIGN, "SetDisplayFrameRate", params, result);
     /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
-    EXPECT_FALSE(result["result"].Boolean());
+    EXPECT_FALSE(result["success"].Boolean());
 }
 
 /************Test case Details **************************
@@ -851,7 +851,7 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     params["frmmode"] = 0;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setFrmMode", params, result);
     /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
-    EXPECT_FALSE(result["result"].Boolean());
+    EXPECT_FALSE(result["success"].Boolean());
 }
 
 /************Test case Details **************************

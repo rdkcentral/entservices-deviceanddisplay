@@ -758,10 +758,19 @@ TEST_F(FrameRate_L2test, SetDisplayFrameRateUsingJsonrpc) {
     JsonObject params;
     JsonObject result;
 
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](const char *param) {
+                EXPECT_EQ(param, string("3840x2160px48"));
+                return 0;
+            }));
+
     /*With both Params expecting Success*/
     params["FrameRate"] = "3840x2160px48";
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setDisplayFrameRate", params, result);
-    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
     EXPECT_FALSE(result["result"].Boolean());
 }
 
@@ -797,12 +806,22 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
+    
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](char *param) {
+                string framerate("3840x2160px48");
+                ::memcpy(param, framerate.c_str(), framerate.length());
+                return 0;
+            }));
 
     /*With both Params expecting Success*/
     params["displayFrameRate"];
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "getDisplayFrameRate", params, result);
-    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
-    EXPECT_FALSE(result["result"].Boolean());
+    EXPECT_TRUE(result["success"].Boolean());
 }
 
 /************Test case Details **************************
@@ -819,10 +838,19 @@ TEST_F(FrameRate_L2test, SetFrmModeUsingJsonrpc) {
     JsonObject params;
     JsonObject result;
 
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](int param) {
+                EXPECT_EQ(param, 0);
+                return 0;
+            }));
+
     /*With both Params expecting Success*/
     params["frmmode"] = 0;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "setFrmMode", params, result);
-    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
     EXPECT_FALSE(result["result"].Boolean());
 }
 
@@ -859,9 +887,18 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingJsonrpc) {
     JsonObject params;
     JsonObject result;
 
+    device::VideoDevice videoDevice;
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](int *param) {
+                *param = 0;
+                return 0;
+            }));
+
     /*With both Params expecting Success*/
     params["frmmode"] = 0;
     status = InvokeServiceMethod(FrameRate_CALLSIGN, "getFrmMode", params, result);
-    /* API returns ERROR_NOT_SUPPORTED for TV PROFILE so changed to FALSE */
-    EXPECT_FALSE(result["result"].Boolean());
+    EXPECT_TRUE(result["success"].Boolean());
 }

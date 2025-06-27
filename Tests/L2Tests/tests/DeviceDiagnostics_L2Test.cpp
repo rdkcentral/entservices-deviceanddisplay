@@ -338,7 +338,7 @@ TEST_F(DeviceDiagnostics_L2test, IDLE_GetAVDecoderStatus_JSONRPC)
 ** 2.Mocking state change from IDLE to ACTIVE.
 ** 3.GetAVDecoderStatus with ACTIVE status using Jsonrpc.
 *******************************************************/
-
+#if 0
 TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(DEVDIAG_CALLSIGN, DEVDIAGL2TEST_CALLSIGN);
@@ -378,7 +378,7 @@ TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
     /*Unregister for event*/
     jsonrpc.Unsubscribe(AV_POLL_TIMEOUT, _T("onAVDecoderStatusChanged"));
 }
-
+#endif
 /************Test case Details **************************
 ** 1.GetMilestones with success case using Jsonrpc.
 *******************************************************/

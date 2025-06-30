@@ -40,7 +40,7 @@ int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
 
 #ifndef POWER_MODE_PRECHANGE_TIMEOUT_SEC
-#define POWER_MODE_PRECHANGE_TIMEOUT_SEC 3
+#define POWER_MODE_PRECHANGE_TIMEOUT_SEC 1
 #endif
 
 using namespace std;
@@ -309,7 +309,7 @@ namespace Plugin {
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
 
-        LOGINFO(">>");
+        LOGINFO(">> newState: %s, reason %s", util::str(newState), reason.c_str());
 
         uint32_t errorCode = GetPowerState(currState, prevState);
 
@@ -333,11 +333,16 @@ namespace Plugin {
             _apiLock.Lock();
 
             if (_modeChangeController) {
+                if (_modeChangeController->powerState() == newState) {
+                    LOGINFO("Ignore (redundant) repeated transition request to %s state.", util::str(newState));
+                    _apiLock.Unlock();
+                    return Core::ERROR_NONE;
+                }
                 LOGWARN("Power state change is already in progress, cancel old request");
                 _modeChangeController.reset();
             }
 
-            _modeChangeController   = std::unique_ptr<PreModeChangeController>(new PreModeChangeController());
+            _modeChangeController   = std::unique_ptr<PreModeChangeController>(new PreModeChangeController(newState));
             const int transactionId = _modeChangeController->TransactionId();
 
             for (const auto& client : _modeChangeClients) {
@@ -360,8 +365,7 @@ namespace Plugin {
             LOGINFO("Requested power state is same as current power state, no action required");
         }
 
-        LOGINFO("<< SetPowerState keyCode: %d, currentState: %s, newState: %s, errorCode: %d",
-            keyCode, util::str(currState), util::str(newState), Core::ERROR_NONE);
+        LOGINFO("<< keyCode: %d, newState: %s, errorCode: %d", keyCode, util::str(newState), Core::ERROR_NONE);
 
         return Core::ERROR_NONE;
     }

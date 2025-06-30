@@ -120,7 +120,7 @@ public:
         uint32_t retCode = conv(status);
 
         if (WPEFramework::Core::ERROR_NONE == retCode) {
-            LOGINFO("Device entered to Deep sleep Mode! GPIOWakeup: %d, networkStandby: %d",
+            LOGINFO("Device wake-up from Deepsleep Mode! GPIOWakeup: %d, networkStandby: %d",
                 isGPIOWakeup, networkStandby);
         } else {
             LOGERR("Failed to enter deep sleep mode: %s", str(status));

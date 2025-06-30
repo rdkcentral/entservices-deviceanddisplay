@@ -1,21 +1,21 @@
 /*
-* If not stated otherwise in this file or this component's LICENSE file the
-* following copyright and licenses apply:
-*
-* Copyright 2025 RDK Management
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2025 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #pragma once
 #include <cstdint>
@@ -25,6 +25,8 @@
 #include <core/Timer.h>
 
 #include "UtilsLogging.h"
+#include "interfaces/IPowerManager.h"
+
 /**
  * @class AckTimer
  * @brief Manages timeout functionality for acknowledgement operations.
@@ -41,7 +43,7 @@ public:
      */
     AckTimer(T& parent)
         : _parent(parent)
-        , _timeout(WPEFramework::Core::Time{})
+        , _timeout(WPEFramework::Core::Time {})
     {
     }
 
@@ -90,7 +92,7 @@ public:
      */
     bool IsRunning() const
     {
-        return _timeout > WPEFramework::Core::Time{} && timerThread.HasEntry(*this);
+        return _timeout > WPEFramework::Core::Time {} && timerThread.HasEntry(*this);
     }
 
     /**
@@ -152,14 +154,16 @@ private:
  */
 class AckController {
     using AckTimer_t = AckTimer<AckController>;
+    using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
 public:
     /**
-     * @brief Constructs an AckController instance.
+     * @brief Constructs an AckController instance for given `powerState` transition
      *        The TransactionId is unique for each instance.
      */
-    AckController()
-        : _transactionId(++_nextTransactionId)
+    AckController(PowerState powerState)
+        : _powerState(powerState)
+        , _transactionId(++_nextTransactionId)
         , _timer(*this)
         , _handler(nullptr)
         , _running(false)
@@ -176,10 +180,18 @@ public:
         revoke();
     }
 
-    AckController(const AckController& o) = delete;
+    AckController(const AckController& o)            = delete;
     AckController& operator=(const AckController& o) = delete;
-    AckController(AckController&& o) = delete;
-    AckController& operator=(AckController&& o) = delete;
+    AckController(AckController&& o)                 = delete;
+    AckController& operator=(AckController&& o)      = delete;
+
+    /**
+     * @brief target power state for current state transition session
+     */
+    inline PowerState powerState() const
+    {
+        return _powerState;
+    }
 
     /**
      * @brief Adds an expectation to await an acknowledgement from the given client.
@@ -342,7 +354,6 @@ public:
         return status;
     }
 
-
     /**
      * @brief Handles the AckController timeout event.
      *        Ideally, this method should have been made private, but due to
@@ -391,11 +402,12 @@ private:
     }
 
 private:
-    std::unordered_set<uint32_t> _pending;       // Set of pending acknowledgements.
-    int _transactionId;                     // Unique transaction ID for each AckController instance.
-    AckTimer_t _timer;                      // Timer for managing completion timeouts.
-    std::function<void(bool)> _handler;     // Completion handler to be called on timeout or all acknowledgements.
-    std::atomic<bool> _running;             // Flag to synchronize timer timeout callback and Ack* APIs.
+    PowerState _powerState;
+    std::unordered_set<uint32_t> _pending; // Set of pending acknowledgements.
+    int _transactionId;                    // Unique transaction ID for each AckController instance.
+    AckTimer_t _timer;                     // Timer for managing completion timeouts.
+    std::function<void(bool)> _handler;    // Completion handler to be called on timeout or all acknowledgements.
+    std::atomic<bool> _running;            // Flag to synchronize timer timeout callback and Ack* APIs.
 
-    static int _nextTransactionId;          // static counter for unique transaction ID generation.
+    static int _nextTransactionId; // static counter for unique transaction ID generation.
 };

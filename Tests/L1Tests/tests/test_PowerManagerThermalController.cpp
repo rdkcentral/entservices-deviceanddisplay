@@ -143,7 +143,6 @@ TEST_F(TestThermalController, temperatureThresholds)
 {
     WaitGroup wg;
 
-    auto controller = ThermalController::Create(*this);
 
     wg.Add();
 
@@ -156,6 +155,8 @@ TEST_F(TestThermalController, temperatureThresholds)
                 wg.Done();
                 return mfrERR_NONE;
             }));
+
+    auto controller = ThermalController::Create(*this);
 
     // Set
     {

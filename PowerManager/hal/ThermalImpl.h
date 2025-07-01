@@ -86,8 +86,8 @@ public:
     virtual uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical) const override
     {
         uint32_t result = WPEFramework::Core::ERROR_GENERAL;
-        int high;
-        int critical;
+        int high = 0;
+        int critical = 0;
 
         mfrError_t response = mfrGetTempThresholds(&high, &critical);
         if(mfrERR_NONE == response)
@@ -109,7 +109,7 @@ public:
         uint32_t result = (response == mfrERR_NONE) ?WPEFramework::Core::ERROR_NONE:WPEFramework::Core::ERROR_GENERAL;
 
         return result;
-    }    
+    }
 
     virtual uint32_t GetClockSpeed(uint32_t &speed) const override
     {
@@ -210,16 +210,16 @@ public:
 
     virtual uint32_t GetTemperature(ThermalTemperature &curState, float &curTemperature, float &wifiTemperature) const override
     {
-        mfrTemperatureState_t state;
-        int temperatureValue;
-        int wifiTempValue;
-        uint32_t retValue = WPEFramework::Core::ERROR_GENERAL;
+        mfrTemperatureState_t state = mfrTEMPERATURE_NORMAL;
+        int temperatureValue        = 0;
+        int wifiTempValue           = 0;
+        uint32_t retValue           = WPEFramework::Core::ERROR_GENERAL;
 
         mfrError_t result = mfrGetTemperature(&state, &temperatureValue, &wifiTempValue);
 
 #if 0
     /* Leave this debug code here commented out (or otherwise disabled by default). This is used in testing to allow manually controlling the returned temperature.
-       This helps test functionallity without actually haveing to heat up the box */
+       This helps test functionality without actually having to heat up the box */
     {
         FILE *fp;
         state = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;

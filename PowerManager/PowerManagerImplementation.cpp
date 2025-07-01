@@ -74,60 +74,70 @@ namespace Plugin {
     void PowerManagerImplementation::dispatchPowerModeChangedEvent(const PowerState& prevState, const PowerState& newState)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _modeChangedNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnPowerModeChanged(prevState, newState);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
     void PowerManagerImplementation::dispatchDeepSleepTimeoutEvent(const uint32_t& timeout)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _deepSleepTimeoutNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnDeepSleepTimeout(timeout);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
-    void PowerManagerImplementation::dispatchRebootBeginEvent(const string& rebootReasonCustom, const string& rebootReasonOther, const string& rebootRequestor)
+    void PowerManagerImplementation::dispatchRebootBeginEvent(const string& rebootRequestor, const std::string& rebootReasonCustom, const string& rebootReasonOther)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _rebootNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
     void PowerManagerImplementation::dispatchThermalModeChangedEvent(const ThermalTemperature& currentThermalLevel, const ThermalTemperature& newThermalLevel, const float& currentTemperature)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _thermalModeChangedNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IThermalModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
     void PowerManagerImplementation::dispatchNetworkStandbyModeChangedEvent(const bool& enabled)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _networkStandbyModeChangedNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnNetworkStandbyModeChanged(enabled);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process INetworkStandbyModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
@@ -359,7 +369,9 @@ namespace Plugin {
 
             _modeChangeController->Schedule(POWER_MODE_PRECHANGE_TIMEOUT_SEC * 1000,
                 [this, keyCode, currState, newState, reason](bool /*isTimedout*/) mutable {
+                    _apiLock.Lock();
                     powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
+                    _apiLock.Unlock();
                 });
         } else {
             LOGINFO("Requested power state is same as current power state, no action required");
@@ -372,7 +384,7 @@ namespace Plugin {
 
     void PowerManagerImplementation::submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId)
     {
-        LOGINFO(">>");
+        LOGINFO(">> currentState : %s, newState : %s, transactionId : %d", util::str(currentState), util::str(newState), transactionId);
         for (auto& notification : _preModeChangeNotifications) {
             Core::IWorkerPool::Instance().Submit(
                 PowerManagerImplementation::LambdaJob::Create(this,

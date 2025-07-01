@@ -342,7 +342,7 @@ TEST_F(DeviceDiagnostics_L2test, IDLE_GetAVDecoderStatus_JSONRPC)
 TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(DEVDIAG_CALLSIGN, DEVDIAGL2TEST_CALLSIGN);
-    NiceMock<AsyncHandlerMock_DevDiag> async_handler;
+    StrictMock<AsyncHandlerMock_DevDiag> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     std::string message;
     uint32_t signalled = DeviceDiagnostics_StateInvalid;

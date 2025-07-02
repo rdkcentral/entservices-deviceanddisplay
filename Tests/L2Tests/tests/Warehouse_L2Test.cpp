@@ -438,6 +438,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
+    jsonrpc.UnregisterHandler(&async_handler);
 }
 
 /********************************************************
@@ -530,6 +531,7 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
+    jsonrpc.UnregisterHandler(&async_handler);
 }
 
 /********************************************************
@@ -643,6 +645,7 @@ TEST_F(Warehouse_L2Test, Warehouse_ColdFactory_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
+    jsonrpc.UnregisterHandler(&async_handler);
 }
 
 /********************************************************
@@ -736,6 +739,7 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
+    jsonrpc.UnregisterHandler(&async_handler);
 }
 
 /********************************************************

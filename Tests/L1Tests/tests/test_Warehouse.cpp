@@ -1,3 +1,4 @@
+
 /**
  * If not stated otherwise in this file or this component's LICENSE
  * file the following copyright and licenses apply:
@@ -272,6 +273,7 @@ TEST_F(WarehouseResetDeviceTest, ColdFactoryResetDevice)
 TEST_F(WarehouseResetDeviceTest, FactoryResetDevice)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh factory"));
@@ -288,6 +290,7 @@ TEST_F(WarehouseResetDeviceTest, FactoryResetDevice)
 TEST_F(WarehouseResetDeviceTest, UserFactoryResetDevice)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
@@ -303,6 +306,7 @@ TEST_F(WarehouseResetDeviceTest, UserFactoryResetDevice)
 TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDevice)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR"));
@@ -320,6 +324,7 @@ TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
     Core::Event resetCallRxed(false, true);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [&](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));
@@ -337,6 +342,7 @@ TEST_F(WarehouseResetDeviceTest, GenericResetDevice)
 {
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh warehouse"));
@@ -354,6 +360,7 @@ TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
     Core::Event resetCallRxed(false, true);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [&](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh warehouse --suppressReboot &"));
@@ -371,6 +378,7 @@ TEST_F(WarehouseResetDeviceFailureTest, UserFactoryResetDeviceFailure)
 {
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh warehouse --suppressReboot &"));
@@ -395,6 +403,7 @@ TEST_F(WarehouseInitializedTest, internalResetFailPassPhrase)
 TEST_F(WarehouseInitializedTest, internalResetScriptFail)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 return Core::ERROR_NONE;
@@ -408,6 +417,7 @@ TEST_F(WarehouseInitializedTest, internalResetScriptFail)
 TEST_F(WarehouseInitializedTest, internalReset)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("rm -rf /opt/drm /opt/www/whitebox /opt/www/authService && /rebootNow.sh -s WarehouseService &"));
@@ -422,6 +432,7 @@ TEST_F(WarehouseInitializedTest, internalReset)
 TEST_F(WarehouseInitializedTest, lightResetScriptFail)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 return Core::ERROR_NONE;
@@ -435,6 +446,7 @@ TEST_F(WarehouseInitializedTest, lightResetScriptFail)
 TEST_F(WarehouseInitializedTest, lightReset)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh -c 'rm -rf /opt/netflix/* SD_CARD_MOUNT_PATH/netflix/* XDG_DATA_HOME/* XDG_CACHE_HOME/* XDG_CACHE_HOME/../.sparkStorage/ /opt/QT/home/data/* /opt/hn_service_settings.conf /opt/apps/common/proxies.conf /opt/lib/bluetooth /opt/persistent/rdkservicestore'"));

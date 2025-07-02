@@ -5258,6 +5258,10 @@ namespace WPEFramework {
             else
             {
                 LOGERR("BootType is not present");
+		JsonObject error;
+		error["message"] = "Invalid Request";
+		error["code"] = "-32600";
+  		response["error"] = error; 
                 result = false;
             }
 	    returnResponse(result);
@@ -5355,6 +5359,10 @@ namespace WPEFramework {
             }
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
+		JsonObject error;
+		error["message"] = "Invalid Request";
+		error["code"] = "-32600";
+  		response["error"] = error; 
             }
             returnResponse(status);
        }

@@ -234,7 +234,7 @@ uint32_t Warehouse_L2Test::WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     auto now = std::chrono::system_clock::now();
-    std::chrono::seconds timeout(timeout_ms);
+    std::chrono::milliseconds timeout(timeout_ms);
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
     while (!(expected_status & m_event_signalled)) {

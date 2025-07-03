@@ -75,21 +75,22 @@ public:
     }
 
     uint32_t WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2test_async_events_t expected_status)
-    {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        auto now = std::chrono::system_clock::now();
-        std::chrono::milliseconds timeout(timeout_ms);
-        uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+    auto now = std::chrono::steady_clock::now();  
+    auto timeout = std::chrono::milliseconds(timeout_ms);
 
-        while (!(expected_status & m_event_signalled)) {
-            if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
-                TEST_LOG("Timeout waiting for request status event");
-                break;
-            }
-        }
-        signalled = m_event_signalled;
-        return signalled;
+    bool status_matched = m_condition_variable.wait_until(lock, now + timeout, [&] {
+        return (expected_status & m_event_signalled);
+    });
+
+    if (!status_matched) {
+        TEST_LOG("Timeout waiting for request status event");
+        return WAREHOUSEL2TEST_STATE_INVALID;
     }
+
+    return m_event_signalled;
+}
 };
 
 /**
@@ -233,20 +234,19 @@ void Warehouse_L2Test::resetDone(const JsonObject& message)
 uint32_t Warehouse_L2Test::WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2test_async_events_t expected_status)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    auto now = std::chrono::system_clock::now();
-    std::chrono::milliseconds timeout(timeout_ms);
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
+    auto now = std::chrono::steady_clock::now(); 
+    auto timeout = std::chrono::milliseconds(timeout_ms);
 
-    while (!(expected_status & m_event_signalled)) {
-        if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
-            TEST_LOG("Timeout waiting for request status event");
-            break;
-        }
+    bool status_matched = m_condition_variable.wait_until(lock, now + timeout, [&] {
+        return (expected_status & m_event_signalled);
+    });
+
+    if (!status_matched) {
+        TEST_LOG("Timeout waiting for request status event");
+        return WAREHOUSEL2TEST_STATE_INVALID;
     }
 
-    signalled = m_event_signalled;
-
-    return signalled;
+    return m_event_signalled;
 }
 
 MATCHER_P(MatchRequest, data, "")

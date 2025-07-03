@@ -657,7 +657,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 {
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-
+    TEST_LOG("COMRPC_Warehouse_UserFactory_ResetDone_1");
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -665,14 +665,14 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
                 return Core::ERROR_NONE;
             }));
-
+    TEST_LOG("COMRPC_Warehouse_UserFactory_ResetDone_2");
     bool supress = false;
     string resetType = "USERFACTORY";
     Exchange::IWarehouse::WarehouseSuccessErr response;
     status = m_warehouseplugin->ResetDevice(supress, resetType, response);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(response.success);
-
+    TEST_LOG("COMRPC_Warehouse_UserFactory_ResetDone_2");
     signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
     EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
 }

@@ -170,7 +170,7 @@ namespace Plugin {
         std::list<Exchange::IPowerManager::IDeepSleepTimeoutNotification*> _deepSleepTimeoutNotifications;
         std::list<Exchange::IPowerManager::INetworkStandbyModeChangedNotification*> _networkStandbyModeChangedNotifications;
         std::list<Exchange::IPowerManager::IThermalModeChangedNotification*> _thermalModeChangedNotifications;
-        std::unique_ptr<PreModeChangeController> _modeChangeController;
+        std::shared_ptr<PreModeChangeController> _modeChangeController;
         std::unordered_map<uint32_t, std::string> _modeChangeClients;
 
         void dispatchPowerModeChangedEvent(const PowerState& currentState, const PowerState& newState);

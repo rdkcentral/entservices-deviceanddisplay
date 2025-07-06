@@ -18,6 +18,7 @@
  */
 
 #include <chrono>
+#include <memory>
 
 #include "PowerManagerImplementation.h"
 
@@ -34,13 +35,13 @@ using PreModeChangeTimer = WPEFramework::Plugin::PowerManagerImplementation::Pre
 using util               = PowerUtils;
 
 template <>
-WPEFramework::Core::TimerType<PreModeChangeTimer> PreModeChangeTimer::timerThread(16 * 1024, "ACK TIMER");
+WPEFramework::Core::TimerType<PreModeChangeTimer> PreModeChangeTimer::timerThread(32 * 1024, "ACK TIMER");
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
 
 #ifndef POWER_MODE_PRECHANGE_TIMEOUT_SEC
-#define POWER_MODE_PRECHANGE_TIMEOUT_SEC 3
+#define POWER_MODE_PRECHANGE_TIMEOUT_SEC 1
 #endif
 
 using namespace std;
@@ -74,60 +75,70 @@ namespace Plugin {
     void PowerManagerImplementation::dispatchPowerModeChangedEvent(const PowerState& prevState, const PowerState& newState)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _modeChangedNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnPowerModeChanged(prevState, newState);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
     void PowerManagerImplementation::dispatchDeepSleepTimeoutEvent(const uint32_t& timeout)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _deepSleepTimeoutNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnDeepSleepTimeout(timeout);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
-    void PowerManagerImplementation::dispatchRebootBeginEvent(const string& rebootReasonCustom, const string& rebootReasonOther, const string& rebootRequestor)
+    void PowerManagerImplementation::dispatchRebootBeginEvent(const string& rebootRequestor, const std::string& rebootReasonCustom, const string& rebootReasonOther)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _rebootNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
     void PowerManagerImplementation::dispatchThermalModeChangedEvent(const ThermalTemperature& currentThermalLevel, const ThermalTemperature& newThermalLevel, const float& currentTemperature)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _thermalModeChangedNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process IThermalModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
     void PowerManagerImplementation::dispatchNetworkStandbyModeChangedEvent(const bool& enabled)
     {
         LOGINFO(">>");
+        _callbackLock.Lock();
         for (auto& notification : _networkStandbyModeChangedNotifications) {
             auto start = std::chrono::steady_clock::now();
             notification->OnNetworkStandbyModeChanged(enabled);
             auto elapsed = std::chrono::steady_clock::now() - start;
             LOGINFO("client %p took %lldms to process INetworkStandbyModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
+        _callbackLock.Unlock();
         LOGINFO("<<");
     }
 
@@ -309,7 +320,7 @@ namespace Plugin {
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
 
-        LOGINFO(">>");
+        LOGINFO(">> newState: %s, reason %s", util::str(newState), reason.c_str());
 
         uint32_t errorCode = GetPowerState(currState, prevState);
 
@@ -333,16 +344,26 @@ namespace Plugin {
             _apiLock.Lock();
 
             if (_modeChangeController) {
-                LOGWARN("Power state change is already in progress, cancel old request");
+                if (!_modeChangeController->IsMarkedForDelete() && _modeChangeController->powerState() == newState) {
+                    LOGINFO("Ignore (redundant) repeated transition request to %s state.", util::str(newState));
+                    _apiLock.Unlock();
+                    return Core::ERROR_NONE;
+                }
+                // log warning only if object is not marked for delete
+                if (!_modeChangeController->IsMarkedForDelete()) {
+                    LOGWARN("Power state change is already in progress, cancel old request");
+                }
                 _modeChangeController.reset();
             }
 
-            _modeChangeController   = std::unique_ptr<PreModeChangeController>(new PreModeChangeController());
+            _modeChangeController   = std::shared_ptr<PreModeChangeController>(new PreModeChangeController(newState));
             const int transactionId = _modeChangeController->TransactionId();
 
             for (const auto& client : _modeChangeClients) {
                 _modeChangeController->AckAwait(client.first);
             }
+
+            std::weak_ptr<PreModeChangeController> wPtr = _modeChangeController;
 
             _apiLock.Unlock();
 
@@ -353,22 +374,31 @@ namespace Plugin {
             this->AddRef();
 
             _modeChangeController->Schedule(POWER_MODE_PRECHANGE_TIMEOUT_SEC * 1000,
-                [this, keyCode, currState, newState, reason](bool /*isTimedout*/) mutable {
-                    powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
+                [this, keyCode, currState, newState, reason, wPtr](bool isTimedout) mutable {
+                    LOGINFO(">> isTimedout: %d", isTimedout);
+                    _apiLock.Lock();
+                    // Ideally we should never get this callback if AckController object is deleted
+                    // However in timeout scenarios, callback is triggered from ACK TIMER Thread
+                    auto expired = wPtr.expired();
+                    if (!expired) {
+                        powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
+                    } else {
+                        LOGWARN("modeChangeController was already deleted, do not process powerModePreChangeCompletionHandler");
+                    }
+                    _apiLock.Unlock();
                 });
         } else {
             LOGINFO("Requested power state is same as current power state, no action required");
         }
 
-        LOGINFO("<< SetPowerState keyCode: %d, currentState: %s, newState: %s, errorCode: %d",
-            keyCode, util::str(currState), util::str(newState), Core::ERROR_NONE);
+        LOGINFO("<< keyCode: %d, newState: %s, errorCode: %d", keyCode, util::str(newState), Core::ERROR_NONE);
 
         return Core::ERROR_NONE;
     }
 
     void PowerManagerImplementation::submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId)
     {
-        LOGINFO(">>");
+        LOGINFO(">> currentState : %s, newState : %s, transactionId : %d", util::str(currentState), util::str(newState), transactionId);
         for (auto& notification : _preModeChangeNotifications) {
             Core::IWorkerPool::Instance().Submit(
                 PowerManagerImplementation::LambdaJob::Create(this,
@@ -455,12 +485,12 @@ namespace Plugin {
         errorCode   = _thermalController.GetThermalState(curLevel, curTemperature);
         temperature = curTemperature;
         _apiLock.Unlock();
-        LOGINFO("<< Current core temperature is : %f, errorCode: %u", temperature, errorCode);
 #else
         temperature = -1;
         errorCode   = Core::ERROR_GENERAL;
         LOGWARN("<< Thermal Protection disabled for this platform");
 #endif
+        LOGINFO("<< Current core temperature is : %f, errorCode: %u", temperature, errorCode);
         return errorCode;
     }
 
@@ -638,15 +668,17 @@ namespace Plugin {
 
     void PowerManagerImplementation::powerModePreChangeCompletionHandler(const int keyCode, PowerState currentState, PowerState newState, const std::string& reason)
     {
-        LOGINFO(">> PowerModePreChangeCompletionHandler triggered keyCode: %d, powerState: %s", keyCode, util::str(newState));
+        LOGINFO(">> keyCode: %d, powerState: %s", keyCode, util::str(newState));
 
         setDevicePowerState(keyCode, currentState, newState, reason);
 
         // release the refCount taken in SetPowerState => _modeChangeController->Schedule
         this->Release();
 
-        // release controller as mode change is complete now
-        _modeChangeController.reset();
+        // We are in callback from _modeChangeController, avoid deletion from class method
+        // To properly delete this object some more code refactoring will be required.
+        // _modeChangeController.reset();
+        _modeChangeController->MarkDelete();
 
         LOGINFO("<<");
     }
@@ -659,7 +691,7 @@ namespace Plugin {
 
         _apiLock.Lock();
 
-        if (_modeChangeController) {
+        if (_modeChangeController && !_modeChangeController->IsMarkedForDelete()) {
             errorCode = _modeChangeController->Ack(clientId, transactionId);
         }
 

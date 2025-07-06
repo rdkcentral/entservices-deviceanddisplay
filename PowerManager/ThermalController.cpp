@@ -49,14 +49,12 @@ ThermalController::~ThermalController()
 
 uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const
 {
-    uint32_t retCode = WPEFramework::Core::ERROR_NONE;
-
-    LOGINFO("thermal state is queried: ");
-    curLevel = (ThermalTemperature)m_cur_Thermal_Level;
+    curLevel = m_cur_Thermal_Level;
     curTemperature = m_cur_Thermal_Value;
-    LOGINFO("thermal state is queried: returning %d ", m_cur_Thermal_Value);
 
-    return retCode;
+    LOGINFO("curTemperature: %d, curLevel %d", m_cur_Thermal_Value, int(m_cur_Thermal_Level));
+
+    return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &tempCritical) const
@@ -392,7 +390,7 @@ void ThermalController::pollThermalLevels()
         {
             if(m_cur_Thermal_Level != state)//State changed, need to broadcast
             {
-                LOGINFO("Temeperature level changed %d -> %d :  ", m_cur_Thermal_Level,state );
+                LOGINFO("Temeperature levels changed %s -> %s", str(m_cur_Thermal_Level), str(state));
 
                 _parent.onThermalTemperatureChanged(m_cur_Thermal_Level,state,current_Temp);
 
@@ -412,7 +410,7 @@ void ThermalController::pollThermalLevels()
             }
             m_cur_Thermal_Value = (int)current_Temp;
 
-            if (_stopThread)
+            if (_stopThread) 
             {
                 LOGINFO("pollThermalLevels thread is signalled to be destroyed");
                 break;
@@ -437,10 +435,26 @@ void ThermalController::pollThermalLevels()
     LOGINFO(">> Stop monitoring temeperature");
 }
 
+const char* ThermalController::str(ThermalTemperature mode)
+{
+    switch (mode) {
+    case ThermalTemperature::THERMAL_TEMPERATURE_NORMAL:
+        return "NORMAL";
+    case ThermalTemperature::THERMAL_TEMPERATURE_HIGH:
+        return "HIGH";
+    case ThermalTemperature::THERMAL_TEMPERATURE_CRITICAL:
+        return "CRITICAL";
+    case ThermalTemperature::THERMAL_TEMPERATURE_UNKNOWN:
+    default:
+        return "UNKNOWN";
+    }
+    return "";
+}
+
 bool ThermalController::updateRFCStatus()
 {
     bool result = false;
-    RFC_ParamData_t param;
+    RFC_ParamData_t param = {{0}};
 
     isFeatureEnabled = TRUE;
 
@@ -448,8 +462,9 @@ bool ThermalController::updateRFCStatus()
 
     if (status == WDMP_SUCCESS)
     {
-        LOGINFO("Key: RFC_ENABLE_ThermalProtection,Value %s  ", param.value);
-        if (0 == strncasecmp(param.value, "false",5))
+        LOGINFO("Key: RFC_ENABLE_ThermalProtection, Value: %s", param.value);
+
+        if (0 == strncasecmp(param.value, "false", 5))
         {
             isFeatureEnabled = FALSE;
         }
@@ -463,14 +478,16 @@ bool ThermalController::updateRFCStatus()
         LOGINFO("Key: RFC_ENABLE_ThermalProtection is not configured, Status %d  ", status);
     }
 
+    LOGINFO("result: %d", result);
+
     return result;
 }
 
 char* ThermalController::read_ConfigProperty(const char* key)
 {
     char *value = nullptr;
-    uint32_t dataLen;
-    RFC_ParamData_t param;
+    uint32_t dataLen = 0;
+    RFC_ParamData_t param = {{0}};
     // RFC parameter storage
     const uint32_t MAX_THERMAL_RFC =  16;
     static char valueBuf[MAX_THERMAL_RFC] = { 0 };

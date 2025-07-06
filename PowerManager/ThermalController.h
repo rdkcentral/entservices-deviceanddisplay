@@ -213,6 +213,8 @@ private:
     //Thread entry function to monitor thermal levels of the device.
     void pollThermalLevels();
 
+    static const char* str(ThermalTemperature mode);
+
 public:
     template <typename IMPL = DefaultImpl, typename... Args>
     static ThermalController Create(INotification& parent, Args&&... args)

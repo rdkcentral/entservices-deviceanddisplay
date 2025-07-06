@@ -167,6 +167,7 @@ public:
         , _timer(*this)
         , _handler(nullptr)
         , _running(false)
+        , _delete(false)
     {
     }
 
@@ -223,6 +224,13 @@ public:
                 break;
             }
 
+            const auto it = _pending.find(clientId);
+            if (it == _pending.cend()) {
+                LOGERR("Invalid clientId: %u", clientId);
+                status = WPEFramework::Core::ERROR_INVALID_PARAMETER;
+                break;
+            }
+
             _pending.erase(clientId);
 
             if (_pending.empty() && _running) {
@@ -233,7 +241,7 @@ public:
 
         LOGINFO("AckController::Ack: clientId: %u, transactionId: %d, status: %d, pending %d",
             clientId, transactionId, status, int(_pending.size()));
-        return WPEFramework::Core::ERROR_NONE;
+        return status;
     }
 
     /**
@@ -315,7 +323,6 @@ public:
     uint32_t Reschedule(const uint32_t clientId, const int transactionId, const int offsetInMilliseconds)
     {
         uint32_t status = WPEFramework::Core::ERROR_NONE;
-        ASSERT(IsRunning());
         ASSERT(nullptr != _handler);
 
         do {
@@ -374,6 +381,16 @@ public:
         return 0;
     }
 
+    inline void MarkDelete()
+    {
+        _delete = true;
+    }
+
+    inline bool IsMarkedForDelete() const
+    {
+        return _delete;
+    }
+
 private:
     /**
      * @brief Executes the completion handler.
@@ -408,6 +425,7 @@ private:
     AckTimer_t _timer;                     // Timer for managing completion timeouts.
     std::function<void(bool)> _handler;    // Completion handler to be called on timeout or all acknowledgements.
     std::atomic<bool> _running;            // Flag to synchronize timer timeout callback and Ack* APIs.
+    std::atomic<bool> _delete;             // Flag to mark this object for deletion
 
     static int _nextTransactionId; // static counter for unique transaction ID generation.
 };

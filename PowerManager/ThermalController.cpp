@@ -49,14 +49,12 @@ ThermalController::~ThermalController()
 
 uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const
 {
-    uint32_t retCode = WPEFramework::Core::ERROR_NONE;
-
-    LOGINFO("thermal state is queried: ");
-    curLevel = (ThermalTemperature)m_cur_Thermal_Level;
+    curLevel = m_cur_Thermal_Level;
     curTemperature = m_cur_Thermal_Value;
-    LOGINFO("thermal state is queried: returning %d ", m_cur_Thermal_Value);
 
-    return retCode;
+    LOGINFO("curTemperature: %d, curLevel %d", m_cur_Thermal_Value, int(m_cur_Thermal_Level));
+
+    return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &tempCritical) const

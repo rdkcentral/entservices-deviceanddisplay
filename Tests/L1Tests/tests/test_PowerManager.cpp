@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 #include <chrono>
+#include <random>
 #include <thread>
 
 #include "gmock/gmock.h"
@@ -59,7 +60,7 @@ public:
     bool wait_call = true;
     std::mutex m_mutex;
     Core::ProxyType<Plugin::PowerManagerImplementation> powerManagerImpl;
-    WaitGroup _wg;
+    WaitGroup setupWg; // wait group created specifically for setup / init (SetUpMocks)
 
     struct PowerModePreChangeEvent : public WPEFramework::Exchange::IPowerManager::IModePreChangeNotification {
         MOCK_METHOD(void, OnPowerModePreChange, (const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter), (override));
@@ -105,9 +106,9 @@ public:
     {
         SetUpMocks();
 
-        _wg.Add(1);
+        setupWg.Add(1);
         powerManagerImpl = Core::ProxyType<Plugin::PowerManagerImplementation>::Create();
-        _wg.Wait();
+        setupWg.Wait();
 
         // We see sync issues between Thermal pollThermalLevels & Power Manager Thermal Getter APIs
         // Safer side add a small delay (actual fix will need mutex to sync Caller then and Writer thread)
@@ -169,7 +170,7 @@ public:
                     *state = mfrTEMPERATURE_NORMAL;
                     *temperatureValue = 40;
                     *wifiTemp = 35;
-                    _wg.Done();
+                    setupWg.Done();
                     return mfrERR_NONE;
                 }));
 
@@ -240,6 +241,10 @@ public:
         system("rm -f /tmp/deepSleepTimer");
         system("rm -f /tmp/deepSleepTimerVal");
         system("rm -f /tmp/ignoredeepsleep");
+
+        // in some rare cases we saw settings file being reused from
+        // old testcase, fs sync would resolve such issues
+        system("sync");
     }
 
     static void SetUpTestSuite()
@@ -364,7 +369,8 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     status = powerManagerImpl->Register(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
@@ -396,7 +402,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
-                _wg.Done();
+                wg.Done();
             }));
 
     // Even though same state is set multiple times only one pre change notification is invoked
@@ -405,7 +411,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    _wg.Wait();
+    wg.Wait();
     // some delay to destroy AckController after IModeChanged notification
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
@@ -452,18 +458,19 @@ TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
                 EXPECT_EQ(stateChangeAfter, 1);
             }));
 
-    _wg.Add(1);
+    WaitGroup wg;
+    wg.Add(1);
     EXPECT_CALL(*modeChangedEvent, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currState, const PowerState newState) {
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                _wg.Done();
+                wg.Done();
             }));
 
     status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    _wg.Wait();
+    wg.Wait();
     // some delay to destroy AckController after IModeChanged notification
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
@@ -503,7 +510,8 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
     EXPECT_EQ(status, powerManagerImpl->Register(&(*prechangeEvent)));
     EXPECT_EQ(status, powerManagerImpl->Register(&(*modeChangedEvent)));
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
@@ -520,7 +528,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
 
                 // acknowledge after a short delay
                 std::this_thread::sleep_for(std::chrono::milliseconds(250));
-                _wg.Done();
+                wg.Done();
             }));
 
     // Even though same state is set multiple times only one pre change notification is invoked
@@ -529,20 +537,20 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
     status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    _wg.Wait();
+    wg.Wait();
 
-    _wg.Add();
+    wg.Add();
     EXPECT_CALL(*modeChangedEvent, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currState, const PowerState newState) {
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                _wg.Done();
+                wg.Done();
             }));
 
     status = powerManagerImpl->RemovePowerModePreChangeClient(clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    _wg.Wait();
+    wg.Wait();
 
     PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
@@ -572,7 +580,8 @@ TEST_F(TestPowerManager, DeepSleepIgnore)
     status = powerManagerImpl->Register(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
@@ -582,7 +591,7 @@ TEST_F(TestPowerManager, DeepSleepIgnore)
                 auto status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
-                _wg.Done();
+                wg.Done();
             }));
 
     status = powerManagerImpl->SetDeepSleepTimer(10);
@@ -592,7 +601,7 @@ TEST_F(TestPowerManager, DeepSleepIgnore)
     status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    _wg.Wait();
+    wg.Wait();
 
     PowerState newState = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
@@ -619,7 +628,8 @@ TEST_F(TestPowerManager, DeepSleepUserWakeup)
                 return PWRMGR_SUCCESS;
             }));
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     Core::ProxyType<PowerModeChangedEvent> modeChanged = Core::ProxyType<PowerModeChangedEvent>::Create();
     EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -630,7 +640,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeup)
             [&](const PowerState prevState, const PowerState newState) {
                 EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                _wg.Done();
+                wg.Done();
             }));
 
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
@@ -672,12 +682,161 @@ TEST_F(TestPowerManager, DeepSleepUserWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
 
-    _wg.Wait();
+    wg.Wait();
 
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
     status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(wakeupReason, WakeupReason::WAKEUP_REASON_GPIO);
+
+    status = powerManagerImpl->Unregister(&(*modeChanged));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+}
+
+// Only difference from above test-case is a user trigger for SetPowerState ON
+TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
+{
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                return PWRMGR_SUCCESS;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
+                return PWRMGR_SUCCESS;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                return PWRMGR_SUCCESS;
+            }));
+
+    WaitGroup wg;
+    wg.Add();
+    Core::ProxyType<PowerModeChangedEvent> modeChanged = Core::ProxyType<PowerModeChangedEvent>::Create();
+    EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](const PowerState prevState, const PowerState newState) {
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+            }))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState prevState, const PowerState newState) {
+                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+            }))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState prevState, const PowerState newState) {
+                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_ON);
+                wg.Done();
+            }));
+
+    uint32_t clientId = 0;
+    uint32_t status = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
+    EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+                EXPECT_EQ(stateChangeAfter, 1);
+
+                // valid PowerModePreChangeComplete
+                auto status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+            }))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
+                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                EXPECT_EQ(stateChangeAfter, 0);
+
+                // trigger new state change now
+                wg.Done();
+
+                // simulate a small delay (for new state change i,e ON)
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+                // valid PowerModePreChangeComplete
+                auto status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+            }))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
+                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_ON);
+                EXPECT_EQ(stateChangeAfter, 1);
+
+                // valid PowerModePreChangeComplete
+                auto status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+            }));
+
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                EXPECT_EQ(deep_sleep_timeout, 10);
+                EXPECT_TRUE(nullptr != isGPIOWakeup);
+                EXPECT_EQ(networkStandby, false);
+                // Simulate user triggered wakeup
+                *isGPIOWakeup = true;
+                std::this_thread::sleep_for(std::chrono::seconds(deep_sleep_timeout / 2));
+                return DEEPSLEEPMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_GetLastWakeupReason(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](DeepSleep_WakeupReason_t* wakeupReason) {
+                *wakeupReason = DEEPSLEEP_WAKEUPREASON_GPIO;
+                return DEEPSLEEPMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_DeepSleepWakeup())
+        .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+    status = powerManagerImpl->Register(&(*modeChanged));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    status = powerManagerImpl->Register(&(*prechangeEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    status = powerManagerImpl->SetDeepSleepTimer(10);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    int keyCode = 0;
+    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    wg.Wait();
+
+    WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
+    status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(wakeupReason, WakeupReason::WAKEUP_REASON_GPIO);
+
+    // ON
+    wg.Add(1);
+    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_ON, "IR-KeyPress-test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    wg.Wait();
+
+    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
+
+    status = powerManagerImpl->GetPowerState(newState, prevState);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    EXPECT_EQ(newState, PowerState::POWER_STATE_ON);
+
+    // TODO: identify whu delay is required
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    status = powerManagerImpl->Unregister(&(*prechangeEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
 
     status = powerManagerImpl->Unregister(&(*modeChanged));
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -697,7 +856,8 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
                 return PWRMGR_SUCCESS;
             }));
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     Core::ProxyType<PowerModeChangedEvent> modeChanged = Core::ProxyType<PowerModeChangedEvent>::Create();
     EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -708,7 +868,7 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
             [&](const PowerState prevState, const PowerState newState) {
                 EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                _wg.Done();
+                wg.Done();
             }));
 
     Core::ProxyType<DeepSleepWakeupEvent> deepSleepTimeout = Core::ProxyType<DeepSleepWakeupEvent>::Create();
@@ -760,7 +920,7 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
 
-    _wg.Wait();
+    wg.Wait();
 
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
     status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
@@ -791,7 +951,8 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
                 return PWRMGR_SUCCESS;
             }));
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     Core::ProxyType<PowerModeChangedEvent> modeChanged = Core::ProxyType<PowerModeChangedEvent>::Create();
     EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -802,7 +963,7 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
             [&](const PowerState prevState, const PowerState newState) {
                 EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                _wg.Done();
+                wg.Done();
             }));
 
     Core::ProxyType<DeepSleepWakeupEvent> deepSleepTimeout = Core::ProxyType<DeepSleepWakeupEvent>::Create();
@@ -854,7 +1015,7 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
 
-    _wg.Wait();
+    wg.Wait();
 
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
     status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
@@ -966,7 +1127,8 @@ TEST_F(TestPowerManager, DeepSleepEarlyWakeup)
                 return PWRMGR_SUCCESS;
             }));
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     Core::ProxyType<PowerModeChangedEvent> modeChanged = Core::ProxyType<PowerModeChangedEvent>::Create();
     EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -977,7 +1139,7 @@ TEST_F(TestPowerManager, DeepSleepEarlyWakeup)
             [&](const PowerState prevState, const PowerState newState) {
                 EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                _wg.Done();
+                wg.Done();
             }));
 
     Core::ProxyType<DeepSleepWakeupEvent> deepSleepTimeout = Core::ProxyType<DeepSleepWakeupEvent>::Create();
@@ -1029,7 +1191,7 @@ TEST_F(TestPowerManager, DeepSleepEarlyWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
 
-    _wg.Wait();
+    wg.Wait();
 
     status = powerManagerImpl->Unregister(&(*modeChanged));
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1052,7 +1214,8 @@ TEST_F(TestPowerManager, DeepSleepFailure)
                 return PWRMGR_SUCCESS;
             }));
 
-    _wg.Add();
+    WaitGroup wg;
+    wg.Add();
     Core::ProxyType<PowerModeChangedEvent> modeChanged = Core::ProxyType<PowerModeChangedEvent>::Create();
     EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -1063,7 +1226,7 @@ TEST_F(TestPowerManager, DeepSleepFailure)
             [&](const PowerState prevState, const PowerState newState) {
                 EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                _wg.Done();
+                wg.Done();
             }));
 
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
@@ -1099,7 +1262,7 @@ TEST_F(TestPowerManager, DeepSleepFailure)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
 
-    _wg.Wait();
+    wg.Wait();
 
     status = powerManagerImpl->Unregister(&(*modeChanged));
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1116,18 +1279,19 @@ TEST_F(TestPowerManager, Reboot)
                 EXPECT_EQ("Unknown", reasonOther);
             }));
 
-    _wg.Add(2);
+    WaitGroup wg;
+    wg.Add(2);
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("echo 0 > /opt/.rebootFlag"));
-                _wg.Done();
+                wg.Done();
                 return Core::ERROR_NONE;
             }))
         .WillOnce(::testing::Invoke(
             [&](const char* command, va_list args) {
                 EXPECT_EQ(string(command), "/lib/rdk/rebootNow.sh -s '%s' -r '%s' -o '%s'");
-                _wg.Done();
+                wg.Done();
                 return Core::ERROR_NONE;
             }));
 
@@ -1136,7 +1300,7 @@ TEST_F(TestPowerManager, Reboot)
 
     powerManagerImpl->Reboot("L1Test", "L1Test-custom", "");
 
-    _wg.Wait();
+    wg.Wait();
 
     status = powerManagerImpl->Unregister(&(*rebootEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1144,14 +1308,15 @@ TEST_F(TestPowerManager, Reboot)
 
 TEST_F(TestPowerManager, NetworkStandby)
 {
-    _wg.Add(1);
+    WaitGroup wg;
+    wg.Add(1);
 
     Core::ProxyType<NetworkStandbyChangedEvent> nwstandbyModeChangedEvent = Core::ProxyType<NetworkStandbyChangedEvent>::Create();
     EXPECT_CALL(*nwstandbyModeChangedEvent, OnNetworkStandbyModeChanged(::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const bool enabled) {
                 EXPECT_EQ(enabled, true);
-                _wg.Done();
+                wg.Done();
             }));
 
     auto status = powerManagerImpl->Register(&(*nwstandbyModeChangedEvent));
@@ -1173,7 +1338,7 @@ TEST_F(TestPowerManager, NetworkStandby)
 
     powerManagerImpl->SetNetworkStandbyMode(true);
 
-    _wg.Wait();
+    wg.Wait();
 
     bool standbyMode = false;
 

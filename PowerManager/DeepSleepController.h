@@ -44,18 +44,18 @@ namespace Core {
 class DeepSleepWakeupSettings {
     // enum with Time Zone hours
     typedef enum _tzValue {
-        tzHST11 = 11,
-        tzHST11HDT = 10,
-        tzAKST = 9,
+        tzHST11      = 11,
+        tzHST11HDT   = 10,
+        tzAKST       = 9,
         tzAKST09AKDT = 8,
-        tzPST08 = 8,
-        tzPST08PDT = 8,
-        tzMST07 = 7,
-        tzMST07MDT = 6,
-        tzCST06 = 6,
-        tzCST06CDT = 5,
-        tzEST05 = 5,
-        tzEST05EDT = 4
+        tzPST08      = 8,
+        tzPST08PDT   = 8,
+        tzMST07      = 7,
+        tzMST07MDT   = 6,
+        tzCST06      = 6,
+        tzCST06CDT   = 5,
+        tzEST05      = 5,
+        tzEST05EDT   = 4
     } tzValue;
 
 public:
@@ -105,15 +105,15 @@ private:
 class DeepSleepController {
 
     using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
-    using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-    using IPlatform = hal::deepsleep::IPlatform;
-    using DefaultImpl = DeepSleepImpl;
+    using PowerState   = WPEFramework::Exchange::IPowerManager::PowerState;
+    using IPlatform    = hal::deepsleep::IPlatform;
+    using DefaultImpl  = DeepSleepImpl;
 
     typedef enum {
-        Failed = -1,    /*!< Deepsleep operation failed */
-        NotStarted = 0, /*!< Deepsleep operation not started*/
-        InProgress,     /*!< Deepsleep operation in progress */
-        Completed,      /*!< Deepsleep operation completed */
+        Failed     = -1, /*!< Deepsleep operation failed */
+        NotStarted = 0,  /*!< Deepsleep operation not started*/
+        InProgress,      /*!< Deepsleep operation in progress */
+        Completed,       /*!< Deepsleep operation completed */
     } DeepSleepState;
 
 public:
@@ -122,8 +122,8 @@ public:
         virtual ~INotification() = default;
 
         virtual void onDeepSleepTimerWakeup(const int wakeupTimeout) = 0;
-        virtual void onDeepSleepUserWakeup(const bool userWakeup) = 0;
-        virtual void onDeepSleepFailed() = 0;
+        virtual void onDeepSleepUserWakeup(const bool userWakeup)    = 0;
+        virtual void onDeepSleepFailed()                             = 0;
     };
 
 private:

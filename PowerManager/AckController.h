@@ -302,7 +302,7 @@ public:
 
         LOGINFO("time offset: %lldms, pending: %d", offsetInMilliseconds, int(_pending.size()));
 
-        if (_pending.empty()) {
+        if (_pending.empty() || 0 == offsetInMilliseconds) {
             // no clients acks to wait for, trigger completion handler immediately
             runHandler(false);
         } else {

@@ -20,6 +20,8 @@
 #include <chrono>
 #include <errno.h>    // for errno
 #include <functional> // for function
+#include <memory>
+
 #include <stdio.h>    // for fclose, fopen, fscanf, FILE, ferror
 #include <stdlib.h>   // for system, rand, srand
 #include <string.h>   // for strerror, strlen
@@ -253,6 +255,7 @@ void DeepSleepController::enterDeepSleepDelayed()
 
     LOGINFO("Deep Sleep Timer Expires :Enter to Deep sleep Mode..stop Receiver with sleep 10 before DS");
 
+    // This sleep seems unnecessary, but retaining as old IARM PwrMgr had it.
     sleep(10);
 
     bool userWakeup = 0;

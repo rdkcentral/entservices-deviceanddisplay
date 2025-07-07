@@ -41,8 +41,8 @@
 #include "PowerController.h"
 #include "ThermalController.h"
 
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
+using PowerState         = WPEFramework::Exchange::IPowerManager::PowerState;
+using WakeupReason       = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
 namespace WPEFramework {
@@ -50,7 +50,7 @@ namespace Plugin {
     class PowerManagerImplementation : public Exchange::IPowerManager, public DeepSleepController::INotification, public ThermalController::INotification {
     public:
         using PreModeChangeController = AckController;
-        using PreModeChangeTimer = AckTimer<PreModeChangeController>;
+        using PreModeChangeTimer      = AckTimer<PreModeChangeController>;
 
         // We do not allow this plugin to be copied !!
         PowerManagerImplementation();
@@ -59,7 +59,7 @@ namespace Plugin {
         static PowerManagerImplementation* instance(PowerManagerImplementation* PowerManagerImpl = nullptr);
 
         // We do not allow this plugin to be copied !!
-        PowerManagerImplementation(const PowerManagerImplementation&) = delete;
+        PowerManagerImplementation(const PowerManagerImplementation&)            = delete;
         PowerManagerImplementation& operator=(const PowerManagerImplementation&) = delete;
 
         BEGIN_INTERFACE_MAP(PowerManagerImplementation)
@@ -87,8 +87,8 @@ namespace Plugin {
             }
 
         public:
-            LambdaJob() = delete;
-            LambdaJob(const LambdaJob&) = delete;
+            LambdaJob()                            = delete;
+            LambdaJob(const LambdaJob&)            = delete;
             LambdaJob& operator=(const LambdaJob&) = delete;
             ~LambdaJob()
             {
@@ -179,15 +179,16 @@ namespace Plugin {
         void dispatchThermalModeChangedEvent(const ThermalTemperature& currentThermalLevel, const ThermalTemperature& newThermalLevel, const float& currentTemperature);
         void dispatchNetworkStandbyModeChangedEvent(const bool& enabled);
 
-        void submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId);
+        void submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId, const int timeOut);
         void powerModePreChangeCompletionHandler(const int keyCode, PowerState currentState, PowerState powerState, const std::string& reason);
         Core::hresult setDevicePowerState(const int& keyCode, PowerState currentState, PowerState powerState, const std::string& reason);
+        inline bool isStateChangeAtomic(PowerState currState, PowerState newState) const;
 
         // DeepSleepController::INotification
         virtual void onDeepSleepTimerWakeup(const int wakeupTimeout) override;
         virtual void onDeepSleepUserWakeup(const bool userWakeup) override;
         virtual void onDeepSleepFailed() override;
-        virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) override;
+        virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level, const ThermalTemperature new_Thermal_Level, const float current_Temp) override;
         virtual void onDeepSlepForThermalChange() override;
 
         template <typename T>

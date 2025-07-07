@@ -315,30 +315,47 @@ namespace Plugin {
         return errorCode;
     }
 
+    bool PowerManagerImplementation::isStateChangeAtomic(PowerState currState, PowerState newState) const
+    {
+        return (currState == PowerState::POWER_STATE_STANDBY_DEEP_SLEEP
+            && newState == PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    }
+
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
+        static std::mutex selfLock {}; // to implement a forced state change we need a unique lock
+
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
+        bool isSync          = false; // weather to perform state change in sync manner or async manner ?
 
         LOGINFO(">> newState: %s, reason %s", util::str(newState), reason.c_str());
+
+        selfLock.lock();
+
+        LOGINFO("selfLock Acquired");
 
         uint32_t errorCode = GetPowerState(currState, prevState);
 
         if (Core::ERROR_NONE != errorCode) {
             LOGERR("Failed to get current power state, errorCode: %d", errorCode);
+            selfLock.unlock();
             return errorCode;
         }
 
         if (currState != newState) {
 
+            isSync = isStateChangeAtomic(currState, newState);
+
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
-                if (_deepSleepController.IsDeepSleepInProgress()) {
+                if (_deepSleepController->IsDeepSleepInProgress()) {
                     LOGINFO("deepsleep in  progress  ignoring %s request", util::str(newState));
+                    selfLock.unlock();
                     return Core::ERROR_NONE;
                 }
                 // deep sleep not in progress, wakeup from deep sleep
                 LOGINFO("Device wakeup from DEEP_SLEEP to %s", util::str(newState));
-                _deepSleepController.Deactivate();
+                _deepSleepController->Deactivate();
             }
 
             _apiLock.Lock();
@@ -347,6 +364,7 @@ namespace Plugin {
                 if (!_modeChangeController->IsMarkedForDelete() && _modeChangeController->powerState() == newState) {
                     LOGINFO("Ignore (redundant) repeated transition request to %s state.", util::str(newState));
                     _apiLock.Unlock();
+                    selfLock.unlock();
                     return Core::ERROR_NONE;
                 }
                 // log warning only if object is not marked for delete
@@ -365,17 +383,20 @@ namespace Plugin {
 
             std::weak_ptr<PreModeChangeController> wPtr = _modeChangeController;
 
-            _apiLock.Unlock();
-
-            // dispatch pre power mode change notifications
-            submitPowerModePreChangeEvent(currState, newState, transactionId);
+            const uint32_t timeOut = isSync ? 0 : POWER_MODE_PRECHANGE_TIMEOUT_SEC;
 
             // like in `Job` class we avoid impl destruction before handler is invoked
             this->AddRef();
 
-            _modeChangeController->Schedule(POWER_MODE_PRECHANGE_TIMEOUT_SEC * 1000,
-                [this, keyCode, currState, newState, reason, wPtr](bool isTimedout) mutable {
-                    LOGINFO(">> isTimedout: %d", isTimedout);
+            _apiLock.Unlock();
+
+            // dispatch pre power mode change notifications
+            submitPowerModePreChangeEvent(currState, newState, transactionId, timeOut);
+
+            _modeChangeController->Schedule(timeOut * 1000,
+                [this, keyCode, currState, newState, reason, wPtr, isSync](bool isTimedout) mutable {
+                    LOGINFO(">> CompletionHandler isTimedout: %d", isTimedout);
+
                     _apiLock.Lock();
                     // Ideally we should never get this callback if AckController object is deleted
                     // However in timeout scenarios, callback is triggered from ACK TIMER Thread
@@ -385,10 +406,26 @@ namespace Plugin {
                     } else {
                         LOGWARN("modeChangeController was already deleted, do not process powerModePreChangeCompletionHandler");
                     }
+
+                    // release the refCount taken just before _modeChangeController->Schedule
+                    this->Release();
+
                     _apiLock.Unlock();
+
+                    if (isSync) {
+                        selfLock.unlock();
+                        LOGINFO("selfLock Released forced: true");
+                    }
+
+                    LOGINFO("<< CompletionHandler");
                 });
         } else {
             LOGINFO("Requested power state is same as current power state, no action required");
+        }
+
+        if (!isSync) {
+            selfLock.unlock();
+            LOGINFO("selfLock Released forced: false");
         }
 
         LOGINFO("<< keyCode: %d, newState: %s, errorCode: %d", keyCode, util::str(newState), Core::ERROR_NONE);
@@ -396,14 +433,14 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
-    void PowerManagerImplementation::submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId)
+    void PowerManagerImplementation::submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId, const int timeOut)
     {
         LOGINFO(">> currentState : %s, newState : %s, transactionId : %d", util::str(currentState), util::str(newState), transactionId);
         for (auto& notification : _preModeChangeNotifications) {
             Core::IWorkerPool::Instance().Submit(
                 PowerManagerImplementation::LambdaJob::Create(this,
-                    [notification, currentState, newState, transactionId]() {
-                        notification->OnPowerModePreChange(currentState, newState, transactionId, POWER_MODE_PRECHANGE_TIMEOUT_SEC);
+                    [notification, currentState, newState, transactionId, timeOut]() {
+                        notification->OnPowerModePreChange(currentState, newState, transactionId, timeOut);
                     }));
         }
 
@@ -672,9 +709,6 @@ namespace Plugin {
 
         setDevicePowerState(keyCode, currentState, newState, reason);
 
-        // release the refCount taken in SetPowerState => _modeChangeController->Schedule
-        this->Release();
-
         // We are in callback from _modeChangeController, avoid deletion from class method
         // To properly delete this object some more code refactoring will be required.
         // _modeChangeController.reset();
@@ -706,7 +740,7 @@ namespace Plugin {
     {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
-        LOGINFO(">> clientId: %u, transactionId: %d, delayPeriod: %d, errorcode: %u", clientId, transactionId, delayPeriod, errorCode);
+        LOGINFO(">> clientId: %u, transactionId: %d, delayPeriod: %d", clientId, transactionId, delayPeriod);
         _apiLock.Lock();
 
         if (_modeChangeController) {

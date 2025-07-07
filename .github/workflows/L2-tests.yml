@@ -1,4 +1,4 @@
-name: L2-tests-kkb
+name: L2-tests
 
 on:
   workflow_call:

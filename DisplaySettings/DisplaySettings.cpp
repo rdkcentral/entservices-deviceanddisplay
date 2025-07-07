@@ -581,6 +581,7 @@ namespace WPEFramework {
             }
 
             // On success return empty, to indicate there is no error text.
+            m_ArcDetectionTimer.start(ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);
             return (string());
         }
 

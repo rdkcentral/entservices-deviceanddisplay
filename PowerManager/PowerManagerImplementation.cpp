@@ -19,6 +19,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 
 #include "PowerManagerImplementation.h"
 
@@ -348,14 +349,14 @@ namespace Plugin {
             isSync = isStateChangeAtomic(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
-                if (_deepSleepController->IsDeepSleepInProgress()) {
+                if (_deepSleepController.IsDeepSleepInProgress()) {
                     LOGINFO("deepsleep in  progress  ignoring %s request", util::str(newState));
                     selfLock.unlock();
                     return Core::ERROR_NONE;
                 }
                 // deep sleep not in progress, wakeup from deep sleep
                 LOGINFO("Device wakeup from DEEP_SLEEP to %s", util::str(newState));
-                _deepSleepController->Deactivate();
+                _deepSleepController.Deactivate();
             }
 
             _apiLock.Lock();

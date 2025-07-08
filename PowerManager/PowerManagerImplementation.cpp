@@ -407,9 +407,7 @@ namespace Plugin {
             }
 
             // There is a remote chance that request could be canceled when Completion handler is run.
-            // To avoid race conditions -
-            //  1 - Take `_apiLock` in completion handler
-            //  2 - Check if modeChange Controller was deleted (with a weak_ptr)
+            // To avoid race condition, we create a shared_ptr from weak_ptr passed on to Completion handler
             std::weak_ptr<PreModeChangeController> wPtr = _modeChangeController;
 
             // For sync state change requests timeout is `0`
@@ -434,13 +432,15 @@ namespace Plugin {
             //  4. Caller thread of last acknowledging client
             _modeChangeController->Schedule(timeOut * 1000,
                 [this, keyCode, currState, newState, reason, wPtr, isSync](bool isTimedout) mutable {
+                    // new shared_ptr will increase refCount and avoid deletion of _modeChangeController
+                    // which can happen in case of nested requests
+                    std::shared_ptr<PreModeChangeController> controller = wPtr.lock();
+
                     LOGINFO(">> CompletionHandler isTimedout: %d", isTimedout);
 
-                    _apiLock.Lock();
                     // Ideally we should never get this callback if AckController object is deleted
                     // However in timeout scenarios, callback is triggered from ACK TIMER Thread
-                    auto expired = wPtr.expired();
-                    if (!expired) {
+                    if (controller) {
                         powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
                     } else {
                         LOGWARN("modeChangeController was already deleted, do not process powerModePreChangeCompletionHandler");
@@ -448,8 +448,6 @@ namespace Plugin {
 
                     // Release the refCount taken just before _modeChangeController->Schedule
                     this->Release();
-
-                    _apiLock.Unlock();
 
                     // For sync state change requests, the selfLock is held until this point. Release it now.
                     if (isSync) {

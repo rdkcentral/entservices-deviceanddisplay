@@ -581,7 +581,6 @@ namespace WPEFramework {
             }
 
             // On success return empty, to indicate there is no error text.
-            m_ArcDetectionTimer.start(ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);
             return (string());
         }
 
@@ -4330,6 +4329,10 @@ namespace WPEFramework {
             bool pEnable = false;
             try {
                     pEnable = parameters["enable"].Boolean();
+                    if (audioPort == "HDMI_ARC0") {
+                        pEnable = true; // Force enable for HDMI_ARC0 port
+                        LOGINFO("Forcing enable for HDMI_ARC0 port");
+                    }
             }catch (const device::Exception& err) {
                     LOG_DEVICE_EXCEPTION1(spEnable);
                     returnResponse(false);

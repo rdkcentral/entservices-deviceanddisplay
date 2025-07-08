@@ -327,13 +327,12 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
     std::string message;
     JsonObject expected_status;
     
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));
-                return Core::ERROR_NONE;
-            }));
+    EXPECT_CALL(*p_wrapsImplMock,
+            v_secure_system(::testing::Truly([](const char* command) {
+                return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot";
+            }), ::testing::_))
+    .Times(1)
+    .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     /* resetDevice method takes 2 parameters with different Inputs as
      *   "suppressReboot = true" & "resetType = WAREHOUSE_CLEAR"
@@ -359,13 +358,12 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDone)
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh factory"));
-                return Core::ERROR_NONE;
-            }));
+    EXPECT_CALL(*p_wrapsImplMock,
+            v_secure_system(::testing::Truly([](const char* command) {
+                return std::string(command) == "sh /lib/rdk/deviceReset.sh factory";
+            }), ::testing::_))
+    .Times(1)
+    .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     bool supress = true;
     string resetType = "FACTORY";
@@ -396,13 +394,12 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
     std::string message;
     JsonObject expected_status;
 
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh factory"));
-                return Core::ERROR_NONE;
-            }));
+    EXPECT_CALL(*p_wrapsImplMock,
+            v_secure_system(::testing::Truly([](const char* command) {
+                return std::string(command) == "sh /lib/rdk/deviceReset.sh factory";
+            }), ::testing::_))
+    .Times(1)
+    .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     message = "{\"success\":true,\"error\":\"\"}";
     expected_status.FromString(message);
@@ -451,13 +448,12 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR"));
-                return Core::ERROR_NONE;
-            }));
+    EXPECT_CALL(*p_wrapsImplMock,
+            v_secure_system(::testing::Truly([](const char* command) {
+                return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR";
+            }), ::testing::_))
+    .Times(1)
+    .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     bool supress = false;
     string resetType = "WAREHOUSE_CLEAR";
@@ -489,13 +485,12 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
     std::string message;
     JsonObject expected_status;
 
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR"));
-                return Core::ERROR_NONE;
-            }));
+    EXPECT_CALL(*p_wrapsImplMock,
+            v_secure_system(::testing::Truly([](const char* command) {
+                return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR";
+            }), ::testing::_))
+    .Times(1)
+    .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     /* errorCode and errorDescription should not be set */
     EXPECT_FALSE(result.HasLabel("errorCode"));
@@ -657,13 +652,12 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
-                return Core::ERROR_NONE;
-            }));
+    EXPECT_CALL(*p_wrapsImplMock,
+            v_secure_system(::testing::Truly([](const char* command) {
+                return std::string(command) == "sh /lib/rdk/deviceReset.sh userfactory";
+            }), ::testing::_))
+    .Times(1)
+    .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     bool supress = false;
     string resetType = "USERFACTORY";
@@ -706,13 +700,12 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
         &async_handler);
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
-                return Core::ERROR_NONE;
-            }));
+    EXPECT_CALL(*p_wrapsImplMock,
+            v_secure_system(::testing::Truly([](const char* command) {
+                return std::string(command) == "sh /lib/rdk/deviceReset.sh userfactory";
+            }), ::testing::_))
+    .Times(1)
+    .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     message = "{\"success\":true,\"error\":\"\"}";
     expected_status.FromString(message);

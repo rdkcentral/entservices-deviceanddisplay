@@ -30,7 +30,6 @@
 #include <core/Portability.h>
 #include <interfaces/IPowerManager.h>
 
-
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 
 using PreModeChangeTimer = WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeTimer;
@@ -317,19 +316,37 @@ namespace Plugin {
         return errorCode;
     }
 
+    // state change is sync only if transitioning from DEEP_SLEEP => LIGHT_SLEEP
     bool PowerManagerImplementation::isSyncStateChange(PowerState currState, PowerState newState) const
     {
         return (currState == PowerState::POWER_STATE_STANDBY_DEEP_SLEEP
             && newState == PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
     }
 
+    // SetPowerState takes in a request to change PowerState, notify PowerModePreChange all reqistered clients
+    // waits for Acknowledgment from clients using PreModeChangeController and runs Completion handler
+    // after either receiving all `PowerModePreChangeComplete` acknowledgements or after timeout.
+    // In Completion handler actual PowerState change is performed followed by notification to all clients
+    // with IModeChanged notification event
+    //
+    // This API is async and has to takes care of many transient usecases hence complexity
+    // 1. Straight fwd Power State change request
+    // 2. Nested Power State change requests (where old request gets canceled)
+    //   - `_apiLocks` are used to avoid race conditions between old request deletion and running of Completion handler
+    //   - Nested state change requests for same state change requests (ex ON over ON) is silently ignored (i,e old state change request is not cancelled)
+    // 3. To enforce state change, sync run model is intrduced where selfLock is held until state change is complete.
+    //   - This was introduced because immerse ui was not launching if there is a direct transition from DEEP_SLEEP => ON (see RDKEMW-5633)
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
+        // Thunder CriticalSection lock does not allow unlock operation from a thread different than locking thread,
+        // so for now use `std::mutex` until we figure out an equivalent Thunder alternative
         static std::mutex selfLock {}; // to implement a sync / forced state change we need a unique lock
 
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
-        bool isSync          = false; // weather to perform state change in sync manner or async manner ?
+        bool isSync          = false; // Perform state change in sync manner or async manner.
+                                      // If isSync is `true` nested state change requests are blocked using `selfLock`
+                                      // until previous state change is complete (i,e nested state change requests will be blocked)
 
         LOGINFO(">> newState: %s, reason %s", util::str(newState), reason.c_str());
 
@@ -339,6 +356,7 @@ namespace Plugin {
 
         uint32_t errorCode = GetPowerState(currState, prevState);
 
+        // Cannot determine current state, won't be able to process request
         if (Core::ERROR_NONE != errorCode) {
             LOGERR("Failed to get current power state, errorCode: %d", errorCode);
             selfLock.unlock();
@@ -346,8 +364,10 @@ namespace Plugin {
             return errorCode;
         }
 
+        // Process request only if requested state is not same as current state
         if (currState != newState) {
 
+            // Check if sync state change required
             isSync = isSyncStateChange(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
@@ -357,7 +377,7 @@ namespace Plugin {
                     LOGINFO("selfLock Released isSync: na");
                     return Core::ERROR_NONE;
                 }
-                // deep sleep not in progress, wakeup from deep sleep
+                // Deepsleep not in progress, so wakeup from deep sleep
                 LOGINFO("Device wakeup from DEEP_SLEEP to %s", util::str(newState));
                 _deepSleepController.Deactivate();
             }
@@ -371,7 +391,7 @@ namespace Plugin {
                     selfLock.unlock();
                     return Core::ERROR_NONE;
                 }
-                // log warning only if object is not marked for delete
+                // Log warning only if object is not marked for delete
                 if (!_modeChangeController->IsMarkedForDelete()) {
                     LOGWARN("Power state change is already in progress, cancel old request");
                 }
@@ -379,24 +399,39 @@ namespace Plugin {
             }
 
             _modeChangeController   = std::shared_ptr<PreModeChangeController>(new PreModeChangeController(newState));
-            const int transactionId = _modeChangeController->TransactionId();
+            const int transactionId = _modeChangeController->TransactionId(); // transactionId is unique per request
 
+            // Add all clients to ack await list (who we expect `PreChangeComplete` ack from)
             for (const auto& client : _modeChangeClients) {
                 _modeChangeController->AckAwait(client.first);
             }
 
+            // There is a remote chance that request could be canceled when Completion handler is run.
+            // To avoid race conditions -
+            //  1 - Take `_apiLock` in completion handler
+            //  2 - Check if modeChange Controller was deleted (with a weak_ptr)
             std::weak_ptr<PreModeChangeController> wPtr = _modeChangeController;
 
+            // For sync state change requests timeout is `0`
             const uint32_t timeOut = isSync ? 0 : POWER_MODE_PRECHANGE_TIMEOUT_SEC;
 
-            // like in `Job` class we avoid impl destruction before handler is invoked
+            // Like in `Job` class we avoid impl destruction before handler is invoked
             this->AddRef();
 
             _apiLock.Unlock();
 
-            // dispatch pre power mode change notifications
+            // Dispatch pre power mode change notifications, we cannot take in apiLock here
+            // as clients could call any PowerManager plugin APIs
             submitPowerModePreChangeEvent(currState, newState, transactionId, timeOut);
 
+            // Starts pre modeChange timer, and waits for Ack from clients for given timeOut duration
+            // On all clients acknowledging or upon timeOut (whiche ever happens first), Completion handler gets triggered
+            // The thread context in which completion handler is triggered could be
+            //  1. Caller thread if timeout `0`
+            //  2. Caller thread if all clients have acknowledged for power state transition even before `Schedule` gets called
+            //  3. ACK TIMER thread if `Schedule` timed-out
+            //     - To avoid race conditions in this usecase, take `_apiLock` to run completion handler
+            //  4. Caller thread of last acknowledging client
             _modeChangeController->Schedule(timeOut * 1000,
                 [this, keyCode, currState, newState, reason, wPtr, isSync](bool isTimedout) mutable {
                     LOGINFO(">> CompletionHandler isTimedout: %d", isTimedout);
@@ -411,11 +446,12 @@ namespace Plugin {
                         LOGWARN("modeChangeController was already deleted, do not process powerModePreChangeCompletionHandler");
                     }
 
-                    // release the refCount taken just before _modeChangeController->Schedule
+                    // Release the refCount taken just before _modeChangeController->Schedule
                     this->Release();
 
                     _apiLock.Unlock();
 
+                    // For sync state change requests, the selfLock is held until this point. Release it now.
                     if (isSync) {
                         selfLock.unlock();
                         LOGINFO("selfLock Released isSync: true");
@@ -427,6 +463,8 @@ namespace Plugin {
             LOGINFO("Requested power state is same as current power state, no action required");
         }
 
+        // For Async state change requests, release the lock immediately, allowing nested state changes if required
+        // Example: DEEP_SLEEP is in transition (mediarite has delayed PowerState by 15 seconds), and user attemps to turn ON the device
         if (!isSync) {
             selfLock.unlock();
             LOGINFO("selfLock Released isSync: false");

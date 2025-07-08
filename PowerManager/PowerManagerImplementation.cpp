@@ -30,6 +30,7 @@
 #include <core/Portability.h>
 #include <interfaces/IPowerManager.h>
 
+
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 
 using PreModeChangeTimer = WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeTimer;
@@ -316,7 +317,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    bool PowerManagerImplementation::isStateChangeAtomic(PowerState currState, PowerState newState) const
+    bool PowerManagerImplementation::isSyncStateChange(PowerState currState, PowerState newState) const
     {
         return (currState == PowerState::POWER_STATE_STANDBY_DEEP_SLEEP
             && newState == PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
@@ -324,7 +325,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
-        static std::mutex selfLock {}; // to implement a forced state change we need a unique lock
+        static std::mutex selfLock {}; // to implement a sync / forced state change we need a unique lock
 
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
@@ -346,7 +347,7 @@ namespace Plugin {
 
         if (currState != newState) {
 
-            isSync = isStateChangeAtomic(currState, newState);
+            isSync = isSyncStateChange(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
                 if (_deepSleepController.IsDeepSleepInProgress()) {

@@ -182,7 +182,7 @@ namespace Plugin {
         void submitPowerModePreChangeEvent(const PowerState currentState, const PowerState newState, const int transactionId, const int timeOut);
         void powerModePreChangeCompletionHandler(const int keyCode, PowerState currentState, PowerState powerState, const std::string& reason);
         Core::hresult setDevicePowerState(const int& keyCode, PowerState currentState, PowerState powerState, const std::string& reason);
-        inline bool isStateChangeAtomic(PowerState currState, PowerState newState) const;
+        inline bool isSyncStateChange(PowerState currState, PowerState newState) const;
 
         // DeepSleepController::INotification
         virtual void onDeepSleepTimerWakeup(const int wakeupTimeout) override;

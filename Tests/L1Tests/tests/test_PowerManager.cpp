@@ -17,7 +17,6 @@
  * limitations under the License.
  */
 #include <chrono>
-#include <random>
 #include <thread>
 
 #include "gmock/gmock.h"
@@ -46,14 +45,14 @@
 using namespace WPEFramework;
 using ::testing::NiceMock;
 
-using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
+using WakeupReason  = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 
 class TestPowerManager : public ::testing::Test {
 
 protected:
-    WrapsImplMock* p_wrapsImplMock = nullptr;
-    RfcApiImplMock* p_rfcApiImplMock = nullptr;
+    WrapsImplMock* p_wrapsImplMock     = nullptr;
+    RfcApiImplMock* p_rfcApiImplMock   = nullptr;
     IarmBusImplMock* p_iarmBusImplMock = nullptr;
 
 public:
@@ -167,9 +166,9 @@ public:
         EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
             .WillRepeatedly(::testing::Invoke(
                 [this](mfrTemperatureState_t* state, int* temperatureValue, int* wifiTemp) {
-                    *state = mfrTEMPERATURE_NORMAL;
+                    *state            = mfrTEMPERATURE_NORMAL;
                     *temperatureValue = 40;
-                    *wifiTemp = 35;
+                    *wifiTemp         = 35;
                     setupWg.Done();
                     return mfrERR_NONE;
                 }));
@@ -303,7 +302,7 @@ TEST_F(TestPowerManager, SetWakeupSrcConfig)
             }));
 
     int powerMode = 0;
-    int config = WakeupSrcType::WAKEUP_SRC_WIFI;
+    int config    = WakeupSrcType::WAKEUP_SRC_WIFI;
 
     uint32_t status = powerManagerImpl->SetWakeupSrcConfig(powerMode, WakeupSrcType::WAKEUP_SRC_WIFI, config);
 
@@ -327,7 +326,7 @@ TEST_F(TestPowerManager, GetWakeupSrcConfig)
             }));
 
     int powerMode = 0, config = 0;
-    int src = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_IR;
+    int src         = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_IR;
     uint32_t status = powerManagerImpl->GetWakeupSrcConfig(powerMode, src, config);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(powerMode, 0);
@@ -337,13 +336,13 @@ TEST_F(TestPowerManager, GetWakeupSrcConfig)
 TEST_F(TestPowerManager, GetPowerStateBeforeReboot)
 {
     PowerState powerState = PowerState::POWER_STATE_UNKNOWN;
-    auto status = powerManagerImpl->GetPowerStateBeforeReboot(powerState);
+    auto status           = powerManagerImpl->GetPowerStateBeforeReboot(powerState);
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
 
 TEST_F(TestPowerManager, GetCoreTemperature)
 {
-    float temp = 0;
+    float temp  = 0;
     auto status = powerManagerImpl->GetThermalState(temp);
     EXPECT_EQ(temp, 40.0); // 40 is set in SetUpMocks
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -361,7 +360,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     int keyCode = 0;
 
     uint32_t clientId = 0;
-    uint32_t status = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
@@ -416,7 +415,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-    PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(currentState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -442,7 +441,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
     int keyCode = 0;
 
     uint32_t clientId = 0;
-    uint32_t status = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
@@ -475,7 +474,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-    PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(currentState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -501,7 +500,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
     int keyCode = 0;
 
     uint32_t clientId = 0;
-    uint32_t status = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
@@ -553,7 +552,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
     wg.Wait();
 
     PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-    PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(currentState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -572,7 +571,7 @@ TEST_F(TestPowerManager, DeepSleepIgnore)
     system("touch /tmp/ignoredeepsleep");
 
     uint32_t clientId = 0;
-    uint32_t status = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
@@ -598,12 +597,12 @@ TEST_F(TestPowerManager, DeepSleepIgnore)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     wg.Wait();
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -672,10 +671,10 @@ TEST_F(TestPowerManager, DeepSleepUserWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -685,7 +684,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeup)
     wg.Wait();
 
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
-    status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
+    status                    = powerManagerImpl->GetLastWakeupReason(wakeupReason);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(wakeupReason, WakeupReason::WAKEUP_REASON_GPIO);
 
@@ -734,7 +733,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
             }));
 
     uint32_t clientId = 0;
-    uint32_t status = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
@@ -807,13 +806,13 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     wg.Wait();
 
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
-    status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
+    status                    = powerManagerImpl->GetLastWakeupReason(wakeupReason);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(wakeupReason, WakeupReason::WAKEUP_REASON_GPIO);
 
@@ -824,7 +823,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
 
     wg.Wait();
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -910,10 +909,10 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -923,7 +922,7 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
     wg.Wait();
 
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
-    status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
+    status                    = powerManagerImpl->GetLastWakeupReason(wakeupReason);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(wakeupReason, WakeupReason::WAKEUP_REASON_TIMER);
 
@@ -1005,10 +1004,10 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -1018,7 +1017,7 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
     wg.Wait();
 
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
-    status = powerManagerImpl->GetLastWakeupReason(wakeupReason);
+    status                    = powerManagerImpl->GetLastWakeupReason(wakeupReason);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(wakeupReason, WakeupReason::WAKEUP_REASON_TIMER);
 
@@ -1094,10 +1093,10 @@ TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -1181,10 +1180,10 @@ TEST_F(TestPowerManager, DeepSleepEarlyWakeup)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -1252,10 +1251,10 @@ TEST_F(TestPowerManager, DeepSleepFailure)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int keyCode = 0;
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
+    status      = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l1-test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    PowerState newState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState newState  = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState = PowerState::POWER_STATE_UNKNOWN;
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
@@ -1373,7 +1372,7 @@ TEST_F(TestPowerManager, TemperatureThresholds)
     EXPECT_CALL(mfrMock::Mock(), mfrGetTempThresholds(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](int* high, int* critical) {
-                *high = 90;
+                *high     = 90;
                 *critical = 95;
                 return mfrERR_NONE;
             }));
@@ -1392,7 +1391,7 @@ TEST_F(TestPowerManager, OverTemperatureGraceInterval)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     int interval = 0;
-    status = powerManagerImpl->GetOvertempGraceInterval(interval);
+    status       = powerManagerImpl->GetOvertempGraceInterval(interval);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(interval, 60);
 

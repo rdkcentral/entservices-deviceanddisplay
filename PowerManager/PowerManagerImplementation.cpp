@@ -342,6 +342,7 @@ namespace Plugin {
         if (Core::ERROR_NONE != errorCode) {
             LOGERR("Failed to get current power state, errorCode: %d", errorCode);
             selfLock.unlock();
+            LOGINFO("selfLock Released isSync: na");
             return errorCode;
         }
 
@@ -353,6 +354,7 @@ namespace Plugin {
                 if (_deepSleepController.IsDeepSleepInProgress()) {
                     LOGINFO("deepsleep in  progress  ignoring %s request", util::str(newState));
                     selfLock.unlock();
+                    LOGINFO("selfLock Released isSync: na");
                     return Core::ERROR_NONE;
                 }
                 // deep sleep not in progress, wakeup from deep sleep
@@ -416,7 +418,7 @@ namespace Plugin {
 
                     if (isSync) {
                         selfLock.unlock();
-                        LOGINFO("selfLock Released forced: true");
+                        LOGINFO("selfLock Released isSync: true");
                     }
 
                     LOGINFO("<< CompletionHandler");
@@ -427,7 +429,7 @@ namespace Plugin {
 
         if (!isSync) {
             selfLock.unlock();
-            LOGINFO("selfLock Released forced: false");
+            LOGINFO("selfLock Released isSync: false");
         }
 
         LOGINFO("<< keyCode: %d, newState: %s, errorCode: %d", keyCode, util::str(newState), Core::ERROR_NONE);

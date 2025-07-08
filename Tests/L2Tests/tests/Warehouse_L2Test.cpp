@@ -75,20 +75,19 @@ public:
     }
 
     uint32_t WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2test_async_events_t expected_status)
-{
+    {
     std::unique_lock<std::mutex> lock(m_mutex);
-    auto now = std::chrono::steady_clock::now();  
-    auto timeout = std::chrono::milliseconds(timeout_ms);
+    auto timeout_duration = std::chrono::milliseconds(timeout_ms);
+    auto deadline = std::chrono::steady_clock::now() + timeout_duration;
 
-    bool status_matched = m_condition_variable.wait_until(lock, now + timeout, [&] {
-        return (expected_status & m_event_signalled);
+    bool signaled = m_condition_variable.wait_until(lock, deadline, [&] {
+        return (expected_status & m_event_signalled) != 0;
     });
 
-    if (!status_matched) {
+    if (!signaled) {
         TEST_LOG("Timeout waiting for request status event");
         return WAREHOUSEL2TEST_STATE_INVALID;
     }
-
     return m_event_signalled;
 }
 };
@@ -234,14 +233,14 @@ void Warehouse_L2Test::resetDone(const JsonObject& message)
 uint32_t Warehouse_L2Test::WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2test_async_events_t expected_status)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    auto now = std::chrono::steady_clock::now(); 
-    auto timeout = std::chrono::milliseconds(timeout_ms);
+    auto timeout_duration = std::chrono::milliseconds(timeout_ms);
+    auto deadline = std::chrono::steady_clock::now() + timeout_duration;
 
-    bool status_matched = m_condition_variable.wait_until(lock, now + timeout, [&] {
-        return (expected_status & m_event_signalled);
+    bool signaled = m_condition_variable.wait_until(lock, deadline, [&] {
+        return (expected_status & m_event_signalled) != 0;
     });
 
-    if (!status_matched) {
+    if (!signaled) {
         TEST_LOG("Timeout waiting for request status event");
         return WAREHOUSEL2TEST_STATE_INVALID;
     }
@@ -321,14 +320,14 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
 *******************************************************/
 TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
 {
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);    
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
     std::string message;
     JsonObject expected_status;
-
+    
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -390,6 +389,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -397,8 +397,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
     std::string message;
     JsonObject expected_status;
 
-{
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -439,7 +437,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-    }
+    
 }
 
 /********************************************************
@@ -484,15 +482,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     std::string message;
     JsonObject expected_status;
-
-    {
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -534,7 +530,6 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-    }
 }
 
 /********************************************************
@@ -590,15 +585,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_ColdFactory_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_ColdFactory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     std::string message;
     JsonObject expected_status;
-
-    {
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
 
     /* Deactivate plugin in TEST_F*/
     status = DeactivateService("org.rdk.Warehouse");
@@ -650,7 +643,6 @@ TEST_F(Warehouse_L2Test, Warehouse_ColdFactory_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-    }
 }
 
 /********************************************************
@@ -696,15 +688,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     std::string message;
-    JsonObject expected_status;
-
-    {
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
+    JsonObject expected_status;    
 
     /* errorCode and errorDescription should not be set */
     EXPECT_FALSE(result.HasLabel("errorCode"));
@@ -746,7 +736,6 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-    }
 }
 
 /********************************************************

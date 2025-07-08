@@ -332,10 +332,10 @@ namespace Plugin {
     // This API is async and has to takes care of many transient usecases hence complexity
     // 1. Straight fwd Power State change request
     // 2. Nested Power State change requests (where old request gets canceled)
-    //   - `_apiLocks` are used to avoid race conditions between old request deletion and running of Completion handler
-    //   - Nested state change requests for same state change requests (ex ON over ON) is silently ignored (i,e old state change request is not cancelled)
+    //    - weak_ptr is used to avoid race conditions between old request deletion and running of Completion handler
+    //    - Nested state change requests for same state change requests (ex ON over ON) is silently ignored (i,e old state change request is not cancelled)
     // 3. To enforce state change, sync run model is intrduced where selfLock is held until state change is complete.
-    //   - This was introduced because immerse ui was not launching if there is a direct transition from DEEP_SLEEP => ON (see RDKEMW-5633)
+    //    - This was introduced because immerse ui was not launching if there is a direct transition from DEEP_SLEEP => ON (see RDKEMW-5633)
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
         // Thunder CriticalSection lock does not allow unlock operation from a thread different than locking thread,
@@ -407,7 +407,7 @@ namespace Plugin {
             }
 
             // There is a remote chance that request could be canceled when Completion handler is run.
-            // To avoid race condition, we create a shared_ptr from weak_ptr passed on to Completion handler
+            // To avoid race condition, we create a weak_ptr from shared_ptr and pass it on to Completion handler.
             std::weak_ptr<PreModeChangeController> wPtr = _modeChangeController;
 
             // For sync state change requests timeout is `0`
@@ -443,7 +443,7 @@ namespace Plugin {
                     if (controller) {
                         powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
                     } else {
-                        LOGWARN("modeChangeController was already deleted, do not process powerModePreChangeCompletionHandler");
+                        LOGWARN("modeChangeController was already deleted, do not process CompletionHandler");
                     }
 
                     // Release the refCount taken just before _modeChangeController->Schedule

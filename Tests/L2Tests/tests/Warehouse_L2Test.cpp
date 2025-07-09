@@ -506,7 +506,6 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;

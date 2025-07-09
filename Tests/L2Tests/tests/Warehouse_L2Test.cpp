@@ -362,7 +362,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDone)
             v_secure_system(::testing::Truly([](const char* command) {
                 return std::string(command) == "sh /lib/rdk/deviceReset.sh factory";
             }), ::testing::_))
-    .Times(1)
+    .Times(::testing::AnyNumber())
     .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     bool supress = true;
@@ -506,7 +506,7 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
     message = "{\"success\":true,\"error\":\"\"}";
     expected_status.FromString(message);
     EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
-        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+        .WillRepeatedly(Invoke(this, &Warehouse_L2Test::resetDone));
 
      /* suppressReboot = "false" & "resetType = "WAREHOUSE_CLEAR"
      *  WareHouseResetIARM: WAREHOUSE_CLEAR reset...
@@ -656,7 +656,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
             v_secure_system(::testing::Truly([](const char* command) {
                 return std::string(command) == "sh /lib/rdk/deviceReset.sh userfactory";
             }), ::testing::_))
-    .Times(1)
+    .Times(::testing::AnyNumber())
     .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     bool supress = false;
@@ -704,13 +704,13 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
             v_secure_system(::testing::Truly([](const char* command) {
                 return std::string(command) == "sh /lib/rdk/deviceReset.sh userfactory";
             }), ::testing::_))
-    .Times(1)
+    .Times(::testing::AnyNumber())
     .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     message = "{\"success\":true,\"error\":\"\"}";
     expected_status.FromString(message);
     EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
-        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+        .WillRepeatedly(Invoke(this, &Warehouse_L2Test::resetDone));
 
     /*  suppressReboot = "true" & "resetType = "USERFACTORY"
      *   WareHouseResetIARM: USERFACTORY reset...

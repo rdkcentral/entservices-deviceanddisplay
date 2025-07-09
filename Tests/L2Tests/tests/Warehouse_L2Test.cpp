@@ -1428,6 +1428,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -1440,6 +1441,22 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDevice)
 
     /* Activate plugin in TEST_F*/
     status = ActivateService("org.rdk.Warehouse");
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    message = "{\"success\":true,\"error\":\"\"}";
+    expected_status.FromString(message);
+    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
+        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+
+    /* errorCode and errorDescription should not be set */
+    EXPECT_FALSE(result.HasLabel("errorCode"));
+    EXPECT_FALSE(result.HasLabel("errorDescription"));
+
+    /* Register for resetDone event. */
+    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
+        _T("resetDone"),
+        &AsyncHandlerMock_Warehouse::resetDone,
+        &async_handler);
     EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
@@ -1456,6 +1473,12 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDevice)
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     EXPECT_TRUE(result["success"].Boolean());
+
+    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
+
+    /* Unregister for events. */
+    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
 
 /********************************************************
@@ -1715,6 +1738,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Generic_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -1729,6 +1753,22 @@ TEST_F(Warehouse_L2Test, Warehouse_Generic_ResetDevice)
     status = ActivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
+    /* errorCode and errorDescription should not be set */
+    EXPECT_FALSE(result.HasLabel("errorCode"));
+    EXPECT_FALSE(result.HasLabel("errorDescription"));
+
+    /* Register for resetDone event. */
+    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
+        _T("resetDone"),
+        &AsyncHandlerMock_Warehouse::resetDone,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    message = "{\"success\":true,\"error\":\"\"}";
+    expected_status.FromString(message);
+    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
+        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1740,6 +1780,12 @@ TEST_F(Warehouse_L2Test, Warehouse_Generic_ResetDevice)
     params["resetType"] = "";
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_TRUE(result["success"].Boolean());
+
+    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
+
+    /* Unregister for events. */
+    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
 
 /********************************************************
@@ -1789,6 +1835,7 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice_Failure)
     JsonObject params;
     JsonObject result;
     std::string message;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     JsonObject expected_status;
 
     /* Deactivate plugin in TEST_F*/
@@ -1798,6 +1845,18 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice_Failure)
     /* Activate plugin in TEST_F*/
     status = ActivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
+
+    /* Register for resetDone event. */
+    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
+        _T("resetDone"),
+        &AsyncHandlerMock_Warehouse::resetDone,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    message = "{\"success\":false,\"error\":\"Reset failed\"}";
+    expected_status.FromString(message);
+    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
+        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1811,6 +1870,12 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice_Failure)
     params["resetType"] = "";
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_TRUE(result["success"].Boolean());
+
+    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
+
+    /* Unregister for events. */
+    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
 
 /********************************************************

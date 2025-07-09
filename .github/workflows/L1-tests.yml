@@ -184,7 +184,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: 585c0e4f2d325f2c2a49d9f43d88ebbf75c98aed
+          ref: topic/RDKEMW-3229
           #token : ${{ secrets.RDKCM_RDKE }}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 

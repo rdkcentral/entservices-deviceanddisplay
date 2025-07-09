@@ -328,7 +328,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
     JsonObject result;
     std::string message;
     JsonObject expected_status;
-    
+
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(

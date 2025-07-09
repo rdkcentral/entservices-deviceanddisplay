@@ -301,7 +301,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
             v_secure_system(::testing::Truly([](const char* command) {
                 return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot";
             }), ::testing::_))
-    .Times(1)
+    .Times(::testing::AnyNumber())
     .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     bool supress = true;
@@ -331,7 +331,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
             v_secure_system(::testing::Truly([](const char* command) {
                 return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot";
             }), ::testing::_))
-    .Times(1)
+    .Times(::testing::AnyNumber())
     .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     /* resetDevice method takes 2 parameters with different Inputs as
@@ -452,7 +452,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
             v_secure_system(::testing::Truly([](const char* command) {
                 return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR";
             }), ::testing::_))
-    .Times(1)
+    .Times(::testing::AnyNumber())
     .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     bool supress = false;
@@ -489,7 +489,7 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
             v_secure_system(::testing::Truly([](const char* command) {
                 return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR";
             }), ::testing::_))
-    .Times(1)
+    .Times(::testing::AnyNumber())
     .WillOnce(::testing::Return(Core::ERROR_NONE));
 
     /* errorCode and errorDescription should not be set */

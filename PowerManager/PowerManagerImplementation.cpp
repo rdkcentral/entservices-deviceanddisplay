@@ -908,7 +908,7 @@ namespace Plugin {
         LOGINFO("<<");
     }
 
-    void PowerManagerImplementation::onDeepSlepForThermalChange()
+    void PowerManagerImplementation::onDeepSleepForThermalChange()
     {
         /*Scheduled maintanace reboot is disabled. Instead state will change to LIGHT_SLEEP*/
         LOGINFO(">> Set device to deepsleep on ThermalChange");

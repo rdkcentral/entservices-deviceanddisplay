@@ -61,7 +61,7 @@ class TestThermalController : public ::testing::Test, public ThermalController::
 
 public:
     MOCK_METHOD(void, onThermalTemperatureChanged, (const ThermalTemperature, const ThermalTemperature, const float current_Temp), (override));
-    MOCK_METHOD(void, onDeepSlepForThermalChange, (), (override));
+    MOCK_METHOD(void, onDeepSleepForThermalChange, (), (override));
 
     TestThermalController()
     {
@@ -245,7 +245,7 @@ TEST_F(TestThermalController, modeChangeCritical)
         }));
 
     wg.Add();
-    EXPECT_CALL(*this, onDeepSlepForThermalChange())
+    EXPECT_CALL(*this, onDeepSleepForThermalChange())
         .WillOnce(::testing::Invoke([&]() {
             wg.Done();
         }));

@@ -76,20 +76,20 @@ public:
 
     uint32_t WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2test_async_events_t expected_status)
     {
-    std::unique_lock<std::mutex> lock(m_mutex);
-    auto timeout_duration = std::chrono::milliseconds(timeout_ms);
-    auto deadline = std::chrono::steady_clock::now() + timeout_duration;
+        std::unique_lock<std::mutex> lock(m_mutex);
+        auto now = std::chrono::system_clock::now();
+        std::chrono::milliseconds timeout(timeout_ms);
+        uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    bool signaled = m_condition_variable.wait_until(lock, deadline, [&] {
-        return (expected_status & m_event_signalled) != 0;
-    });
-
-    if (!signaled) {
-        TEST_LOG("Timeout waiting for request status event");
-        return WAREHOUSEL2TEST_STATE_INVALID;
+        while (!(expected_status & m_event_signalled)) {
+            if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
+                TEST_LOG("Timeout waiting for request status event");
+                break;
+            }
+        }
+        signalled = m_event_signalled;
+        return signalled;
     }
-    return m_event_signalled;
-}
 };
 
 /**
@@ -233,19 +233,18 @@ void Warehouse_L2Test::resetDone(const JsonObject& message)
 uint32_t Warehouse_L2Test::WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2test_async_events_t expected_status)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    auto timeout_duration = std::chrono::milliseconds(timeout_ms);
-    auto deadline = std::chrono::steady_clock::now() + timeout_duration;
+    auto now = std::chrono::system_clock::now();
+    std::chrono::milliseconds timeout(timeout_ms);
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    bool signaled = m_condition_variable.wait_until(lock, deadline, [&] {
-        return (expected_status & m_event_signalled) != 0;
-    });
-
-    if (!signaled) {
+    while (!(expected_status & m_event_signalled)) {
+        if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
         TEST_LOG("Timeout waiting for request status event");
-        return WAREHOUSEL2TEST_STATE_INVALID;
+        break;
+        }
     }
-
-    return m_event_signalled;
+    signalled = m_event_signalled;
+    return signalled;
 }
 
 MATCHER_P(MatchRequest, data, "")
@@ -297,12 +296,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
 {
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot";
-            }), ::testing::_))
-    .Times(::testing::AnyNumber())
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(::testing::AnyNumber())
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));
+                return Core::ERROR_NONE;
+            }));
 
     bool supress = true;
     string resetType = "WAREHOUSE_CLEAR";
@@ -319,7 +319,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
 *******************************************************/
 TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
 {
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);    
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN); 
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
@@ -327,12 +327,13 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
     std::string message;
     JsonObject expected_status;
     
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot";
-            }), ::testing::_))
-    .Times(::testing::AnyNumber())
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(::testing::AnyNumber())
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));
+                return Core::ERROR_NONE;
+            }));
 
     /* resetDevice method takes 2 parameters with different Inputs as
      *   "suppressReboot = true" & "resetType = WAREHOUSE_CLEAR"
@@ -358,12 +359,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDone)
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh factory";
-            }), ::testing::_))
-    .Times(::testing::AnyNumber())
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(::testing::AnyNumber())
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh factory"));
+                return Core::ERROR_NONE;
+            }));
 
     bool supress = true;
     string resetType = "FACTORY";
@@ -394,12 +396,13 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
     std::string message;
     JsonObject expected_status;
 
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh factory";
-            }), ::testing::_))
-    .Times(1)
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh factory"));
+                return Core::ERROR_NONE;
+            }));
 
     message = "{\"success\":true,\"error\":\"\"}";
     expected_status.FromString(message);
@@ -448,12 +451,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR";
-            }), ::testing::_))
-    .Times(::testing::AnyNumber())
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(::testing::AnyNumber())
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR"));
+                return Core::ERROR_NONE;
+            }));
 
     bool supress = false;
     string resetType = "WAREHOUSE_CLEAR";
@@ -485,12 +489,13 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
     std::string message;
     JsonObject expected_status;
 
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR";
-            }), ::testing::_))
-    .Times(::testing::AnyNumber())
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(::testing::AnyNumber())
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR"));
+                return Core::ERROR_NONE;
+            }));
 
     /* errorCode and errorDescription should not be set */
     EXPECT_FALSE(result.HasLabel("errorCode"));
@@ -652,12 +657,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh userfactory";
-            }), ::testing::_))
-    .Times(::testing::AnyNumber())
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(::testing::AnyNumber())
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
+                return Core::ERROR_NONE;
+            }));
 
     bool supress = false;
     string resetType = "USERFACTORY";
@@ -700,12 +706,13 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
         &async_handler);
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    EXPECT_CALL(*p_wrapsImplMock,
-            v_secure_system(::testing::Truly([](const char* command) {
-                return std::string(command) == "sh /lib/rdk/deviceReset.sh userfactory";
-            }), ::testing::_))
-    .Times(::testing::AnyNumber())
-    .WillOnce(::testing::Return(Core::ERROR_NONE));
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .Times(::testing::AnyNumber())
+        .WillOnce(::testing::Invoke(
+            [](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
+                return Core::ERROR_NONE;
+            }));
 
     message = "{\"success\":true,\"error\":\"\"}";
     expected_status.FromString(message);
@@ -1515,6 +1522,7 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -1529,6 +1537,22 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice)
     status = ActivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
+     /* errorCode and errorDescription should not be set */
+    EXPECT_FALSE(result.HasLabel("errorCode"));
+    EXPECT_FALSE(result.HasLabel("errorDescription"));
+
+    /* Register for resetDone event. */
+    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
+        _T("resetDone"),
+        &AsyncHandlerMock_Warehouse::resetDone,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    message = "{\"success\":true,\"error\":\"\"}";
+    expected_status.FromString(message);
+    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
+        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1542,6 +1566,12 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice)
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     EXPECT_TRUE(result["success"].Boolean());
+
+    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
+
+    /* Unregister for events. */
+    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
 
 /********************************************************
@@ -1587,6 +1617,7 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -1601,6 +1632,22 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDevice)
     status = ActivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
+    message = "{\"success\":true,\"error\":\"\"}";
+    expected_status.FromString(message);
+    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
+        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+
+    /* errorCode and errorDescription should not be set */
+    EXPECT_FALSE(result.HasLabel("errorCode"));
+    EXPECT_FALSE(result.HasLabel("errorDescription"));
+
+    /* Register for resetDone event. */
+    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
+        _T("resetDone"),
+        &AsyncHandlerMock_Warehouse::resetDone,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1614,6 +1661,12 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDevice)
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     EXPECT_TRUE(result["success"].Boolean());
+
+    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
+
+    /* Unregister for events. */
+    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
 
 /********************************************************

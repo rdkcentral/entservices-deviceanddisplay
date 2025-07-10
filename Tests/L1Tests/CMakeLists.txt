@@ -141,6 +141,11 @@ set (DEVICEDIAGNOSTICS_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/D
 set (DEVICEDIAGNOSTICS_LIBS ${NAMESPACE}DeviceDiagnostics ${NAMESPACE}DeviceDiagnosticsImplementation)
 add_plugin_test_ex(PLUGIN_DEVICEDIAGNOSTICS tests/test_DeviceDiagnostics.cpp "${DEVICEDIAGNOSTICS_INC}" "${DEVICEDIAGNOSTICS_LIBS}")
 
+# PLUGIN_DISPLAYINFO
+set (DISPLAYINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DisplayInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+set (DISPLAYINFO_SRC tests/test_DisplayInfo.cpp)
+add_plugin_test_ex(PLUGIN_DISPLAYINFO "${DISPLAYINFO_SRC}" "${DISPLAYINFO_INC}" "${NAMESPACE}DisplayInfo")
+
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 
 if (RDK_SERVICES_L1_TEST)

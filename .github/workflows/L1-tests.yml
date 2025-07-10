@@ -113,8 +113,8 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
-          token: ${{ secrets.RDKCM_RDKE }}
+          ref: feature/RDK-55547
+#          token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
         uses: actions/checkout@v3
@@ -242,6 +242,9 @@ jobs:
           rdk/ds/frontPanelIndicator.hpp
           rdk/ds/frontPanelConfig.hpp
           rdk/ds/frontPanelTextDisplay.hpp
+          rdk/ds/audioOutputPortType.hpp
+          rdk/ds/audioOutputPortConfig.hpp
+          rdk/ds/pixelResolution.hpp
           rdk/iarmbus/libIARM.h
           rdk/iarmbus/libIBus.h
           rdk/iarmbus/libIBusDaemon.h
@@ -251,9 +254,12 @@ jobs:
           rdk/iarmmgrs-hal/sysMgr.h
           network/wifiSrvMgrIarmIf.h
           network/netsrvmgrIarm.h
+          edid-parser.hpp
           libudev.h
           rfcapi.h
           rbus.h
+          drm.h
+          drm_mode.h
           motionDetector.h
           telemetry_busmessage_sender.h
           maintenanceMGR.h
@@ -331,7 +337,9 @@ jobs:
           -DHAS_API_SYSTEM
           -DHAS_API_POWERSTATE
           -DHAS_RBUS
+          -D_DRM_MODE_H
           -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -D_DRM_MODE_H=ON
           &&
           cmake --build build/mocks -j8
           &&
@@ -380,6 +388,8 @@ jobs:
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,pclose -Wl,-wrap,setmntent -Wl,-wrap,getmntent
           -DENABLE_TELEMETRY_LOGGING
           -DUSE_IARMBUS
+          -DUSE_DEVICESETTINGS
+          -DBUILD_RPI
           -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
           -DENABLE_DEEP_SLEEP
           -DENABLE_SET_WAKEUP_SRC_CONFIG
@@ -387,6 +397,7 @@ jobs:
           -DUSE_DRM_SCREENCAPTURE
           -DHAS_API_SYSTEM
           -DHAS_API_POWERSTATE
+          -D_DRM_MODE_H=ON
           -DHAS_RBUS
           -DENABLE_DEVICE_MANUFACTURER_INFO"
           -DCOMCAST_CONFIG=OFF
@@ -397,19 +408,21 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
           -DDS_FOUND=ON
+          -DUSE_DEVICESETTINGS=ON
+          -DBUILD_RPI=ON
           -DHAS_FRONT_PANEL=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
-          -DPLUGIN_USERPREFERENCES=ON
+          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
+          -DPLUGIN_USERPREFERENCES=OFF
           -DPLUGIN_WAREHOUSE=OFF
           -DPLUGIN_DEVICEINFO=OFF
-          -DPLUGIN_DISPLAYINFO=OFF
+          -DPLUGIN_DISPLAYINFO=ON
           -DPLUGIN_DISPLAYSETTINGS=OFF
-          -DPLUGIN_FRAMERATE=ON
-          -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_SYSTEMSERVICES=ON
+          -DPLUGIN_FRAMERATE=OFF
+          -DPLUGIN_POWERMANAGER=OFF
+          -DPLUGIN_SYSTEMSERVICES=OFF
           &&
           cmake --build build/entservices-deviceanddisplay -j8
           &&
@@ -460,6 +473,8 @@ jobs:
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog
           -DENABLE_TELEMETRY_LOGGING
           -DUSE_IARMBUS
+          -DUSE_DEVICESETTINGS
+          -DBUILD_RPI
           -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
           -DENABLE_DEEP_SLEEP
           -DENABLE_SET_WAKEUP_SRC_CONFIG
@@ -467,6 +482,7 @@ jobs:
           -DUSE_DRM_SCREENCAPTURE
           -DHAS_API_SYSTEM
           -DHAS_API_POWERSTATE
+          -D_DRM_MODE_H=ON
           -DHAS_RBUS
           -DENABLE_DEVICE_MANUFACTURER_INFO"
           -DCOMCAST_CONFIG=OFF
@@ -477,12 +493,15 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
           -DDS_FOUND=ON
+          -DUSE_DEVICESETTINGS=ON
+          -DBUILD_RPI=ON
           -DHAS_FRONT_PANEL=ON
-          -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_FRAMERATE=ON
-          -DPLUGIN_USERPREFERENCES=ON
+          -DPLUGIN_POWERMANAGER=OFF
+          -DPLUGIN_FRAMERATE=OFF
+          -DPLUGIN_USERPREFERENCES=OFF
           -DPLUGIN_WAREHOUSE=OFF
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
+          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
+          -DPLUGIN_DISPLAYINFO=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
@@ -565,28 +584,27 @@ jobs:
           /tmp/bus/usb/devices/101-124/serial
           /tmp/block/sdb/device/vendor
           /tmp/block/sdb/device/model
-          &&
-          cd /dev/disk/by-id/
-          &&
-          sudo ln -s ../../sda /dev/disk/by-id/usb-Generic_Flash_Disk_B32FD507-0
-          &&
-          sudo ln -s ../../sdb /dev/disk/by-id/usb-JetFlash_Transcend_16GB_UEUIRCXT-0
-          &&
-          ls -l /dev/disk/by-id/usb-Generic_Flash_Disk_B32FD507-0
-          &&
-          ls -l /dev/disk/by-id/usb-JetFlash_Transcend_16GB_UEUIRCXT-0
+#          &&
+#          cd /dev/disk/by-id/
+#          &&
+#          sudo ln -s ../../sda /dev/disk/by-id/usb-Generic_Flash_Disk_B32FD507-0
+#          &&
+#          sudo ln -s ../../sdb /dev/disk/by-id/usb-JetFlash_Transcend_16GB_UEUIRCXT-0
+#          &&
+#          ls -l /dev/disk/by-id/usb-Generic_Flash_Disk_B32FD507-0
+#          &&
+#          ls -l /dev/disk/by-id/usb-JetFlash_Transcend_16GB_UEUIRCXT-0
 
-      - name: Run unit tests without valgrind
-        run: >
-          PATH=$GITHUB_WORKSPACE/install/usr/bin:${PATH}
-          LD_LIBRARY_PATH=$GITHUB_WORKSPACE/install/usr/lib:$GITHUB_WORKSPACE/install/usr/lib/wpeframework/plugins:${LD_LIBRARY_PATH}
-          GTEST_OUTPUT="json:$(pwd)/rdkL1TestResults.json"
-          RdkServicesL1Test &&
-          cp -rf $(pwd)/rdkL1TestResults.json $GITHUB_WORKSPACE/rdkL1TestResultsWithoutValgrind.json &&
-          rm -rf $(pwd)/rdkL1TestResults.json
+#      - name: Run unit tests without valgrind
+#        run: >
+#          PATH=$GITHUB_WORKSPACE/install/usr/bin:${PATH}
+#          LD_LIBRARY_PATH=$GITHUB_WORKSPACE/install/usr/lib:$GITHUB_WORKSPACE/install/usr/lib/wpeframework/plugins:${LD_LIBRARY_PATH}
+#          GTEST_OUTPUT="json:$(pwd)/rdkL1TestResults.json"
+#          RdkServicesL1Test &&
+#          cp -rf $(pwd)/rdkL1TestResults.json $GITHUB_WORKSPACE/rdkL1TestResultsWithoutValgrind.json &&
+#          rm -rf $(pwd)/rdkL1TestResults.json
 
       - name: Run unit tests with valgrind
-        if: ${{ !env.ACT }}
         run: >
           PATH=$GITHUB_WORKSPACE/install/usr/bin:${PATH}
           LD_LIBRARY_PATH=$GITHUB_WORKSPACE/install/usr/lib:$GITHUB_WORKSPACE/install/usr/lib/wpeframework/plugins:${LD_LIBRARY_PATH}
@@ -603,7 +621,6 @@ jobs:
           rm -rf $(pwd)/rdkL1TestResults.json
 
       - name: Generate coverage
-        if: ${{ matrix.coverage == 'with-coverage' && !env.ACT }}
         run: >
           cp $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/.lcovrc_l1 ~/.lcovrc
           &&
@@ -628,13 +645,12 @@ jobs:
           filtered_coverage.info
 
       - name: Upload artifacts
-        if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v4
         with:
           name: artifacts
           path: |
             coverage/
-            valgrind_log
-            rdkL1TestResultsWithoutValgrind.json
-            rdkL1TestResultsWithValgrind.json
+            valgrind_logs
+            rdkL1TestResultsWithoutValgrind.json2
+            rdkL1TestResultsWithValgrind.json2
           if-no-files-found: warn

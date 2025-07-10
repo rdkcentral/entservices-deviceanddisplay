@@ -95,7 +95,7 @@ namespace Plugin {
         Utils::IARM::init();
     }
 
-    uint32_t DeviceInfoImplementation::SerialNumber(string& serialNumber) const
+    Core::hresult DeviceInfoImplementation::SerialNumber(string& serialNumber) const
     {
         return (GetMFRData(mfrSERIALIZED_TYPE_SERIALNUMBER, serialNumber)
                    == Core::ERROR_NONE)
@@ -103,8 +103,9 @@ namespace Plugin {
             : GetRFCData(_T("Device.DeviceInfo.SerialNumber"), serialNumber);
     }
 
-    uint32_t DeviceInfoImplementation::Sku(string& sku) const
+    Core::hresult DeviceInfoImplementation::Sku(string& sku) const
     {
+        LOGINFO("ENTERING SKU TO GET device.properties");
         return (GetFileRegex(_T("/etc/device.properties"),
                     std::regex("^MODEL_NUM(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), sku)
                    == Core::ERROR_NONE)
@@ -115,7 +116,7 @@ namespace Plugin {
                     : GetRFCData(_T("Device.DeviceInfo.ModelName"), sku));
     }
 
-    uint32_t DeviceInfoImplementation::Make(string& make) const
+    Core::hresult DeviceInfoImplementation::Make(string& make) const
     {
 
         return ( GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, make) == Core::ERROR_NONE)
@@ -123,7 +124,7 @@ namespace Plugin {
             : GetFileRegex(_T("/etc/device.properties"),std::regex("^MFG_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), make);
     }
 
-    uint32_t DeviceInfoImplementation::Model(string& model) const
+    Core::hresult DeviceInfoImplementation::Model(string& model) const
     {
         return
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
@@ -135,7 +136,7 @@ namespace Plugin {
                 std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), model);
     }
 
-    uint32_t DeviceInfoImplementation::Brand(string& brand) const
+    Core::hresult DeviceInfoImplementation::Brand(string& brand) const
     {
         brand = "Unknown";
         return
@@ -143,7 +144,7 @@ namespace Plugin {
              (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
     }
 
-    uint32_t DeviceInfoImplementation::DeviceType(string& deviceType) const
+    Core::hresult DeviceInfoImplementation::DeviceType(string& deviceType) const
     {
         const char* device_type;
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
@@ -159,34 +160,61 @@ namespace Plugin {
                 // as it doesnt comply with plugin spec. See RDKEMW-276
                 device_type = deviceType.c_str();
                 deviceType = (strcmp("mediaclient", device_type) == 0) ? "IpStb" :
-                    (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "TV";
+                    (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
             }
         }
         return result;
     }
 
-#if defined(MACHINE_SOC_NAME)
-#define xsocstr(s) lsocstr(s)
-#define lsocstr(s) #s
-#endif
 
-    uint32_t DeviceInfoImplementation::SocName(string& socName)  const
+    Core::hresult DeviceInfoImplementation::SocName(string& socName)  const
     {
-#if defined(MACHINE_SOC_NAME)
-        socName = xsocstr(MACHINE_SOC_NAME);
-        return Core::ERROR_NONE;
-#else
-        return Core::ERROR_GENERAL;
-#endif
+        return (GetFileRegex(_T("/etc/device.properties"),
+                std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), socName));
     }
 
-    uint32_t DeviceInfoImplementation::DistributorId(string& distributorId) const
+    Core::hresult DeviceInfoImplementation::DistributorId(string& distributorId) const
     {
         return (GetFileRegex(_T("/opt/www/authService/partnerId3.dat"),
                     std::regex("^([^\\n]+)$"), distributorId)
                    == Core::ERROR_NONE)
             ? Core::ERROR_NONE
             : GetRFCData(_T("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), distributorId);
+    }
+
+        Core::hresult DeviceInfoImplementation::ReleaseVersion(string& releaseVersion ) const
+    {
+        const std::string defaultVersion = "99.99.0.0";
+        std::regex pattern(R"((\d+)\.(\d+)[sp])");
+        std::smatch match;
+        std::string imagename = "";
+        if(Core::ERROR_NONE == GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename))
+        {
+            if (std::regex_search(imagename, match, pattern)) {
+                std::string major = match[1];
+                std::string minor = match[2];
+                releaseVersion = major + "." + minor + ".0.0";
+            }
+            else
+            {
+                releaseVersion = defaultVersion ;
+                LOGERR("Unable to get releaseVersion of the Image:%s.So default releaseVersion is: %s ",imagename.c_str(),releaseVersion.c_str());
+            }
+        }
+        else
+        {
+                releaseVersion = defaultVersion ;
+                LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",releaseVersion.c_str());
+
+        }
+
+        return Core::ERROR_NONE;
+    }
+
+    uint32_t DeviceInfoImplementation::ChipSet(string& chipset) const
+    {
+        auto result = GetFileRegex(_T("/etc/device.properties"),std::regex("^CHIPSET_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), chipset);
+        return result;
     }
 }
 }

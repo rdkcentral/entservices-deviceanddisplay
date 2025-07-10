@@ -20,24 +20,16 @@ cmake_minimum_required(VERSION 3.8)
 set(PLUGIN_NAME L1TestsDD)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(${NAMESPACE}Plugins REQUIRED)
-
-include(FetchContent)
-FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/e39786088138f2749d64e9e90e0f9902daa77c40.zip
-)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-FetchContent_MakeAvailable(googletest)
 
 set (TEST_SRC
     tests/test_UtilsFile.cpp
 )
 
 set (TEST_LIB
-    gmock_main
     ${NAMESPACE}Plugins::${NAMESPACE}Plugins
 )
 
@@ -50,7 +42,7 @@ set (TEST_INC ../../helpers)
 #                     arg2: include dir list as **string**
 #                     arg3: plugin libs to link list as **string**
 #
-# sample invocation : 
+# sample invocation :
 #    add_plugin_test_ex(PLUGIN_NAME
 #                       "test/file1.cpp;test/file2.cpp"
 #                       "../../inc_dir1;../../inc_dir2"
@@ -117,16 +109,20 @@ endmacro()
 
 # PLUGIN_DEVICEINFO
 #set (DEVICEINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-#set (DEVICEINFO_SRC tests/test_DeviceInfo.cpp tests/test_DeviceInfoJsonRpc.cpp tests/test_DeviceInfoWeb.cpp tests/test_DeviceVideoCapabilities.cpp)
+#set (DEVICEINFO_SRC tests/test_DeviceAudioCapabilities.cpp tests/test_DeviceInfo.cpp tests/test_DeviceInfoJsonRpc.cpp tests/test_DeviceInfoWeb.cpp test_FirmwareVersion tests/test_DeviceVideoCapabilities.cpp)
 #add_plugin_test_ex(PLUGIN_DEVICEINFO "${DEVICEINFO_SRC}" "${DEVICEINFO_INC}" "${NAMESPACE}DeviceInfo")
 
 # PLUGIN_WAREHOUSE
 set (WAREHOUSE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/Warehouse ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" "${NAMESPACE}Warehouse")
+set (WAREHOUSE_LIBS ${NAMESPACE}Warehouse ${NAMESPACE}WarehouseImplementation)
+add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" "${WAREHOUSE_LIBS}")
+
 
 # PLUGIN_FRAMERATE
 set (FRAMERATE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/FrameRate ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_FrameRate.cpp "${FRAMERATE_INC}" "${NAMESPACE}FrameRate")
+set (FRAMERATE_LIBS ${NAMESPACE}FrameRate ${NAMESPACE}FrameRateImplementation)
+add_plugin_test_ex(PLUGIN_FRAMERATE tests/test_FrameRate.cpp "${FRAMERATE_INC}" "${FRAMERATE_LIBS}")
+
 
 # PLUGIN_USERPREFERENCES
 set (USERPREFERENCES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/UserPreferences ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
@@ -148,19 +144,17 @@ add_plugin_test_ex(PLUGIN_DISPLAYINFO "${DISPLAYINFO_SRC}" "${DISPLAYINFO_INC}" 
 
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 
-if (RDK_SERVICES_L1_TEST)
-   find_library(TESTMOCKLIB_LIBRARIES NAMES L1TestMocklib)
-   if (TESTMOCKLIB_LIBRARIES)
-       message ("Found mock libraries ${TESTMOCKLIB_LIBRARIES} library")
-       target_link_libraries(${MODULE_NAME} ${TESTMOCKLIB_LIBRARIES})
-   else (TESTMOCKLIB_LIBRARIES)
-       message (" Require ${TESTMOCKLIB_LIBRARIES} library")
-   endif (TESTMOCKLIB_LIBRARIES)
-endif (RDK_SERVICES_L1_TEST)
+set_source_files_properties(
+        tests/test_DeviceAudioCapabilities.cpp
+        tests/test_DeviceVideoCapabilities.cpp
+        tests/test_SystemServices.cpp
+        tests/test_Warehouse.cpp
+        PROPERTIES COMPILE_FLAGS "-fexceptions")
+
 
 include_directories(${TEST_INC})
 
-target_link_directories(${MODULE_NAME} PUBLIC ${CMAKE_INSTALL_PREFIX}/lib/wpeframework/plugins)
+target_link_directories(${MODULE_NAME} PUBLIC ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib/wpeframework/plugins)
 
 target_link_libraries(${MODULE_NAME} ${TEST_LIB})
 

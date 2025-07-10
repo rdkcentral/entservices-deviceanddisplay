@@ -4161,7 +4161,7 @@ namespace WPEFramework {
                 string reason = parameters["standbyReason"].String();
                 /* Power state defaults standbyReason is "application". */
                 reason = ((reason.length()) ? reason : "application");
-                LOGINFO("SystemServices::setDevicePowerState state: %s, resason: %s\n", state.c_str(), reason.c_str());
+                LOGINFO("SystemServices::setDevicePowerState state: %s, reason: %s\n", state.c_str(), reason.c_str());
 
                 if (state == "LIGHT_SLEEP" || state == "DEEP_SLEEP") {
                     if (SystemServices::_instance) {

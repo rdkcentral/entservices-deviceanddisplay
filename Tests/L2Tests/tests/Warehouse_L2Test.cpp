@@ -239,8 +239,8 @@ uint32_t Warehouse_L2Test::WaitForRequestStatus(uint32_t timeout_ms, WarehouseL2
 
     while (!(expected_status & m_event_signalled)) {
         if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
-        TEST_LOG("Timeout waiting for request status event");
-        break;
+            TEST_LOG("Timeout waiting for request status event");
+            break;
         }
     }
     signalled = m_event_signalled;
@@ -319,7 +319,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
 *******************************************************/
 TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
 {
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN); 
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
@@ -388,7 +388,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -436,7 +436,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
 
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-    
 }
 
 /********************************************************
@@ -481,7 +480,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -584,7 +583,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_ColdFactory_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_ColdFactory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -687,13 +686,13 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;    
+    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     std::string message;
-    JsonObject expected_status;    
+    JsonObject expected_status;
 
     /* errorCode and errorDescription should not be set */
     EXPECT_FALSE(result.HasLabel("errorCode"));

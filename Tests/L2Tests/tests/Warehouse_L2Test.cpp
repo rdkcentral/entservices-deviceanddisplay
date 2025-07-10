@@ -199,6 +199,14 @@ Warehouse_L2Test::~Warehouse_L2Test()
         m_warehouseplugin->Release();
     }
 
+    //Just make sure the mock instance is removed for fresh mock obj for next fixture run
+    if(p_wrapsImplMock != nullptr)
+    {
+        Wraps::setImpl(nullptr);
+        delete p_wrapsImplMock;
+        p_wrapsImplMock = nullptr;
+    }
+
     /* Deactivate plugin in destructor */
     status = DeactivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);

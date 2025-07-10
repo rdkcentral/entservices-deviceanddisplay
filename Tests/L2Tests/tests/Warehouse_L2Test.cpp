@@ -302,7 +302,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
         .Times(::testing::AnyNumber())
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot &"));
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));
                 return Core::ERROR_NONE;
             }));
 
@@ -333,7 +333,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
         .Times(::testing::AnyNumber())
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot &"));
+                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));
                 return Core::ERROR_NONE;
             }));
 

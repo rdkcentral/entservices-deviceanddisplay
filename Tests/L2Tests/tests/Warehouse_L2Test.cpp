@@ -330,7 +330,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
     JsonObject expected_status;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
         .WillOnce(::testing::Invoke(
             [](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));

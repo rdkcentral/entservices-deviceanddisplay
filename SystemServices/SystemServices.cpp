@@ -5244,7 +5244,7 @@ namespace WPEFramework {
         uint32_t SystemServices::getBootTypeInfo(const JsonObject& parameters, JsonObject& response) 
         {
             LOGINFOMETHOD();
-	    bool result = false;
+	    bool status = false;
             const char* filename = "/tmp/bootType";
             string propertyName = "BOOT_TYPE";
             string bootType = "";
@@ -5253,14 +5253,13 @@ namespace WPEFramework {
             {
                 LOGINFO("Boot type changed to: %s, current OS Class: rdke\n", bootType.c_str());
                 response["bootType"] = bootType;
-                result = true;
+                status = true;
             }
             else
             {
                 LOGERR("BootType is not present");
-                result = false;
             }
-	    returnResponse(result);
+	    return (status ? WPEFramework::Core::ERROR_NONE : WPEFramework::Core::ERROR_GETVALUE_FAILED);
 	}//end of getBootTypeInfo method
 
         /**
@@ -5317,20 +5316,16 @@ namespace WPEFramework {
                     LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
                 } else {
                     LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
-		    returnResponse(false);
+		    return (WPEFramework::Core::ERROR_FILE_CREATE);
                 }
                 // Close the file
                 file.close();
-                returnResponse(true);
             }
             else {
                 LOGERR("Invalid Migration Status\n");
-                JsonObject error;
-		error["message"] = "Invalid Request";
-		error["code"] = "-32600";
-  		response["error"] = error; 
-		returnResponse(false);
+		return (WPEFramework::Core::ERROR_INVALID_MIGRATION_PARAM);
             }
+	    return (WPEFramework::Core::ERROR_NONE); 
         }//end of setMigrationStatus method
 
         /**
@@ -5356,7 +5351,7 @@ namespace WPEFramework {
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-            returnResponse(status);
+            return (status ? WPEFramework::Core::ERROR_NONE : WPEFramework::Core::ERROR_GETVALUE_FAILED);
        }
     } /* namespace Plugin */
 } /* namespace WPEFramework */

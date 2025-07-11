@@ -411,13 +411,6 @@ TEST_F(SystemService_L2Test,SystemServiceGetSetTemperature)
                 return DEEPSLEEPMGR_SUCCESS;
     }));
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_GetLastWakeupReason(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](DeepSleep_WakeupReason_t* wakeupReason) {
-                *wakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
-                return DEEPSLEEPMGR_SUCCESS;
-    }));
-
     EXPECT_TRUE(result["success"].Boolean());
 
     /* errorCode and errorDescription should not be set */

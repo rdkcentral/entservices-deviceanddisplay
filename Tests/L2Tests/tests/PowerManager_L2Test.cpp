@@ -316,11 +316,11 @@ PowerManager_L2Test::~PowerManager_L2Test()
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
-    PowerManagerHalMock::Delete();
     sleep(3);
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
+    PowerManagerHalMock::Delete();
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)

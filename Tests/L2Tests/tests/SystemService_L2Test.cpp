@@ -208,6 +208,8 @@ SystemService_L2Test::~SystemService_L2Test()
 {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = SYSTEMSERVICEL2TEST_STATE_INVALID;
+    PowerManagerHalMock::Delete();
+
     sleep(3);
     status = DeactivateService("org.rdk.System");
     EXPECT_EQ(Core::ERROR_NONE, status);

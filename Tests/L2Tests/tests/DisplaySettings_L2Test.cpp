@@ -149,6 +149,7 @@ DisplaySettings_L2test::~DisplaySettings_L2test()
     printf("DISPLAYSETTINGS Destructor\n");
     uint32_t status = Core::ERROR_GENERAL;
 
+    PowerManagerHalMock::Delete();
     sleep(3);
 
     status = DeactivateService("org.rdk.DisplaySettings");

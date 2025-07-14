@@ -321,6 +321,7 @@ PowerManager_L2Test::~PowerManager_L2Test()
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
     PowerManagerHalMock::Delete();
+    mfrMock::Delete();
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)

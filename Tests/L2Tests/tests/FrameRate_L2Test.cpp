@@ -242,7 +242,7 @@ FrameRate_L2test::~FrameRate_L2test() {
     /* Deactivate plugin in destructor */
     status = DeactivateService("org.rdk.FrameRate");
     EXPECT_EQ(Core::ERROR_NONE, status);
-    PowerManagerHalMock::Delete();
+    mfrMock::Delete();
 }
 
 void FrameRate_L2test::OnFpsEvent(int average, int min, int max) {

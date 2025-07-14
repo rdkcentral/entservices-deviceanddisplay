@@ -157,6 +157,7 @@ DisplaySettings_L2test::~DisplaySettings_L2test()
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
     PowerManagerHalMock::Delete();
+    mfrMock::Delete();
 }
 
 TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)

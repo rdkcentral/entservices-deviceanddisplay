@@ -216,6 +216,7 @@ SystemService_L2Test::~SystemService_L2Test()
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
     PowerManagerHalMock::Delete();
+    mfrMock::Delete();
 }
 
 /**

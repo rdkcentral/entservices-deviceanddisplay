@@ -27,6 +27,10 @@
 #include <interfaces/IFrameRate.h>
 #include "devicesettings.h"
 #include "FrontPanelIndicatorMock.h"
+#include "deepSleepMgr.h"
+#include "PowerManagerMock.h"
+#include "PowerManagerHalMock.h"
+#include "MfrMock.h"
 
 #define JSON_TIMEOUT (1000)
 #define COM_TIMEOUT (100)
@@ -191,6 +195,14 @@ FrameRate_L2test::FrameRate_L2test()
                 return IARM_RESULT_SUCCESS;
             }));
 
+        EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::Invoke(
+            [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                *curTemperature  = 90; // safe temperature
+                *curState        = (mfrTemperatureState_t)0;
+                *wifiTemperature = 25;
+                return mfrERR_NONE;
+        }));
     /* Activate plugin in constructor */
     status = ActivateService("org.rdk.FrameRate");
     EXPECT_EQ(Core::ERROR_NONE, status);
@@ -227,10 +239,12 @@ FrameRate_L2test::~FrameRate_L2test() {
         m_FrameRateplugin->Unregister(&notify);
         m_FrameRateplugin->Release();
     }
+    sleep(3);
 
     /* Deactivate plugin in destructor */
     status = DeactivateService("org.rdk.FrameRate");
     EXPECT_EQ(Core::ERROR_NONE, status);
+    PowerManagerHalMock::Delete();
 }
 
 void FrameRate_L2test::OnFpsEvent(int average, int min, int max) {
@@ -379,7 +393,6 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
 TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
-    uint32_t signalled = FrameRate_StateInvalid;
 
     status = m_FrameRateplugin->StartFpsCollection(success);
     EXPECT_EQ(status, Core::ERROR_NONE);

@@ -42,7 +42,6 @@ using std::ofstream;
 #include "platformcaps/platformcaps.h"
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
 #include "libIARM.h"
-#include "pwrMgr.h"
 #include "host.hpp"
 #include "sleepMode.hpp"
 #endif /* USE_IARMBUS || USE_IARM_BUS */

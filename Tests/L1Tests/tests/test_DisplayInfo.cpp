@@ -20,9 +20,14 @@
 #include <gtest/gtest.h>
 
 
-#include "DisplayInfoMock.h"
-#include <interfaces/IDisplayInfo.h>
-#include "DisplayInfo.h"
+#include <gtest/gtest.h>
+
+#include "Implementation/DisplayInfo.h"
+
+#include "IarmBusMock.h"
+
+#include <fstream>
+#include "ThunderPortability.h"
 
 #include "AudioOutputPortMock.h"
 #include "HostMock.h"
@@ -48,152 +53,49 @@ namespace {
 const string webPrefix = _T("/Service/DisplayInfo");
 }
 
+using ::testing::NiceMock;
+
 class DisplayInfoTest : public ::testing::Test {
 protected:
-    Core::ProxyType<Plugin::DisplayInfo> plugin;
-    Core::JSONRPC::Handler& handler;
-    DECL_CORE_JSONRPC_CONX connection;
-    string response;
+    IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
+    Core::ProxyType<Plugin::DisplayInfoImplementation> displayInfoImplementation;
+    Exchange::IDisplayInfo* interface;
 
     DisplayInfoTest()
-        : plugin(Core::ProxyType<Plugin::DisplayInfo>::Create())
-        , handler(*plugin)
-        , INIT_CONX(1, 0)
-    {
-    }
-    virtual ~DisplayInfoTest() = default;
-};
-
-class DisplayInfoInitializedTest : public DisplayInfoTest {
-protected:
-    IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
-    ManagerImplMock   *p_managerImplMock = nullptr ;
-    NiceMock<ServiceMock> service;
-    Core::Sink<NiceMock<SystemInfo>> subSystem;
-
-    DisplayInfoInitializedTest()
-        : DisplayInfoTest()
     {
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
 
-        p_managerImplMock  = new NiceMock <ManagerImplMock>;
-        device::Manager::setImpl(p_managerImplMock);
+        displayInfoImplementation = Core::ProxyType<Plugin::DisplayInfoImplementation>::Create();
 
-        ON_CALL(service, ConfigLine())
-            .WillByDefault(::testing::Return("{\"root\":{\"mode\":\"Off\"}}"));
-        ON_CALL(service, WebPrefix())
-            .WillByDefault(::testing::Return(webPrefix));
-        ON_CALL(service, SubSystems())
-            .WillByDefault(::testing::Invoke(
-                [&]() {
-                    PluginHost::ISubSystem* result = (&subSystem);
-                    result->AddRef();
-                    return result;
-                }));
-
-        EXPECT_EQ(string(""), plugin->Initialize(&service));
+        interface = static_cast<Exchange::IDisplayInfo*>(
+            displayInfoImplementation->QueryInterface(Exchange::IDisplayInfo::ID));
     }
-    virtual ~DisplayInfoInitializedTest() override
+    virtual ~DisplayInfoTest()
     {
-        plugin->Deinitialize(&service);
-
+        interface->Release();
         IarmBus::setImpl(nullptr);
         if (p_iarmBusImplMock != nullptr)
         {
             delete p_iarmBusImplMock;
             p_iarmBusImplMock = nullptr;
         }
-        device::Manager::setImpl(nullptr);
-        if (p_managerImplMock != nullptr)
-        {
-            delete p_managerImplMock;
-            p_managerImplMock = nullptr;
-        }
+    }
+
+    virtual void SetUp()
+    {
+        ASSERT_TRUE(interface != nullptr);
+    }
+
+    virtual void TearDown()
+    {
+        ASSERT_TRUE(interface != nullptr);
     }
 };
-
-class DisplayInfoInitializedDsTest : public DisplayInfoInitializedTest {
-protected:
-        HostImplMock             *p_hostImplMock = nullptr ;
-        AudioOutputPortMock      *p_audioOutputPortMock = nullptr ;
-        VideoResolutionMock      *p_videoResolutionMock = nullptr ;
-        VideoOutputPortMock      *p_videoOutputPortMock = nullptr ;
-
-    DisplayInfoInitializedDsTest()
-        : DisplayInfoInitializedTest()
-    {
-        p_hostImplMock  = new NiceMock <HostImplMock>;
-        device::Host::setImpl(p_hostImplMock);
-        p_audioOutputPortMock  = new NiceMock <AudioOutputPortMock>;
-        device::AudioOutputPort::setImpl(p_audioOutputPortMock);
-
-        p_videoResolutionMock  = new NiceMock <VideoResolutionMock>;
-        device::VideoResolution::setImpl(p_videoResolutionMock);
-        p_videoOutputPortMock  = new NiceMock <VideoOutputPortMock>;
-        device::VideoOutputPort::setImpl(p_videoOutputPortMock);
-    }
-    virtual ~DisplayInfoInitializedDsTest() override
-    {
-        device::AudioOutputPort::setImpl(nullptr);
-        if (p_audioOutputPortMock != nullptr)
-        {
-            delete p_audioOutputPortMock;
-            p_audioOutputPortMock = nullptr;
-        }
-        device::VideoResolution::setImpl(nullptr);
-        if (p_videoResolutionMock != nullptr)
-        {
-            delete p_videoResolutionMock;
-            p_videoResolutionMock = nullptr;
-        }
-        device::VideoOutputPort::setImpl(nullptr);
-        if (p_videoOutputPortMock != nullptr)
-        {
-            delete p_videoOutputPortMock;
-            p_videoOutputPortMock = nullptr;
-        }
-        device::Host::setImpl(nullptr);
-        if (p_hostImplMock != nullptr)
-        {
-            delete p_hostImplMock;
-            p_hostImplMock = nullptr;
-        }
-    }
-};
-
-class DisplayInfoInitializedDsVideoOutputTest : public DisplayInfoInitializedDsTest {
-protected:
-    VideoOutputPortConfigImplMock  *p_videoOutputPortConfigImplMock = nullptr ;
-    VideoOutputPortTypeMock        *p_videoOutputPortTypeMock = nullptr ;
-
-    DisplayInfoInitializedDsVideoOutputTest()
-        : DisplayInfoInitializedDsTest()
-    {
-        p_videoOutputPortConfigImplMock  = new NiceMock <VideoOutputPortConfigImplMock>;
-        device::VideoOutputPortConfig::setImpl(p_videoOutputPortConfigImplMock);
-        p_videoOutputPortTypeMock  = new NiceMock <VideoOutputPortTypeMock>;
-        device::VideoOutputPortType::setImpl(p_videoOutputPortTypeMock);
-    }
-    virtual ~DisplayInfoInitializedDsVideoOutputTest() override
-    {
-        device::VideoOutputPortType::setImpl(nullptr);
-        if (p_videoOutputPortTypeMock != nullptr)
-        {
-            delete p_videoOutputPortTypeMock;
-            p_videoOutputPortTypeMock = nullptr;
-        }
-        device::VideoOutputPortConfig::setImpl(nullptr);
-        if (p_videoOutputPortConfigImplMock != nullptr)
-        {
-            delete p_videoOutputPortConfigImplMock;
-            p_videoOutputPortConfigImplMock = nullptr;
-        }
-    }
-};
-
-TEST_F(DisplayInfoInitializedTest, registeredMethods)
+TEST_F(DeviceInfoTest, registeredMethods)
 {
 
-
+    string deviceType;
+    EXPECT_EQ(Core::ERROR_NONE, interface->DeviceType(deviceType));
+    EXPECT_EQ(deviceType, _T("IpStb"));
 }

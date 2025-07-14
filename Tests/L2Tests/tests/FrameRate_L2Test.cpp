@@ -44,8 +44,6 @@ using ::testing::NiceMock;
 using namespace WPEFramework;
 using testing::StrictMock;
 using ::WPEFramework::Exchange::IFrameRate;
-VideoDeviceMock *p_videoDeviceMock = nullptr;
-HostImplMock      *p_hostImplMock = nullptr;
 
 typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000001,

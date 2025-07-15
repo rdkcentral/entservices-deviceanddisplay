@@ -293,10 +293,12 @@ uint32_t Warehouse_L2Test::CreateWarehouseInterfaceObject()
 ************Test case Details **************************
 ** 1. Triggered resetDevice Method for
 ** 2. Verify the response of resetDevice Method using Comrpc
+** 3. Verify the event Factory resetDone getting triggered using comrpc
 *******************************************************/
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
 {
     uint32_t status = Core::ERROR_NONE;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -312,22 +314,42 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_True_ResetDone)
     status = m_warehouseplugin->ResetDevice(supress, resetType, response);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(response.success);
+    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
 }
 
 /********************************************************
 ************Test case Details **************************
 ** 1. Triggered resetDevice Method for
 ** 2. Verify the response of resetDevice Method using jsonrpc
+** 3. Verify the event Factory resetDone getting triggered using comrpc
 *******************************************************/
 TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
     std::string message;
     JsonObject expected_status;
+
+    message = "{\"success\":true,\"error\":\"\"}";
+    expected_status.FromString(message);
+    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
+        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+
+    /* errorCode and errorDescription should not be set */
+    EXPECT_FALSE(result.HasLabel("errorCode"));
+    EXPECT_FALSE(result.HasLabel("errorDescription"));
+
+    /* Register for resetDone event. */
+    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
+        _T("resetDone"),
+        &AsyncHandlerMock_Warehouse::resetDone,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -344,389 +366,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_True_ResetDone)
      */
     params["suppressReboot"] = true;
     params["resetType"] = "WAREHOUSE_CLEAR";
-    status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(result["success"].Boolean());
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using comrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event Factory resetDone getting triggered using comrpc
-*******************************************************/
-TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDone)
-{
-    uint32_t status = Core::ERROR_NONE;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh factory"));
-                return Core::ERROR_NONE;
-            }));
-
-    bool supress = true;
-    string resetType = "FACTORY";
-    Exchange::IWarehouse::WarehouseSuccessErr response;
-    status = m_warehouseplugin->ResetDevice(supress, resetType, response);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_TRUE(response.success);
-
-    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
-    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using jsonrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event Factory resetDone getting triggered using jsonrpc
-*******************************************************/
-TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDone)
-{
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
-    uint32_t status = Core::ERROR_GENERAL;
-    JsonObject params;
-    JsonObject result;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-    std::string message;
-    JsonObject expected_status;
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh factory"));
-                return Core::ERROR_NONE;
-            }));
-
-    message = "{\"success\":true,\"error\":\"\"}";
-    expected_status.FromString(message);
-    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
-        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
-
-    /* errorCode and errorDescription should not be set */
-    EXPECT_FALSE(result.HasLabel("errorCode"));
-    EXPECT_FALSE(result.HasLabel("errorDescription"));
-
-    /* Register for resetDone event. */
-    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
-        _T("resetDone"),
-        &AsyncHandlerMock_Warehouse::resetDone,
-        &async_handler);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-     /* "suppressReboot = true" & "resetType = FACTORY"
-     *   resetDeviceWrapper: response={"success":true}
-     *   WareHouseResetIARM: FACTORY reset...
-     *   WareHouseResetIARM: Notify resetDone {"success":true}
-     */
-    params["suppressReboot"] = true;
-    params["resetType"] = "FACTORY";
-    status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(result["success"].Boolean());
-
-    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
-    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
-
-    /* Unregister for events. */
-    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using comrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event Clear resetDone getting triggered using comrpc
-*******************************************************/
-TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDone)
-{
-    uint32_t status = Core::ERROR_NONE;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR"));
-                return Core::ERROR_NONE;
-            }));
-
-    bool supress = false;
-    string resetType = "WAREHOUSE_CLEAR";
-    Exchange::IWarehouse::WarehouseSuccessErr response;
-    status = m_warehouseplugin->ResetDevice(supress, resetType, response);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_TRUE(response.success);
-
-    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
-    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using jsonrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event Clear resetDone getting triggered using jsonrpc
-*******************************************************/
-
-TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDone)
-{
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
-    uint32_t status = Core::ERROR_GENERAL;
-    JsonObject params;
-    JsonObject result;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-    std::string message;
-    JsonObject expected_status;
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR"));
-                return Core::ERROR_NONE;
-            }));
-
-    /* errorCode and errorDescription should not be set */
-    EXPECT_FALSE(result.HasLabel("errorCode"));
-    EXPECT_FALSE(result.HasLabel("errorDescription"));
-
-    /* Register for resetDone event. */
-    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
-        _T("resetDone"),
-        &AsyncHandlerMock_Warehouse::resetDone,
-        &async_handler);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    message = "{\"success\":true,\"error\":\"\"}";
-    expected_status.FromString(message);
-    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
-        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
-
-     /* suppressReboot = "false" & "resetType = "WAREHOUSE_CLEAR"
-     *  WareHouseResetIARM: WAREHOUSE_CLEAR reset...
-     *  resetDeviceWrapper: response={"success":true}
-     *  WareHouseResetIARM: Notify resetDone {"success":true}
-     */
-    params["suppressReboot"] = false;
-    params["resetType"] = "WAREHOUSE_CLEAR";
-    status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(result["success"].Boolean());
-
-    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
-    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
-
-    /* Unregister for events. */
-    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using comrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event ColdFactory resetDone getting triggered using comrpc
-*******************************************************/
-TEST_F(Warehouse_L2Test, COMRPC_Warehouse_ColdFactory_ResetDone)
-{
-    uint32_t status = Core::ERROR_NONE;
-
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(2)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh coldfactory"));
-                return Core::ERROR_NONE;
-            }))
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string(" /rebootNow.sh -s PowerMgr_coldFactoryReset -o 'Rebooting the box due to Cold Factory Reset process ...'"));
-                return Core::ERROR_NONE;
-            }));
-
-    bool supress = true;
-    string resetType = "COLD";
-    Exchange::IWarehouse::WarehouseSuccessErr response;
-    status = m_warehouseplugin->ResetDevice(supress, resetType, response);
-    sleep(6);
-
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_TRUE(response.success);
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using jsonrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event ColdFactory resetDone getting triggered using jsonrpc
-*******************************************************/
-
-TEST_F(Warehouse_L2Test, Warehouse_ColdFactory_ResetDone)
-{
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
-    uint32_t status = Core::ERROR_GENERAL;
-    JsonObject params;
-    JsonObject result;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-    std::string message;
-    JsonObject expected_status;
-
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(2)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh coldfactory"));
-                return Core::ERROR_NONE;
-            }))
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string(" /rebootNow.sh -s PowerMgr_coldFactoryReset -o 'Rebooting the box due to Cold Factory Reset process ...'"));
-                return Core::ERROR_NONE;
-            }));
-
-    /* Register for resetDone event. */
-    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
-        _T("resetDone"),
-        &AsyncHandlerMock_Warehouse::resetDone,
-        &async_handler);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    message = "{\"success\":true,\"error\":\"\"}";
-    expected_status.FromString(message);
-    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
-        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
-
-    /*  suppressReboot = "true" & "resetType = "COLD"
-     *   WareHouseResetIARM: COLD reset...
-     *   resetDeviceWrapper: response={"success":true}
-     *   WareHouseResetIARM: Notify resetDone {"success":true}
-     */
-    params["suppressReboot"] = true;
-    params["resetType"] = "COLD";
-    status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
-    sleep(6); // This sleep is needed since the plugin code has a sleep of 5 seconds
-    EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(result["success"].Boolean());
-
-    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
-    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
-
-    /* Unregister for events. */
-    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using comrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event UserFactory resetDone getting triggered using comrpc
-*******************************************************/
-
-TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
-{
-    uint32_t status = Core::ERROR_NONE;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
-                return Core::ERROR_NONE;
-            }));
-
-    bool supress = false;
-    string resetType = "USERFACTORY";
-    Exchange::IWarehouse::WarehouseSuccessErr response;
-    status = m_warehouseplugin->ResetDevice(supress, resetType, response);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_TRUE(response.success);
-
-    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
-    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. Triggered resetDevice Method
-** 2. Verify the response of resetDevice Method using jsonrpc
-** 3. Subscribe and Triggered resetDone Event
-** 3. Verify the event UserFactory resetDone getting triggered using jsonrpc
-*******************************************************/
-
-TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
-{
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
-    uint32_t status = Core::ERROR_GENERAL;
-    JsonObject params;
-    JsonObject result;
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-    std::string message;
-    JsonObject expected_status;
-
-    /* errorCode and errorDescription should not be set */
-    EXPECT_FALSE(result.HasLabel("errorCode"));
-    EXPECT_FALSE(result.HasLabel("errorDescription"));
-
-    /* Register for resetDone event. */
-    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
-        _T("resetDone"),
-        &AsyncHandlerMock_Warehouse::resetDone,
-        &async_handler);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh userfactory"));
-                return Core::ERROR_NONE;
-            }));
-
-    message = "{\"success\":true,\"error\":\"\"}";
-    expected_status.FromString(message);
-    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
-        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
-
-    /*  suppressReboot = "true" & "resetType = "USERFACTORY"
-     *   WareHouseResetIARM: USERFACTORY reset...
-     *   resetDeviceWrapper: response={"success":true}
-     *   WareHouseResetIARM: Notify resetDone {"success":true}
-     */
-    params["suppressReboot"] = true;
-    params["resetType"] = "USERFACTORY";
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     EXPECT_TRUE(result["success"].Boolean());
@@ -1609,6 +1248,7 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDevice)
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_ResetDevice)
 {
     uint32_t status = Core::ERROR_NONE;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     /* Deactivate plugin in TEST_F*/
     status = DeactivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
@@ -1632,6 +1272,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_ResetDevice)
     sleep(6);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_TRUE(response.success);
+
+    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
 }
 
 /********************************************************
@@ -1644,6 +1287,7 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
     StrictMock<AsyncHandlerMock_Warehouse> async_handler;
+    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -1658,6 +1302,22 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_ResetDevice)
     status = ActivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
+    message = "{\"success\":true,\"error\":\"\"}";
+    expected_status.FromString(message);
+    EXPECT_CALL(async_handler, resetDone(MatchRequest(expected_status)))
+        .WillOnce(Invoke(this, &Warehouse_L2Test::resetDone));
+
+    /* errorCode and errorDescription should not be set */
+    EXPECT_FALSE(result.HasLabel("errorCode"));
+    EXPECT_FALSE(result.HasLabel("errorDescription"));
+
+    /* Register for resetDone event. */
+    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
+        _T("resetDone"),
+        &AsyncHandlerMock_Warehouse::resetDone,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1670,6 +1330,12 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_ResetDevice)
     params["resetType"] = "WAREHOUSE_CLEAR";
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_TRUE(result["success"].Boolean());
+
+    signalled = WaitForRequestStatus(JSON_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
+    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
+
+    /* Unregister for events. */
+    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("resetDone"));
 }
 
 /********************************************************

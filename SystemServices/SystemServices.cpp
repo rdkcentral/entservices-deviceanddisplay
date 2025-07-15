@@ -398,6 +398,7 @@ namespace WPEFramework {
          */
         SystemServices::SystemServices()
             : PluginHost::JSONRPC()
+            , PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType>(SystemServices::OnJSONRPCError)
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
         {
@@ -5262,6 +5263,27 @@ namespace WPEFramework {
             }
 	    returnResponse(result);
 	}//end of getBootTypeInfo method
+
+	/*
+         * @brief This function updates plugin API error text.
+         * This method is called by thunder right after Plugin API.
+         * @param1[in]: Context
+	 * @param2[in]: method
+         * @param3[in]: parameters
+	 * @param4[in]: errorcode
+         * @param5[out]: errormessage
+         * @return: Core::<StatusCode>
+         */
+        uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
+           if((method == _T("getMigrationStatus")) && (errorcode == Core::ERROR_GENERAL) ) {
+               JsonData::Math::AddParamsInfo addparams;
+               addparams.FromString(parameters);
+               std::stringstream message;
+               message <<_T("Error handling add method failed for general reason, values: ") << addparams.A << _T(" and ") << addparams.B;
+               errormessage = message.str();
+           }
+           return errorcode; // one could change/override the errorcode returned by COMRPC but that would not be advised as might be obvious
+        }
 
         /**
          * @brief : API to query BuildType details

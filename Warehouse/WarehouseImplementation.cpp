@@ -280,7 +280,7 @@ namespace WPEFramework
                 ok = ((err == IARM_RESULT_SUCCESS)|| (ret == Core::ERROR_NONE));
             }
 
-            if (!( true == isWareHouse && true == suppressReboot)) {
+            if (( true == isWareHouse && true == suppressReboot)) {
                 JsonObject params;
                 success = ok;
                 if (!ok)

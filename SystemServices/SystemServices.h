@@ -115,7 +115,8 @@ namespace WPEFramework {
             int duration;  // duration in seconds
         };
 
-        class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+        class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPC,
+                               public PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType> {
             private:
 
                 class PowerManagerNotification : public Exchange::IPowerManager::INetworkStandbyModeChangedNotification,
@@ -150,6 +151,8 @@ namespace WPEFramework {
                     {
                         _parent.onRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
                     }
+
+                    static uint32_t OnJSONRPCError(const Core::JSONRPC::Context& context, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage);
 
                     template <typename T>
                     T* baseInterface()

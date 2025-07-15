@@ -318,7 +318,7 @@ TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDevice)
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
 
-TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
+TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDeviceNoResponse)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)

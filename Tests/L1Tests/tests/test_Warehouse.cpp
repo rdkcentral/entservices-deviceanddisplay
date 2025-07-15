@@ -363,7 +363,7 @@ TEST_F(WarehouseResetDeviceTest, GenericResetDeviceNoResponse)
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
 
-TEST_F(WarehouseResetDeviceFailureTest, UserFactoryResetDeviceFailure)
+TEST_F(WarehouseInitializedTest, UserFactoryResetDeviceFailure)
 {
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
@@ -377,7 +377,6 @@ TEST_F(WarehouseResetDeviceFailureTest, UserFactoryResetDeviceFailure)
     // reset: suppress reboot: true - This doesn't generate any event (Expect no response)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
 
 TEST_F(WarehouseInitializedTest, internalResetFailPassPhrase)

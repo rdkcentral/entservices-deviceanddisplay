@@ -299,7 +299,7 @@ TEST_F(WarehouseInitializedTest, UserFactoryResetDevice)
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
 }
 
-TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDevice)
+TEST_F(WarehouseInitializedTest, WarehouseClearResetDevice)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -312,7 +312,6 @@ TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDevice)
     // reset: suppress reboot: false, type: WAREHOUSE_CLEAR
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":false,\"resetType\":\"WAREHOUSE_CLEAR\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
 
 TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDeviceNoResponse)

@@ -321,6 +321,18 @@ TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDevice)
 TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
 {
     Core::Event resetCallRxed(false, true);
+    EVENT_SUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
+
+        EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+            .Times(1)
+            .WillOnce(::testing::Invoke(
+                [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                    string text;
+                    EXPECT_TRUE(json->ToString(text));
+                    EXPECT_EQ(text, string(_T("{\"jsonrpc\":\"2.0\",\"method\":\"org.rdk.Warehouse.resetDone\",\"params\":{\"success\":true,\"error\":\"\"}}")));
+                    resetDone.SetEvent();
+                    return Core::ERROR_NONE;
+                }));
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -335,6 +347,8 @@ TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true,\"resetType\":\"WAREHOUSE_CLEAR\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
     EXPECT_EQ(Core::ERROR_NONE, resetCallRxed.Lock());
+
+    EVENT_UNSUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
 }
 
 TEST_F(WarehouseResetDeviceTest, GenericResetDevice)

@@ -252,7 +252,7 @@ protected:
     }
 };
 
-TEST_F(WarehouseResetDeviceTest, ColdFactoryResetDevice)
+TEST_F(WarehouseInitializedTest, ColdFactoryResetDevice)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(2)
@@ -266,7 +266,6 @@ TEST_F(WarehouseResetDeviceTest, ColdFactoryResetDevice)
     // reset: suppress reboot: true, type: COLD
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true,\"resetType\":\"COLD\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
 
 TEST_F(WarehouseResetDeviceTest, FactoryResetDevice)

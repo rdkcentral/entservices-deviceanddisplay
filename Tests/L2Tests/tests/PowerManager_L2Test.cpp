@@ -315,13 +315,16 @@ PowerManager_L2Test::~PowerManager_L2Test()
 {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
+    TEST_LOG("Entry");
 
     sleep(3);
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
+    sleep(3);
     PowerManagerHalMock::Delete();
     mfrMock::Delete();
+    TEST_LOG("Exit");
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)
@@ -646,6 +649,97 @@ void PowerManager_L2Test::Test_NetworkStandbyMode( Exchange::IPowerManager* Powe
     {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
+    }
+}
+
+TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
+{
+    Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
+    Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
+    PluginHost::IShell *mController_PowerManager;
+    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+
+    TEST_LOG("Creating mEngine_PowerManager");
+    mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+    mClient_PowerManager = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(mEngine_PowerManager));
+
+    TEST_LOG("Creating mEngine_PowerManager Announcements");
+#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
+    mEngine_PowerManager->Announcements(mClient_PowerManager->Announcement());
+#endif
+
+    if (!mClient_PowerManager.IsValid())
+    {
+        TEST_LOG("Invalid mClient_PowerManager");
+    }
+    else
+    {
+        mController_PowerManager = mClient_PowerManager->Open<PluginHost::IShell>(_T("org.rdk.PowerManager"), ~0, 3000);
+        if (mController_PowerManager)
+        {
+            auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
+
+            PowerManagerPlugin->AddRef();
+            PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+            PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+            PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+
+            if (PowerManagerPlugin)
+            {
+                EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+                    .WillRepeatedly(::testing::Invoke(
+                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                            *curTemperature  = 120; // high temperature
+                            *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_HIGH;
+                            *wifiTemperature = 25;
+                            return mfrERR_NONE;
+                        }));
+
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3,POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
+
+                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+                    .WillRepeatedly(::testing::Invoke(
+                        [](PWRMgr_PowerState_t powerState) {
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                            return PWRMGR_SUCCESS;
+                     }));
+
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
+
+                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+                    .WillRepeatedly(::testing::Invoke(
+                        [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                            return DEEPSLEEPMGR_SUCCESS;
+                        }));
+
+                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_GetLastWakeupReason(::testing::_))
+                    .WillRepeatedly(::testing::Invoke(
+                        [](DeepSleep_WakeupReason_t* wakeupReason) {
+                            *wakeupReason = DEEPSLEEP_WAKEUPREASON_GPIO;
+                            return DEEPSLEEPMGR_SUCCESS;
+                        }));
+
+
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+
+                PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+                PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+                PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+                PowerManagerPlugin->Release();
+            }
+            else
+            {
+                TEST_LOG("PowerManagerPlugin is NULL");
+            }
+            mController_PowerManager->Release();
+        }
+        else
+        {
+            TEST_LOG("mController_PowerManager is NULL");
+        }
     }
 }
 

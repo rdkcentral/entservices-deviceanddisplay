@@ -320,7 +320,7 @@ TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDevice)
 
 TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
 {
-    Core::Event resetCallRxed(false, true);
+    Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
 
         EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
@@ -339,14 +339,14 @@ TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
         .WillOnce(::testing::Invoke(
             [&](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh WAREHOUSE_CLEAR --suppressReboot"));
-                resetCallRxed.SetEvent();
+                resetDone.SetEvent();
                 return Core::ERROR_NONE;
             }));
 
     // reset: suppress reboot: true, type: WAREHOUSE_CLEAR, Expect no response
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true,\"resetType\":\"WAREHOUSE_CLEAR\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetCallRxed.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 
     EVENT_UNSUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
 }

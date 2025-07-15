@@ -351,23 +351,21 @@ TEST_F(WarehouseResetDeviceTest, GenericResetDevice)
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
 
-TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
+TEST_F(WarehouseResetDeviceTest, GenericResetDeviceNoResponse)
 {
-    Core::Event resetCallRxed(false, true);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
             [&](const char* command, va_list args) {
                 EXPECT_EQ(string(command), string("sh /lib/rdk/deviceReset.sh warehouse --suppressReboot &"));
-                resetCallRxed.SetEvent();
                 return Core::ERROR_NONE;
             }));
 
     // reset: suppress reboot: true - This doesn't generate any event (Expect no response)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetCallRxed.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
 
 TEST_F(WarehouseResetDeviceFailureTest, UserFactoryResetDeviceFailure)

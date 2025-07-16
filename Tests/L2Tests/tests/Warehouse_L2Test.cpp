@@ -951,13 +951,6 @@ TEST_F(Warehouse_L2Test, Write_To_DeviceProperties)
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Cold_Factory)
 {
     uint32_t status = Core::ERROR_NONE;
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(2)
@@ -996,14 +989,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Cold_Factory)
     std::string message;
     JsonObject expected_status;
 
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(2)
         .WillOnce(::testing::Invoke(
@@ -1033,13 +1018,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Cold_Factory)
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDevice)
 {
     uint32_t status = Core::ERROR_NONE;
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1073,14 +1051,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDevice)
     std::string message;
     JsonObject expected_status;
 
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1105,13 +1075,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDevice)
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDevice)
 {
     uint32_t status = Core::ERROR_NONE;
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1145,14 +1108,6 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice)
     std::string message;
     JsonObject expected_status;
 
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1176,13 +1131,6 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice)
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDevice)
 {
     uint32_t status = Core::ERROR_NONE;
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1217,14 +1165,6 @@ TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDevice)
     std::string message;
     JsonObject expected_status;
 
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1249,13 +1189,6 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Clear_ResetDevice)
 {
     uint32_t status = Core::ERROR_NONE;
     uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1293,14 +1226,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_ResetDevice)
     JsonObject result;
     std::string message;
     JsonObject expected_status;
-
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     message = "{\"success\":true,\"error\":\"\"}";
     expected_status.FromString(message);
@@ -1346,13 +1271,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Clear_ResetDevice)
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Generic_ResetDevice)
 {
     uint32_t status = Core::ERROR_NONE;
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1387,14 +1305,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Generic_ResetDevice)
     std::string message;
     JsonObject expected_status;
 
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -1416,13 +1326,6 @@ TEST_F(Warehouse_L2Test, Warehouse_Generic_ResetDevice)
 TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDevice_Failure)
 {
     uint32_t status = Core::ERROR_NONE;
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1456,14 +1359,6 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice_Failure)
     JsonObject result;
     std::string message;
     JsonObject expected_status;
-
-    /* Deactivate plugin in TEST_F*/
-    status = DeactivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* Activate plugin in TEST_F*/
-    status = ActivateService("org.rdk.Warehouse");
-    EXPECT_EQ(Core::ERROR_NONE, status);
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)

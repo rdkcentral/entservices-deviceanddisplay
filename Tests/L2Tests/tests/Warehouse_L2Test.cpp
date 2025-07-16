@@ -439,12 +439,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_LightReset_SetENV)
 TEST_F(Warehouse_L2Test, Warehouse_LightReset)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "lightReset", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
@@ -578,12 +575,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_getHardwareTestResults_executeHardware
 TEST_F(Warehouse_L2Test, Warehouse_getHardwareTestResults_executeHardwareTest)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
         .Times(1)
@@ -723,12 +717,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_internalReset)
 TEST_F(Warehouse_L2Test, Warehouse_internalReset)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     // Invoke internalReset - No pass phrase
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "internalReset", params, result);
@@ -846,12 +837,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_iscleanTest)
 TEST_F(Warehouse_L2Test, Warehouse_iscleanTest)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     const string userPrefFile = _T("/opt/user_preferences.conf");
     const uint8_t userPrefLang[] = "[General]\nui_language=US_en\n";
@@ -982,12 +970,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Cold_Factory)
 TEST_F(Warehouse_L2Test, Warehouse_Cold_Factory)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(2)
@@ -1044,12 +1029,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Factory_ResetDevice)
 TEST_F(Warehouse_L2Test, Warehouse_Factory_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1101,12 +1083,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDevice)
 TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1158,12 +1137,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_False_Clear_ResetDevice)
 TEST_F(Warehouse_L2Test, Warehouse_False_Clear_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1298,12 +1274,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_Generic_ResetDevice)
 TEST_F(Warehouse_L2Test, Warehouse_Generic_ResetDevice)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -1353,12 +1326,9 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDevice_Failure)
 TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice_Failure)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_Warehouse> async_handler;
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-    std::string message;
-    JsonObject expected_status;
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)

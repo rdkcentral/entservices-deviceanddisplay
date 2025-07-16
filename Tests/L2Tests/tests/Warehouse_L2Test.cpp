@@ -202,6 +202,7 @@ Warehouse_L2Test::~Warehouse_L2Test()
     /* Deactivate plugin in destructor */
     status = DeactivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
+    sleep(1);
 }
 
 /**

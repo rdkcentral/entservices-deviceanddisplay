@@ -25,7 +25,6 @@
 #include "devicesettings.h"
 #include "FrontPanelIndicatorMock.h"
 #include "deepSleepMgr.h"
-#include "PowerManagerMock.h"
 #include "PowerManagerHalMock.h"
 #include "MfrMock.h"
 

@@ -25,7 +25,6 @@
 #include <condition_variable>
 #include <fstream>
 #include "deepSleepMgr.h"
-#include "PowerManagerMock.h"
 #include "PowerManagerHalMock.h"
 #include "MfrMock.h"
 

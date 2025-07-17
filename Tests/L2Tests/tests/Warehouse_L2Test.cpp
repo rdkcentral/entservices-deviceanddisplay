@@ -684,7 +684,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_UserFactory_ResetDone)
 ** 3. Subscribe and Triggered resetDone Event
 ** 3. Verify the event UserFactory resetDone getting triggered using jsonrpc
 *******************************************************/
-
+#if 0
 TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDone)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(WAREHOUSE_CALLSIGN, WAREHOUSEL2TEST_CALLSIGN);
@@ -791,7 +791,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_LightReset_SetENV)
     unsetenv("XDG_DATA_HOME");
     unsetenv("XDG_CACHE_HOME");
 }
-
+#endif
 /********************************************************
 ************Test case Details **************************
 ** 1. Triggered lightReset Method

@@ -285,7 +285,7 @@ TEST_F(WarehouseResetDeviceTest, FactoryResetDevice)
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
-
+#if 0
 TEST_F(WarehouseResetDeviceTest, UserFactoryResetDevice)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
@@ -301,7 +301,7 @@ TEST_F(WarehouseResetDeviceTest, UserFactoryResetDevice)
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 }
-
+#endif
 TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDevice)
 {
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))

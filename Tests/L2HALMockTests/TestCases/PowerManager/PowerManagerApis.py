@@ -85,3 +85,24 @@ getPowerStateBeforeReboot = '''curl --silent --header "Content-Type: application
 
 #Sets the temperature threshold values. Not supported on all devices
 setTemperatureThresholds = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setTemperatureThresholds","params": {"high": 100.0,"critical": 110.0}}' http://127.0.0.1:55555/jsonrpc'''
+
+#Negative Scenarios - Faulty params values
+setOvertempGraceInterval = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setOvertempGraceInterval","params": {"graceInterval": 60}}' http://127.0.0.1:55555/jsonrpc'''
+
+#Sets the power state of the device.
+setPowerState_withmoreparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setPowerState","params": {"keyCode": 30,"powerState": "ON","standbyReason": "APIUnitTest","faulty_paranms" : "ON"}}' http://127.0.0.1:55555/jsonrpc'''
+
+setPowerState_withwrongparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setPowerState","params": {"FaultyCode": ABCD ,"NoState": "ON","standbyReason": "APIUnitTest"}}' http://127.0.0.1:55555/jsonrpc'''
+
+#Sets the deep sleep timeout period.
+setDeepSleepTimer_withmoreparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setDeepSleepTimer","params": {"timeOut": 3,"faultyParams" : "ON"}}' http://127.0.0.1:55555/jsonrpc'''
+
+setDeepSleepTimer_withwrongparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setDeepSleepTimer","params": {"key": ABCD}' http://127.0.0.1:55555/jsonrpc'''
+
+#Sets the temperature threshold values. Not supported on all devices
+setTemperatureThresholds_withmoreparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setTemperatureThresholds","params": {"high": 100.0,"critical": 110.0,"faultyParams":"ABCD"}}' http://127.0.0.1:55555/jsonrpc'''
+
+setTemperatureThresholds_withwrongparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setTemperatureThresholds","params": {"ABCD": 100.0,"critical": 110.0}}' http://127.0.0.1:55555/jsonrpc'''
+
+
+setOvertempGraceInterval = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0","id": 42,"method": "org.rdk.PowerManager.setOvertempGraceInterval","params": {"graceInterval": 60}}' http://127.0.0.1:55555/jsonrpc'''

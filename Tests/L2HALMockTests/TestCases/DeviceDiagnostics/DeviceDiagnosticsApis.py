@@ -38,11 +38,23 @@ expected_output_response = '{"jsonrpc":"2.0","id":3,"result":null}'
 getConfiguration = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", "id": 42,
 "method":"org.rdk.DeviceDiagnostics.getConfiguration","params": { "names": ["Device.X_CISCO_COM_LED.RedPwm"]}}' http://127.0.0.1:55555/jsonrpc'''
 
+getConfiguration_moreparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", "id": 42,
+"method":"org.rdk.DeviceDiagnostics.getConfiguration","params": { "names": ["Device.X_CISCO_COM_LED.RedPwm"], "faulty" : "ON"}}' http://127.0.0.1:55555/jsonrpc'''
+
+getConfiguration_wrongparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", "id": 42,
+"method":"org.rdk.DeviceDiagnostics.getConfiguration","params": { "faultCode": "ABCD" , "faulty" : "ON"}}' http://127.0.0.1:55555/jsonrpc'''
+
 getMilestones = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", "id": 42,
 "method":"org.rdk.DeviceDiagnostics.getMilestones"}' http://127.0.0.1:55555/jsonrpc'''
 
+logMilestone_wrongparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", 
+"id": 42,"method":"org.rdk.DeviceDiagnostics.logMilestone,"params": {"marker": "...", "faulty" : "ON"}"}' http://127.0.0.1:55555/jsonrpc'''
+
 logMilestone = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", 
 "id": 42,"method":"org.rdk.DeviceDiagnostics.logMilestone,"params": {"marker": "..."}"}' http://127.0.0.1:55555/jsonrpc'''
+
+logMilestone_moreparams = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", 
+"id": 42,"method":"org.rdk.DeviceDiagnostics.logMilestone,"params": {"faultyCode": "..."}"}' http://127.0.0.1:55555/jsonrpc'''
 
 getAVDecoderstatus = '''curl --silent --header "Content-Type: application/json" --request POST -d '{"jsonrpc": "2.0", "id": 42,
 "method":"org.rdk.DeviceDiagnostics.getAVDecoderStatus"}' http://127.0.0.1:55555/jsonrpc'''

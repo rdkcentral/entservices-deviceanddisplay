@@ -208,9 +208,14 @@ SystemService_L2Test::~SystemService_L2Test()
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = SYSTEMSERVICEL2TEST_STATE_INVALID;
 
-    sleep(3);
     status = DeactivateService("org.rdk.System");
     EXPECT_EQ(Core::ERROR_NONE, status);
+
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
+        .WillOnce(::testing::Return(PWRMGR_SUCCESS));
+
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
+        .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);

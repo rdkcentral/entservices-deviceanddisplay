@@ -148,10 +148,14 @@ DisplaySettings_L2test::~DisplaySettings_L2test()
     printf("DISPLAYSETTINGS Destructor\n");
     uint32_t status = Core::ERROR_GENERAL;
 
-    sleep(3);
-
     status = DeactivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
+
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
+        .WillOnce(::testing::Return(PWRMGR_SUCCESS));
+
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
+        .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);

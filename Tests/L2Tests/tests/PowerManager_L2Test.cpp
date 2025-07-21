@@ -70,7 +70,6 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
 
         /** @brief Event signalled flag */
         uint32_t m_event_signalled;
-        int m_transactionId;
 
         BEGIN_INTERFACE_MAP(PwrMgr_Notification)
         INTERFACE_ENTRY(Exchange::IPowerManager::IRebootNotification)
@@ -109,7 +108,7 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
             std::unique_lock<std::mutex> lock(m_mutex);
 
             TEST_LOG("OnPowerModePreChange currentState: %u, newState: %u\n", currentState, newState);
-            m_transactionId = trxnId;
+
             /* Notify the requester thread. */
             m_event_signalled |= POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE;
             m_condition_variable.notify_one();
@@ -175,11 +174,6 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
 
             signalled = m_event_signalled;
             return signalled;
-        }
-
-        int getTransactionId()
-        {
-            return m_transactionId;
         }
 
 };
@@ -250,7 +244,6 @@ class PowerManager_L2Test : public L2TestMocks {
 
         /** @brief Event signalled flag */
         uint32_t m_event_signalled;
-        int m_transactionId;
 };
 
 
@@ -368,7 +361,6 @@ void PowerManager_L2Test::OnPowerModePreChange(const PowerState currentState, co
     TEST_LOG("OnPowerModePreChange currentState: %u, newState: %u\n", currentState, newState);
     /* Notify the requester thread. */
     m_event_signalled |= POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE;
-    m_transactionId = trxnId;
     m_condition_variable.notify_one();
 }
 

@@ -20,7 +20,7 @@
 # *
 #* ******************************************************************************
 
-# Testcase ID : TCID_017_PowerManager_NegativeScenarios
+# Testcase ID : TCID_018_PowerManager_NegativeScenarios
 # Testcase Description : Here for all the set Apis the given params are faulty to touch all the exceptions handled
 
 from Utilities import Utils, ReportGenerator
@@ -81,7 +81,7 @@ else:
     message = 'Output response is different from expected one'
 
 # generate logs in terminal
-tc_id = 'TCID_017_PowerManager_NegativeScenarios'
+tc_id = 'TCID_018_PowerManager_NegativeScenarios'
 print("Testcase ID : " + tc_id)
 print("Testcase Output Response : " + curl_response)
 print("Testcase Status : " + status)

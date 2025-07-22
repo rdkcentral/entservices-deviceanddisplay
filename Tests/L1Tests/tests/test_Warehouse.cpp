@@ -307,7 +307,7 @@ TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
     // reset: suppress reboot: true - This doesn't generate any event (Expect no response)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, ());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     EVENT_UNSUBSCRIBE(1, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 }
 

@@ -244,7 +244,7 @@ public:
        This helps test functionality without actually having to heat up the box */
     {
         FILE *fp;
-        param.curState = PWRMGR_TEMPERATURE_NORMAL;
+        state = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;
         param.curSoCTemperature=50.0;
         param.curWiFiTemperature=50.0;
         iarm_result = IARM_RESULT_SUCCESS;

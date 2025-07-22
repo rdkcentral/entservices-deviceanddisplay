@@ -258,7 +258,7 @@ TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
     // reset: suppress reboot: true, type: WAREHOUSE_CLEAR, Expect no response
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true,\"resetType\":\"WAREHOUSE_CLEAR\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, ());
     EVENT_UNSUBSCRIBE(0, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 }
 
@@ -281,7 +281,7 @@ TEST_F(WarehouseInitializedTest, GenericResetDevice)
 TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
 {
     Core::Event resetDone(false, true);
-    EVENT_SUBSCRIBE(0, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
+    EVENT_SUBSCRIBE(1, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 
     EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
             .Times(1)
@@ -307,8 +307,8 @@ TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
     // reset: suppress reboot: true - This doesn't generate any event (Expect no response)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
-    EVENT_UNSUBSCRIBE(0, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
+    EXPECT_EQ(Core::ERROR_NONE, ());
+    EVENT_UNSUBSCRIBE(1, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 }
 
 TEST_F(WarehouseInitializedTest, UserFactoryResetDeviceFailure)
@@ -505,7 +505,7 @@ TEST_F(WarehouseInitializedTest, statusChangeEvent)
 
     IARM_BUS_PWRMgr_WareHouseOpn_EventData_t eventData = { IARM_BUS_PWRMGR_WAREHOUSE_RESET, IARM_BUS_PWRMGR_WAREHOUSE_COMPLETED };
     whMgrStatusChangeEventsHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED, &eventData, 0);
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, ());
 
     EVENT_UNSUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
 }

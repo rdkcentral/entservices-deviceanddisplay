@@ -107,7 +107,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: feature/RDKEMW-3513-yml
+          ref: develop
 
       - name: Apply patches ThunderTools
         run: |

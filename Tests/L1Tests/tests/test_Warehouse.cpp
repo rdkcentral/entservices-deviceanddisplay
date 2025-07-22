@@ -327,7 +327,7 @@ TEST_F(WarehouseResetDeviceTest, WarehouseClearResetDeviceNoResponse)
     // reset: suppress reboot: true, type: WAREHOUSE_CLEAR, Expect no response
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true,\"resetType\":\"WAREHOUSE_CLEAR\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(1000));
 }
 
 TEST_F(WarehouseInitializedTest, GenericResetDevice)
@@ -360,7 +360,7 @@ TEST_F(WarehouseResetDeviceTest, GenericResetDeviceNoResponse)
     // reset: suppress reboot: true - This doesn't generate any event (Expect no response)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(1000));
 }
 
 TEST_F(WarehouseInitializedTest, UserFactoryResetDeviceFailure)

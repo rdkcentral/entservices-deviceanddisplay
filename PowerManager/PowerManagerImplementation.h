@@ -189,7 +189,7 @@ namespace Plugin {
         virtual void onDeepSleepUserWakeup(const bool userWakeup) override;
         virtual void onDeepSleepFailed() override;
         virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level, const ThermalTemperature new_Thermal_Level, const float current_Temp) override;
-        virtual void onDeepSlepForThermalChange() override;
+        virtual void onDeepSleepForThermalChange() override;
 
         template <typename T>
         uint32_t Register(std::list<T*>& list, T* notification);

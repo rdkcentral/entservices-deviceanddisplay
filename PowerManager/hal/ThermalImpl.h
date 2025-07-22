@@ -263,7 +263,7 @@ public:
 
         fp = fopen ("/opt/force_temp.state", "r");
         if (fp) {
-            fscanf(fp, "%d", &state);
+            fscanf(fp, "%d", &param.curState);
             fclose(fp);
         }
     }

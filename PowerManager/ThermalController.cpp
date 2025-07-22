@@ -61,11 +61,13 @@ uint32_t ThermalController::GetTemperatureThresholds(float &tempHigh,float &temp
 {
     uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
 
-    retCode = platform().GetTemperatureThresholds(tempHigh,tempCritical);
+    retCode = platform().GetTemperatureThresholds(tempHigh, tempCritical);
 
-    retCode = WPEFramework::Core::ERROR_NONE;
-    LOGINFO("Current thermal threshold : %f , %f, error code: %u ", tempHigh,tempCritical, retCode);
-
+    if (retCode == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("Current thermal threshold : %f , %f ", tempHigh, tempCritical);
+    } else {
+        LOGERR("Failed to get thermal thresholds. Error code: %u", retCode);
+    }
     return retCode;
 }
 
@@ -246,7 +248,7 @@ void ThermalController::deepSleepIfNeeded()
     {
         logThermalShutdownReason();
         LOGINFO("Going to deepsleep since the temperature is above %d", deepsleepThreshold.critical);
-        _parent.onDeepSlepForThermalChange();
+        _parent.onDeepSleepForThermalChange();
     }
     else if (!deepSleepZone && m_cur_Thermal_Value >= deepsleepThreshold.concern)
     {
@@ -269,7 +271,7 @@ void ThermalController::deepSleepIfNeeded()
             logThermalShutdownReason();
             LOGINFO("Going to deepsleep since the temperature reached %d and stayed above %d for %d seconds",
                 deepsleepThreshold.concern, deepsleepThreshold.safe, deepsleepThreshold.graceInterval);
-            _parent.onDeepSlepForThermalChange();
+            _parent.onDeepSleepForThermalChange();
         }
         else {
             LOGINFO("Still in the deep sleep zone! Entering deep sleep in %lu seconds unless the temperature falls below %u!", deepsleepThreshold.graceInterval-difftime, deepsleepThreshold.safe );

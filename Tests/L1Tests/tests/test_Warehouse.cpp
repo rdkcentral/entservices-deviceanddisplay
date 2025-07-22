@@ -505,7 +505,7 @@ TEST_F(WarehouseInitializedTest, statusChangeEvent)
 
     IARM_BUS_PWRMgr_WareHouseOpn_EventData_t eventData = { IARM_BUS_PWRMGR_WAREHOUSE_RESET, IARM_BUS_PWRMGR_WAREHOUSE_COMPLETED };
     whMgrStatusChangeEventsHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED, &eventData, 0);
-    EXPECT_EQ(Core::ERROR_NONE, ());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
 
     EVENT_UNSUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
 }

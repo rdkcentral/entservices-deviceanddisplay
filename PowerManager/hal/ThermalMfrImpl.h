@@ -201,6 +201,36 @@ public:
         IARM_Bus_MFRLib_ThermalSoCTemp_Param_t param = {};
 
         iarm_result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetTemperature, (void *)&param, sizeof(IARM_Bus_MFRLib_ThermalSoCTemp_Param_t));
+#if 0
+    /* Leave this debug code here commented out (or otherwise disabled by default). This is used in testing to allow manually controlling the returned temperature.
+       This helps test functionality without actually having to heat up the box */
+    {
+        FILE *fp;
+        state = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;
+        temperatureValue=50.0;
+        wifiTempValue=50.0;
+        iarm_result = IARM_RESULT_SUCCESS;
+
+        fp = fopen ("/opt/force_temp.soc", "r");
+        if (fp) {
+            fscanf(fp, "%d", &temperatureValue);
+            fclose(fp);
+        }
+
+        fp = fopen ("/opt/force_temp.wifi", "r");
+        if (fp) {
+            fscanf(fp, "%d", &wifiTempValue);
+            fclose(fp);
+        }
+
+        fp = fopen ("/opt/force_temp.state", "r");
+        if (fp) {
+            fscanf(fp, "%d", &state);
+            fclose(fp);
+        }
+    }
+#endif
+
         if (IARM_RESULT_SUCCESS == iarm_result) {
             curState = conv((PWRMgr_ThermalState_t)param.curState);
             curTemperature = param.curSoCTemperature;

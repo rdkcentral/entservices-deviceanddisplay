@@ -117,6 +117,7 @@ class DeepSleepController {
     } DeepSleepState;
 
 public:
+    ~DeepSleepController();
     class INotification {
     public:
         virtual ~INotification() = default;
@@ -127,7 +128,7 @@ public:
     };
 
 private:
-    DeepSleepController(INotification& parent, std::unique_ptr<IPlatform> platform);
+    DeepSleepController(INotification& parent, std::shared_ptr<IPlatform> platform);
 
     inline IPlatform& platform() const
     {
@@ -140,7 +141,7 @@ public:
     static DeepSleepController Create(INotification& parent, Args&&... args)
     {
         static_assert(std::is_base_of<IPlatform, IMPL>::value, "Impl must derive from hal::deepsleep::IPlatform");
-        auto impl = std::unique_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
+        auto impl = std::shared_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
         ASSERT(impl != nullptr);
         return DeepSleepController(parent, std::move(impl));
     }
@@ -173,7 +174,7 @@ private:
 private:
     INotification& _parent;
     WPEFramework::Core::IWorkerPool& _workerPool;
-    std::unique_ptr<IPlatform> _platform;
+    std::shared_ptr<IPlatform> _platform;
     DeepSleepState _deepSleepState;
     uint32_t _deepSleepDelaySec;         // Duration to wait before entering deep sleep mode
     uint32_t _deepSleepWakeupTimeoutSec; // Total duration for which the system remains in deep sleep mode

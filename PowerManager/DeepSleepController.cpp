@@ -164,7 +164,7 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
     return 0;
 }
 
-DeepSleepController::DeepSleepController(INotification& parent, std::unique_ptr<IPlatform> platform)
+DeepSleepController::DeepSleepController(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _parent(parent)
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _platform(std::move(platform))
@@ -174,6 +174,23 @@ DeepSleepController::DeepSleepController(INotification& parent, std::unique_ptr<
     , _nwStandbyMode(false)
 {
     LOGINFO(">> CTOR <<");
+}
+
+DeepSleepController::~DeepSleepController()
+{
+    if (_deepSleepDelayJob.IsValid()) {
+        // Cancel the delay timer if it is still active
+        _workerPool.Revoke(_deepSleepDelayJob);
+        _deepSleepDelayJob.Release();
+        LOGINFO("Deepsleep delayed job cancelled");
+    }
+
+    if (_deepSleepWakeupJob.IsValid()) {
+        // Cancel the wakeup timer if it is still active
+        _workerPool.Revoke(_deepSleepWakeupJob);
+        _deepSleepWakeupJob.Release();
+        LOGINFO("Deepsleep wakeup job cancelled");
+    }
 }
 
 uint32_t DeepSleepController::GetLastWakeupReason(WakeupReason& wakeupReason) const

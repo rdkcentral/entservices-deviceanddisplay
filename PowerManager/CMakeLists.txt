@@ -31,7 +31,6 @@ find_library(PROCPS_LIBRARIES NAMES procps)
 
 find_package(PowerHal)
 find_package(DeepSleepHal)
-find_package(MFR)
 find_package(RFC)
 
 add_library(${MODULE_NAME} SHARED
@@ -92,11 +91,6 @@ endif ()
 
 if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
-endif()
-
-if (MFR_FOUND)
-  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_LIBRARIES})
-  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_INCLUDE_DIRS})
 endif()
 
 find_package(DS)

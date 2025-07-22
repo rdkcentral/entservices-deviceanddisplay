@@ -63,8 +63,6 @@ class PowerController {
 
     void init();
 
-    void invokeDeepSleep();
-
 public:
     uint32_t SetPowerState(const int keyCode, const PowerState powerState, const std::string& reason);
     uint32_t ActivateDeepSleep();
@@ -112,7 +110,6 @@ private:
     Settings _settings;
     DeepSleepWakeupSettings _deepSleepWakeupSettings;
     WPEFramework::Core::IWorkerPool& _workerPool;
-    WPEFramework::Core::ProxyType<WPEFramework::Core::IDispatch> _bootupInvokeDeepsleepJob;
 
     // keep this last
     DeepSleepController& _deepSleep;

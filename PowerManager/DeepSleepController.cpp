@@ -36,6 +36,7 @@
 
 #include "DeepSleepController.h"
 #include "LambdaJob.h"      // for LambdaJob
+#include "PowerUtils.h"     // for WakeupReason string
 #include "UtilsLogging.h"   // for LOGINFO, LOGERR
 #include "libIARM.h"        // for _IARM_Result_t, IARM_Result_t
 #include "libIBus.h"        // for IARM_Bus_Call
@@ -45,6 +46,7 @@
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using PowerState   = WPEFramework::Exchange::IPowerManager::PowerState;
 using IPlatform    = hal::deepsleep::IPlatform;
+using util         = PowerUtils;
 
 std::map<std::string, DeepSleepWakeupSettings::tzValue> DeepSleepWakeupSettings::_maptzValues;
 
@@ -178,19 +180,14 @@ DeepSleepController::DeepSleepController(INotification& parent, std::shared_ptr<
 
 DeepSleepController::~DeepSleepController()
 {
+    LOGINFO(">> DTOR");
     if (_deepSleepDelayJob.IsValid()) {
         // Cancel the delay timer if it is still active
         _workerPool.Revoke(_deepSleepDelayJob);
         _deepSleepDelayJob.Release();
         LOGINFO("Deepsleep delayed job cancelled");
     }
-
-    if (_deepSleepWakeupJob.IsValid()) {
-        // Cancel the wakeup timer if it is still active
-        _workerPool.Revoke(_deepSleepWakeupJob);
-        _deepSleepWakeupJob.Release();
-        LOGINFO("Deepsleep wakeup job cancelled");
-    }
+    LOGINFO("<< DTOR");
 }
 
 uint32_t DeepSleepController::GetLastWakeupReason(WakeupReason& wakeupReason) const
@@ -223,13 +220,6 @@ uint32_t DeepSleepController::Deactivate()
         _workerPool.Revoke(_deepSleepDelayJob);
         _deepSleepDelayJob.Release();
         LOGINFO("Deepsleep delayed job cancelled");
-    }
-
-    if (_deepSleepWakeupJob.IsValid()) {
-        // Cancel the wakeup timer if it is still active
-        _workerPool.Revoke(_deepSleepWakeupJob);
-        _deepSleepWakeupJob.Release();
-        LOGINFO("Deepsleep wakeup job cancelled");
     }
 
     uint32_t errorCode = platform().DeepSleepWakeup();
@@ -345,46 +335,22 @@ void DeepSleepController::enterDeepSleepNow()
 
 void DeepSleepController::deepSleepTimerWakeup(const std::chrono::steady_clock::time_point& startTime)
 {
-#ifdef USE_WAKEUP_TIMER_EVT
+    auto elapsed              = std::chrono::steady_clock::now() - startTime;
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
-    uint32_t errorCode        = platform().GetLastWakeupReason(wakeupReason);
-
-    if (WPEFramework::Core::ERROR_NONE == errorCode && WakeupReason::WAKEUP_REASON_TIMER == wakeupReason) {
-        LOGINFO("DeepSleep wakeupReason: %d, timeout: %d", wakeupReason, _deepSleepWakeupTimeoutSec);
-        _parent.onDeepSleepTimerWakeup(_deepSleepWakeupTimeoutSec);
-        return;
-    }
-#endif
-    auto elapsed = std::chrono::steady_clock::now() - startTime;
 
     if (elapsed >= std::chrono::seconds(_deepSleepWakeupTimeoutSec)) {
         LOGINFO("DeepSleep wakeupReason: TIMER, timeout: %d", _deepSleepWakeupTimeoutSec);
-        _parent.onDeepSleepTimerWakeup(_deepSleepWakeupTimeoutSec);
     } else {
-        auto pending = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(_deepSleepWakeupTimeoutSec) - elapsed).count();
+        auto pending       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(_deepSleepWakeupTimeoutSec) - elapsed).count();
+        uint32_t errorCode = platform().GetLastWakeupReason(wakeupReason);
 
-        LOGERR("DeepSleep wakeupReason: UNKNOWN, timeout: %ds, elapsed: %llds, pending: %lldms",
+        std::string wakeupReasonStr = WPEFramework::Core::ERROR_NONE == errorCode ? util::str(wakeupReason) : "UNKOWN";
+
+        LOGERR("DeepSleep wakeupReason: %s, timeout: %ds, elapsed: %llds, pending: %lldms", wakeupReasonStr.c_str(),
             _deepSleepWakeupTimeoutSec, std::chrono::duration_cast<std::chrono::seconds>(elapsed).count(), pending);
-
-        auto pendingTime = WPEFramework::Core::Time::Now().Add(pending);
-
-        _deepSleepWakeupJob = LambdaJob::Create([this]() {
-            LOGINFO("DeepSleep wakeupReason: TIMER (delayed), timeout: %d", _deepSleepWakeupTimeoutSec);
-            _parent.onDeepSleepTimerWakeup(_deepSleepWakeupTimeoutSec);
-        });
-
-        _workerPool.Schedule(pendingTime, _deepSleepWakeupJob);
     }
-}
-
-void DeepSleepController::MaintenanceReboot()
-{
-#if !defined(_DISABLE_SCHD_REBOOT_AT_DEEPSLEEP)
-    LOGINFO("Scheduled maintanace reboot is enabled");
-    v_secure_system("echo 0 > /opt/.rebootFlag");
-    v_secure_system("echo `/bin/timestamp` ------------- Reboot timer expired while in Deep Sleep --------------- >> /opt/logs/receiver.log");
-    v_secure_system("sleep 5; /rebootNow.sh -s DeepSleepMgr -o 'Rebooting the box due to reboot timer expired while in Deep Sleep...'");
-#endif // !_DISABLE_SCHD_REBOOT_AT_DEEPSLEEP
+    // irrespective of wakeup reason / status / elapsed duration always notify deepsleep wakeup
+    _parent.onDeepSleepTimerWakeup(_deepSleepWakeupTimeoutSec);
 }
 
 void DeepSleepController::performActivate(uint32_t timeOut, bool nwStandbyMode)

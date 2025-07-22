@@ -179,8 +179,7 @@ private:
     uint32_t _deepSleepDelaySec;         // Duration to wait before entering deep sleep mode
     uint32_t _deepSleepWakeupTimeoutSec; // Total duration for which the system remains in deep sleep mode
 
-    WPEFramework::Core::ProxyType<WPEFramework::Core::IDispatch> _deepSleepDelayJob;  // Job to handle delay before entering deepsleep
-    WPEFramework::Core::ProxyType<WPEFramework::Core::IDispatch> _deepSleepWakeupJob; // Job to handle early wakeup from deepsleep (edge cases)
+    WPEFramework::Core::ProxyType<WPEFramework::Core::IDispatch> _deepSleepDelayJob; // Job to handle delay before entering deepsleep
 
     bool _nwStandbyMode; // Flag to indicate if network standby mode is enabled
 };

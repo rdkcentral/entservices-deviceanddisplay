@@ -74,10 +74,8 @@ if(RDK_SERVICES_L1_TEST OR RDK_SERVICE_L2_TEST)
 
     target_compile_definitions(${PLUGIN_IMPLEMENTATION}
                                PUBLIC
-                                 _DISABLE_SCHD_REBOOT_AT_DEEPSLEEP
                                  PLATCO_BOOTTO_STANDBY
                                  ENABLE_THERMAL_PROTECTION
-                                 USE_WAKEUP_TIMER_EVT
                                  OFFLINE_MAINT_REBOOT)
 
    find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)

@@ -41,7 +41,6 @@
 
 #include "UtilsLogging.h" // for LOGINFO, LOGERR
 
-#include "mfr_temperature.h"
 #include "mfrMgr.h"
 
 #ifdef MFR_TEMP_CLOCK_READ

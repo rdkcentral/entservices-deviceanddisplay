@@ -25,8 +25,9 @@
 #include <interfaces/json/JPowerManager.h>
 
 #include "UtilsLogging.h"
+// #include "plugins/IShell.h"
 
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
+using PowerState         = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
 namespace WPEFramework {
@@ -35,6 +36,7 @@ namespace Plugin {
     class PowerManager : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     private:
         class Notification : public RPC::IRemoteConnection::INotification,
+                             public PluginHost::IShell::ICOMLink::INotification,
                              public Exchange::IPowerManager::IRebootNotification,
                              public Exchange::IPowerManager::IModePreChangeNotification,
                              public Exchange::IPowerManager::IModeChangedNotification,
@@ -42,8 +44,8 @@ namespace Plugin {
                              public Exchange::IPowerManager::INetworkStandbyModeChangedNotification,
                              public Exchange::IPowerManager::IThermalModeChangedNotification {
         private:
-            Notification() = delete;
-            Notification(const Notification&) = delete;
+            Notification()                               = delete;
+            Notification(const Notification&)            = delete;
             Notification& operator=(const Notification&) = delete;
 
         public:
@@ -81,6 +83,18 @@ namespace Plugin {
             void Deactivated(RPC::IRemoteConnection* connection) override
             {
                 _parent.Deactivated(connection);
+            }
+
+            void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override
+            {
+                ASSERT(remote != nullptr);
+                _parent.CallbackRevoked(remote, interfaceId);
+            }
+
+            void Revoked(const Core::IUnknown* remote, const uint32_t interfaceId) override
+            {
+                ASSERT(remote != nullptr);
+                _parent.CallbackRevoked(remote, interfaceId);
             }
 
             void OnPowerModeChanged(const PowerState currentState, const PowerState newState) override
@@ -125,7 +139,7 @@ namespace Plugin {
 
     public:
         // We do not allow this plugin to be copied !!
-        PowerManager(const PowerManager&) = delete;
+        PowerManager(const PowerManager&)            = delete;
         PowerManager& operator=(const PowerManager&) = delete;
 
         PowerManager();
@@ -145,11 +159,12 @@ namespace Plugin {
 
     private:
         void Deactivated(RPC::IRemoteConnection* connection);
+        void CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId);
 
     private:
-        PluginHost::IShell* _service{};
-        uint32_t _connectionId{};
-        Exchange::IPowerManager* _powerManager{};
+        PluginHost::IShell* _service {};
+        uint32_t _connectionId {};
+        Exchange::IPowerManager* _powerManager {};
         Core::Sink<Notification> _powermanagersNotification;
     };
 

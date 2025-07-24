@@ -32,11 +32,7 @@
 
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 
-using PreModeChangeTimer = WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeTimer;
-using util               = PowerUtils;
-
-template <>
-WPEFramework::Core::TimerType<PreModeChangeTimer> PreModeChangeTimer::timerThread(32 * 1024, "ACK TIMER");
+using util = PowerUtils;
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
@@ -163,7 +159,7 @@ namespace Plugin {
     }
 
     template <typename T>
-    Core::hresult PowerManagerImplementation::Unregister(std::list<T*>& list, T* notification)
+    Core::hresult PowerManagerImplementation::Unregister(std::list<T*>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
 
@@ -190,7 +186,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IRebootNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IRebootNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_rebootNotifications, notification);
@@ -206,7 +202,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModePreChangeNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_preModeChangeNotifications, notification);
@@ -222,7 +218,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModeChangedNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IModeChangedNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_modeChangedNotifications, notification);
@@ -238,7 +234,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_deepSleepTimeoutNotifications, notification);
@@ -254,7 +250,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_networkStandbyModeChangedNotifications, notification);
@@ -270,7 +266,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IThermalModeChangedNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IThermalModeChangedNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_thermalModeChangedNotifications, notification);
@@ -385,16 +381,13 @@ namespace Plugin {
             _apiLock.Lock();
 
             if (_modeChangeController) {
-                if (!_modeChangeController->IsMarkedForDelete() && _modeChangeController->powerState() == newState) {
+                if (!_modeChangeController && _modeChangeController->powerState() == newState) {
                     LOGINFO("Ignore (redundant) repeated transition request to %s state.", util::str(newState));
                     _apiLock.Unlock();
                     selfLock.unlock();
                     return Core::ERROR_NONE;
                 } else {
-                    // Log warning only if object is not marked for delete
-                    if (!_modeChangeController->IsMarkedForDelete()) {
-                        LOGWARN("Power state change is already in progress, cancel old request");
-                    }
+                    LOGWARN("Power state change is already in progress, cancel old request");
                     _modeChangeController.reset();
                 }
             }
@@ -406,10 +399,6 @@ namespace Plugin {
             for (const auto& client : _modeChangeClients) {
                 _modeChangeController->AckAwait(client.first);
             }
-
-            // There is a remote chance that request could be canceled when Completion handler is run.
-            // To avoid race condition, we create a weak_ptr from shared_ptr and pass it on to Completion handler.
-            std::weak_ptr<PreModeChangeController> wPtr = _modeChangeController;
 
             // For sync state change requests timeout is `0`
             const uint32_t timeOut = isSync ? 0 : POWER_MODE_PRECHANGE_TIMEOUT_SEC;
@@ -432,16 +421,12 @@ namespace Plugin {
             //     - To avoid race conditions in this usecase, take `_apiLock` to run completion handler
             //  4. Caller thread of last acknowledging client
             _modeChangeController->Schedule(timeOut * 1000,
-                [this, keyCode, currState, newState, reason, wPtr, isSync](bool isTimedout) mutable {
-                    // new shared_ptr will increase refCount and avoid deletion of _modeChangeController
-                    // which can happen in case of nested requests
-                    std::shared_ptr<PreModeChangeController> controller = wPtr.lock();
+                [this, keyCode, currState, newState, reason, isSync](bool isTimedout, bool isAborted) mutable {
+                    LOGINFO(">> CompletionHandler isTimedout: %d, isAborted: %d", isTimedout, isAborted);
 
-                    LOGINFO(">> CompletionHandler isTimedout: %d", isTimedout);
-
-                    // Ideally we should never get this callback if AckController object is deleted
-                    // However in timeout scenarios, callback is triggered from ACK TIMER Thread
-                    if (controller) {
+                    if (!isAborted) {
+                        // Ideally we should never get this callback if AckController object is deleted
+                        // However in timeout scenarios, callback is triggered from ACK TIMER Thread
                         powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
                     } else {
                         LOGWARN("modeChangeController was already deleted, do not process CompletionHandler");
@@ -750,11 +735,6 @@ namespace Plugin {
 
         setDevicePowerState(keyCode, currentState, newState, reason);
 
-        // We are in callback from _modeChangeController, avoid deletion from class method
-        // To properly delete this object some more code refactoring will be required.
-        // _modeChangeController.reset();
-        _modeChangeController->MarkDelete();
-
         LOGINFO("<<");
     }
 
@@ -766,7 +746,7 @@ namespace Plugin {
 
         _apiLock.Lock();
 
-        if (_modeChangeController && !_modeChangeController->IsMarkedForDelete()) {
+        if (_modeChangeController) {
             errorCode = _modeChangeController->Ack(clientId, transactionId);
         }
 

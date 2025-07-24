@@ -397,7 +397,7 @@ namespace WPEFramework {
          * Register SystemService module as wpeframework plugin
          */
         SystemServices::SystemServices()
-            : PluginHost::JSONRPC()
+	    : PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType>(SystemServices::OnJSONRPCError)
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
         {
@@ -5244,7 +5244,7 @@ namespace WPEFramework {
         uint32_t SystemServices::getBootTypeInfo(const JsonObject& parameters, JsonObject& response) 
         {
             LOGINFOMETHOD();
-	    bool result = false;
+	    bool status = false;
             const char* filename = "/tmp/bootType";
             string propertyName = "BOOT_TYPE";
             string bootType = "";
@@ -5253,14 +5253,13 @@ namespace WPEFramework {
             {
                 LOGINFO("Boot type changed to: %s, current OS Class: rdke\n", bootType.c_str());
                 response["bootType"] = bootType;
-                result = true;
+                status = true;
             }
             else
             {
                 LOGERR("BootType is not present");
-                result = false;
             }
-	    returnResponse(result);
+	    return (status ? WPEFramework::Core::ERROR_NONE : 1100);
 	}//end of getBootTypeInfo method
 
         /**
@@ -5317,20 +5316,16 @@ namespace WPEFramework {
                     LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
                 } else {
                     LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
-		    returnResponse(false);
+		    return (1102);
                 }
                 // Close the file
                 file.close();
-                returnResponse(true);
             }
             else {
-                LOGERR("Invalid Migration Status\n");
-                JsonObject error;
-		error["message"] = "Invalid Request";
-		error["code"] = "-32600";
-  		response["error"] = error; 
-		returnResponse(false);
+		LOGERR("Invalid Migration Status\n");
+		return (1101);
             }
+	    return (WPEFramework::Core::ERROR_NONE); 
         }//end of setMigrationStatus method
 
         /**
@@ -5356,7 +5351,40 @@ namespace WPEFramework {
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-            returnResponse(status);
-       }
+         return (status ? WPEFramework::Core::ERROR_NONE : 1100);
+        }//end of getMigrationStatus method
+       /*
+         * @brief This function updates plugin API error text.
+         * This method is called by thunder right after Plugin API.
+         * @param1[in]: Context
+	 * @param2[in]: method
+         * @param3[in]: parameters
+	 * @param4[in]: errorcode
+         * @param5[out]: errormessage
+         * @return: Core::<StatusCode>
+         */
+        uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
+           if((method == _T("getMigrationStatus")) && (errorcode == 1100) ) { //ERROR_GETVALUE_FAILED - 1100
+               std::stringstream message;
+               message <<_T("Value retrieval failed");
+               errormessage = message.str();
+           }
+	   else if((method == _T("getBootTypeInfo")) && (errorcode == 1100) ) { //ERROR_GETVALUE_FAILED - 1100
+		std::stringstream message;
+               message <<_T("Value retrieval failed");
+               errormessage = message.str();
+           }
+	   else if((method == _T("setMigrationStatus")) && (errorcode == 1101) ) { //ERROR_INVALID_MIGRATION_PARAM - 1101
+                std::stringstream message;
+               message <<_T("Migration Parameter not valid");
+               errormessage = message.str();
+           }
+	   else if((method == _T("setMigrationStatus")) && (errorcode == 1102) ) { //ERROR_FILE_CREATE  - 1102
+                std::stringstream message;
+               message <<_T("File create failed");
+               errormessage = message.str();
+           }
+           return errorcode;
+        }
     } /* namespace Plugin */
 } /* namespace WPEFramework */

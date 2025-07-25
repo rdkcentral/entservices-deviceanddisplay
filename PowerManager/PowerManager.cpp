@@ -51,11 +51,13 @@ namespace WPEFramework
     PowerManager::PowerManager() : _service(nullptr), _connectionId(0), _powerManager(nullptr), _powermanagersNotification(this)
     {
         SYSLOG(Logging::Startup, (_T("PowerManager Constructor")));
+        LOGINFO("CTOR");
     }
 
     PowerManager::~PowerManager()
     {
         SYSLOG(Logging::Shutdown, (string(_T("PowerManager Destructor"))));
+        LOGINFO("DTOR");
     }
 
     const string PowerManager::Initialize(PluginHost::IShell* service)
@@ -130,6 +132,7 @@ namespace WPEFramework
             // so it should endup in a DESTRUCTION_SUCCEEDED, if not we
             // are leaking...
             ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
+            LOGINFO("PowerManagerImpl destroyed = %d", (Core::ERROR_DESTRUCTION_SUCCEEDED == result));
 
             // If this was running in a (container) process...
             if (nullptr != connection)

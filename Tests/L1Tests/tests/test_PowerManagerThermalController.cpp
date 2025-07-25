@@ -101,12 +101,13 @@ public:
                 }));
 
         // called from ThermalController constructor in initializeThermalProtection
-        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
-            .WillOnce(::testing::Invoke(
-                [](int high, int critical) {
-                    EXPECT_EQ(high, 100);
-                    EXPECT_EQ(critical, 110);
-                    return mfrERR_NONE;
+        EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_SetTemperatureThresholds), ::testing::_, ::testing::_))
+             .WillOnce(::testing::Invoke(
+                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
+                    EXPECT_EQ(param->highTemp, 100);
+                    EXPECT_EQ(param->criticalTemp, 110);
+                    return IARM_RESULT_SUCCESS;
                 }));
     }
 
@@ -129,8 +130,6 @@ public:
             delete p_iarmBusImplMock;
             p_iarmBusImplMock = nullptr;
         }
-
-        mfrMock::Delete();
     }
 
 protected:
@@ -146,26 +145,28 @@ TEST_F(TestThermalController, temperatureThresholds)
 
     wg.Add();
 
-    EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperature), ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
-            [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
-                *curTemperature  = 60; // safe temperature
-                *curState        = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;
-                *wifiTemperature = 25;
+            [&](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
+                param->curSoCTemperature  = 60; // safe temperature
+                param->curState        = IARM_BUS_TEMPERATURE_NORMAL;
+                param->curWiFiTemperature = 25;
                 wg.Done();
-                return mfrERR_NONE;
+                return IARM_RESULT_SUCCESS;
             }));
 
     auto controller = ThermalController::Create(*this);
 
     // Set
     {
-        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
-            .WillOnce(::testing::Invoke(
-                [](int high, int critical) {
-                    EXPECT_EQ((int)high, 90);
-                    EXPECT_EQ((int)critical, 100);
-                    return mfrERR_NONE;
+        EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_SetTemperatureThresholds), ::testing::_, ::testing::_))
+             .WillOnce(::testing::Invoke(
+                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
+                    EXPECT_EQ(param->highTemp, 90);
+                    EXPECT_EQ(param->criticalTemp, 100);
+                    return IARM_RESULT_SUCCESS;
                 }));
 
         uint32_t res = controller.SetTemperatureThresholds(90, 100);
@@ -174,12 +175,13 @@ TEST_F(TestThermalController, temperatureThresholds)
 
     // Get
     {
-        EXPECT_CALL(mfrMock::Mock(), mfrGetTempThresholds(::testing::_, ::testing::_))
-            .WillOnce(::testing::Invoke(
-                [](int* high, int* critical) {
-                    *high     = 90;
-                    *critical = 100;
-                    return mfrERR_NONE;
+        EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperatureThresholds), ::testing::_, ::testing::_))
+             .WillOnce(::testing::Invoke(
+                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
+                    param->highTemp = 90;
+                    param->criticalTemp = 100;
+                    return IARM_RESULT_SUCCESS;
                 }));
 
         float high, critical;
@@ -199,13 +201,14 @@ TEST_F(TestThermalController, modeChangeHigh)
 {
     WaitGroup wg;
 
-    EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperature), ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
-            [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
-                *curTemperature  = 100; // high temperature
-                *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_HIGH;
-                *wifiTemperature = 25;
-                return mfrERR_NONE;
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
+                param->curSoCTemperature  = 100; // high temperature
+                param->curState        = IARM_BUS_TEMPERATURE_HIGH;
+                param->curWiFiTemperature = 25;
+                return IARM_RESULT_SUCCESS;
             }));
 
     wg.Add();
@@ -226,13 +229,14 @@ TEST_F(TestThermalController, modeChangeCritical)
 {
     WaitGroup wg;
 
-    EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperature), ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
-            [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
-                *curTemperature  = 115; // critical temperature
-                *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_CRITICAL;
-                *wifiTemperature = 25;
-                return mfrERR_NONE;
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
+                param->curSoCTemperature  = 115; // critical temperature
+                param->curState        = IARM_BUS_TEMPERATURE_CRITICAL;
+                param->curWiFiTemperature = 25;
+                return IARM_RESULT_SUCCESS;
             }));
 
     wg.Add();

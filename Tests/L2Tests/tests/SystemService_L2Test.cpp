@@ -172,19 +172,14 @@ SystemService_L2Test::SystemService_L2Test()
               return PWRMGR_SUCCESS;
           }));
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(
-                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                    if (strcmp(IARM_BUS_MFRLIB_API_GetTemperature,methodName) == 0)
-                    {
-                        auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                        param->curSoCTemperature  = 90; // safe temperature
-                        param->curState        = IARM_BUS_TEMPERATURE_NORMAL;
-                        param->curWiFiTemperature = 25;
-                    }
-                    return IARM_RESULT_SUCCESS;
-                });
+        EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+           .WillRepeatedly(::testing::Invoke(
+               [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                   *curTemperature  = 90; // safe temperature
+                   *curState        = (mfrTemperatureState_t)0;
+                   *wifiTemperature = 25;
+                   return mfrERR_NONE;
+        }));
 
          /* Activate plugin in constructor */
          status = ActivateService("org.rdk.PowerManager");
@@ -225,6 +220,7 @@ SystemService_L2Test::~SystemService_L2Test()
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
     PowerManagerHalMock::Delete();
+    mfrMock::Delete();
 }
 
 /**
@@ -403,14 +399,13 @@ TEST_F(SystemService_L2Test,SystemServiceGetSetTemperature)
     params["thresholds"] = thresholds;
 
     // called from ThermalController constructor in initializeThermalProtection
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_SetTemperatureThresholds), ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                EXPECT_EQ(param->highTemp, 100);
-                EXPECT_EQ(param->criticalTemp, 110);
-                return IARM_RESULT_SUCCESS;
-            }));
+    EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::Invoke(
+        [](int high, int critical) {
+        EXPECT_EQ(high, 100);
+        EXPECT_EQ(critical, 110);
+        return mfrERR_NONE;
+    }));
 
     status = InvokeServiceMethod("org.rdk.System.1", "setTemperatureThresholds", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);

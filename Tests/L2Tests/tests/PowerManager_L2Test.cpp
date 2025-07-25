@@ -108,6 +108,7 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
             std::unique_lock<std::mutex> lock(m_mutex);
 
             TEST_LOG("OnPowerModePreChange currentState: %u, newState: %u\n", currentState, newState);
+
             /* Notify the requester thread. */
             m_event_signalled |= POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE;
             m_condition_variable.notify_one();
@@ -282,25 +283,13 @@ PowerManager_L2Test::PowerManager_L2Test()
                  }
              }));
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(::testing::Invoke(
-            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                if (strcmp(IARM_BUS_MFRLIB_API_SetTemperatureThresholds,methodName) == 0)
-                {
-                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                    EXPECT_EQ(param->highTemp, 100);
-                    EXPECT_EQ(param->criticalTemp, 110);
-                }
-                else if (strcmp(IARM_BUS_MFRLIB_API_GetTemperature,methodName) == 0)
-                {
-                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                    param->curSoCTemperature  = 90; // safe temperature
-                    param->curState        = IARM_BUS_TEMPERATURE_NORMAL;
-                    param->curWiFiTemperature = 25;
-                }
-                return IARM_RESULT_SUCCESS;
-            }));
+        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+         .WillOnce(::testing::Invoke(
+             [](int high, int critical) {
+                 EXPECT_EQ(high, 100);
+                 EXPECT_EQ(critical, 110);
+                 return mfrERR_NONE;
+             }));
 
         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_GetPowerState(::testing::_))
          .WillRepeatedly(::testing::Invoke(
@@ -317,6 +306,15 @@ PowerManager_L2Test::PowerManager_L2Test()
                  powerState = (PWRMgr_PowerState_t)PowerState::POWER_STATE_ON;
                  return PWRMGR_SUCCESS;
              }));
+
+          EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+              .WillRepeatedly(::testing::Invoke(
+                  [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                      *curTemperature  = 60; // safe temperature
+                      *curState        = (mfrTemperatureState_t)0;
+                      *wifiTemperature = 25;
+                      return mfrERR_NONE;
+                          }));
 
          /* Activate plugin in constructor */
          status = ActivateService("org.rdk.PowerManager");
@@ -341,6 +339,7 @@ PowerManager_L2Test::~PowerManager_L2Test()
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
     PowerManagerHalMock::Delete();
+    mfrMock::Delete();
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)
@@ -483,18 +482,18 @@ void PowerManager_L2Test::Test_OvertempGraceInterval( Exchange::IPowerManager* P
 /* COM-RPC tests */
 void PowerManager_L2Test::Test_TemperatureThresholds( Exchange::IPowerManager* PowerManagerPlugin )
 {
+    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     float high = 100, critical = 110;
     TEST_LOG("\n################## Running Test_TemperatureThresholds Test #################\n");
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_SetTemperatureThresholds), ::testing::_, ::testing::_))
-         .WillOnce(::testing::Invoke(
-            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                EXPECT_EQ(param->highTemp, 100);
-                EXPECT_EQ(param->criticalTemp, 110);
-                return IARM_RESULT_SUCCESS;
-            }));
+    EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+     .WillOnce(::testing::Invoke(
+         [](int high, int critical) {
+             EXPECT_EQ(high, 100);
+             EXPECT_EQ(critical, 110);
+             return mfrERR_NONE;
+    }));
 
     status = PowerManagerPlugin->SetTemperatureThresholds(high, critical);
     EXPECT_EQ(status,Core::ERROR_NONE);
@@ -506,14 +505,13 @@ void PowerManager_L2Test::Test_TemperatureThresholds( Exchange::IPowerManager* P
 
     float high1 = 0, critical1 = 0;
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperatureThresholds), ::testing::_, ::testing::_))
-         .WillOnce(::testing::Invoke(
-            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                param->highTemp = 100;
-                param->criticalTemp = 110;
-                return IARM_RESULT_SUCCESS;
-            }));
+    EXPECT_CALL(mfrMock::Mock(), mfrGetTempThresholds(::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](int* high, int* critical) {
+                *high     = 100;
+                *critical = 110;
+                return mfrERR_NONE;
+    }));
 
     status = PowerManagerPlugin->GetTemperatureThresholds(high1, critical1);
     EXPECT_EQ(high1, high);
@@ -527,7 +525,7 @@ void PowerManager_L2Test::Test_TemperatureThresholds( Exchange::IPowerManager* P
 
     float temperature = 0.0;
     status = PowerManagerPlugin->GetThermalState(temperature);
-    EXPECT_EQ(temperature, 90);
+    EXPECT_EQ(temperature, 60);
     EXPECT_EQ(status,Core::ERROR_NONE);
 
     if (status != Core::ERROR_NONE)
@@ -718,16 +716,14 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(10);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperature), ::testing::_, ::testing::_))
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(
-                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                    param->curSoCTemperature  = 120; // high temperature
-                    param->curState        = IARM_BUS_TEMPERATURE_HIGH;
-                    param->curWiFiTemperature = 25;
-                    return IARM_RESULT_SUCCESS;
-                });
+                EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+                    .WillRepeatedly(::testing::Invoke(
+                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                            *curTemperature  = 120; // high temperature
+                            *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_HIGH;
+                            *wifiTemperature = 25;
+                            return mfrERR_NONE;
+                        }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3,POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
@@ -755,16 +751,14 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                             return DEEPSLEEPMGR_SUCCESS;
                         }));
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperature), ::testing::_, ::testing::_))
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(
-                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                    param->curSoCTemperature  = 60; // safe temperature
-                    param->curState        = IARM_BUS_TEMPERATURE_NORMAL;
-                    param->curWiFiTemperature = 25;
-                    return IARM_RESULT_SUCCESS;
-                });
+                EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+                    .WillRepeatedly(::testing::Invoke(
+                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                            *curTemperature  = 60; // safe temperature
+                            *curState        = (mfrTemperatureState_t)0;
+                            *wifiTemperature = 25;
+                            return mfrERR_NONE;
+                        }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
@@ -847,16 +841,14 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
             if (PowerManagerPlugin)
             {
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::StrEq(IARM_BUS_MFRLIB_NAME), ::testing::StrEq(IARM_BUS_MFRLIB_API_GetTemperature), ::testing::_, ::testing::_))
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(
-                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                    auto* param = static_cast<IARM_Bus_MFRLib_ThermalSoCTemp_Param_t*>(arg);
-                    param->curSoCTemperature  = 60; // safe temperature
-                    param->curState        = IARM_BUS_TEMPERATURE_NORMAL;
-                    param->curWiFiTemperature = 25;
-                    return IARM_RESULT_SUCCESS;
-                });
+                EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+                    .WillRepeatedly(::testing::Invoke(
+                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                            *curTemperature  = 60; // safe temperature
+                            *curState        = (mfrTemperatureState_t)0;
+                            *wifiTemperature = 25;
+                            return mfrERR_NONE;
+                                }));
 
                 Test_PowerStateChange(PowerManagerPlugin);
                 Test_TemperatureThresholds(PowerManagerPlugin);

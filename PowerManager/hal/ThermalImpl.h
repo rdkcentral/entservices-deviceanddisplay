@@ -23,7 +23,6 @@
 #include <core/Portability.h>
 #include <interfaces/IPowerManager.h>
 
-#include "libIBus.h"
 #include "PowerUtils.h"
 #include "UtilsLogging.h"
 
@@ -87,48 +86,27 @@ public:
     virtual uint32_t GetTemperatureThresholds(float &tempHigh,float &tempCritical) const override
     {
         uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+        int high = 0;
+        int critical = 0;
 
-        IARM_Result_t iarm_result = IARM_RESULT_IPCCORE_FAIL;
-        IARM_Bus_MFRLib_ThermalSoCTemp_Param_t param = {};
-
-        iarm_result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetTemperatureThresholds, (void *)&param, sizeof(IARM_Bus_MFRLib_ThermalSoCTemp_Param_t));
-
-        if (IARM_RESULT_SUCCESS == iarm_result) {
-        LOGINFO("Success IARM_BUS_MFRLIB_API_GetTemperatureThresholds\n");
+        mfrError_t response = mfrGetTempThresholds(&high, &critical);
+        if(mfrERR_NONE == response)
+        {
             result = WPEFramework::Core::ERROR_NONE;
-            tempHigh = param.highTemp;
-            tempCritical = param.criticalTemp;
-            LOGINFO("Received High Temperature Threshold as : %0.6f and Critical Temperature Threshold as : %0.6f \n",tempHigh ,tempCritical);
-        } else {
-            LOGERR("Failed IARM_BUS_MFRLIB_API_GetTemperatureThresholds\n");
+            tempHigh = (float)high;
+            tempCritical = (float)critical;
         }
+
+        LOGINFO("High Temperature: %0.6f, [%d] and Critical Temperature: %0.6f, [%d], response: %u",tempHigh, high, tempCritical, critical,response);
 
         return result;
     }
 
     virtual uint32_t SetTemperatureThresholds(float tempHigh,float tempCritical) override
     {
-        uint32_t result = WPEFramework::Core::ERROR_GENERAL;
-
-        IARM_Result_t iarm_result = IARM_RESULT_IPCCORE_FAIL;
-        IARM_Bus_MFRLib_ThermalSoCTemp_Param_t param = {};
-
-        param.highTemp = (int)tempHigh;
-        param.criticalTemp = (int)tempCritical;
-
-        LOGINFO("Setting High Temperature Threshold as : %0.6f and Critical Temperature Threshold as : %0.6f \n",(float)param.highTemp, (float)param.criticalTemp);
-
-        iarm_result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_SetTemperatureThresholds, (void *)&param, sizeof(IARM_Bus_MFRLib_ThermalSoCTemp_Param_t));
-
-        if (IARM_RESULT_SUCCESS == iarm_result)
-        {
-            LOGINFO("Success IARM_BUS_MFRLIB_API_SetTemperatureThresholds\n");
-            result = WPEFramework::Core::ERROR_NONE;
-        }
-        else
-        {
-            LOGERR("Failed IARM_BUS_MFRLIB_API_SetTemperatureThresholds\n");
-        }
+        LOGINFO("Setting High Temperature Threshold as : %0.6f and Critical Temperature Threshold as : %0.6f",tempHigh, tempCritical);
+        mfrError_t response = mfrSetTempThresholds(tempHigh,tempCritical);
+        uint32_t result = (response == mfrERR_NONE) ?WPEFramework::Core::ERROR_NONE:WPEFramework::Core::ERROR_GENERAL;
 
         return result;
     }
@@ -232,12 +210,12 @@ public:
 
     virtual uint32_t GetTemperature(ThermalTemperature &curState, float &curTemperature, float &wifiTemperature) const override
     {
-        uint32_t retValue = WPEFramework::Core::ERROR_GENERAL;
+        mfrTemperatureState_t state = mfrTEMPERATURE_NORMAL;
+        int temperatureValue        = 0;
+        int wifiTempValue           = 0;
+        uint32_t retValue           = WPEFramework::Core::ERROR_GENERAL;
 
-        IARM_Result_t iarm_result = IARM_RESULT_IPCCORE_FAIL;
-        IARM_Bus_MFRLib_ThermalSoCTemp_Param_t param = {};
-
-        iarm_result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetTemperature, (void *)&param, sizeof(IARM_Bus_MFRLib_ThermalSoCTemp_Param_t));
+        mfrError_t result = mfrGetTemperature(&state, &temperatureValue, &wifiTempValue);
 
 #if 0
     /* Leave this debug code here commented out (or otherwise disabled by default). This is used in testing to allow manually controlling the returned temperature.
@@ -245,38 +223,37 @@ public:
     {
         FILE *fp;
         state = (mfrTemperatureState_t)PWRMGR_TEMPERATURE_NORMAL;
-        param.curSoCTemperature=50.0;
-        param.curWiFiTemperature=50.0;
-        iarm_result = IARM_RESULT_SUCCESS;
+        temperatureValue=50.0;
+        wifiTempValue=50.0;
+        result = mfrERR_NONE;
 
         fp = fopen ("/opt/force_temp.soc", "r");
         if (fp) {
-            fscanf(fp, "%d", &param.curSoCTemperature);
+            fscanf(fp, "%d", &temperatureValue);
             fclose(fp);
         }
 
         fp = fopen ("/opt/force_temp.wifi", "r");
         if (fp) {
-            fscanf(fp, "%d", &param.curWiFiTemperature);
+            fscanf(fp, "%d", &wifiTempValue);
             fclose(fp);
         }
 
         fp = fopen ("/opt/force_temp.state", "r");
         if (fp) {
-            fscanf(fp, "%d", &param.curState);
+            fscanf(fp, "%d", &state);
             fclose(fp);
         }
     }
 #endif
 
-        if (IARM_RESULT_SUCCESS == iarm_result) {
-            curState = conv((PWRMgr_ThermalState_t)param.curState);
-            curTemperature = param.curSoCTemperature;
-            wifiTemperature = param.curWiFiTemperature;
+        if (result == mfrERR_NONE)
+        {
+            LOGINFO("Got MFR Temperatures SoC:%d Wifi:%d", temperatureValue, wifiTempValue);
+            curState = conv((PWRMgr_ThermalState_t)state);
+            curTemperature = temperatureValue;
+            wifiTemperature = wifiTempValue;
             retValue = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("SoC Temperature : %d and Wifi Temperature : %d\n",(int)(curTemperature), (int)(wifiTemperature));
-        } else {
-            LOGERR("Failed IARM_BUS_MFRLIB_API_GetTemperature\n");
         }
 
         return retValue;

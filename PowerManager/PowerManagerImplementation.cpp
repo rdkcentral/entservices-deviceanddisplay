@@ -390,12 +390,13 @@ namespace Plugin {
                     _apiLock.Unlock();
                     selfLock.unlock();
                     return Core::ERROR_NONE;
+                } else {
+                    // Log warning only if object is not marked for delete
+                    if (!_modeChangeController->IsMarkedForDelete()) {
+                        LOGWARN("Power state change is already in progress, cancel old request");
+                    }
+                    _modeChangeController.reset();
                 }
-                // Log warning only if object is not marked for delete
-                if (!_modeChangeController->IsMarkedForDelete()) {
-                    LOGWARN("Power state change is already in progress, cancel old request");
-                }
-                _modeChangeController.reset();
             }
 
             _modeChangeController   = std::shared_ptr<PreModeChangeController>(new PreModeChangeController(newState));
@@ -863,14 +864,9 @@ namespace Plugin {
         LOGINFO(">> DeepSleep timedout: %d", wakeupTimeout);
         dispatchDeepSleepTimeoutEvent(wakeupTimeout);
 
-#if !defined(_DISABLE_SCHD_REBOOT_AT_DEEPSLEEP)
-        LOGINFO("Reboot the box due to Deep Sleep Timer Expiry : %d", wakeupTimeout);
-        _deepSleepController.MaintenanceReboot();
-#else
         /*Scheduled maintanace reboot is disabled. Instead state will change to LIGHT_SLEEP*/
         LOGINFO("Set Device to light sleep on Deep Sleep timer expiry");
         SetPowerState(0, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "DeepSleep timedout");
-#endif // _DISABLE_SCHD_REBOOT_AT_DEEPSLEEP
         LOGINFO("<<");
     }
 

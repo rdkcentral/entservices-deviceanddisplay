@@ -63,17 +63,6 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 
 void PowerController::init()
 {
-    if (PowerState::POWER_STATE_STANDBY_DEEP_SLEEP == _settings.powerState()) {
-        const int dsleep_bootup_timeout = 3600; // In sec
-        _bootupInvokeDeepsleepJob = LambdaJob::Create([this]() {
-            invokeDeepSleep();
-        });
-
-        _workerPool.Schedule(
-            WPEFramework::Core::Time::Now().Add(dsleep_bootup_timeout * 1000),
-            _bootupInvokeDeepsleepJob);
-    }
-
     // settings already loaded in constructor
     _lastKnownPowerState = _settings.powerState();
 
@@ -108,12 +97,6 @@ void PowerController::init()
     } while (false);
 }
 
-void PowerController::invokeDeepSleep()
-{
-    LOGINFO("Set Device to Deep Sleep on Bootup Timer Expiry..");
-    SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Bootup Timer Expiry");
-}
-
 uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powerState, const std::string& reason)
 {
     if (access("/tmp/ignoredeepsleep", F_OK) == 0) {
@@ -124,12 +107,6 @@ uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powe
     }
 
     PowerState curState = _settings.powerState();
-
-    if (_bootupInvokeDeepsleepJob.IsValid()) {
-        _workerPool.Revoke(_bootupInvokeDeepsleepJob);
-        _bootupInvokeDeepsleepJob.Release();
-        LOGINFO("Removed bootup deep sleep invoke job");
-    }
 
     /* Independent of Deep sleep */
     uint32_t errCode = platform().SetPowerState(powerState);

@@ -40,7 +40,6 @@
 #include <interfaces/IPowerManager.h> // for IPowerManager
 
 #include "UtilsLogging.h" // for LOGINFO, LOGERR
-
 #include "mfr_temperature.h"
 #include "mfrMgr.h"
 

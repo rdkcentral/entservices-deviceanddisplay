@@ -41,7 +41,7 @@ static constexpr const int HEARTBEAT_INTERVAL_SEC = 300;
 RebootController::RebootController(const Settings& settings)
     : _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _settings(settings)
-    , _standbyRebootThreshold(86400 * 3, 900)
+    , _standbyRebootThreshold(86400 * 3, 300)
     , _forcedRebootThreshold(172800 * 3)
     , _rfcUpdated(false)
 {

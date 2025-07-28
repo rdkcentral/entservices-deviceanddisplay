@@ -4,6 +4,7 @@ on:
   workflow_call:
     inputs:
       caller_branch:
+        description: "The branch name to checkout for the entservices-deviceanddisplay repository."
         required: false
         type: string
     secrets:
@@ -112,7 +113,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: ${{ inputs.caller_branch || github.head_ref || github.ref_name || 'develop' }}
+          ref: ${{ inputs.caller_branch || github.ref_name || github.head_ref }}
 
       - name: Apply patches ThunderTools
         run: |

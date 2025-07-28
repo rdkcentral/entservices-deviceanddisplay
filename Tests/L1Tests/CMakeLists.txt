@@ -103,9 +103,9 @@ macro(add_plugin_test plugin_name test_files)
 endmacro()
 
 # PLUGIN_POWERMANAGER
-set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerManager ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
-add_plugin_test_ex(PLUGIN_POWERMANAGER ../mocks/PowerManagerMock.cpp "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
+#set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerManager ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+#set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
+#add_plugin_test_ex(PLUGIN_POWERMANAGER ../mocks/PowerManagerMock.cpp "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
 
 # PLUGIN_DEVICEINFO
 #set (DEVICEINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)

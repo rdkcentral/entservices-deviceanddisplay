@@ -1029,7 +1029,7 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
 }
 
 // TODO: This testcase will need some rework
-TEST_F(TestPowerManager, DISABLED_DeepSleepInvalidWakeup)
+TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(
@@ -1075,7 +1075,7 @@ TEST_F(TestPowerManager, DISABLED_DeepSleepInvalidWakeup)
             }));
 
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_GetLastWakeupReason(::testing::_))
-        .WillOnce(::testing::Invoke(
+        .WillRepeatedly(::testing::Invoke(
             [](DeepSleep_WakeupReason_t* wakeupReason) {
                 // Invalid wakeup reason
                 return DeepSleep_Return_Status_t(-1);

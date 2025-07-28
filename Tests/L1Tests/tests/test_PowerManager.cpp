@@ -1070,12 +1070,12 @@ TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
                 EXPECT_EQ(networkStandby, false);
                 // Simulate timer wakeup
                 *isGPIOWakeup = false;
-                std::this_thread::sleep_for(std::chrono::seconds(deep_sleep_timeout));
+                std::this_thread::sleep_for(std::chrono::seconds(deep_sleep_timeout/2));
                 return DEEPSLEEPMGR_SUCCESS;
             }));
 
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_GetLastWakeupReason(::testing::_))
-        .WillRepeatedly(::testing::Invoke(
+        .WillOnce(::testing::Invoke(
             [](DeepSleep_WakeupReason_t* wakeupReason) {
                 // Invalid wakeup reason
                 return DeepSleep_Return_Status_t(-1);

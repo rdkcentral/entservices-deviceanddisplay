@@ -5325,7 +5325,7 @@ namespace WPEFramework {
 		LOGERR("Invalid Migration Status\n");
 		return (1101);
             }
-	    return (WPEFramework::Core::ERROR_NONE); 
+	    returnResponse(true); 
         }//end of setMigrationStatus method
 
         /**
@@ -5345,7 +5345,7 @@ namespace WPEFramework {
            if (WDMP_SUCCESS == wdmpstatus) {
                 migrationstatus = param.value;
                 LOGINFO("Current ENTOS Migration Status is: %s\n", migrationstatus.c_str());
-                response["MigrationStatus"] = migrationstatus;
+                response["migrationStatus"] = migrationstatus;
                 status = true;
             }
             else {

@@ -120,7 +120,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: testing_3
 
       - name: Apply patches ThunderTools
         run: |

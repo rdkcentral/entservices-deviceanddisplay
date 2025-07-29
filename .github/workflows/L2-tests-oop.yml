@@ -2,7 +2,8 @@ name: L2-tests-OOP
 
 on:
   workflow_call:
-    test_param:
+    inputs:
+      test_param:
         #description: "The branch name to checkout for the entservices-deviceanddisplay repository."
         required: true
         type: string

@@ -83,7 +83,7 @@ public:
         ON_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(
                 [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
-                    strncpy(pstParamData->name, pcParameterName, strlen(pcParameterName));
+                    strncpy(pstParamData->name, pcParameterName, sizeof(pstParamData->name));
 
                     if (strcmp("RFC_DATA_ThermalProtection_POLL_INTERVAL", pcParameterName) == 0) {
                         strcpy(pstParamData->value, "2");

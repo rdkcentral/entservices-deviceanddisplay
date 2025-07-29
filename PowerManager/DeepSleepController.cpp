@@ -127,7 +127,7 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
             fclose(fp);
             LOGINFO("/tmp/ override Deep Sleep Wakeup Time is %" PRIu64, wakeupTimeInSec);
 
-            return (wakeupTimeInSec > static_cast<uint64_t>(UINT32_MAX) ? UINT32_MAX : uint32_t(wakeupTimeInSec));
+            return (wakeupTimeInSec > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(wakeupTimeInSec));
         }
         fclose(fp);
     }
@@ -169,7 +169,7 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
 
         LOGINFO("Calculated Deep Sleep Wakeup Time After TZ setting is %" PRIu64 "Sec", wakeupTimeInSec);
 
-        return (wakeupTimeInSec > static_cast<uint64_t>(UINT32_MAX) ? UINT32_MAX : uint32_t(wakeupTimeInSec));
+        return (wakeupTimeInSec > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(wakeupTimeInSec));
     }
 
     LOGERR("Failed to get local time");

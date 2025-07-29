@@ -126,13 +126,13 @@ jobs:
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay-local
-        if: caller_branch != 'testframework'
+        if: ${{ inputs.caller_branch != 'testframework' }}
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay
 
       - name: Checkout entservices-deviceanddisplay-testframework
-        if: caller_branch == 'testframework'
+        if: ${{ inputs.caller_branch == 'testframework' }}
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-deviceanddisplay

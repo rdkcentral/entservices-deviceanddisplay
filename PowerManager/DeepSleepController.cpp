@@ -112,9 +112,11 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
 {
     time_t now = 0, wakeup = 0;
     struct tm wakeupTime     = { 0 };
-    uint64_t wakeupTimeInSec = 0;
+    uint32_t wakeupTimeInSec = 0;
     uint32_t getTZDiffTime   = 0;
     uint32_t wakeupTimeInMin = 5;
+
+    const uint32_t limit = 60 * 24 * 3; // 3 days limit in minutes
 
     /* Read the wakeup Time in Seconds from /tmp override
        else calculate the Wakeup time till 2AM */
@@ -123,11 +125,11 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         if (0 > fscanf(fp, "%d", &wakeupTimeInMin)) {
             LOGINFO("Error: fscanf on wakeupTimeInSec failed");
         } else {
-            wakeupTimeInSec = wakeupTimeInMin * 60;
+            wakeupTimeInSec = (wakeupTimeInMin * 60 > limit ? limit : wakeupTimeInMin * 60);
             fclose(fp);
-            LOGINFO("/tmp/ override Deep Sleep Wakeup Time is %" PRIu64, wakeupTimeInSec);
+            LOGINFO("/tmp/ override Deep Sleep Wakeup Time is %" PRIu32, wakeupTimeInSec);
 
-            return (wakeupTimeInSec > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(wakeupTimeInSec));
+            return wakeupTimeInSec;
         }
         fclose(fp);
     }
@@ -162,14 +164,14 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         */
         uint32_t randTimeInSec = secure_random() % (3600); // for 1 hour window
         wakeupTimeInSec        = wakeupTimeInSec + randTimeInSec;
-        LOGINFO("Calculated Deep Sleep Wakeup Time Before TZ setting is %" PRIu64 "Sec", wakeupTimeInSec);
+        LOGINFO("Calculated Deep Sleep Wakeup Time Before TZ setting is %" PRIu32 "Sec", wakeupTimeInSec);
 
         getTZDiffTime   = getTZDiffInSec();
         wakeupTimeInSec = wakeupTimeInSec + getTZDiffTime;
 
-        LOGINFO("Calculated Deep Sleep Wakeup Time After TZ setting is %" PRIu64 "Sec", wakeupTimeInSec);
+        LOGINFO("Calculated Deep Sleep Wakeup Time After TZ setting is %" PRIu32 "Sec", wakeupTimeInSec);
 
-        return (wakeupTimeInSec > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(wakeupTimeInSec));
+        return wakeupTimeInSec;
     }
 
     LOGERR("Failed to get local time");

@@ -120,7 +120,7 @@ int RebootController::fetchRFCValueInt(const char* key)
     char rfcVal[MAX_RFC_LEN + 1] = { 0 };
     int len = 0;
 
-    if (WDMP_SUCCESS == getRFCParameter("PwrMgr", key, &param)) {
+    if (WDMP_SUCCESS == getRFCParameter((char*)"PwrMgr", key, &param)) {
         len = strlen(param.value);
         if (len > MAX_RFC_LEN) {
             len = MAX_RFC_LEN;
@@ -145,7 +145,7 @@ bool RebootController::isStandbyRebootEnabled()
 {
     RFC_ParamData_t rfcParam;
     const char* key = STANDBY_REBOOT_ENABLE;
-    if (WDMP_SUCCESS == getRFCParameter("PwrMgr", key, &rfcParam)) {
+    if (WDMP_SUCCESS == getRFCParameter((char*)"PwrMgr", key, &rfcParam)) {
         return (strncasecmp(rfcParam.value, "true", 4) == 0);
     }
 

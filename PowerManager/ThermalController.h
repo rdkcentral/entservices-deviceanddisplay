@@ -50,8 +50,8 @@
 #endif
 
 #define STANDBY_REASON_FILE       "/opt/standbyReason.txt"
-#define THERMAL_PROTECTION_GROUP  "Thermal_Config"
-#define THERMAL_SHUTDOWN_REASON   "THERMAL_SHUTDOWN"
+#define THERMAL_PROTECTION_GROUP  (char*)"Thermal_Config"
+#define THERMAL_SHUTDOWN_REASON   (char*)"THERMAL_SHUTDOWN"
 
 
 class ThermalController {

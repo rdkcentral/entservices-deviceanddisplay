@@ -20,7 +20,7 @@
 #include <chrono>
 #include <cstdint>
 #include <errno.h>    // for errno
-#include <fstream>    //
+#include <fstream>    // for ifstream
 #include <functional> // for function
 #include <memory>
 
@@ -116,7 +116,7 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
     uint32_t getTZDiffTime   = 0;
     uint32_t wakeupTimeInMin = 5;
 
-    const uint32_t limit = 60 * 24 * 3; // 3 days limit in minutes
+    const uint32_t limit = 3 * 24 * 60 * 60; // 3 days limit in seconds
 
     /* Read the wakeup Time in Seconds from /tmp override
        else calculate the Wakeup time till 2AM */
@@ -125,7 +125,7 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         if (0 > fscanf(fp, "%d", &wakeupTimeInMin)) {
             LOGINFO("Error: fscanf on wakeupTimeInSec failed");
         } else {
-            wakeupTimeInSec = (wakeupTimeInMin * 60 > limit ? limit : wakeupTimeInMin * 60);
+            wakeupTimeInSec = wakeupTimeInMin * 60 > limit ? limit : wakeupTimeInMin * 60;
             fclose(fp);
             LOGINFO("/tmp/ override Deep Sleep Wakeup Time is %" PRIu32, wakeupTimeInSec);
 
@@ -162,7 +162,7 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         /* Add randomness to calculated value i.e between 2AM - 3AM
             for 1 hour window
         */
-        uint32_t randTimeInSec = secure_random() % (3600); // for 1 hour window
+        uint32_t randTimeInSec = secure_random() % 3600; // for 1 hour window
         wakeupTimeInSec        = wakeupTimeInSec + randTimeInSec;
         LOGINFO("Calculated Deep Sleep Wakeup Time Before TZ setting is %" PRIu32 "Sec", wakeupTimeInSec);
 

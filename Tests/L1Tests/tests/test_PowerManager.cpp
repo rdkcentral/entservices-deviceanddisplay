@@ -233,31 +233,19 @@ public:
 
         TearDownMocks();
 
-        if(0!=system("rm /opt/uimgr_settings.bin"))
-        {
-            TEST_LOG("system() failed");
-        }
+        if(0!=system("rm /opt/uimgr_settings.bin")){/* do nothig */}
 
         // Although this file is not created always
         // delete to avoid dependency among test cases
-        if(0!=system("rm -f /tmp/deepSleepTimer"))
-        {
-            TEST_LOG("system() failed");
-        }
-        if(0!=system("rm -f /tmp/deepSleepTimerVal"))
-        {
-            TEST_LOG("system() failed");
-        }
-        if(0!=system("rm -f /tmp/ignoredeepsleep"))
-        {
-            TEST_LOG("system() failed");
-        }
+        if(0!=system("rm -f /tmp/deepSleepTimer")){/* do nothig */}
+        if(0!=system("rm -f /tmp/deepSleepTimerVal")){/* do nothig */}
+        if(0!=system("rm -f /tmp/ignoredeepsleep")){/* do nothig */}
 
         // in some rare cases we saw settings file being reused from
         // old testcase, fs sync would resolve such issues
         if(0!=system("sync"))
         {
-            TEST_LOG("system() failed");
+            // do nothig
         }
     }
 

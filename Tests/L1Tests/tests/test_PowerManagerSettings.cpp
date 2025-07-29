@@ -10,6 +10,7 @@
 
 using namespace WPEFramework;
 
+#define TEST_LOG(x, ...) fprintf(stderr, "\033[1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); fflush(stderr);
 struct PowerManagerSettingsParam {
     // test inputs
     PowerState powerState; // persisted power state
@@ -39,14 +40,8 @@ public:
 
         std::string rmCmd = "rm -f " + _settingsFile;
 
-        if(0!=system(rmCmd.c_str()))
-        {
-            TEST_LOG("system() failed");
-        }
-        if(0!=system("rm -f /tmp/pwrmgr_restarted"))
-        {
-            TEST_LOG("system() failed");
-        }
+        if(0!=system(rmCmd.c_str())){/* do nothig */}
+        if(0!=system("rm -f /tmp/pwrmgr_restarted")){/* do nothig */}
     }
 
     void populateSettingsV1(PowerState prevState, int deepSleepTimeout, bool nwStandbyMode)

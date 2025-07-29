@@ -16,6 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <cstring>
 #include <sstream>
 
 #include "plat_power.h"
@@ -110,7 +111,13 @@ public:
         const auto expected_size      = Size();
 
         if (header.length == expected_size) {
-            lseek(fd, 0, SEEK_SET);
+
+            off_t ret = lseek(fd, 0, SEEK_SET);
+            if (ret == (off_t)-1) {
+                LOGERR("Failed to reset seek offset %s", strerror(errno));
+                return false;
+            }
+
             const auto read_size = read(fd, &pwrSettings, expected_size);
             if (read_size != expected_size) {
                 // failure
@@ -147,7 +154,12 @@ public:
             .padding            = { 0 }
         };
 
-        lseek(fd, 0, SEEK_SET);
+        off_t ret = lseek(fd, 0, SEEK_SET);
+        if (ret == (off_t)-1) {
+            LOGERR("FATAL failed to reset seek offset %s", strerror(errno));
+            return false;
+        }
+
         auto res = write(fd, &pwrSettings, Size());
         if (res < 0) {
             LOGERR("Failed to write settings %s", strerror(errno));

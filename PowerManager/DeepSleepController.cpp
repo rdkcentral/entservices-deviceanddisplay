@@ -18,7 +18,9 @@
  */
 
 #include <chrono>
+#include <cstdint>
 #include <errno.h>    // for errno
+#include <fstream>    //
 #include <functional> // for function
 #include <memory>
 
@@ -95,6 +97,14 @@ void DeepSleepWakeupSettings::initializeTimeZone()
     _maptzValues["EST05EDT,M3.2.0,M11.1.0"]   = tzEST05EDT;
 }
 
+uint32_t DeepSleepWakeupSettings::secure_random() const
+{
+    std::ifstream urandom("/dev/urandom", std::ios::in | std::ios::binary);
+    uint32_t value;
+    urandom.read(reinterpret_cast<char*>(&value), sizeof(value));
+    return value;
+}
+
 /*  Get Wakeup timeout.
     Wakeup the box to do Maintenance related activities.
 */
@@ -102,7 +112,8 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
 {
     time_t now = 0, wakeup = 0;
     struct tm wakeupTime     = { 0 };
-    uint32_t wakeupTimeInSec = 0, getTZDiffTime = 0;
+    uint64_t wakeupTimeInSec = 0;
+    uint32_t getTZDiffTime   = 0;
     uint32_t wakeupTimeInMin = 5;
 
     /* Read the wakeup Time in Seconds from /tmp override
@@ -114,8 +125,9 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         } else {
             wakeupTimeInSec = wakeupTimeInMin * 60;
             fclose(fp);
-            LOGINFO("/tmp/ override Deep Sleep Wakeup Time is %d", wakeupTimeInSec);
-            return wakeupTimeInSec;
+            LOGINFO("/tmp/ override Deep Sleep Wakeup Time is %" PRIu64, wakeupTimeInSec);
+
+            return (wakeupTimeInSec > static_cast<uint64_t>(UINT32_MAX) ? UINT32_MAX : uint32_t(wakeupTimeInSec));
         }
         fclose(fp);
     }
@@ -148,17 +160,16 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
         /* Add randomness to calculated value i.e between 2AM - 3AM
             for 1 hour window
         */
-        srand(time(NULL));
-        uint32_t randTimeInSec = (uint32_t)rand() % (3600) + 0; // for 1 hour window
+        uint32_t randTimeInSec = secure_random() % (3600); // for 1 hour window
         wakeupTimeInSec        = wakeupTimeInSec + randTimeInSec;
-        LOGINFO("Calculated Deep Sleep Wakeup Time Before TZ setting is %d Sec", wakeupTimeInSec);
+        LOGINFO("Calculated Deep Sleep Wakeup Time Before TZ setting is %" PRIu64 "Sec", wakeupTimeInSec);
 
         getTZDiffTime   = getTZDiffInSec();
         wakeupTimeInSec = wakeupTimeInSec + getTZDiffTime;
 
-        LOGINFO("Calculated Deep Sleep Wakeup Time After TZ setting is %d Sec", wakeupTimeInSec);
+        LOGINFO("Calculated Deep Sleep Wakeup Time After TZ setting is %" PRIu64 "Sec", wakeupTimeInSec);
 
-        return wakeupTimeInSec;
+        return (wakeupTimeInSec > static_cast<uint64_t>(UINT32_MAX) ? UINT32_MAX : uint32_t(wakeupTimeInSec));
     }
 
     LOGERR("Failed to get local time");

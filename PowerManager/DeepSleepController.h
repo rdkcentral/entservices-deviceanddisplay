@@ -96,6 +96,9 @@ private:
     */
     uint32_t getWakeupTime() const;
 
+    /* Secure 32-bit random number from /dev/urandom. */
+    uint32_t secure_random() const;
+
 private:
     Settings& _settings;
     bool _isDeepSleepTimeoutSet;

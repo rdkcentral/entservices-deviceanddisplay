@@ -233,17 +233,32 @@ public:
 
         TearDownMocks();
 
-        (void)system("rm /opt/uimgr_settings.bin");
+        if(0!=system("rm /opt/uimgr_settings.bin"))
+        {
+            TEST_LOG("system() failed");
+        }
 
         // Although this file is not created always
         // delete to avoid dependency among test cases
-        (void)system("rm -f /tmp/deepSleepTimer");
-        (void)system("rm -f /tmp/deepSleepTimerVal");
-        (void)system("rm -f /tmp/ignoredeepsleep");
+        if(0!=system("rm -f /tmp/deepSleepTimer"))
+        {
+            TEST_LOG("system() failed");
+        }
+        if(0!=system("rm -f /tmp/deepSleepTimerVal"))
+        {
+            TEST_LOG("system() failed");
+        }
+        if(0!=system("rm -f /tmp/ignoredeepsleep"))
+        {
+            TEST_LOG("system() failed");
+        }
 
         // in some rare cases we saw settings file being reused from
         // old testcase, fs sync would resolve such issues
-        (void)system("sync");
+        if(0!=system("sync"))
+        {
+            TEST_LOG("system() failed");
+        }
     }
 
     static void SetUpTestSuite()
@@ -568,7 +583,10 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
 
 TEST_F(TestPowerManager, DeepSleepIgnore)
 {
-    (void)system("touch /tmp/ignoredeepsleep");
+    if(0!=system("touch /tmp/ignoredeepsleep"))
+    {
+        TEST_LOG("system() failed");
+    }
 
     uint32_t clientId = 0;
     uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
@@ -935,8 +953,14 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
 
 TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
 {
-    (void)system("echo 1 > /tmp/deepSleepTimer");
-    (void)system("echo 2 > /tmp/deepSleepTimerVal");
+    if(0!=system("echo 1 > /tmp/deepSleepTimer"))
+    {
+        TEST_LOG("system() failed");
+    }
+    if(0!=system("echo 2 > /tmp/deepSleepTimerVal"))
+    {
+        TEST_LOG("system() failed");
+    }
 
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(

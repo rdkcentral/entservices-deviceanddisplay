@@ -39,8 +39,14 @@ public:
 
         std::string rmCmd = "rm -f " + _settingsFile;
 
-        (void)system(rmCmd.c_str());
-        (void)system("rm -f /tmp/pwrmgr_restarted");
+        if(0!=system(rmCmd.c_str()))
+        {
+            TEST_LOG("system() failed");
+        }
+        if(0!=system("rm -f /tmp/pwrmgr_restarted"))
+        {
+            TEST_LOG("system() failed");
+        }
     }
 
     void populateSettingsV1(PowerState prevState, int deepSleepTimeout, bool nwStandbyMode)
@@ -75,7 +81,10 @@ TEST_P(TestPowerManagerSettings, AllTests)
     populateSettingsV1(param.powerState, param.deepSleepTimeout, param.nwStandbyMode);
 
     if (param.restart) {
-        (void)system("touch /tmp/pwrmgr_restarted");
+        if(0!=system("touch /tmp/pwrmgr_restarted"))
+        {
+            TEST_LOG("system() failed");
+        }
     }
 
     Settings settings = Settings::Load(_settingsFile);

@@ -116,7 +116,7 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
     uint32_t getTZDiffTime   = 0;
     uint32_t wakeupTimeInMin = 5;
 
-    const uint32_t limit = 3 * 24 * 60 * 60; // 3 days limit in seconds
+    const uint32_t limit = 6 * 24 * 60 * 60; // 6 days limit in seconds
 
     /* Read the wakeup Time in Seconds from /tmp override
        else calculate the Wakeup time till 2AM */

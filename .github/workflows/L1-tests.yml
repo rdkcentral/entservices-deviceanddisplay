@@ -3,9 +3,9 @@ name: L1-tests
 on:
   workflow_call:
     inputs:
-      caller_source:
+      test_param:
         #description: "The branch name to checkout for the entservices-deviceanddisplay repository."
-        required: false
+        required: true
         type: string
     secrets:
       RDKCM_RDKE:
@@ -127,14 +127,14 @@ jobs:
 
       - name: Checkout entservices-deviceanddisplay-local
         #if: ${{ inputs.caller_branch != 'testframework' }}
-        if: ${{ inputs.caller_source != 'testframework' }}
+        if: ${{ inputs.test_param != 'testframework' }}
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay
 
       - name: Checkout entservices-deviceanddisplay-testframework
         #if: ${{ inputs.caller_branch == 'testframework' }}
-        if: ${{ inputs.caller_source == 'testframework' }}
+        if: ${{ inputs.test_param == 'testframework' }}
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-deviceanddisplay

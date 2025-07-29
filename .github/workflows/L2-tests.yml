@@ -2,6 +2,10 @@ name: L2-tests
 
 on:
   workflow_call:
+    caller_source:
+        #description: "The branch name to checkout for the entservices-deviceanddisplay repository."
+        required: true
+        type: string
     secrets:
       RDKCM_RDKE:
         required: true
@@ -82,10 +86,15 @@ jobs:
           path: ThunderTools
           ref: R4.4.3
 
+      - name: Checkout entservices-deviceanddisplay-local
+        uses: actions/checkout@v3
+        with:
+          path: entservices-deviceanddisplay
+
       - name: Checkout entservices-deviceanddisplay
         uses: actions/checkout@v3
         with:
-          repository: rdkcentral/entservices-deviceanddisplay
+          repository: rdkcentral/entservices-deviceanddisplay-testframework
           path: entservices-deviceanddisplay
           ref: develop
 

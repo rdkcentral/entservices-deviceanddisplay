@@ -87,11 +87,13 @@ jobs:
           ref: R4.4.3
 
       - name: Checkout entservices-deviceanddisplay-local
+        if: caller_source != 'testframework'
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay
 
       - name: Checkout entservices-deviceanddisplay
+        if: caller_source == 'testframework'
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-deviceanddisplay-testframework

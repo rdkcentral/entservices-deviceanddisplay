@@ -93,11 +93,11 @@ jobs:
         with:
           path: entservices-deviceanddisplay
 
-      - name: Checkout entservices-deviceanddisplay
+      - name: Checkout entservices-deviceanddisplay-testframework
         if: ${{ inputs.caller_source == 'testframework' }}
         uses: actions/checkout@v3
         with:
-          repository: rdkcentral/entservices-deviceanddisplay-testframework
+          repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
           ref: develop
 

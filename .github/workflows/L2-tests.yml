@@ -2,7 +2,7 @@ name: L2-tests
 
 on:
   workflow_call:
-    caller_branch:
+    caller_source:
         #description: "The branch name to checkout for the entservices-deviceanddisplay repository."
         required: true
         type: string
@@ -87,13 +87,15 @@ jobs:
           ref: R4.4.3
 
       - name: Checkout entservices-deviceanddisplay-local
-        if: ${{ inputs.caller_branch != 'testframework' }}
+        #if: ${{ inputs.caller_branch != 'testframework' }}
+        if: ${{ inputs.caller_source != 'testframework' }}
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay
 
       - name: Checkout entservices-deviceanddisplay
-        if: ${{ inputs.caller_branch == 'testframework' }}
+        #if: ${{ inputs.caller_branch == 'testframework' }}
+        if: ${{ inputs.caller_source == 'testframework' }}
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-deviceanddisplay-testframework

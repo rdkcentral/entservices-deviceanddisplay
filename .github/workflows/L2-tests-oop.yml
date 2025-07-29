@@ -2,7 +2,7 @@ name: L2-tests-OOP
 
 on:
   workflow_call:
-    caller_source:
+    caller_branch:
         #description: "The branch name to checkout for the entservices-deviceanddisplay repository."
         required: true
         type: string
@@ -107,13 +107,13 @@ jobs:
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay-local
-        if: caller_source != 'testframework'
+        if: caller_branch != 'testframework'
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay
 
       - name: Checkout entservices-deviceanddisplay-testframework
-        if: caller_source == 'testframework'
+        if: caller_branch == 'testframework'
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-deviceanddisplay

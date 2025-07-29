@@ -4,7 +4,7 @@ on:
   workflow_call:
     caller_source:
         #description: "The branch name to checkout for the entservices-deviceanddisplay repository."
-        required: true
+        required: false
         type: string
     secrets:
       RDKCM_RDKE:

@@ -5325,7 +5325,7 @@ namespace WPEFramework {
 		LOGERR("Invalid Migration Status\n");
 		return (1101);
             }
-	    returnResponse(true); 
+	    returnResponse(true); // returning true
         }//end of setMigrationStatus method
 
         /**

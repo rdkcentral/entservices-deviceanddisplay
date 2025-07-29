@@ -171,7 +171,7 @@ DeviceDiagnostics_L2test::~DeviceDiagnostics_L2test()
     }
 
     uint32_t status = Core::ERROR_GENERAL;
-    sleep(2);
+
     /* Deactivate plugin in destructor */
     status = DeactivateService("org.rdk.DeviceDiagnostics");
     EXPECT_EQ(Core::ERROR_NONE, status);

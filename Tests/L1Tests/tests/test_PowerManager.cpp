@@ -233,17 +233,17 @@ public:
 
         TearDownMocks();
 
-        system("rm /opt/uimgr_settings.bin");
+        (void)system("rm /opt/uimgr_settings.bin");
 
         // Although this file is not created always
         // delete to avoid dependency among test cases
-        system("rm -f /tmp/deepSleepTimer");
-        system("rm -f /tmp/deepSleepTimerVal");
-        system("rm -f /tmp/ignoredeepsleep");
+        (void)system("rm -f /tmp/deepSleepTimer");
+        (void)system("rm -f /tmp/deepSleepTimerVal");
+        (void)system("rm -f /tmp/ignoredeepsleep");
 
         // in some rare cases we saw settings file being reused from
         // old testcase, fs sync would resolve such issues
-        system("sync");
+        (void)system("sync");
     }
 
     static void SetUpTestSuite()
@@ -568,7 +568,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
 
 TEST_F(TestPowerManager, DeepSleepIgnore)
 {
-    system("touch /tmp/ignoredeepsleep");
+    (void)system("touch /tmp/ignoredeepsleep");
 
     uint32_t clientId = 0;
     uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
@@ -935,8 +935,8 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
 
 TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
 {
-    system("echo 1 > /tmp/deepSleepTimer");
-    system("echo 2 > /tmp/deepSleepTimerVal");
+    (void)system("echo 1 > /tmp/deepSleepTimer");
+    (void)system("echo 2 > /tmp/deepSleepTimerVal");
 
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(

@@ -355,23 +355,15 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
     /************************getBassEnhancer***************************/
 
     // device::AudioOutputPort audioOutputPort;
-    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-        .WillByDefault(::testing::ReturnRef(audioOutputPort));
-
-    // EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-    //     .WillOnce(::testing::Invoke(
-    //         [&](const std::string& name) -> device::AudioOutputPort& {
-    //             EXPECT_EQ(name, _T("SPEAKER0"));
-    //             throw device::Exception("true");
-    //         }));
-
-    // Setup mock for getBassEnhancer to return valid values for SPEAKER0
     // ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-    //     .WillByDefault(testing::Invoke(
-    //         [&](const std::string& name) -> device::AudioOutputPort& {
-    //             EXPECT_EQ(name, _T("SPEAKER0"));
-    //             return audioOutputPortSPEAKER0;
-    //         }));
+    //     .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const std::string& name) -> device::AudioOutputPort& {
+                EXPECT_EQ(name, _T("SPEAKER0"));
+                throw device::Exception("true");
+            }));
         
     // ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
     //     .WillByDefault(::testing::Invoke(
@@ -388,15 +380,15 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
 
     /************************getSurroundVirtualizer***************************/
 
-    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+    // ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+    //     .WillByDefault(::testing::ReturnRef(audioOutputPort));
 
-    // EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-    //     .WillOnce(::testing::Invoke(
-    //         [&](const std::string& name) -> device::AudioOutputPort& {
-    //             EXPECT_EQ(name, _T("SPEAKER0"));
-    //             throw device::Exception("test");
-    //         }));
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const std::string& name) -> device::AudioOutputPort& {
+                EXPECT_EQ(name, _T("SPEAKER0"));
+                throw device::Exception("test");
+            }));
 
     {
         JsonObject result, params4;

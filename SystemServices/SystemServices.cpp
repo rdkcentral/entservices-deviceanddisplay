@@ -4605,14 +4605,14 @@ namespace WPEFramework {
                 for(uint32_t i =0; i<wakeupSrcs.Length();i++)
                 {
                     JsonObject wakeupSrc = wakeupSrcs.Get(i).Object();
-                    for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <= WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_RF4CE; src++)
+                    for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src < WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_MAX; src<<=1)
                     {
                         if(wakeupSrc.HasLabel(getWakeupSrcString(src)))
                         {
-                            srcType |= (1<<src);
+                            srcType |= src;
                             if (wakeupSrc[getWakeupSrcString(src)].Boolean())
                             {
-                                config |= (1<<src);
+                                config |= src;
                             }
                             if ((WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_WIFI == src) || (WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_LAN == src))
                             {

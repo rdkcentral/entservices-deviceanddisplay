@@ -222,6 +222,45 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
             [&](int* capabilities) {
             *capabilities = dsHDRSTANDARD_HLG | dsHDRSTANDARD_HDR10;
         }));
+
+
+     ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    ON_CALL(*p_audioOutputPortMock, isConnected())
+        .WillByDefault(::testing::Return(true));
+
+    ON_CALL(*p_audioOutputPortMock, getBassEnhancer())
+        .WillByDefault(::testing::Return(50));
+
+    dsSurroundVirtualizer_t mockVirtualizer;
+    mockVirtualizer.mode = 1;
+    mockVirtualizer.boost = 90;
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    ON_CALL(*p_audioOutputPortMock, isConnected())
+        .WillByDefault(::testing::Return(true));
+
+    ON_CALL(*p_audioOutputPortMock, getSurroundVirtualizer())
+        .WillByDefault(::testing::Return(mockVirtualizer));
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    ON_CALL(*p_audioOutputPortMock, isConnected())
+        .WillByDefault(::testing::Return(true));
+
     /*********************DisplaySettings Calls - End*********************************************/
     /**************getCurrentResolution********************/
 
@@ -310,6 +349,62 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
     {
         JsonObject result, params;
         status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSinkAtmosCapability", params, result);
+    }
+    /************************getSupportedMS12Config***************************/
+    {
+        JsonObject result, params;
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSupportedMS12Config", params, result);
+    }
+
+    /************************getVolumeLeveller***************************/
+
+
+    {
+        JsonObject result, params5;
+        params5["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getVolumeLeveller", params5, result);
+    }
+
+    /************************resetBassEnhancer***************************/
+
+    {
+        JsonObject result, params6;
+        params6["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "resetBassEnhancer", params6, result);
+    }
+
+    /************************resetVolumeLeveller***************************/
+
+    {
+        JsonObject result, params7;
+        params7["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "resetVolumeLeveller", params7, result);
+    }
+
+    /************************getBassEnhancer***************************/
+
+    {
+        JsonObject params3, result;
+        params3["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getBassEnhancer", params3, result);
+    }
+
+    /************************getSurroundVirtualizer***************************/
+
+    {
+        JsonObject result, params4;
+        params4["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSurroundVirtualizer", params4, result);
+    }
+
+    /************************setVolumeLeveller***************************/
+
+    {
+        JsonObject result, params8;
+        params8["audioPort"] = "SPEAKER0";
+        params8["mode"] = "1";
+        params8["level"] = "9";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "setVolumeLeveller", params8, result);
     }
 
 }

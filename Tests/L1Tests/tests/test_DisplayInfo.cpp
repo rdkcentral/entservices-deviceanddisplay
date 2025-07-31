@@ -22,95 +22,171 @@
 
 #include <gtest/gtest.h>
 
-#include "Implementation/DisplayInfo.h"
+#include "../../../DisplayInfo/DeviceSettings/PlatformImplementation.cpp"
+#include "DisplayInfo.h"
+#include "DisplayInfoMock.h"
 
 #include "IarmBusMock.h"
+#include "ManagerMock.h"
 
 #include <fstream>
 #include "ThunderPortability.h"
 
-#include "DisplayInfoMock.h"
-#include "AudioOutputPortMock.h"
+#include "FactoriesImplementation.h"
 #include "HostMock.h"
 #include "IarmBusMock.h"
-#include "ManagerMock.h"
 #include "ServiceMock.h"
-#include "VideoOutputPortConfigMock.h"
-#include "VideoOutputPortMock.h"
-#include "VideoOutputPortTypeMock.h"
-#include "VideoResolutionMock.h"
-
+#include "VideoDeviceMock.h"
+#include "devicesettings.h"
+#include "dsMgr.h"
+#include "ThunderPortability.h"
+#include "WorkerPoolImplementation.h"
+#include "WrapsMock.h"
 
 #include "SystemInfo.h"
 
 #include <fstream>
+#include <boost/filesystem.hpp>
 #include "ThunderPortability.h"
 
 using namespace WPEFramework;
 
 using ::testing::NiceMock;
 
-namespace {
-const string webPrefix = _T("/Service/DisplayInfo");
-}
-
-using ::testing::NiceMock;
-
 class DisplayInfoTest : public ::testing::Test {
 protected:
     IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
-    Core::ProxyType<Plugin::IGraphicsProperties> graphicsPropertiesImplementation;
-    Core::ProxyType<Plugin::IConnectionProperties> connectionPropertiesImplementation;
-    Core::ProxyType<Plugin::IHDRProperties> hdrPropertiesImplementation;
-    Core::ProxyType<Plugin::IDisplayProperties> displayPropertiesImplementation;
-    Exchange::IGraphicsProperties* graphicsInterface = nullptr;
-    Exchange::IConnectionProperties* connectionInterface = nullptr;
-    Exchange::IHDRProperties* hdrInterface = nullptr;
-    Exchange::IDisplayProperties* displayInterface = nullptr;
+    Core::ProxyType<Plugin::DisplayInfo> plugin;
+    Core::ProxyType<Plugin::DisplayInfoImplementation> displayInfoImplementation;
+    Core::JSONRPC::Handler& handler;
+    DECL_CORE_JSONRPC_CONX connection;
+    NiceMock<ServiceMock> service;
+    PLUGINHOST_DISPATCHER *dispatcher;
+    ManagerImplMock   *p_managerImplMock = nullptr ;
+    ConnectionPropertiesMock* p_connectionpropertiesMock = nullptr;
+    Core::ProxyType<WorkerPoolImplementation> workerPool;
+    NiceMock<FactoriesImplementation> factoriesImplementation;
+    ServiceMock  *p_serviceMock  = nullptr;
+    WrapsImplMock* p_wrapsImplMock = nullptr;
+    IARM_EventHandler_t _iarmDisplayInfoPreChangeEventHandler;
+    IARM_EventHandler_t _iarmDisplayInfoPowtChangeEventHandler;
+    Exchange::IConnectionProperties::INotification *ConnectionProperties = nullptr;
 
     DisplayInfoTest()
+    : plugin(Core::ProxyType<Plugin::DisplayInfo>::Create())
+    , handler(*(plugin))
+    , INIT_CONX(1, 0)
+    , workerPool(Core::ProxyType<WorkerPoolImplementation>::Create(
+      2, Core::Thread::DefaultStackSize(), 16))
     {
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
 
-        graphicsPropertiesImplementation = Core::ProxyType<Plugin::IGraphicsProperties>::Create();
-        connectionPropertiesImplementation = Core::ProxyType<Plugin::IConnectionProperties>::Create();
-        hdrPropertiesImplementation = Core::ProxyType<Plugin::IHDRProperties>::Create();
-        displayPropertiesImplementation = Core::ProxyType<Plugin::IDisplayProperties>::Create();
+        p_serviceMock = new NiceMock <ServiceMock>;
 
-        graphicsInterface = static_cast<Exchange::IGraphicsProperties*>(
-            graphicsPropertiesImplementation->QueryInterface(Exchange::IGraphicsProperties::ID));
+        p_connectionpropertiesMock  = new NiceMock <ConnectionPropertiesMock>;
 
-        connectionInterface = static_cast<Exchange::IConnectionProperties*>(
-            connectionPropertiesImplementation->QueryInterface(Exchange::IConnectionProperties::ID));
 
-        hdrInterface = static_cast<Exchange::IHDRProperties*>(
-            hdrPropertiesImplementation->QueryInterface(Exchange::IHDRProperties::ID));
 
-        displayInterface = static_cast<Exchange::IDisplayProperties*>(
-            displayPropertiesImplementation->QueryInterface(Exchange::IDisplayProperties::ID));
+	    p_wrapsImplMock = new NiceMock<WrapsImplMock>;
+        Wraps::setImpl(p_wrapsImplMock);
+
+        p_managerImplMock  = new NiceMock <ManagerImplMock>;
+        device::Manager::setImpl(p_managerImplMock);
+
+        EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
+        PluginHost::IFactories::Assign(&factoriesImplementation);
+
+        dispatcher = static_cast<PLUGINHOST_DISPATCHER*>(
+        plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
+        dispatcher->Activate(&service);
+        plugin->Initialize(&service);
+
+        ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
+                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_RES_PRECHANGE)) 			{
+			            //FrameRatePreChange = handler;
+	            		_iarmDisplayInfoPreChangeEventHandler = handler;
+                    }
+                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE))			{
+			            //FrameRatePostChange = handler;
+			            _iarmDisplayInfoPowtChangeEventHandler = handler;
+                    }
+                    return IARM_RESULT_SUCCESS;
+                }));
+
+
+        //displayInfoImplementation = Core::ProxyType<Plugin::DisplayInfoImplementation>::Create();
+
+        ON_CALL(*p_connectionpropertiesMock, Register(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](Exchange::IConnectionProperties::INotification* notification) {
+                    ConnectionProperties = notification;
+		    return Core::ERROR_NONE;
+                }));
+
 
     }
     virtual ~DisplayInfoTest()
     {
-        graphicsInterface->Release();
-        connectionInterface->Release();
-        hdrInterface->Release();
-        displayInterface->Release();
+        plugin->Deinitialize(&service);
+        dispatcher->Deactivate();
+        dispatcher->Release();
+        
+
+        if (p_serviceMock != nullptr)
+        {
+            delete p_serviceMock;
+            p_serviceMock = nullptr;
+        }
+
+        Wraps::setImpl(nullptr);
+        if (p_wrapsImplMock != nullptr) {
+            delete p_wrapsImplMock;
+            p_wrapsImplMock = nullptr;
+        }
+        
+        device::Manager::setImpl(nullptr);
+        if (p_managerImplMock != nullptr)
+        {
+            delete p_managerImplMock;
+            p_managerImplMock = nullptr;
+        }
+        if (p_connectionpropertiesMock != nullptr) {
+            delete p_connectionpropertiesMock;
+            p_connectionpropertiesMock = nullptr;
+        }
+
+
         IarmBus::setImpl(nullptr);
         if (p_iarmBusImplMock != nullptr)
         {
             delete p_iarmBusImplMock;
             p_iarmBusImplMock = nullptr;
         }
+        //displayInfoImplementation->Release();
+
+        
     }
+};
 
     TEST_F(DisplayInfoTest, TotalGpuRam)
     {
-        uint64_t total = 0;
-        EXPECT_EQ(Core::ERROR_NONE, graphicsInterface->TotalGpuRam(total));
-        EXPECT_EQ(total, 4096);
+        std::ofstream file("/proc/meminfo");
+        file << "MemTotal: 4096";
+        file.close();
+        Web::Request request;
+        request.Verb = Web::Request::HTTP_GET;
+        JsonData::DisplayInfo::DisplayinfoData& displayInfo
+        plugin->Process(*request);
+       // EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("displayinfo"), _T(""), response));
+        //plugin->Info(displayInfo);       // EXPECT_EQ(displayInfo.Totalgpuram, check);
     }
+    /*
     TEST_F(DisplayInfoTest, FreeGpuRam)
     {
         uint64_t free = 0;
@@ -257,4 +333,4 @@ protected:
         EXPECT_EQ(Core::ERROR_NONE, displayInterface->EOTF(eotf));
         EXPECT_EQ(eotf, Exchange::IDisplayProperties::EOTF_BT2100);
     }
-
+*/

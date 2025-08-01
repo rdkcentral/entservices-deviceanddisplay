@@ -113,6 +113,8 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 #define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
+#define ERROR_FILE_IO 1005 
+
 /**
  * @struct firmwareUpdate
  * @brief This structure contains information of firmware update.
@@ -5259,7 +5261,8 @@ namespace WPEFramework {
             {
                 LOGERR("BootType is not present");
             }
-	    return (status ? WPEFramework::Core::ERROR_NONE : 1100);
+	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+);
 	}//end of getBootTypeInfo method
 
         /**
@@ -5316,16 +5319,16 @@ namespace WPEFramework {
                     LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
                 } else {
                     LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
-		    return (1102);
+		    return (ERROR_FILE_IO);
                 }
                 // Close the file
                 file.close();
             }
             else {
 		LOGERR("Invalid Migration Status\n");
-		return (1101);
+		return (WPEFramework::Core::ERROR_INVALID_PARAMETER);
             }
-	    returnResponse(true); // returning true
+	    returnResponse(true);
         }//end of setMigrationStatus method
 
         /**
@@ -5351,7 +5354,7 @@ namespace WPEFramework {
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-         return (status ? WPEFramework::Core::ERROR_NONE : 1100);
+         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO));
         }//end of getMigrationStatus method
        /*
          * @brief This function updates plugin API error text.
@@ -5364,25 +5367,14 @@ namespace WPEFramework {
          * @return: Core::<StatusCode>
          */
         uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
-           if((method == _T("getMigrationStatus")) && (errorcode == 1100) ) { //ERROR_GETVALUE_FAILED - 1100
-               std::stringstream message;
-               message <<_T("Value retrieval failed");
-               errormessage = message.str();
+           if((method == _T("getMigrationStatus")) && (errorcode == ERROR_FILE_IO) ) { //ERROR_GETVALUE_FAILED - 1100
+               errormessage = "File Read or Write error";
            }
-	   else if((method == _T("getBootTypeInfo")) && (errorcode == 1100) ) { //ERROR_GETVALUE_FAILED - 1100
-		std::stringstream message;
-               message <<_T("Value retrieval failed");
-               errormessage = message.str();
+	   else if((method == _T("getBootTypeInfo")) && (errorcode == ERROR_FILE_IO) ) { //ERROR_GETVALUE_FAILED - 1100
+                    errormessage = "File Read or Write error";
            }
-	   else if((method == _T("setMigrationStatus")) && (errorcode == 1101) ) { //ERROR_INVALID_MIGRATION_PARAM - 1101
-                std::stringstream message;
-               message <<_T("Migration Parameter not valid");
-               errormessage = message.str();
-           }
-	   else if((method == _T("setMigrationStatus")) && (errorcode == 1102) ) { //ERROR_FILE_CREATE  - 1102
-                std::stringstream message;
-               message <<_T("File create failed");
-               errormessage = message.str();
+	   else if((method == _T("setMigrationStatus")) && (errorcode == ERROR_FILE_IO) ) { //ERROR_FILE_CREATE  - 1102
+                    errormessage = "File Read or Write error";
            }
            return errorcode;
         }

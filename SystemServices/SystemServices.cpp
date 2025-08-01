@@ -113,6 +113,8 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 #define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
+#define ERROR_FILE_IO 1005 
+
 /**
  * @struct firmwareUpdate
  * @brief This structure contains information of firmware update.
@@ -397,7 +399,7 @@ namespace WPEFramework {
          * Register SystemService module as wpeframework plugin
          */
         SystemServices::SystemServices()
-            : PluginHost::JSONRPC()
+	    : PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType>(SystemServices::OnJSONRPCError)
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
         {
@@ -5244,7 +5246,7 @@ namespace WPEFramework {
         uint32_t SystemServices::getBootTypeInfo(const JsonObject& parameters, JsonObject& response) 
         {
             LOGINFOMETHOD();
-	    bool result = false;
+	    bool status = false;
             const char* filename = "/tmp/bootType";
             string propertyName = "BOOT_TYPE";
             string bootType = "";
@@ -5253,14 +5255,13 @@ namespace WPEFramework {
             {
                 LOGINFO("Boot type changed to: %s, current OS Class: rdke\n", bootType.c_str());
                 response["bootType"] = bootType;
-                result = true;
+                status = true;
             }
             else
             {
                 LOGERR("BootType is not present");
-                result = false;
             }
-	    returnResponse(result);
+	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
 	}//end of getBootTypeInfo method
 
         /**
@@ -5317,20 +5318,16 @@ namespace WPEFramework {
                     LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
                 } else {
                     LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
-		    returnResponse(false);
+		    return (ERROR_FILE_IO);
                 }
                 // Close the file
                 file.close();
-                returnResponse(true);
             }
             else {
-                LOGERR("Invalid Migration Status\n");
-                JsonObject error;
-		error["message"] = "Invalid Request";
-		error["code"] = "-32600";
-  		response["error"] = error; 
-		returnResponse(false);
+		LOGERR("Invalid Migration Status\n");
+		return (WPEFramework::Core::ERROR_INVALID_PARAMETER);
             }
+	    returnResponse(true);
         }//end of setMigrationStatus method
 
         /**
@@ -5350,13 +5347,28 @@ namespace WPEFramework {
            if (WDMP_SUCCESS == wdmpstatus) {
                 migrationstatus = param.value;
                 LOGINFO("Current ENTOS Migration Status is: %s\n", migrationstatus.c_str());
-                response["MigrationStatus"] = migrationstatus;
+                response["migrationStatus"] = migrationstatus;
                 status = true;
             }
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-            returnResponse(status);
-       }
+         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+        }//end of getMigrationStatus method
+       /*
+         * @brief This function updates plugin API error text.
+         * This method is called by thunder right after Plugin API.
+         * @param1[in]: Context
+	 * @param2[in]: method
+         * @param3[in]: parameters
+	 * @param4[in]: errorcode
+         * @param5[out]: errormessage
+         * @return: Core::<StatusCode>
+         */
+        uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
+           if(( method == _T("getMigrationStatus") || method == _T("getBootTypeInfo") || method == _T("setMigrationStatus") ) && (errorcode == ERROR_FILE_IO) )
+               errormessage = "File Read or Write error";
+           return errorcode;
+        }
     } /* namespace Plugin */
 } /* namespace WPEFramework */

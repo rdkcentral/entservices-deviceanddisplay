@@ -5262,7 +5262,6 @@ namespace WPEFramework {
                 LOGERR("BootType is not present");
             }
 	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
-);
 	}//end of getBootTypeInfo method
 
         /**
@@ -5367,15 +5366,8 @@ namespace WPEFramework {
          * @return: Core::<StatusCode>
          */
         uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
-           if((method == _T("getMigrationStatus")) && (errorcode == ERROR_FILE_IO) ) { //ERROR_GETVALUE_FAILED - 1100
+           if(( method == _T("getMigrationStatus") || method == _T("getBootTypeInfo") || method == _T("setMigrationStatus") ) && (errorcode == ERROR_FILE_IO) )
                errormessage = "File Read or Write error";
-           }
-	   else if((method == _T("getBootTypeInfo")) && (errorcode == ERROR_FILE_IO) ) { //ERROR_GETVALUE_FAILED - 1100
-                    errormessage = "File Read or Write error";
-           }
-	   else if((method == _T("setMigrationStatus")) && (errorcode == ERROR_FILE_IO) ) { //ERROR_FILE_CREATE  - 1102
-                    errormessage = "File Read or Write error";
-           }
            return errorcode;
         }
     } /* namespace Plugin */

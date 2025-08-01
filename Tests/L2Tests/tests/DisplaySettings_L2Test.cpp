@@ -101,6 +101,7 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
     string videoPort(_T("HDMI0"));
     string audioPort(_T("HDMI0"));
 
+    device::AudioOutputPort audioOutputPort;
     device::VideoOutputPort videoOutputPort;
     device::VideoDevice videoDevice;
     device::VideoResolution videoResolution;

@@ -5354,7 +5354,7 @@ namespace WPEFramework {
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO));
+         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
         }//end of getMigrationStatus method
        /*
          * @brief This function updates plugin API error text.

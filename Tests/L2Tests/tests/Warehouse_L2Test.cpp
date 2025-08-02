@@ -155,15 +155,6 @@ Warehouse_L2Test::Warehouse_L2Test()
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = WAREHOUSEL2TEST_STATE_INVALID;
 
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                if ((string(IARM_BUS_PWRMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED)) {
-                    whMgrStatusChangeEventsHandler = handler;
-                }
-                return IARM_RESULT_SUCCESS;
-            }));
-
     /* Activate plugin in constructor */
     status = ActivateService("org.rdk.Warehouse");
     EXPECT_EQ(Core::ERROR_NONE, status);
@@ -1342,31 +1333,4 @@ TEST_F(Warehouse_L2Test, Warehouse_UserFactory_ResetDevice_Failure)
     params["resetType"] = "";
     status = InvokeServiceMethod("org.rdk.Warehouse.1", "resetDevice", params, result);
     EXPECT_TRUE(result["success"].Boolean());
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. TEST_F to achieve max. Lcov
-** 2. Verify the statechange event is success.
-*******************************************************/
-TEST_F(Warehouse_L2Test, statusChangeEvent)
-{
-    uint32_t signalled = WAREHOUSEL2TEST_STATE_INVALID;
-    IARM_BUS_PWRMgr_WareHouseOpn_EventData_t eventData = { IARM_BUS_PWRMGR_WAREHOUSE_RESET, IARM_BUS_PWRMGR_WAREHOUSE_COMPLETED };
-    whMgrStatusChangeEventsHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED, &eventData, 0);
-    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, WAREHOUSEL2TEST_RESETDONE);
-    EXPECT_TRUE(signalled & WAREHOUSEL2TEST_RESETDONE);
-}
-
-/********************************************************
-************Test case Details **************************
-** 1. TEST_F to achieve max. Lcov
-** 2. Verify the statechange event is Failed.
-*******************************************************/
-TEST_F(Warehouse_L2Test, statusChangeEventFailure)
-{
-    IARM_BUS_PWRMgr_WareHouseOpn_EventData_t eventData;
-    whMgrStatusChangeEventsHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED, &eventData, 0);
-    eventData = { IARM_BUS_PWRMGR_WAREHOUSE_RESET, IARM_BUS_PWRMGR_WAREHOUSE_FAILED };
-    whMgrStatusChangeEventsHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED, &eventData, 0);
 }

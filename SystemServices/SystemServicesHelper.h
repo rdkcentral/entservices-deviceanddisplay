@@ -63,9 +63,6 @@
 #define MODE_TIMER_UPDATE_INTERVAL	1000
 #define CURL_BUFFER_SIZE	(64 * 1024) /* 256kB */
 
-#define IARM_BUS_PWRMGR_NAME					"PWRMgr"  /*!< Power manager IARM bus name */
-#define IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut	"SetDeepSleepTimeOut" /*!< Sets the timeout for deep sleep*/
-
 #define MODE_NORMAL     "NORMAL"
 #define MODE_EAS        "EAS"
 #define MODE_WAREHOUSE  "WAREHOUSE"

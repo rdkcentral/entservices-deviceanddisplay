@@ -333,6 +333,15 @@ protected:
     }
 
      TEST_F(DisplayInfoTestTest, VerticalFrequency){
-        
+        Exchange::IConnectionProperties* connectionProperties = service->Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(connectionProperties, nullptr);
 
+        uint32_t verticalFreq = 0;
+        uint32_t result = connectionProperties->VerticalFreq(verticalFreq);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        EXPECT_EQ(verticalFreq, 60); // Change 60 to the expected value for your test/mocks
+
+        // Release the interface after use
+        connectionProperties->Release();
      }

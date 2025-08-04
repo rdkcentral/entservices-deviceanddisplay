@@ -285,7 +285,7 @@ protected:
                     return encoder;
                 }));
 
-        ON_CALL(*p_drmMock, drmModeFreeEncoder(::testing::_))
+        ON_CALL(*p_drmMock, drmModeFreeEncoder(::testing::A<drmModeEncoderPtr>()))
             .WillByDefault(::testing::Invoke(
                 [](drmModeEncoderPtr encoder) {
                     free(encoder);

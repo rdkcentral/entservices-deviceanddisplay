@@ -32,6 +32,12 @@
 #include <fstream>
 #include "ThunderPortability.h"
 
+#include "AudioOutputPortMock.h"
+#include "VideoOutputPortConfigMock.h"
+#include "VideoOutputPortMock.h"
+#include "VideoOutputPortTypeMock.h"
+#include "DrmMock.h"
+
 #include "FactoriesImplementation.h"
 #include "HostMock.h"
 #include "IarmBusMock.h"
@@ -68,6 +74,10 @@ protected:
     NiceMock<FactoriesImplementation> factoriesImplementation;
     ServiceMock  *p_serviceMock  = nullptr;
     WrapsImplMock* p_wrapsImplMock = nullptr;
+    HostImplMock      *p_hostImplMock = nullptr ;
+    AudioOutputPortMock      *p_audioOutputPortMock = nullptr ;
+    VideoOutputPortMock      *p_videoOutputPortMock = nullptr ;
+    DRMMock *p_drmMock = nullptr;
     IARM_EventHandler_t _iarmDisplayInfoPreChangeEventHandler;
     IARM_EventHandler_t _iarmDisplayInfoPowtChangeEventHandler;
     Exchange::IConnectionProperties::INotification *ConnectionProperties = nullptr;
@@ -104,6 +114,18 @@ protected:
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
         dispatcher->Activate(&service);
         plugin->Initialize(&service);
+
+        p_hostImplMock  = new NiceMock <HostImplMock>;
+        device::Host::setImpl(p_hostImplMock);
+
+        p_drmMock  = new NiceMock <DRMMock>;
+        drmImpl::setImpl(p_drmMock);
+
+        p_audioOutputPortMock  = new NiceMock <AudioOutputPortMock>;
+        device::AudioOutputPort::setImpl(p_audioOutputPortMock);
+
+        p_videoOutputPortMock  = new NiceMock <VideoOutputPortMock>;
+        device::VideoOutputPort::setImpl(p_videoOutputPortMock);
 
         ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(
@@ -149,6 +171,13 @@ protected:
             delete p_wrapsImplMock;
             p_wrapsImplMock = nullptr;
         }
+
+        drmImpl::setImpl(nullptr);
+        if (p_drmMock != nullptr)
+        {
+            delete p_drmMock;
+        }
+           
         
         device::Manager::setImpl(nullptr);
         if (p_managerImplMock != nullptr)
@@ -161,6 +190,25 @@ protected:
             p_connectionpropertiesMock = nullptr;
         }
 
+        device::AudioOutputPort::setImpl(nullptr);
+        if (p_audioOutputPortMock != nullptr)
+        {
+            delete p_audioOutputPortMock;
+            p_audioOutputPortMock = nullptr;
+        }
+        device::VideoOutputPort::setImpl(nullptr);
+        if (p_videoOutputPortMock != nullptr)
+        {
+            delete p_videoOutputPortMock;
+            p_videoOutputPortMock = nullptr;
+        }
+
+        device::Host::setImpl(nullptr);
+        if (p_hostImplMock != nullptr)
+        {
+            delete p_hostImplMock;
+            p_hostImplMock = nullptr;
+        }
 
         IarmBus::setImpl(nullptr);
         if (p_iarmBusImplMock != nullptr)
@@ -168,23 +216,63 @@ protected:
             delete p_iarmBusImplMock;
             p_iarmBusImplMock = nullptr;
         }
-        //displayInfoImplementation->Release();
-
         
     }
 };
 
-    TEST_F(DisplayInfoTest, TotalGpuRam)
+class DisplayInfoTestTest : public DisplayInfoTest {
+protected:
+
+    DisplayInfoTestTest()
+        : DisplayInfoTest()
+    {}
+        
+    virtual ~DisplayInfoTestTest() override
     {
-        std::ofstream file("/proc/meminfo");
-        file << "MemTotal: 4096";
-        file.close();
+
+    }
+};
+
+    TEST_F(DisplayInfoTestTest, TotalGpuRam)
+    {
+        device::VideoOutputPort videoOutputPort;
+        device::AudioOutputPort audioOutputPort;
+        //std::ofstream file("/proc/meminfo");
+        //file << "MemTotal: 4096";
+        //file.close();
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+
+        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
+            .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
+            .WillByDefault(::testing::ReturnRef(audioOutputPort));
+        
+        ON_CALL(*p_drmMock, drmModeGetPlane(::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](int drm_fd, uint32_t plane_id) {
+                    drmModePlanePtr plane;
+                    plane->fb_id = 1;
+                    return plane;
+                }));
+
+        ON_CALL(*p_drmMock, drmModeGetConnector(::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](int drm_fd, uint32_t connector_id) {
+                    drmModeConnectorPtr connector;
+                    connector->connector_id = DRM_MODE_CONNECTED;
+                    connector->count_modes = true;
+                    return connector;
+                }));
+
+
+        Core::ProxyType<Web::Response> ret;
         Web::Request request;
         request.Verb = Web::Request::HTTP_GET;
-        JsonData::DisplayInfo::DisplayinfoData& displayInfo
-        plugin->Process(*request);
-       // EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("displayinfo"), _T(""), response));
-        //plugin->Info(displayInfo);       // EXPECT_EQ(displayInfo.Totalgpuram, check);
+        //JsonData::DisplayInfo::DisplayinfoData& displayInfo;
+        ret = plugin->Process(request);
+
     }
     /*
     TEST_F(DisplayInfoTest, FreeGpuRam)

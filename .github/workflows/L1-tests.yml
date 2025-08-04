@@ -567,7 +567,6 @@ jobs:
           /tmp/block/sdb/device
           /dev/disk/by-id
           /dev
-          /proc
           &&
           if [ ! -f mknod /dev/sda c 240 0 ]; then mknod /dev/sda c 240 0; fi &&
           if [ ! -f mknod /dev/sda1 c 240 0 ]; then mknod /dev/sda1 c 240 0; fi &&
@@ -600,7 +599,6 @@ jobs:
           /tmp/block/sda/device/model
           /tmp/block/sdb/device/vendor
           /tmp/block/sdb/device/model
-          /proc/meminfo
           &&
           sudo chmod -R 777
           /opt/rdk_maintenance.conf
@@ -621,7 +619,6 @@ jobs:
           /tmp/bus/usb/devices/101-124/serial
           /tmp/block/sdb/device/vendor
           /tmp/block/sdb/device/model
-          /proc/meminfo
 #          &&
 #          cd /dev/disk/by-id/
 #          &&

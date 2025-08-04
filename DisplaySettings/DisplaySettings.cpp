@@ -5411,7 +5411,7 @@ void DisplaySettings::sendMsgThread()
                   else {
                   LOGWARN("gsk:DisplaySettings::setEnableAudioPort After ***NO*** EARC MUTE \n");
                   }
-                  #endifx
+                  #endif
 			} else {
 				LOGINFO("arc already enabled m_arcEarcAudioEnabled =%d", m_arcEarcAudioEnabled);
 			}

@@ -40,8 +40,6 @@ using ::testing::NiceMock;
 using namespace WPEFramework;
 using testing::StrictMock;
 using ::WPEFramework::Exchange::IFrameRate;
-VideoDeviceMock *p_videoDeviceMock = nullptr;
-HostImplMock      *p_hostImplMock = nullptr;
 
 typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000001,
@@ -379,7 +377,6 @@ TEST_F(FrameRate_L2test, SetCollectionFrequencyFailureUsingComrpc) {
 TEST_F(FrameRate_L2test, StartFpsCollectionUsingComrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     bool success = false;
-    uint32_t signalled = FrameRate_StateInvalid;
 
     status = m_FrameRateplugin->StartFpsCollection(success);
     EXPECT_EQ(status, Core::ERROR_NONE);

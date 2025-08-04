@@ -252,7 +252,7 @@ protected:
         ON_CALL(*p_drmMock, drmModeGetPlane(::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(
                 [&](int drm_fd, uint32_t plane_id) {
-                    drmModePlanePtr plane;
+                    drmModePlanePtr plane = static_cast<drmModePlanePtr>(calloc(1, sizeof(*plane)));
                     plane->fb_id = 1;
                     return plane;
                 }));

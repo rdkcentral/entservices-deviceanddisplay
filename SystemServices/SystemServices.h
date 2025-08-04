@@ -114,7 +114,7 @@ namespace WPEFramework {
             int duration;  // duration in seconds
         };
 
-        class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+        class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType> {
             private:
 
                 class PowerManagerNotification : public Exchange::IPowerManager::INetworkStandbyModeChangedNotification,
@@ -245,6 +245,7 @@ namespace WPEFramework {
                 void onNetworkStandbyModeChanged(const bool enabled);
                 void onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature);
                 void onRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor);
+		static uint32_t OnJSONRPCError(const Core::JSONRPC::Context& context, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage);
 
                 BEGIN_INTERFACE_MAP(SystemServices)
                 INTERFACE_ENTRY(PluginHost::IPlugin)

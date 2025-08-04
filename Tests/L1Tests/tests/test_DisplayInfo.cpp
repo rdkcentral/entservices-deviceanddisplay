@@ -253,7 +253,7 @@ protected:
         res->count_connectors = 1;
         res->connectors = (uint32_t*)calloc(1, sizeof(uint32_t));
         res->connectors[0] = 123; // Example connector ID
-            
+
         ON_CALL(*p_drmMock, drmModeGetResources(::testing::_))
             .WillByDefault(::testing::Return(res));
         
@@ -267,11 +267,38 @@ protected:
 
         ON_CALL(*p_drmMock, drmModeGetConnector(::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(
-                [&](int drm_fd, uint32_t connector_id) {
-                    drmModeConnectorPtr connector;
-                    connector->connector_id = DRM_MODE_CONNECTED;
-                    connector->count_modes = true;
+                [](int drm_fd, uint32_t connector_id) {
+                    drmModeConnectorPtr connector = static_cast<drmModeConnectorPtr>(calloc(1, sizeof(*connector)));
+                    connector->connector_id = connector_id;
+                    connector->count_modes = 1; // Must be >0 for kms_setup_connector
+                    connector->connection = DRM_MODE_CONNECTED; // Must be connected
                     return connector;
+                }));
+
+        ON_CALL(*p_drmMock, drmModeGetEncoder(::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](int drm_fd, uint32_t encoder_id) {
+                    drmModeEncoderPtr encoder = static_cast<drmModeEncoderPtr>(calloc(1, sizeof(*encoder)));
+                    encoder->encoder_id = encoder_id;
+                    encoder->crtc_id = 0; // or any valid CRTC id
+                    encoder->possible_crtcs = 0xFF; // all CRTCs possible
+                    return encoder;
+                }));
+
+        ON_CALL(*p_drmMock, drmModeFreeEncoder(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](drmModeEncoderPtr encoder) {
+                    free(encoder);
+                }));
+
+        ON_CALL(*p_drmMock, drmModeGetCrtc(::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](int drm_fd, uint32_t crtc_id) {
+                    drmModeCrtcPtr crtc = static_cast<drmModeCrtcPtr>(calloc(1, sizeof(*crtc)));
+                    crtc->crtc_id = crtc_id;
+                    crtc->mode_valid = 1; // Must be non-zero for kms_setup_crtc
+                    // Optionally set crtc->mode fields if your code uses them
+                    return crtc;
                 }));
 
 

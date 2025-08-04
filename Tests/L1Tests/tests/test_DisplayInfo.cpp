@@ -248,6 +248,14 @@ protected:
 
         ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
             .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+        drmModeRes* res = (drmModeRes*)calloc(1, sizeof(drmModeRes));
+        res->count_connectors = 1;
+        res->connectors = (uint32_t*)calloc(1, sizeof(uint32_t));
+        res->connectors[0] = 123; // Example connector ID
+            
+        ON_CALL(*p_drmMock, drmModeGetResources(::testing::_))
+            .WillByDefault(::testing::Return(res));
         
         ON_CALL(*p_drmMock, drmModeGetPlane(::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(

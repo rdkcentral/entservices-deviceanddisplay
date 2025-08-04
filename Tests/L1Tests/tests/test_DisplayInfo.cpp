@@ -310,7 +310,7 @@ protected:
 
         // Check HTTP status
         EXPECT_EQ(Web::STATUS_OK, ret->ErrorCode);
-        auto jsonBody = Core::ProxyType<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>>::Cast(ret->Body());
+        auto jsonBody = dynamic_cast<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>*>(ret->Body());
         ASSERT_TRUE(jsonBody.IsValid());
         
         // Graphics Properties

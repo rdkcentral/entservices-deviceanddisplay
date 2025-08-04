@@ -308,6 +308,30 @@ protected:
         //JsonData::DisplayInfo::DisplayinfoData& displayInfo;
         ret = plugin->Process(request);
 
+        // Check HTTP status
+        EXPECT_EQ(Web::STATUS_OK, ret->ErrorCode);
+        auto jsonBody = Core::ProxyType<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>>::Cast(ret->Body());
+        ASSERT_TRUE(jsonBody.IsValid());
+        
+        // Graphics Properties
+        EXPECT_EQ(jsonBody->Totalgpuram, 2042);
+        EXPECT_EQ(jsonBody->Freegpuram, 1024);
+        
+        // Connection Properties
+        EXPECT_EQ(jsonBody->Audiopassthrough, false);
+        EXPECT_EQ(jsonBody->Connected, false);
+        EXPECT_EQ(jsonBody->Width, 1920);
+        EXPECT_EQ(jsonBody->Height, 1080);
+        
+        // HDCP
+        EXPECT_EQ(jsonBody->Hdcpprotection, Exchange::IConnectionProperties::HDCP_Unencrypted); // or whatever _value is set to
+        
+        // HDR
+        EXPECT_EQ(jsonBody->Hdrtype, Exchange::IHDRProperties::HDR_OFF); // Default in PlatformImplementation.cpp
+        
+        
+
+
     }
     /*
     TEST_F(DisplayInfoTest, FreeGpuRam)

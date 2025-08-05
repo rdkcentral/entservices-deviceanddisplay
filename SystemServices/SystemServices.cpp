@@ -2117,9 +2117,9 @@ namespace WPEFramework {
         if (parameters.HasLabel("seconds")) {
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){
-		unsigned int timeoutValue = static_cast<unsigned int>(parameters["seconds"].Number());
+		int timeoutValue = static_cast<int>(parameters["seconds"].Number());
                 // if maintenence time is more then 10 days set to 0
-                if(timeoutValue <0 || timeoutValue > 864000)
+                if (( 0 > timeoutValue ) || ( 864000 < timeoutValue ))
                 {
                     timeoutValue = 0;
                     LOGINFO("setDeepSleepTimer updated timeout to :%d",timeoutValue);

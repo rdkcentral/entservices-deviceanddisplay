@@ -155,6 +155,7 @@ uint32_t PowerController::GetNetworkStandbyMode(bool& standbyMode) const
     uint32_t status = WPEFramework::Core::ERROR_NONE;
     standbyMode     = _settings.nwStandbyMode();
 
+    // When both Wi-Fi and LAN wakeup sources are enabled, nwStandbyMode is considered to be enabled.
     if (false == standbyMode) {
         int powerMode     = 0;
         int wakeupSrcMask = 0;

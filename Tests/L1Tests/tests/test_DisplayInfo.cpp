@@ -333,7 +333,18 @@ protected:
     }
 
      TEST_F(DisplayInfoTestTest, VerticalFrequency){
-        Exchange::IConnectionProperties* connectionProperties = service->Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+
+        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
+            .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
+            .WillByDefault(::testing::ReturnRef(audioOutputPort));
+            
+        uint32_t _connectionId = 0;
+        Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
         ASSERT_NE(connectionProperties, nullptr);
 
         uint32_t verticalFreq = 0;

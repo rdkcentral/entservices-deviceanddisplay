@@ -181,7 +181,7 @@ private:
     bool read_integer_conf(const char* file_name, uint32_t& val);
     void enterDeepSleepDelayed();
     void enterDeepSleepNow();
-    void deepSleepTimerWakeup(const std::chrono::steady_clock::time_point& startTime);
+    void deepSleepTimerWakeup();
     void performActivate(uint32_t timeOut, bool nwStandbyMode);
 
 private:

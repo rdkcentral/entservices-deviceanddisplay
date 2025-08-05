@@ -44,7 +44,7 @@ uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId        
 // Device is considered to be in transient deep sleep state if
 // 1. As per PowerManager PowerState is DEEP_SLEEP, but then SoC is not in deepsleep
 // 2. SoC woke-up from deep sleep even before schedule timeout
-static constexpr int kTransientDeepsleepThresholdSec = 10;
+static constexpr int kTransientDeepsleepThresholdSec = 5;
 
 using namespace std;
 

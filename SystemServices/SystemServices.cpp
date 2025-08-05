@@ -2110,13 +2110,21 @@ namespace WPEFramework {
         uint32_t SystemServices::setDeepSleepTimer(const JsonObject& parameters,
                 JsonObject& response)
     {
+	LOGINFOMETHOD();
         Core::hresult retStatus = Core::ERROR_GENERAL;
         bool status = false;
 
         if (parameters.HasLabel("seconds")) {
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->SetDeepSleepTimer(static_cast<unsigned int>(parameters["seconds"].Number()));
+		unsigned int timeoutValue = static_cast<unsigned int>(parameters["seconds"].Number();
+                // if maintenence time is more then 10 days set to 0
+                if(timeoutValue <0 || timeoutValue > 864000)
+                {
+                    timeoutValue = 0;
+                    LOGINFO("setDeepSleepTimer updated timeout to :%d",timeoutValue);
+                }
+                retStatus = _powerManagerPlugin->SetDeepSleepTimer(timeoutValue);
             }
 
             if (Core::ERROR_NONE == retStatus) {

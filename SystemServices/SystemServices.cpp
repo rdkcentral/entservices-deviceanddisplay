@@ -113,6 +113,8 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 #define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
+#define ERROR_FILE_IO 1005 
+
 /**
  * @struct firmwareUpdate
  * @brief This structure contains information of firmware update.
@@ -397,7 +399,7 @@ namespace WPEFramework {
          * Register SystemService module as wpeframework plugin
          */
         SystemServices::SystemServices()
-            : PluginHost::JSONRPC()
+	    : PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType>(SystemServices::OnJSONRPCError)
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
         {
@@ -4149,50 +4151,55 @@ namespace WPEFramework {
          * @return : Core::<StatusCode>
          */
         uint32_t SystemServices::setDevicePowerState(const JsonObject& parameters,
-                JsonObject& response)
-	{
-		bool retVal = false;
-		string sleepMode;
-		ofstream outfile;
-		JsonObject paramIn, paramOut;
-		if (parameters.HasLabel("powerState")) {
-			string state = parameters["powerState"].String();
-			string reason = parameters["standbyReason"].String();
-			/* Power state defaults standbyReason is "application". */
-			reason = ((reason.length()) ? reason : "application");
-            LOGINFO("SystemServices::setDevicePowerState state: %s\n", state.c_str());
+            JsonObject& response)
+        {
+            bool retVal = false;
+            string sleepMode;
+            ofstream outfile;
+            JsonObject paramIn, paramOut;
 
-            if (state == "STANDBY") {
-                if (SystemServices::_instance) {
-					SystemServices::_instance->getPreferredStandbyMode(paramIn, paramOut);
-					/* TODO: parse abd get the sleepMode from paramOut */
-					sleepMode= paramOut["preferredStandbyMode"].String();
-					LOGWARN("Output of preferredStandbyMode: '%s'", sleepMode.c_str());
-				} else {
-					LOGWARN("SystemServices::_instance is NULL.\n");
-				}
-				if (convert("DEEP_SLEEP", sleepMode)) {
-					retVal = setPowerState(sleepMode);
-				} else {
-					retVal = setPowerState(state);
-				}
-				outfile.open(STANDBY_REASON_FILE, ios::out);
-				if (outfile.is_open()) {
-					outfile << reason;
-					outfile.close();
-				} else {
-					LOGERR("Can't open file '%s' for write mode\n", STANDBY_REASON_FILE);
-					populateResponseWithError(SysSrv_FileAccessFailed, response);
-				}
-			} else {
-				retVal = setPowerState(state);
-			}
-            m_current_state=state; /* save the old state */
-		} else {
-			populateResponseWithError(SysSrv_MissingKeyValues, response);
-		}
-		returnResponse(retVal);
-	}//end of setPower State
+            if (parameters.HasLabel("powerState")) {
+                string state  = parameters["powerState"].String();
+                string reason = parameters["standbyReason"].String();
+                /* Power state defaults standbyReason is "application". */
+                reason = ((reason.length()) ? reason : "application");
+                LOGINFO("SystemServices::setDevicePowerState state: %s, reason: %s\n", state.c_str(), reason.c_str());
+
+                if (state == "LIGHT_SLEEP" || state == "DEEP_SLEEP") {
+                    if (SystemServices::_instance) {
+                        SystemServices::_instance->getPreferredStandbyMode(paramIn, paramOut);
+
+                        /* parse and get the sleepMode from paramOut */
+                        sleepMode = paramOut["preferredStandbyMode"].String();
+                        LOGWARN("Output of preferredStandbyMode: '%s'", sleepMode.c_str());
+                    } else {
+                        LOGWARN("SystemServices::_instance is NULL.\n");
+                    }
+
+                    if (convert("DEEP_SLEEP", sleepMode)) {
+                        retVal = setPowerState(sleepMode);
+                    } else {
+                        retVal = setPowerState(state);
+                    }
+
+                    outfile.open(STANDBY_REASON_FILE, ios::out);
+                    if (outfile.is_open()) {
+                        outfile << reason;
+                        outfile.close();
+                    } else {
+                        LOGERR("Can't open file '%s' for write mode\n", STANDBY_REASON_FILE);
+                        populateResponseWithError(SysSrv_FileAccessFailed, response);
+                    }
+
+                } else {
+                    retVal = setPowerState(state);
+                }
+                m_current_state = state; /* save the old state */
+            } else {
+                populateResponseWithError(SysSrv_MissingKeyValues, response);
+            }
+            returnResponse(retVal);
+        } // end of setPower State
 
     bool SystemServices::setPowerState(std::string powerState)
     {
@@ -4600,14 +4607,14 @@ namespace WPEFramework {
                 for(uint32_t i =0; i<wakeupSrcs.Length();i++)
                 {
                     JsonObject wakeupSrc = wakeupSrcs.Get(i).Object();
-                    for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <= WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_RF4CE; src++)
+                    for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src < WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_MAX; src<<=1)
                     {
                         if(wakeupSrc.HasLabel(getWakeupSrcString(src)))
                         {
-                            srcType |= (1<<src);
+                            srcType |= src;
                             if (wakeupSrc[getWakeupSrcString(src)].Boolean())
                             {
-                                config |= (1<<src);
+                                config |= src;
                             }
                             if ((WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_WIFI == src) || (WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_LAN == src))
                             {
@@ -4661,15 +4668,16 @@ namespace WPEFramework {
             if (Core::ERROR_NONE == retStatus) {
                 LOGWARN(" %s: %d retStatus:%d srcType :%x  config :%x \n",__FUNCTION__,__LINE__,retStatus,srcType,config);
                 status = true;
-                for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <=  WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_RF4CE; src++)
+                for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <  WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_MAX; src <<= 1)
                 {
                      JsonObject sourceConfig;
-                     if(srcType & (1<<src))
+                     if(srcType & src)
                      {
-                        sourceConfig[getWakeupSrcString(src)] = (config & (1<<src))?true:false;
+                        sourceConfig[getWakeupSrcString(src)] = (config & src) ? true : false;
                         wakeupSrc.Add(sourceConfig);
                      }
                 }
+
                 if(powerState == (1<<WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) )
                 {
                     response["powerState"] = "LIGHT_SLEEP";
@@ -4682,6 +4690,7 @@ namespace WPEFramework {
                 {
                     response["powerState"] = "DEFAULT";
                 }
+
                 if(wakeupSrc.Length() > 0)
                 {
                     response["wakeupSources"] = wakeupSrc;
@@ -5244,7 +5253,7 @@ namespace WPEFramework {
         uint32_t SystemServices::getBootTypeInfo(const JsonObject& parameters, JsonObject& response) 
         {
             LOGINFOMETHOD();
-	    bool result = false;
+	    bool status = false;
             const char* filename = "/tmp/bootType";
             string propertyName = "BOOT_TYPE";
             string bootType = "";
@@ -5253,14 +5262,13 @@ namespace WPEFramework {
             {
                 LOGINFO("Boot type changed to: %s, current OS Class: rdke\n", bootType.c_str());
                 response["bootType"] = bootType;
-                result = true;
+                status = true;
             }
             else
             {
                 LOGERR("BootType is not present");
-                result = false;
             }
-	    returnResponse(result);
+	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
 	}//end of getBootTypeInfo method
 
         /**
@@ -5317,20 +5325,16 @@ namespace WPEFramework {
                     LOGINFO("Current ENTOS Migration Status is %s\n", value.c_str());
                 } else {
                     LOGERR("Failed to open or create file %s\n", MIGRATIONSTATUS);
-		    returnResponse(false);
+		    return (ERROR_FILE_IO);
                 }
                 // Close the file
                 file.close();
-                returnResponse(true);
             }
             else {
-                LOGERR("Invalid Migration Status\n");
-                JsonObject error;
-		error["message"] = "Invalid Request";
-		error["code"] = "-32600";
-  		response["error"] = error; 
-		returnResponse(false);
+		LOGERR("Invalid Migration Status\n");
+		return (WPEFramework::Core::ERROR_INVALID_PARAMETER);
             }
+	    returnResponse(true);
         }//end of setMigrationStatus method
 
         /**
@@ -5350,13 +5354,28 @@ namespace WPEFramework {
            if (WDMP_SUCCESS == wdmpstatus) {
                 migrationstatus = param.value;
                 LOGINFO("Current ENTOS Migration Status is: %s\n", migrationstatus.c_str());
-                response["MigrationStatus"] = migrationstatus;
+                response["migrationStatus"] = migrationstatus;
                 status = true;
             }
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-            returnResponse(status);
-       }
+         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+        }//end of getMigrationStatus method
+       /*
+         * @brief This function updates plugin API error text.
+         * This method is called by thunder right after Plugin API.
+         * @param1[in]: Context
+	 * @param2[in]: method
+         * @param3[in]: parameters
+	 * @param4[in]: errorcode
+         * @param5[out]: errormessage
+         * @return: Core::<StatusCode>
+         */
+        uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
+           if(( method == _T("getMigrationStatus") || method == _T("getBootTypeInfo") || method == _T("setMigrationStatus") ) && (errorcode == ERROR_FILE_IO) )
+               errormessage = "File Read or Write error";
+           return errorcode;
+        }
     } /* namespace Plugin */
 } /* namespace WPEFramework */

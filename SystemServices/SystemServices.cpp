@@ -2117,7 +2117,7 @@ namespace WPEFramework {
         if (parameters.HasLabel("seconds")) {
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){
-		unsigned int timeoutValue = static_cast<unsigned int>(parameters["seconds"].Number();
+		unsigned int timeoutValue = static_cast<unsigned int>(parameters["seconds"].Number());
                 // if maintenence time is more then 10 days set to 0
                 if(timeoutValue <0 || timeoutValue > 864000)
                 {

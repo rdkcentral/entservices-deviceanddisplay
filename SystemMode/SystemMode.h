@@ -24,7 +24,7 @@
 #include <interfaces/json/JSystemMode.h>
 #include <interfaces/ISystemMode.h>
 #include <interfaces/IDeviceOptimizeStateActivator.h>
-#include "UtilsLogging.h"
+//#include "UtilsLogging.h"
 #include "tracing/Logging.h"
 #include <mutex>
 

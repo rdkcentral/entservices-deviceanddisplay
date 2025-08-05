@@ -41,6 +41,11 @@ uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId        
 #define POWER_MODE_PRECHANGE_TIMEOUT_SEC 1
 #endif
 
+// Device is considered to be in transient deep sleep state if
+// 1. As per PowerManager PowerState is DEEP_SLEEP, but then SoC is not in deepsleep
+// 2. SoC woke-up from deep sleep even before schedule timeout
+static constexpr int kTransientDeepsleepThresholdSec = 10;
+
 using namespace std;
 
 namespace WPEFramework {
@@ -367,8 +372,9 @@ namespace Plugin {
             isSync = isSyncStateChange(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
-                if (_deepSleepController.IsDeepSleepInProgress()) {
-                    LOGINFO("deepsleep in  progress  ignoring %s request", util::str(newState));
+                if (_deepSleepController.IsDeepSleepInProgress() && _deepSleepController.Elapsed() < std::chrono::seconds(kTransientDeepsleepThresholdSec)) {
+                    LOGINFO("deepsleep in  progress  ignoring %s request, elapsed: %" PRId64 " sec",
+                            util::str(newState), std::chrono::duration_cast<std::chrono::seconds>(_deepSleepController.Elapsed()).count());
                     selfLock.unlock();
                     LOGINFO("selfLock Released isSync: na");
                     return Core::ERROR_NONE;
@@ -413,7 +419,7 @@ namespace Plugin {
             submitPowerModePreChangeEvent(currState, newState, transactionId, timeOut);
 
             // Starts pre modeChange timer, and waits for Ack from clients for given timeOut duration
-            // On all clients acknowledging or upon timeOut (whiche ever happens first), Completion handler gets triggered
+            // On all clients acknowledging or upon timeOut (which ever happens first), Completion handler gets triggered
             // The thread context in which completion handler is triggered could be
             //  1. Caller thread if timeout `0`
             //  2. Caller thread if all clients have acknowledged for power state transition even before `Schedule` gets called
@@ -425,8 +431,6 @@ namespace Plugin {
                     LOGINFO(">> CompletionHandler isTimedout: %d, isAborted: %d", isTimedout, isAborted);
 
                     if (!isAborted) {
-                        // Ideally we should never get this callback if AckController object is deleted
-                        // However in timeout scenarios, callback is triggered from ACK TIMER Thread
                         powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
                     } else {
                         LOGWARN("modeChangeController was already deleted, do not process CompletionHandler");

@@ -152,8 +152,27 @@ uint32_t PowerController::SetNetworkStandbyMode(const bool standbyMode)
 
 uint32_t PowerController::GetNetworkStandbyMode(bool& standbyMode) const
 {
-    standbyMode = _settings.nwStandbyMode();
-    return WPEFramework::Core::ERROR_NONE;
+    uint32_t status = WPEFramework::Core::ERROR_NONE;
+    standbyMode     = _settings.nwStandbyMode();
+
+    if (false == standbyMode) {
+        int powerMode     = 0;
+        int wakeupSrcMask = 0;
+        int wakeupSrcVal  = 0;
+        status = platform().GetWakeupSrcConfig(powerMode, wakeupSrcMask, wakeupSrcVal);
+
+        if (WPEFramework::Core::ERROR_NONE == status) {
+            bool wifi = bool(WakeupSrcType::WAKEUP_SRC_WIFI & wakeupSrcVal);
+            bool lan  = bool(WakeupSrcType::WAKEUP_SRC_LAN & wakeupSrcVal);
+
+            standbyMode = wifi && lan;
+        } else {
+            LOGERR("Failed to GetWakeupSrc status: %u", status);
+        }
+
+    }
+
+    return status;
 }
 
 uint32_t PowerController::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)

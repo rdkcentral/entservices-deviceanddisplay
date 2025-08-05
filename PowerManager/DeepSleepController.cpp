@@ -373,6 +373,7 @@ void DeepSleepController::performActivate(uint32_t timeOut, bool nwStandbyMode)
 
         // latch
         _deepSleepState = DeepSleepState::InProgress;
+        _deepsleepStartTime = MonotonicClock::now();
 
         // Perform the deep sleep operation
         _deepSleepWakeupTimeoutSec = timeOut;

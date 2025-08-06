@@ -201,7 +201,7 @@ public:
             _handler                          = std::move(handler);
 
             _timeout  = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
-            _timerJob = LambdaJob::Create([wPtr, handler]() {
+            _timerJob = LambdaJob::Create([wPtr]() {
                 std::shared_ptr<AckController> self = wPtr.lock();
 
                 bool isRevoked  = self ? false : true;
@@ -212,12 +212,12 @@ public:
                 if (!isRevoked) {
                     if (self->_running) {
                         self->_running = false;
-                        handler(isTimedout, isRevoked);
+                        self->_handler(isTimedout, isRevoked);
                     } else {
                         LOGERR("FATAL not expected to reach timeout, without timer running");
                     }
                 } else {
-                    handler(isTimedout, isRevoked);
+                    LOGERR("FATAL AckController is already revoked\n\trevoke operation should have triggered completion handler");
                 }
             });
             _workerPool.Schedule(_timeout, _timerJob);

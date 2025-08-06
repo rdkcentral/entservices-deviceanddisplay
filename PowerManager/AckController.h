@@ -42,7 +42,7 @@
  * IMPORTANT: This class is not thread-safe. It expects thread safety
  *            from the instantiating class.
  */
-class AckController : std::enable_shared_from_this<AckController> {
+class AckController : public std::enable_shared_from_this<AckController> {
     using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
 public:
@@ -209,6 +209,7 @@ public:
                         self->_running = false;
                         handler(isTimedout, isRevoked);
                     } else {
+                        LOGERR("FATAL not expected to reach timeout, without timer running");
                     }
                 } else {
                     handler(isTimedout, isRevoked);
@@ -300,7 +301,9 @@ private:
                 _handler(isTimedout, isRevoked);
             }
         }
-        _timerJob.Release();
+        if (_timerJob.IsValid()) {
+            _timerJob.Release();
+        }
     }
 
 private:

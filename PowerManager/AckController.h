@@ -24,9 +24,9 @@
 
 #include <core/Portability.h>
 #include <core/Timer.h>
+#include <core/WorkerPool.h>
 
 #include "UtilsLogging.h"
-#include "WorkerPool.h"
 #include "interfaces/IPowerManager.h"
 
 #include "LambdaJob.h"

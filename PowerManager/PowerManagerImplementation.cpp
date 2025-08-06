@@ -339,9 +339,7 @@ namespace Plugin {
     //    - This was introduced because immerse ui was not launching if there is a direct transition from DEEP_SLEEP => ON (see RDKEMW-5633)
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
-        // Thunder CriticalSection lock does not allow unlock operation from a thread different than locking thread,
-        // so for now use `std::mutex` until we figure out an equivalent Thunder alternative
-        static std::mutex selfLock {}; // to implement a sync / forced state change we need a unique lock
+        static WPEFramework::Core::BinairySemaphore selfLock { 1, 1 };
 
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
@@ -351,7 +349,7 @@ namespace Plugin {
 
         LOGINFO(">> newState: %s, reason %s", util::str(newState), reason.c_str());
 
-        selfLock.lock();
+        selfLock.Lock();
 
         LOGINFO("selfLock Acquired");
 
@@ -360,7 +358,7 @@ namespace Plugin {
         // Cannot determine current state, won't be able to process request
         if (Core::ERROR_NONE != errorCode) {
             LOGERR("Failed to get current power state, errorCode: %d", errorCode);
-            selfLock.unlock();
+            selfLock.Unlock();
             LOGINFO("selfLock Released isSync: na");
             return errorCode;
         }
@@ -375,7 +373,7 @@ namespace Plugin {
                 if (_deepSleepController.IsDeepSleepInProgress() && _deepSleepController.Elapsed() < std::chrono::seconds(kTransientDeepsleepThresholdSec)) {
                     LOGINFO("deepsleep in  progress  ignoring %s request, elapsed: %" PRId64 " sec",
                             util::str(newState), std::chrono::duration_cast<std::chrono::seconds>(_deepSleepController.Elapsed()).count());
-                    selfLock.unlock();
+                    selfLock.Unlock();
                     LOGINFO("selfLock Released isSync: na");
                     return Core::ERROR_NONE;
                 }
@@ -387,10 +385,11 @@ namespace Plugin {
             _apiLock.Lock();
 
             if (_modeChangeController) {
-                if (!_modeChangeController && _modeChangeController->powerState() == newState) {
+                LOGINFO("There is a state change request in progress for %s state.", util::str(_modeChangeController->powerState()));
+                if (_modeChangeController->powerState() == newState) {
                     LOGINFO("Ignore (redundant) repeated transition request to %s state.", util::str(newState));
                     _apiLock.Unlock();
-                    selfLock.unlock();
+                    selfLock.Unlock();
                     return Core::ERROR_NONE;
                 } else {
                     LOGWARN("Power state change is already in progress, cancel old request");
@@ -441,7 +440,7 @@ namespace Plugin {
 
                     // For sync state change requests, the selfLock is held until this point. Release it now.
                     if (isSync) {
-                        selfLock.unlock();
+                        selfLock.Unlock();
                         LOGINFO("selfLock Released isSync: true");
                     }
 
@@ -454,7 +453,7 @@ namespace Plugin {
         // For Async state change requests, release the lock immediately, allowing nested state changes if required
         // Example: DEEP_SLEEP is in transition (mediarite has delayed PowerState by 15 seconds), and user attemps to turn ON the device
         if (!isSync) {
-            selfLock.unlock();
+            selfLock.Unlock();
             LOGINFO("selfLock Released isSync: false");
         }
 

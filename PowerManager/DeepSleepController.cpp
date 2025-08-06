@@ -280,8 +280,7 @@ void DeepSleepController::enterDeepSleepDelayed()
 
     bool userWakeup = 0;
 
-    auto startTime = std::chrono::steady_clock::now();
-    auto status    = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, false);
+    auto status = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, false);
 
     if (WPEFramework::Core::ERROR_NONE != status) {
         LOGINFO("Failed to enter deepsleep status %u", status);
@@ -308,7 +307,6 @@ void DeepSleepController::enterDeepSleepNow()
     bool failed     = true;
     int retryCount  = 5;
     bool userWakeup = 0;
-    auto startTime  = std::chrono::steady_clock::now();
 
     while (retryCount && failed) {
         LOGINFO("Device entering Deep sleep with nwStandbyMode: %s",

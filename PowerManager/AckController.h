@@ -198,7 +198,7 @@ public:
         } else {
             std::weak_ptr<AckController> wPtr = shared_from_this();
             _running                          = true;
-            _handler                          = handler;
+            _handler                          = std::move(handler);
 
             _timeout  = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
             _timerJob = LambdaJob::Create([wPtr, handler]() {

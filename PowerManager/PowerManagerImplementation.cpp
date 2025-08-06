@@ -82,7 +82,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnPowerModeChanged(prevState, newState);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -96,7 +96,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnDeepSleepTimeout(timeout);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -110,7 +110,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -124,7 +124,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IThermalModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IThermalModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -138,7 +138,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnNetworkStandbyModeChanged(enabled);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process INetworkStandbyModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process INetworkStandbyModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -370,9 +370,12 @@ namespace Plugin {
             isSync = isSyncStateChange(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
-                if (_deepSleepController.IsDeepSleepInProgress() && _deepSleepController.Elapsed() < std::chrono::seconds(kTransientDeepsleepThresholdSec)) {
+                if (_deepSleepController.IsDeepSleepInProgress() 
+                    && (_deepSleepController.Elapsed() < std::chrono::seconds(kTransientDeepsleepThresholdSec))) {
+
                     LOGINFO("deepsleep in  progress  ignoring %s request, elapsed: %" PRId64 " sec",
                             util::str(newState), std::chrono::duration_cast<std::chrono::seconds>(_deepSleepController.Elapsed()).count());
+
                     selfLock.Unlock();
                     LOGINFO("selfLock Released isSync: na");
                     return Core::ERROR_NONE;

@@ -190,7 +190,7 @@ public:
         ASSERT(false == _running);
         ASSERT(nullptr == _handler);
 
-        LOGINFO("time offset: %lldms, pending: %d", offsetInMilliseconds, int(_pending.size()));
+        LOGINFO("time offset: %" PRIu64 "ms, pending: %d", offsetInMilliseconds, int(_pending.size()));
 
         if (_pending.empty() || 0 == offsetInMilliseconds) {
             // no clients acks to wait for, trigger completion handler immediately
@@ -264,7 +264,7 @@ public:
                 _timeout = newTimeout;
                 _workerPool.Reschedule(newTimeout, _timerJob);
             } else {
-                LOGWARN("Skipping new timeout %lld is less than previous timeout %lld",
+                LOGWARN("Skipping new timeout %" PRIu64 " is less than previous timeout %" PRIu64,
                     newTimeout.Ticks(), _timeout.Ticks());
             }
         } while (false);

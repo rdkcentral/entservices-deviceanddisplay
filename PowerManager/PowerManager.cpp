@@ -191,12 +191,6 @@ namespace Plugin {
                 _powerManager->Unregister(revokedInterface);
                 revokedInterface->Release();
             }
-        } else if (Exchange::IPowerManager::IModeChangedNotification::ID == interfaceId) {
-            const auto* revokedInterface = remote->QueryInterface<Exchange::IPowerManager::IModeChangedNotification>();
-            if (revokedInterface && _powerManager) {
-                _powerManager->Unregister(revokedInterface);
-                revokedInterface->Release();
-            }
         } else if (Exchange::IPowerManager::IDeepSleepTimeoutNotification::ID == interfaceId) {
             const auto* revokedInterface = remote->QueryInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>();
             if (revokedInterface && _powerManager) {

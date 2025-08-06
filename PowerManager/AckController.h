@@ -177,8 +177,13 @@ public:
      * @param handler The completion handler to be invoke.
      *        The completion handler is triggered in one of these scenarios:
      *        - Acknowledgement received from all clients (Triggered from the last Ack caller thread).
-     *        - Scheduled timer times out (Triggered in the timerThread thread).
+     *        - Scheduled timer times out (Triggered from Thunder workerpool thread).
      *        - Scheduled without any clients awaiting (Triggered in the caller thread).
+     *
+     *  handler args: isTimedOut true   => handler is invoked because operation timedout
+     *                isRevoked true    => handler is invoked because operation was cancelled (obj destroyed)
+     *                if args are false => handler is invoked as acknowledgement is received from all clients
+     *
      */
     void Schedule(const uint64_t offsetInMilliseconds, std::function<void(bool, bool)> handler)
     {

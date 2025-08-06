@@ -25,7 +25,6 @@
 #include <interfaces/json/JPowerManager.h>
 
 #include "UtilsLogging.h"
-// #include "plugins/IShell.h"
 
 using PowerState         = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;

@@ -418,7 +418,7 @@ namespace Plugin {
             submitPowerModePreChangeEvent(currState, newState, transactionId, timeOut);
 
             // Starts pre modeChange timer, and waits for Ack from clients for given timeOut duration
-            // On all clients acknowledging or upon timeOut (which ever happens first), Completion handler gets triggered
+            // On all clients acknowledging or upon timeOut (whichever happens first), Completion handler gets triggered
             // The thread context in which completion handler is triggered could be
             //  1. Caller thread if timeout `0`
             //  2. Caller thread if all clients have acknowledged for power state transition even before `Schedule` gets called

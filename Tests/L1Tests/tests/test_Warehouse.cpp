@@ -78,8 +78,6 @@ protected:
     WarehouseMock     *p_warehouseMock   = nullptr;
     ServiceMock       *p_serviceMock     = nullptr;
 
-    IARM_EventHandler_t whMgrStatusChangeEventsHandler;
-
     WarehouseInitializedTest()
         : WarehouseTest()
     {
@@ -101,16 +99,6 @@ protected:
                 [&](const RPC::Object& object, const uint32_t waitTime, uint32_t& connectionId) {
                     warehouseImpl = Core::ProxyType<Plugin::WarehouseImplementation>::Create();
                     return &warehouseImpl;
-                }));
-
-        EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-            .Times(1)
-            .WillOnce(::testing::Invoke(
-                [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                    if ((string(IARM_BUS_PWRMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED)) {
-                        whMgrStatusChangeEventsHandler = handler;
-                    }
-                    return IARM_RESULT_SUCCESS;
                 }));
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
@@ -487,25 +475,3 @@ TEST_F(WarehouseInitializedTest, getHardwareTestResults)
 
 extern "C" FILE* __real_popen(const char* command, const char* type);
 extern "C" int __real_pclose(FILE* pipe);
-TEST_F(WarehouseInitializedTest, statusChangeEvent)
-{
-    Core::Event resetDone(false, true);
-    EVENT_SUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
-
-        EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
-            .Times(1)
-            .WillOnce(::testing::Invoke(
-                [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
-                    string text;
-                    EXPECT_TRUE(json->ToString(text));
-                    EXPECT_EQ(text, string(_T("{\"jsonrpc\":\"2.0\",\"method\":\"org.rdk.Warehouse.resetDone\",\"params\":{\"success\":true,\"error\":\"\"}}")));
-                    resetDone.SetEvent();
-                    return Core::ERROR_NONE;
-                }));
-
-    IARM_BUS_PWRMgr_WareHouseOpn_EventData_t eventData = { IARM_BUS_PWRMGR_WAREHOUSE_RESET, IARM_BUS_PWRMGR_WAREHOUSE_COMPLETED };
-    whMgrStatusChangeEventsHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED, &eventData, 0);
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
-
-    EVENT_UNSUBSCRIBE(2, _T("resetDone"), _T("org.rdk.Warehouse"), statusChangeMessage);
-}

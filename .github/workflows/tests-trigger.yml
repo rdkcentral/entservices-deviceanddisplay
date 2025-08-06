@@ -15,3 +15,17 @@ jobs:
       caller_source: local
     secrets:
       RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
+  trigger-L2:
+    uses: ./.github/workflows/L2-tests.yml
+    with:
+      caller_source: local
+    secrets:
+      RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
+# # # Need to add mock for PowerManager HAL APIs # # # 
+#
+#  trigger-L2-OOP:
+#    uses: ./.github/workflows/L2-tests-oop.yml
+#    with:
+#      caller_source: local
+#    secrets:
+#      RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}

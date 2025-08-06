@@ -44,6 +44,8 @@
 #include "ServiceMock.h"
 #include "VideoDeviceMock.h"
 #include "devicesettings.h"
+#include "DisplayMock.h"
+#include "EdidParserMock.h"
 #include "dsMgr.h"
 #include "ThunderPortability.h"
 #include "WorkerPoolImplementation.h"
@@ -77,6 +79,8 @@ protected:
     HostImplMock      *p_hostImplMock = nullptr ;
     AudioOutputPortMock      *p_audioOutputPortMock = nullptr ;
     VideoOutputPortMock      *p_videoOutputPortMock = nullptr ;
+    DisplayMock      *p_displayMock = nullptr ;
+    EdidParserMock  *p_edidParserMock = nullptr;
     DRMMock *p_drmMock = nullptr;
     IARM_EventHandler_t _iarmDisplayInfoPreChangeEventHandler;
     IARM_EventHandler_t _iarmDisplayInfoPowtChangeEventHandler;
@@ -103,6 +107,12 @@ protected:
 
         p_managerImplMock  = new NiceMock <ManagerImplMock>;
         device::Manager::setImpl(p_managerImplMock);
+
+        p_displayMock  = new NiceMock <DisplayMock>;
+        device::Display::setImpl(p_displayMock);
+
+        p_edidParserMock  = new NiceMock <EdidParserMock>;
+        device::EdidParser::setImpl(p_edidParserMock);
 
         EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())
@@ -177,6 +187,20 @@ protected:
         {
             delete p_drmMock;
         }
+
+        device::Display::setImpl(nullptr);
+        if (p_displayMock != nullptr)
+        {
+            delete p_displayMock;
+            p_displayMock = nullptr;
+        }  
+
+        device::EdidParser::setImpl(nullptr);
+        if (p_edidParserMock != nullptr)
+        {
+            delete p_edidParserMock;
+            p_edidParserMock = nullptr;
+        }
            
         
         device::Manager::setImpl(nullptr);
@@ -248,6 +272,18 @@ protected:
 
         ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
             .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+
+        ON_CALL(*p_hostImplMock, getVideoOutputPorts())
+            .WillByDefault(::testing::Return(std::vector<device::VideoOutputPort>({videoOutputPort})));
+
+        ON_CALL(*p_videoOutputPortMock, getType())
+            .WillByDefault(::testing::ReturnRef(device::VideoOutputPortType::kHDMI));
+        
+        ON_CALL(*p_videoOutputPortMock, getName())
+            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
 
         drmModeRes* res = (drmModeRes*)calloc(1, sizeof(drmModeRes));
         res->count_connectors = 1;
@@ -340,9 +376,30 @@ protected:
         ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
             .WillByDefault(::testing::ReturnRef(audioOutputPort));
 
-        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
-            .WillByDefault(::testing::ReturnRef(audioOutputPort));
-            
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+
+        ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](std::vector<uint8_t> &edidVec2) {
+                    edidVec2 = std::vector<uint8_t>({ 't', 'e', 's', 't' });
+                }));
+
+        ON_CALL(*p_edidParserMock, EDID_Verify(::testing::_,::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](unsigned char* bytes, size_t count) {
+                    // Mocked verification logic
+                    return edid_parser::EDID_STATUS_OK;
+                }));
+
+        ON_CALL(*p_edidParserMock, EDID_Parse(::testing::_,::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](unsigned char* bytes, size_t count, edid_data_t* data_ptr) {
+                    // Mocked parsing logic
+                    data_ptr->vertical_frequency = 60; // Set the expected vertical frequency
+                    return edid_parser::EDID_STATUS_OK;
+                }));
+
         uint32_t _connectionId = 0;
         Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
         ASSERT_NE(connectionProperties, nullptr);
@@ -356,3 +413,168 @@ protected:
         // Release the interface after use
         connectionProperties->Release();
      }
+
+    TEST_F(DisplayInfoTestTest, EDID)
+    {
+        // Arrange: Set up mocks for display connection and EDID bytes
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+        ON_CALL(*p_videoOutputPortMock, getDisplay())
+            .WillByDefault(::testing::ReturnRef(*p_displayMock));
+        ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](std::vector<uint8_t>& edidVec) {
+                    edidVec = std::vector<uint8_t>({'A', 'B', 'C', 'D'});
+                }));
+
+        // Act: Call the EDID function via the COMRPC interface
+        uint32_t _connectionId = 0;
+        Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(connectionProperties, nullptr);
+
+        uint16_t length = 4;
+        uint8_t data[4] = {};
+        uint32_t result = connectionProperties->EDID(length, data);
+
+        // Assert: Check the result and the output buffer
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        EXPECT_EQ(length, 4);
+        EXPECT_EQ(data[0], 'A');
+        EXPECT_EQ(data[1], 'B');
+        EXPECT_EQ(data[2], 'C');
+        EXPECT_EQ(data[3], 'D');
+
+        connectionProperties->Release();
+    }
+
+        TEST_F(DisplayInfoTestTest, WidthInCentimeters)
+    {
+        // Arrange: Set up mocks for display connection and EDID bytes
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+        ON_CALL(*p_videoOutputPortMock, getDisplay())
+            .WillByDefault(::testing::ReturnRef(*p_displayMock));
+        ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](std::vector<uint8_t>& edidVec) {
+                    // EDID must be at least 23 bytes for index 21 (EDID_MAX_HORIZONTAL_SIZE)
+                    edidVec = std::vector<uint8_t>(23, 0);
+                    edidVec[21] = 77; // Set horizontal size in cm at index 21
+                }));
+    
+        // Act: Call the WidthInCentimeters function via the COMRPC interface
+        uint32_t _connectionId = 0;
+        Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(connectionProperties, nullptr);
+    
+        uint8_t width = 0;
+        uint32_t result = connectionProperties->WidthInCentimeters(width);
+    
+        // Assert: Check the result and the output value
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        EXPECT_EQ(width, 77); // Should match the value set in the mock
+    
+        connectionProperties->Release();
+    }
+
+        TEST_F(DisplayInfoTestTest, HeightInCentimeters)
+    {
+        // Arrange: Set up mocks for display connection and EDID bytes
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+        ON_CALL(*p_videoOutputPortMock, getDisplay())
+            .WillByDefault(::testing::ReturnRef(*p_displayMock));
+        ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](std::vector<uint8_t>& edidVec) {
+                    // EDID must be at least 23 bytes for index 22 (EDID_MAX_VERTICAL_SIZE)
+                    edidVec = std::vector<uint8_t>(23, 0);
+                    edidVec[22] = 55; // Set vertical size in cm at index 22
+                }));
+    
+        // Act: Call the HeightInCentimeters function via the COMRPC interface
+        uint32_t _connectionId = 0;
+        Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(connectionProperties, nullptr);
+    
+        uint8_t height = 0;
+        uint32_t result = connectionProperties->HeightInCentimeters(height);
+    
+        // Assert: Check the result and the output value
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        EXPECT_EQ(height, 55); // Should match the value set in the mock
+    
+        connectionProperties->Release();
+    }
+
+    TEST_F(DisplayInfoTestTest, ColorSpace)
+    {
+        // Arrange: Set up mocks for display connection and color space
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+        ON_CALL(*p_videoOutputPortMock, getColorSpace())
+            .WillByDefault(::testing::Return(dsDISPLAY_COLORSPACE_RGB)); // This should map to FORMAT_RGB_444
+
+        // Act: Call the ColorSpace function via the COMRPC interface
+        uint32_t _connectionId = 0;
+        Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(displayProperties, nullptr);
+
+        Exchange::IDisplayProperties::ColourSpaceType cs = Exchange::IDisplayProperties::FORMAT_UNKNOWN;
+        uint32_t result = displayProperties->ColorSpace(cs);
+
+        // Assert: Check the result and the output value
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        EXPECT_EQ(cs, Exchange::IDisplayProperties::FORMAT_RGB_444); // Should match the value set in the mock
+
+        displayProperties->Release();
+    }
+
+    TEST_F(DisplayInfoTestTest, FrameRate)
+    {
+        // Arrange: Set up mocks for display connection and frame rate
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        // Mock the resolution and frame rate chain
+        NiceMock<VideoResolutionMock> videoResolutionMock;
+        NiceMock<PixelResolutionMock> pixelResolutionMock;
+        ON_CALL(*p_videoOutputPortMock, getResolution())
+            .WillByDefault(::testing::ReturnRef(videoResolutionMock));
+        ON_CALL(videoResolutionMock, getPixelResolution())
+            .WillByDefault(::testing::ReturnRef(pixelResolutionMock));
+        ON_CALL(videoResolutionMock, getFrameRate())
+            .WillByDefault(::testing::Return(device::FrameRate::k60)); // This should map to FRAMERATE_60
+    
+        // Act: Call the FrameRate function via the COMRPC interface
+        uint32_t _connectionId = 0;
+        Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(displayProperties, nullptr);
+    
+        Exchange::IDisplayProperties::FrameRateType rate = Exchange::IDisplayProperties::FRAMERATE_UNKNOWN;
+        uint32_t result = displayProperties->FrameRate(rate);
+    
+        // Assert: Check the result and the output value
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        EXPECT_EQ(rate, Exchange::IDisplayProperties::FRAMERATE_60); // Should match the value set in the mock
+    
+        displayProperties->Release();
+    }

@@ -19,7 +19,6 @@
 
 #include <chrono>
 #include <memory>
-#include <mutex>
 
 #include "PowerManagerImplementation.h"
 
@@ -670,14 +669,51 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)
+    Core::hresult PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcMask, int srcConfig)
     {
-        LOGINFO(">> Power State stored: %x, srcType: %x,  config: %x", powerMode, srcType, config);
+        LOGINFO(">> PowerMode: %x, srcType: %x,  config: %x", powerMode, srcMask, srcConfig);
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcType, config);
+        uint32_t errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcMask, srcConfig);
 
         _apiLock.Unlock();
+
+        do {
+
+            if (Core::ERROR_NONE != errorCode) {
+                LOGERR("Failed to SetWakeupSrcConfig");
+                break;
+            }
+
+            bool isWiFiMaskSet = bool (srcMask & WakeupSrcType::WAKEUP_SRC_WIFI);
+            bool isLanMaskSet  = bool (srcMask & WakeupSrcType::WAKEUP_SRC_LAN);
+
+            if (false == (isWiFiMaskSet && isLanMaskSet)) {
+                // Either WiFi or LAN wakeup source is not set
+                LOGINFO("isWifiMaskSet: %d, isLanMaskSet: %d", isWiFiMaskSet, isLanMaskSet);
+                break;
+            }
+
+            bool currNwStandbyMode = false;
+
+            errorCode = GetNetworkStandbyMode(currNwStandbyMode);
+
+            if (Core::ERROR_NONE != errorCode) {
+                LOGERR("Failed to fetch current nwStandbymode");
+                break;
+            }
+
+            bool isWiFiEnabled = bool (srcConfig & WakeupSrcType::WAKEUP_SRC_WIFI);
+            bool isLanEnabled  = bool (srcConfig & WakeupSrcType::WAKEUP_SRC_LAN);
+            bool nwStandbyMode = isWiFiEnabled && isLanEnabled;
+
+            if (nwStandbyMode == currNwStandbyMode) {
+                LOGINFO("nwStandbyMode is already set to %d", nwStandbyMode);
+                break;
+            }
+
+            errorCode = SetNetworkStandbyMode(nwStandbyMode);
+        } while (false);
 
         LOGINFO("<< errorCode: %d", errorCode);
 

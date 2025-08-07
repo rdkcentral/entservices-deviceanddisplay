@@ -95,6 +95,7 @@ bool isStbHDRcapabilitiesCache = false;
 static int  hdmiArcPortId = -1;
 static int retryPowerRequestCount = 0;
 static int  hdmiArcVolumeLevel = 0;
+static bool cec_cache_muted = false;
 bool audioPortInitActive = false;
 std::vector<int> sad_list;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;

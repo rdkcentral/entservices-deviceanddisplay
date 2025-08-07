@@ -138,7 +138,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: usersersettings_testcase
+          ref: usersettings_testcase
 
       - name: Checkout googletest
         if: steps.cache.outputs.cache-hit != 'true'

@@ -36,6 +36,7 @@
 #include "VideoOutputPortConfigMock.h"
 #include "VideoOutputPortMock.h"
 #include "VideoOutputPortTypeMock.h"
+#include "VideoResolutionMock.h"
 #include "DrmMock.h"
 
 #include "FactoriesImplementation.h"
@@ -79,6 +80,7 @@ protected:
     HostImplMock      *p_hostImplMock = nullptr ;
     AudioOutputPortMock      *p_audioOutputPortMock = nullptr ;
     VideoOutputPortMock      *p_videoOutputPortMock = nullptr ;
+    VideoResolutionMock      *p_videoResolutionMock = nullptr ;
     DisplayMock      *p_displayMock = nullptr ;
     EdidParserMock  *p_edidParserMock = nullptr;
     DRMMock *p_drmMock = nullptr;
@@ -112,7 +114,7 @@ protected:
         device::Display::setImpl(p_displayMock);
 
         p_edidParserMock  = new NiceMock <EdidParserMock>;
-        device::EdidParser::setImpl(p_edidParserMock);
+        edid_parser::edidParserImpl::setImpl(p_edidParserMock);
 
         EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())
@@ -133,6 +135,9 @@ protected:
 
         p_audioOutputPortMock  = new NiceMock <AudioOutputPortMock>;
         device::AudioOutputPort::setImpl(p_audioOutputPortMock);
+
+        p_videoResolutionMock  = new NiceMock <VideoResolutionMock>;
+        device::VideoResolution::setImpl(p_videoResolutionMock);
 
         p_videoOutputPortMock  = new NiceMock <VideoOutputPortMock>;
         device::VideoOutputPort::setImpl(p_videoOutputPortMock);
@@ -195,12 +200,19 @@ protected:
             p_displayMock = nullptr;
         }  
 
-        device::EdidParser::setImpl(nullptr);
+        edid_parser::edidParserImpl::setImpl(nullptr);
         if (p_edidParserMock != nullptr)
         {
             delete p_edidParserMock;
             p_edidParserMock = nullptr;
         }
+
+        device::VideoResolution::setImpl(nullptr);
+        if (p_videoResolutionMock != nullptr)
+        {
+            delete p_videoResolutionMock;
+            p_videoResolutionMock = nullptr;
+        }  
            
         
         device::Manager::setImpl(nullptr);
@@ -261,6 +273,7 @@ protected:
     {
         device::VideoOutputPort videoOutputPort;
         device::AudioOutputPort audioOutputPort;
+        device::VideoOutputPortType videoOutputPortType;
         //std::ofstream file("/proc/meminfo");
         //file << "MemTotal: 4096";
         //file.close();
@@ -280,10 +293,11 @@ protected:
             .WillByDefault(::testing::Return(std::vector<device::VideoOutputPort>({videoOutputPort})));
 
         ON_CALL(*p_videoOutputPortMock, getType())
-            .WillByDefault(::testing::ReturnRef(device::VideoOutputPortType::kHDMI));
+            .WillByDefault(::testing::ReturnRef(videoOutputPortType));
+        std::string videoName = "HDMI-1";
         
         ON_CALL(*p_videoOutputPortMock, getName())
-            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+            .WillByDefault(::testing::ReturnRef(videoName));
 
         drmModeRes* res = (drmModeRes*)calloc(1, sizeof(drmModeRes));
         res->count_connectors = 1;
@@ -369,9 +383,15 @@ protected:
     }
 
      TEST_F(DisplayInfoTestTest, VerticalFrequency){
+        device::VideoOutputPort videoOutputPort;
+        device::AudioOutputPort audioOutputPort;
+        device::Display display;
 
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
             .WillByDefault(::testing::ReturnRef(videoOutputPort));
+
+        ON_CALL(*p_videoOutputPortMock, getDisplay())
+            .WillByDefault(::testing::ReturnRef(display));
 
         ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
             .WillByDefault(::testing::ReturnRef(audioOutputPort));
@@ -384,7 +404,7 @@ protected:
                 [&](std::vector<uint8_t> &edidVec2) {
                     edidVec2 = std::vector<uint8_t>({ 't', 'e', 's', 't' });
                 }));
-
+                
         ON_CALL(*p_edidParserMock, EDID_Verify(::testing::_,::testing::_))
             .WillByDefault(::testing::Invoke(
                 [&](unsigned char* bytes, size_t count) {
@@ -394,11 +414,14 @@ protected:
 
         ON_CALL(*p_edidParserMock, EDID_Parse(::testing::_,::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(
-                [&](unsigned char* bytes, size_t count, edid_data_t* data_ptr) {
+                [&](unsigned char* bytes, size_t count, edid_parser::edid_data_t* data_ptr) {
                     // Mocked parsing logic
-                    data_ptr->vertical_frequency = 60; // Set the expected vertical frequency
+                    edid_parser::edid_res_t res;
+                    res.refresh = 60;
+                    data_ptr->res = res; // Set the expected vertical frequency
                     return edid_parser::EDID_STATUS_OK;
                 }));
+                
 
         uint32_t _connectionId = 0;
         Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
@@ -407,8 +430,10 @@ protected:
         uint32_t verticalFreq = 0;
         uint32_t result = connectionProperties->VerticalFreq(verticalFreq);
 
+        uint32_t freqCheck = 60;
+
         EXPECT_EQ(result, Core::ERROR_NONE);
-        EXPECT_EQ(verticalFreq, 60); // Change 60 to the expected value for your test/mocks
+        EXPECT_EQ(verticalFreq, freqCheck); // Change 60 to the expected value for your test/mocks
 
         // Release the interface after use
         connectionProperties->Release();
@@ -416,13 +441,16 @@ protected:
 
     TEST_F(DisplayInfoTestTest, EDID)
     {
+        device::VideoOutputPort videoOutputPort;
+        device::AudioOutputPort audioOutputPort;
+        device::Display display;
         // Arrange: Set up mocks for display connection and EDID bytes
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
             .WillByDefault(::testing::Return(true));
         ON_CALL(*p_videoOutputPortMock, getDisplay())
-            .WillByDefault(::testing::ReturnRef(*p_displayMock));
+            .WillByDefault(::testing::ReturnRef(display));
         ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
             .WillByDefault(::testing::Invoke(
                 [](std::vector<uint8_t>& edidVec) {
@@ -451,15 +479,19 @@ protected:
 
         TEST_F(DisplayInfoTestTest, WidthInCentimeters)
     {
+        device::VideoOutputPort videoOutputPort;
+        device::AudioOutputPort audioOutputPort;
+        string videoPort(_T("HDMI0"));
+        device::Display display;
         // Arrange: Set up mocks for display connection and EDID bytes
-        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+        //ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+        //    .WillByDefault(::testing::Return(videoPort));
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
             .WillByDefault(::testing::Return(true));
         ON_CALL(*p_videoOutputPortMock, getDisplay())
-            .WillByDefault(::testing::ReturnRef(*p_displayMock));
+            .WillByDefault(::testing::ReturnRef(display));
         ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
             .WillByDefault(::testing::Invoke(
                 [](std::vector<uint8_t>& edidVec) {
@@ -485,15 +517,20 @@ protected:
 
         TEST_F(DisplayInfoTestTest, HeightInCentimeters)
     {
+        device::VideoOutputPort videoOutputPort;
+        device::AudioOutputPort audioOutputPort;
+        device::VideoOutputPortType videoOutputPortType;
+        device::Display display;
+        string videoPort(_T("HDMI0"));
         // Arrange: Set up mocks for display connection and EDID bytes
         ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+            .WillByDefault(::testing::Return(videoPort));
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
             .WillByDefault(::testing::Return(true));
         ON_CALL(*p_videoOutputPortMock, getDisplay())
-            .WillByDefault(::testing::ReturnRef(*p_displayMock));
+            .WillByDefault(::testing::ReturnRef(display));
         ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
             .WillByDefault(::testing::Invoke(
                 [](std::vector<uint8_t>& edidVec) {
@@ -519,11 +556,14 @@ protected:
 
     TEST_F(DisplayInfoTestTest, ColorSpace)
     {
+        device::VideoOutputPort videoOutputPort;
+        device::AudioOutputPort audioOutputPort;
+        string videoPort(_T("HDMI0"));
         // Arrange: Set up mocks for display connection and color space
-        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+        //ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+        //    .WillByDefault(::testing::ReturnRef(videoPort));
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
             .WillByDefault(::testing::Return(true));
         ON_CALL(*p_videoOutputPortMock, getColorSpace())
@@ -546,23 +586,28 @@ protected:
 
     TEST_F(DisplayInfoTestTest, FrameRate)
     {
+        device::VideoOutputPort videoOutputPort;
+        device::AudioOutputPort audioOutputPort;
+        device::VideoResolution videoResolution;
+        device::PixelResolution pixelResolution;
+        string videoPort(_T("HDMI0"));
         // Arrange: Set up mocks for display connection and frame rate
-        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-            .WillByDefault(::testing::ReturnRef(std::string("HDMI-1")));
+        //ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+        //    .WillByDefault(::testing::ReturnRef(videoPort));
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(*p_videoOutputPortMock));
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
             .WillByDefault(::testing::Return(true));
+
+        device::FrameRate frame(dsVIDEO_FRAMERATE_60);
     
         // Mock the resolution and frame rate chain
-        NiceMock<VideoResolutionMock> videoResolutionMock;
-        NiceMock<PixelResolutionMock> pixelResolutionMock;
         ON_CALL(*p_videoOutputPortMock, getResolution())
-            .WillByDefault(::testing::ReturnRef(videoResolutionMock));
-        ON_CALL(videoResolutionMock, getPixelResolution())
-            .WillByDefault(::testing::ReturnRef(pixelResolutionMock));
-        ON_CALL(videoResolutionMock, getFrameRate())
-            .WillByDefault(::testing::Return(device::FrameRate::k60)); // This should map to FRAMERATE_60
+            .WillByDefault(::testing::ReturnRef(videoResolution));
+        ON_CALL(*p_videoResolutionMock, getPixelResolution())
+            .WillByDefault(::testing::ReturnRef(pixelResolution));
+        ON_CALL(*p_videoResolutionMock, getFrameRate())
+            .WillByDefault(::testing::ReturnRef(frame)); 
     
         // Act: Call the FrameRate function via the COMRPC interface
         uint32_t _connectionId = 0;
@@ -578,3 +623,4 @@ protected:
     
         displayProperties->Release();
     }
+        

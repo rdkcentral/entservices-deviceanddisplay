@@ -606,21 +606,179 @@ protected:
             .WillByDefault(::testing::ReturnRef(videoResolution));
         ON_CALL(*p_videoResolutionMock, getPixelResolution())
             .WillByDefault(::testing::ReturnRef(pixelResolution));
-        ON_CALL(*p_videoResolutionMock, getFrameRate())
-            .WillByDefault(::testing::ReturnRef(frame)); 
     
         // Act: Call the FrameRate function via the COMRPC interface
         uint32_t _connectionId = 0;
         Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
         ASSERT_NE(displayProperties, nullptr);
     
-        Exchange::IDisplayProperties::FrameRateType rate = Exchange::IDisplayProperties::FRAMERATE_UNKNOWN;
-        uint32_t result = displayProperties->FrameRate(rate);
-    
-        // Assert: Check the result and the output value
-        EXPECT_EQ(result, Core::ERROR_NONE);
-        EXPECT_EQ(rate, Exchange::IDisplayProperties::FRAMERATE_60); // Should match the value set in the mock
+        struct {
+            device::FrameRate deviceRate;
+            Exchange::IDisplayProperties::FrameRateType expected;
+        } testCases[] = {
+            {device::FrameRate::k23dot98, Exchange::IDisplayProperties::FRAMERATE_23_976},
+            {device::FrameRate::k24,      Exchange::IDisplayProperties::FRAMERATE_24},
+            {device::FrameRate::k25,      Exchange::IDisplayProperties::FRAMERATE_25},
+            {device::FrameRate::k29dot97, Exchange::IDisplayProperties::FRAMERATE_29_97},
+            {device::FrameRate::k30,      Exchange::IDisplayProperties::FRAMERATE_30},
+            {device::FrameRate::k50,      Exchange::IDisplayProperties::FRAMERATE_50},
+            {device::FrameRate::k59dot94, Exchange::IDisplayProperties::FRAMERATE_59_94},
+            {device::FrameRate::k60,      Exchange::IDisplayProperties::FRAMERATE_60},
+            // Add more if your device::FrameRate enum supports them
+        };
+        
+        for (const auto& test : testCases) {
+            ON_CALL(videoResolutionMock, getFrameRate())
+                .WillOnce(::testing::Return(test.deviceRate));
+
+            // Act: Call the FrameRate function via the COMRPC interface
+
+            Exchange::IDisplayProperties::FrameRateType rate = Exchange::IDisplayProperties::FRAMERATE_UNKNOWN;
+            uint32_t result = displayProperties->FrameRate(rate);
+
+            // Assert: Check the result and the output value
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            EXPECT_EQ(rate, test.expected);
+        }
     
         displayProperties->Release();
+    }
+
+        TEST_F(DisplayInfoTestTest, ColourDepth)
+    {
+        device::VideoOutputPort videoOutputPort;
+        string videoPort(_T("HDMI0"));
+        // Arrange: Set up mocks for display connection and color depth
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::ReturnRef(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        struct {
+            int mockDepth;
+            Exchange::IDisplayProperties::ColourDepthType expected;
+        } testCases[] = {
+            {8,  Exchange::IDisplayProperties::COLORDEPTH_8_BIT},
+            {10, Exchange::IDisplayProperties::COLORDEPTH_10_BIT},
+            {12, Exchange::IDisplayProperties::COLORDEPTH_12_BIT},
+            {0,  Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN},
+            {99, Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN}
+        };
+    
+        for (const auto& test : testCases) {
+            ON_CALL(*p_videoOutputPortMock, getColorDepth())
+                .WillOnce(::testing::Return(test.mockDepth));
+    
+            uint32_t _connectionId = 0;
+            Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+            ASSERT_NE(displayProperties, nullptr);
+    
+            Exchange::IDisplayProperties::ColourDepthType colour = Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN;
+            uint32_t result = displayProperties->ColourDepth(colour);
+    
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            EXPECT_EQ(colour, test.expected);
+    
+            displayProperties->Release();
+        }
+    }
+
+        TEST_F(DisplayInfoTestTest, QuantizationRange)
+    {
+        device::VideoOutputPort videoOutputPort;
+        string videoPort(_T("HDMI0"));
+        // Arrange: Set up mocks for display connection and quantization range
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::ReturnRef(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        struct {
+            int mockRange;
+            Exchange::IDisplayProperties::QuantizationRangeType expected;
+        } testCases[] = {
+            {0, Exchange::IDisplayProperties::QUANTIZATIONRANGE_LIMITED},
+            {1, Exchange::IDisplayProperties::QUANTIZATIONRANGE_FULL},
+            {99, Exchange::IDisplayProperties::QUANTIZATIONRANGE_UNKNOWN}
+        };
+    
+        for (const auto& test : testCases) {
+            ON_CALL(*p_videoOutputPortMock, getQuantizationRange())
+                .WillOnce(::testing::Return(test.mockRange));
+    
+            uint32_t _connectionId = 0;
+            Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+            ASSERT_NE(displayProperties, nullptr);
+    
+            Exchange::IDisplayProperties::QuantizationRangeType qr = Exchange::IDisplayProperties::QUANTIZATIONRANGE_UNKNOWN;
+            uint32_t result = displayProperties->QuantizationRange(qr);
+    
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            EXPECT_EQ(qr, test.expected);
+    
+            displayProperties->Release();
+        }
+    }
+
+        TEST_F(DisplayInfoTestTest, Colorimetry)
+    {
+        device::VideoOutputPort videoOutputPort;
+        device::Display display;
+        string videoPort(_T("HDMI0"));
+    
+        // Arrange: Set up mocks for display connection and EDID parsing
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::ReturnRef(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+        ON_CALL(*p_videoOutputPortMock, getDisplay())
+            .WillByDefault(::testing::ReturnRef(display));
+        ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](std::vector<uint8_t>& edidVec) {
+                    edidVec = std::vector<uint8_t>(128, 0xAA); // Just a dummy EDID
+                }));
+    
+        // Mock EDID_Verify to succeed
+        ON_CALL(*p_edidParserMock, EDID_Verify(::testing::_, ::testing::_))
+            .WillByDefault(::testing::Return(edid_parser::EDID_STATUS_OK));
+    
+        // Mock EDID_Parse to set colorimetry_info
+        ON_CALL(*p_edidParserMock, EDID_Parse(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](unsigned char*, size_t, edid_parser::edid_data_t* data_ptr) {
+                    // Set colorimetry_info to include XVYCC601 and BT2020CL
+                    data_ptr->colorimetry_info = edid_parser::COLORIMETRY_INFO_XVYCC601 | edid_parser::COLORIMETRY_INFO_BT2020CL;
+                    return edid_parser::EDID_STATUS_OK;
+                }));
+    
+        // Act: Call the Colorimetry function via the COMRPC interface
+        uint32_t _connectionId = 0;
+        Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(displayProperties, nullptr);
+    
+        Exchange::IDisplayProperties::IColorimetryIterator* colorimetry = nullptr;
+        uint32_t result = displayProperties->Colorimetry(colorimetry);
+    
+        // Assert: Check the result and the output values
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(colorimetry, nullptr);
+    
+        // Collect all returned colorimetry types
+        std::vector<Exchange::IDisplayProperties::ColorimetryType> values;
+        while (colorimetry->Next()) {
+            values.push_back(colorimetry->Current());
+        }
+        colorimetry->Release();
+    
+        // Should contain COLORIMETRY_XVYCC601 and COLORIMETRY_BT2020YCCBCBRC
+        EXPECT_NE(std::find(values.begin(), values.end(), Exchange::IDisplayProperties::COLORIMETRY_XVYCC601), values.end());
+        EXPECT_NE(std::find(values.begin(), values.end(), Exchange::IDisplayProperties::COLORIMETRY_BT2020YCCBCBRC), values.end());
     }
         

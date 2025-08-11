@@ -23,6 +23,8 @@
 
 ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
+    ,_therm_mutex(std::make_shared<std::mutex>())
+    ,_grace_interval_mutex(std::make_shared<std::mutex>())
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
     , _parent(parent)
     , _stopThread(false)
@@ -49,9 +51,12 @@ ThermalController::~ThermalController()
 
 uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const
 {
+    _therm_mutex->lock();
+
     curLevel = m_cur_Thermal_Level;
     curTemperature = m_cur_Thermal_Value;
 
+    _therm_mutex->unlock();
     LOGINFO("curTemperature: %d, curLevel %d", m_cur_Thermal_Value, int(m_cur_Thermal_Level));
 
     return WPEFramework::Core::ERROR_NONE;
@@ -100,8 +105,13 @@ uint32_t ThermalController::SetOvertempGraceInterval(int graceInterval)
     if(graceInterval >= 0 )
     {
         LOGINFO("Setting over temparature grace interval : %d", graceInterval);
+        _grace_interval_mutex->lock();
+
         rebootThreshold.graceInterval = graceInterval;
         deepsleepThreshold.graceInterval = graceInterval;
+
+        _grace_interval_mutex->unlock();
+
         retCode = WPEFramework::Core::ERROR_NONE;
     }
     else
@@ -390,6 +400,7 @@ void ThermalController::pollThermalLevels()
         uint32_t result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
         if(WPEFramework::Core::ERROR_NONE == result)
         {
+            _therm_mutex->lock();
             if(m_cur_Thermal_Level != state)//State changed, need to broadcast
             {
                 LOGINFO("Temeperature levels changed %s -> %s", str(m_cur_Thermal_Level), str(state));
@@ -412,17 +423,21 @@ void ThermalController::pollThermalLevels()
             }
             m_cur_Thermal_Value = (int)current_Temp;
 
+            _therm_mutex->unlock();
+
             if (_stopThread) 
             {
                 LOGINFO("pollThermalLevels thread is signalled to be destroyed");
                 break;
             }
 
+            _grace_interval_mutex->lock();
             /* Check if we should enter deepsleep based on the current temperature */
             deepSleepIfNeeded();
 
             /* Check if we should reboot based on the current temperature */
             rebootIfNeeded();
+            _grace_interval_mutex->unlock();
 
             /* Check if we should declock based on the current temperature */
             declockIfNeeded();

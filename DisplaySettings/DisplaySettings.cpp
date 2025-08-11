@@ -4445,7 +4445,7 @@ namespace WPEFramework {
 				     LOGINFO("eARC is already enabled. Value of m_arcEarcAudioEnabled is %d: \n", m_arcEarcAudioEnabled);
 				  }
                   //EARC MUTE
-                  //LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
+                  LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
                   #if 1
                   if(cec_cache_muted)
                   {
@@ -4935,7 +4935,7 @@ void DisplaySettings::sendMsgThread()
                     // If the mute command fails, it will retry until it succeeds
                     std::thread muteThread([]() {
                         // Add 5 sec sleep
-                        std::this_thread::sleep_for(std::chrono::seconds(5));
+                        std::this_thread::sleep_for(std::chrono::seconds(2));
                         bool result = false;
                         while ((result = DisplaySettings::_instance->sendSetAudioMuteStatus()) != true) {
                             LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus failed, retrying...");
@@ -5316,8 +5316,10 @@ void DisplaySettings::sendMsgThread()
             if (parameters.HasLabel("muteStatus") && parameters.HasLabel("volumeLevel")) {
                 hdmiArcVolumeLevel =  stoi(parameters["volumeLevel"].String());
                 //GSK EARC save the mute.
-                cec_cache_muted =  stoi(parameters["muteStatus"].String());
-                LOGINFO("gsk:cec_cache_muted: %d", cec_cache_muted);
+                //cec_cache_muted =  stoi(parameters["muteStatus"].String());
+
+                cec_cache_muted = true;
+                LOGINFO("gsk:true for all cec_cache_muted: %d", cec_cache_muted);
             } else {
                 LOGERR("Field 'muteStatus' and 'volumeLevel' could not be found in the event's payload.");
             }
@@ -5419,7 +5421,7 @@ void DisplaySettings::sendMsgThread()
                                                 //gsk Call the mute status.
                 //EARC MUTE
                   LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
-                  #if 0
+                  #if 1
                   if(cec_cache_muted)
                   {
                         LOGINFO("gsk:start:sendMsgToQueue SEND_AUDIO_DEVICE_MUTE_MSG AKA  sendSetAudioMuteStatus() to HDMICEC_SINK plugin\n");

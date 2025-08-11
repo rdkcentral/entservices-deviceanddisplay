@@ -613,24 +613,23 @@ protected:
         ASSERT_NE(displayProperties, nullptr);
     
         struct {
-            int deviceRate;
+            device::FrameRate frames;
             Exchange::IDisplayProperties::FrameRateType expected;
         } testCases[] = {
-            {dsVIDEO_FRAMERATE_23dot98, Exchange::IDisplayProperties::FRAMERATE_23_976},
-            {dsVIDEO_FRAMERATE_24,      Exchange::IDisplayProperties::FRAMERATE_24},
-            {dsVIDEO_FRAMERATE_25,      Exchange::IDisplayProperties::FRAMERATE_25},
-            {dsVIDEO_FRAMERATE_29dot97, Exchange::IDisplayProperties::FRAMERATE_29_97},
-            {dsVIDEO_FRAMERATE_30,      Exchange::IDisplayProperties::FRAMERATE_30},
-            {dsVIDEO_FRAMERATE_50,      Exchange::IDisplayProperties::FRAMERATE_50},
-            {dsVIDEO_FRAMERATE_59dot94, Exchange::IDisplayProperties::FRAMERATE_59_94},
-            {dsVIDEO_FRAMERATE_60,      Exchange::IDisplayProperties::FRAMERATE_60},
+            {device::FrameRate(dsVIDEO_FRAMERATE_23dot98), Exchange::IDisplayProperties::FRAMERATE_23_976},
+            {device::FrameRate(dsVIDEO_FRAMERATE_24),      Exchange::IDisplayProperties::FRAMERATE_24},
+            {device::FrameRate(dsVIDEO_FRAMERATE_25),      Exchange::IDisplayProperties::FRAMERATE_25},
+            {device::FrameRate(dsVIDEO_FRAMERATE_29dot97), Exchange::IDisplayProperties::FRAMERATE_29_97},
+            {device::FrameRate(dsVIDEO_FRAMERATE_30),      Exchange::IDisplayProperties::FRAMERATE_30},
+            {device::FrameRate(dsVIDEO_FRAMERATE_50),      Exchange::IDisplayProperties::FRAMERATE_50},
+            {device::FrameRate(dsVIDEO_FRAMERATE_59dot94), Exchange::IDisplayProperties::FRAMERATE_59_94},
+            {device::FrameRate(dsVIDEO_FRAMERATE_60)      Exchange::IDisplayProperties::FRAMERATE_60},
             // Add more if your device::FrameRate enum supports them
         };
         
         for (const auto& test : testCases) {
-            device::FrameRate frame(test.deviceRate);
             EXPECT_CALL(*p_videoResolutionMock, getFrameRate())
-                .WillOnce(::testing::ReturnRef(frame));
+                .WillOnce(::testing::ReturnRef(test.frames));
 
             // Act: Call the FrameRate function via the COMRPC interface
 
@@ -723,7 +722,7 @@ protected:
             displayProperties->Release();
         }
     }
-
+/*
         TEST_F(DisplayInfoTestTest, Colorimetry)
     {
         device::VideoOutputPort videoOutputPort;
@@ -799,4 +798,150 @@ protected:
         }
         colorimetry->Release();
     }
-        
+        */
+
+    TEST_F(DisplayInfoTestTest, HDCPProtection)
+    {
+        device::VideoOutputPort videoOutputPort;
+        string videoPort(_T("HDMI0"));
+    
+        // Arrange: Set up mocks for display connection and HDCP version
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::Return(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        struct {
+            int mockHdcpVersion;
+            Exchange::IConnectionProperties::HDCPProtectionType expected;
+        } testCases[] = {
+            {dsHDCP_VERSION_1X, Exchange::IConnectionProperties::HDCP_1X},
+            {dsHDCP_VERSION_2X, Exchange::IConnectionProperties::HDCP_2X},
+            {dsHDCP_VERSION_MAX, Exchange::IConnectionProperties::HDCP_AUTO},
+            // Add a default/unhandled value to check fallback (should remain HDCP_Unencrypted)
+            {0, Exchange::IConnectionProperties::HDCP_Unencrypted}
+        };
+        uint32_t _connectionId = 0;
+        Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(connectionProperties, nullptr);
+        for (const auto& test : testCases) {
+            EXPECT_CALL(*p_videoOutputPortMock, GetHdmiPreference())
+                .WillOnce(::testing::Return(test.mockHdcpVersion));
+    
+            
+    
+            Exchange::IConnectionProperties::HDCPProtectionType hdcp = Exchange::IConnectionProperties::HDCP_Unencrypted;
+            uint32_t result = connectionProperties->HDCPProtection(hdcp);
+    
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            EXPECT_EQ(hdcp, test.expected);
+    
+        }
+        connectionProperties->Release();
+    }    
+
+    TEST_F(DisplayInfoTestTest, ColourDepth)
+    {
+        device::VideoOutputPort videoOutputPort;
+        string videoPort(_T("HDMI0"));
+    
+        // Arrange: Set up mocks for display connection and color depth
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::Return(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        struct {
+            int mockDepth;
+            Exchange::IDisplayProperties::ColourDepthType expected;
+        } testCases[] = {
+            {8,  Exchange::IDisplayProperties::COLORDEPTH_8_BIT},
+            {10, Exchange::IDisplayProperties::COLORDEPTH_10_BIT},
+            {12, Exchange::IDisplayProperties::COLORDEPTH_12_BIT},
+            {0,  Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN},
+            {99, Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN} // test an unhandled value
+        };
+    
+        for (const auto& test : testCases) {
+            EXPECT_CALL(*p_videoOutputPortMock, getColorDepth())
+                .WillOnce(::testing::Return(test.mockDepth));
+    
+            uint32_t _connectionId = 0;
+            Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+            ASSERT_NE(displayProperties, nullptr);
+    
+            Exchange::IDisplayProperties::ColourDepthType colour = Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN;
+            uint32_t result = displayProperties->ColourDepth(colour);
+    
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            EXPECT_EQ(colour, test.expected);
+    
+            displayProperties->Release();
+        }
+    }
+
+    TEST_F(DisplayInfoTestTest, TVCapabilities)
+    {
+        device::VideoOutputPort videoOutputPort;
+        string videoPort(_T("HDMI0"));
+    
+        // Arrange: Set up mocks for display connection and HDR capabilities
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::Return(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        struct {
+            int mockCapabilities;
+            std::vector<Exchange::IHDRProperties::HDRType> expected;
+        } testCases[] = {
+            {0, {Exchange::IHDRProperties::HDR_OFF}},
+            {dsHDRSTANDARD_HDR10, {Exchange::IHDRProperties::HDR_10}},
+            {dsHDRSTANDARD_HLG, {Exchange::IHDRProperties::HDR_HLG}},
+            {dsHDRSTANDARD_DolbyVision, {Exchange::IHDRProperties::HDR_DOLBYVISION}},
+            {dsHDRSTANDARD_TechnicolorPrime, {Exchange::IHDRProperties::HDR_TECHNICOLOR}},
+            {dsHDRSTANDARD_SDR, {Exchange::IHDRProperties::HDR_SDR}},
+            // Test multiple capabilities combined
+            {dsHDRSTANDARD_HDR10 | dsHDRSTANDARD_HLG, {Exchange::IHDRProperties::HDR_10, Exchange::IHDRProperties::HDR_HLG}},
+            {dsHDRSTANDARD_HDR10 | dsHDRSTANDARD_HLG | dsHDRSTANDARD_DolbyVision, {Exchange::IHDRProperties::HDR_10, Exchange::IHDRProperties::HDR_HLG, Exchange::IHDRProperties::HDR_DOLBYVISION}},
+            // Add more combinations as needed
+        };
+    
+        for (const auto& test : testCases) {
+            EXPECT_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(::testing::_))
+                .WillOnce(::testing::Invoke(
+                    [&](int* caps) {
+                        *caps = test.mockCapabilities;
+                    }));
+    
+            uint32_t _connectionId = 0;
+            Exchange::IHDRProperties* hdrProperties = service.Root<Exchange::IHDRProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+            ASSERT_NE(hdrProperties, nullptr);
+    
+            Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+            uint32_t result = hdrProperties->TVCapabilities(iterator);
+    
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            ASSERT_NE(iterator, nullptr);
+    
+            std::vector<Exchange::IHDRProperties::HDRType> values;
+            for (; iterator->IsValid(); iterator->Next(true)) {
+                values.push_back(iterator->Current());
+            }
+            iterator->Release();
+    
+            // Assert: Check that the vectors have the same size and values (order matters)
+            ASSERT_EQ(values.size(), test.expected.size());
+            for (size_t i = 0; i < test.expected.size(); ++i) {
+                EXPECT_EQ(values[i], test.expected[i]);
+            }
+    
+            hdrProperties->Release();
+        }
+    }

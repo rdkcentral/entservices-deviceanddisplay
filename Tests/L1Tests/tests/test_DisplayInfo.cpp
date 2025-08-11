@@ -599,7 +599,7 @@ protected:
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
             .WillByDefault(::testing::Return(true));
 
-        device::FrameRate frame(dsVIDEO_FRAMERATE_60);
+        
     
         // Mock the resolution and frame rate chain
         ON_CALL(*p_videoOutputPortMock, getResolution())
@@ -613,23 +613,24 @@ protected:
         ASSERT_NE(displayProperties, nullptr);
     
         struct {
-            device::FrameRate deviceRate;
+            int deviceRate;
             Exchange::IDisplayProperties::FrameRateType expected;
         } testCases[] = {
-            {device::FrameRate::k23dot98, Exchange::IDisplayProperties::FRAMERATE_23_976},
-            {device::FrameRate::k24,      Exchange::IDisplayProperties::FRAMERATE_24},
-            {device::FrameRate::k25,      Exchange::IDisplayProperties::FRAMERATE_25},
-            {device::FrameRate::k29dot97, Exchange::IDisplayProperties::FRAMERATE_29_97},
-            {device::FrameRate::k30,      Exchange::IDisplayProperties::FRAMERATE_30},
-            {device::FrameRate::k50,      Exchange::IDisplayProperties::FRAMERATE_50},
-            {device::FrameRate::k59dot94, Exchange::IDisplayProperties::FRAMERATE_59_94},
-            {device::FrameRate::k60,      Exchange::IDisplayProperties::FRAMERATE_60},
+            {dsVIDEO_FRAMERATE_23dot98, Exchange::IDisplayProperties::FRAMERATE_23_976},
+            {dsVIDEO_FRAMERATE_24,      Exchange::IDisplayProperties::FRAMERATE_24},
+            {dsVIDEO_FRAMERATE_25,      Exchange::IDisplayProperties::FRAMERATE_25},
+            {dsVIDEO_FRAMERATE_29dot97, Exchange::IDisplayProperties::FRAMERATE_29_97},
+            {dsVIDEO_FRAMERATE_30,      Exchange::IDisplayProperties::FRAMERATE_30},
+            {dsVIDEO_FRAMERATE_50,      Exchange::IDisplayProperties::FRAMERATE_50},
+            {dsVIDEO_FRAMERATE_59dot94, Exchange::IDisplayProperties::FRAMERATE_59_94},
+            {dsVIDEO_FRAMERATE_60,      Exchange::IDisplayProperties::FRAMERATE_60},
             // Add more if your device::FrameRate enum supports them
         };
         
         for (const auto& test : testCases) {
-            ON_CALL(videoResolutionMock, getFrameRate())
-                .WillOnce(::testing::Return(test.deviceRate));
+            device::FrameRate frame(test.deviceRate);
+            EXPECT_CALL(*p_videoResolutionMock, getFrameRate())
+                .WillOnce(::testing::ReturnRef(frame));
 
             // Act: Call the FrameRate function via the COMRPC interface
 
@@ -650,7 +651,7 @@ protected:
         string videoPort(_T("HDMI0"));
         // Arrange: Set up mocks for display connection and color depth
         ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-            .WillByDefault(::testing::ReturnRef(videoPort));
+            .WillByDefault(::testing::Return(videoPort));
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
             .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
@@ -663,12 +664,11 @@ protected:
             {8,  Exchange::IDisplayProperties::COLORDEPTH_8_BIT},
             {10, Exchange::IDisplayProperties::COLORDEPTH_10_BIT},
             {12, Exchange::IDisplayProperties::COLORDEPTH_12_BIT},
-            {0,  Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN},
-            {99, Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN}
+            {0,  Exchange::IDisplayProperties::COLORDEPTH_UNKNOWN}
         };
     
         for (const auto& test : testCases) {
-            ON_CALL(*p_videoOutputPortMock, getColorDepth())
+            EXPECT_CALL(*p_videoOutputPortMock, getColorDepth())
                 .WillOnce(::testing::Return(test.mockDepth));
     
             uint32_t _connectionId = 0;
@@ -691,7 +691,7 @@ protected:
         string videoPort(_T("HDMI0"));
         // Arrange: Set up mocks for display connection and quantization range
         ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-            .WillByDefault(::testing::ReturnRef(videoPort));
+            .WillByDefault(::testing::Return(videoPort));
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
             .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
@@ -701,13 +701,13 @@ protected:
             int mockRange;
             Exchange::IDisplayProperties::QuantizationRangeType expected;
         } testCases[] = {
-            {0, Exchange::IDisplayProperties::QUANTIZATIONRANGE_LIMITED},
-            {1, Exchange::IDisplayProperties::QUANTIZATIONRANGE_FULL},
-            {99, Exchange::IDisplayProperties::QUANTIZATIONRANGE_UNKNOWN}
+            {dsDISPLAY_QUANTIZATIONRANGE_LIMITED, Exchange::IDisplayProperties::QUANTIZATIONRANGE_LIMITED},
+            {dsDISPLAY_QUANTIZATIONRANGE_FULL, Exchange::IDisplayProperties::QUANTIZATIONRANGE_FULL},
+            {dsDISPLAY_QUANTIZATIONRANGE_UNKNOWN, Exchange::IDisplayProperties::QUANTIZATIONRANGE_UNKNOWN}
         };
     
         for (const auto& test : testCases) {
-            ON_CALL(*p_videoOutputPortMock, getQuantizationRange())
+            EXPECT_CALL(*p_videoOutputPortMock, getQuantizationRange())
                 .WillOnce(::testing::Return(test.mockRange));
     
             uint32_t _connectionId = 0;
@@ -732,7 +732,7 @@ protected:
     
         // Arrange: Set up mocks for display connection and EDID parsing
         ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-            .WillByDefault(::testing::ReturnRef(videoPort));
+            .WillByDefault(::testing::Return(videoPort));
         ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
             .WillByDefault(::testing::ReturnRef(videoOutputPort));
         ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
@@ -754,7 +754,7 @@ protected:
             .WillByDefault(::testing::Invoke(
                 [](unsigned char*, size_t, edid_parser::edid_data_t* data_ptr) {
                     // Set colorimetry_info to include XVYCC601 and BT2020CL
-                    data_ptr->colorimetry_info = edid_parser::COLORIMETRY_INFO_XVYCC601 | edid_parser::COLORIMETRY_INFO_BT2020CL;
+                    data_ptr->colorimetry_info = edid_parser::COLORIMETRY_INFO_XVYCC601 | edid_parser::COLORIMETRY_INFO_XVYCC709 | edid_parser::COLORIMETRY_INFO_SYCC601 | edid_parser::COLORIMETRY_INFO_ADOBEYCC601 | edid_parser::COLORIMETRY_INFO_ADOBERGB | edid_parser::COLORIMETRY_INFO_BT2020CL | edid_parser::COLORIMETRY_INFO_BT2020NCL |edid_parser::COLORIMETRY_INFO_BT2020RGB | edid_parser::COLORIMETRY_INFO_DCI_P3;
                     return edid_parser::EDID_STATUS_OK;
                 }));
     

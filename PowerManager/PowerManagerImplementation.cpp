@@ -679,18 +679,19 @@ namespace Plugin {
         _apiLock.Unlock();
 
         do {
+            int powerModeCurr = 0;
+            int srcMaskCurr   = 0;
+            int srcConfigCurr = 0;
 
             if (Core::ERROR_NONE != errorCode) {
                 LOGERR("Failed to SetWakeupSrcConfig");
                 break;
             }
 
-            bool isWiFiMaskSet = bool (srcMask & WakeupSrcType::WAKEUP_SRC_WIFI);
-            bool isLanMaskSet  = bool (srcMask & WakeupSrcType::WAKEUP_SRC_LAN);
+            errorCode = GetWakeupSrcConfig(powerModeCurr, srcMaskCurr, srcConfigCurr);
 
-            if (false == (isWiFiMaskSet && isLanMaskSet)) {
-                // Either WiFi or LAN wakeup source is not set
-                LOGINFO("isWifiMaskSet: %d, isLanMaskSet: %d", isWiFiMaskSet, isLanMaskSet);
+            if (Core::ERROR_NONE != errorCode) {
+                LOGERR("Failed to GetWakeupSrcConfig");
                 break;
             }
 
@@ -703,9 +704,15 @@ namespace Plugin {
                 break;
             }
 
-            bool isWiFiEnabled = bool (srcConfig & WakeupSrcType::WAKEUP_SRC_WIFI);
-            bool isLanEnabled  = bool (srcConfig & WakeupSrcType::WAKEUP_SRC_LAN);
-            bool nwStandbyMode = isWiFiEnabled && isLanEnabled;
+            bool isWiFiSupported = bool (srcMaskCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
+            bool isLanSupported  = bool (srcMaskCurr & WakeupSrcType::WAKEUP_SRC_LAN);
+
+            bool isWiFiEnabled = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
+            bool isLanEnabled  = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_LAN);
+
+            bool nwStandbyMode = ((isWiFiSupported && isWiFiEnabled && isLanSupported && isLanEnabled)
+                                    || (!isWiFiSupported && isLanSupported && isLanEnabled)
+                                    || (!isLanSupported && isWiFiSupported && isWiFiEnabled));
 
             if (nwStandbyMode == currNwStandbyMode) {
                 LOGINFO("nwStandbyMode is already set to %d", nwStandbyMode);

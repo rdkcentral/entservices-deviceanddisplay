@@ -4333,7 +4333,7 @@ namespace WPEFramework {
                     LOGERR("HdmiCecSink plugin not accessible\n");
                 }
                 else {
-                    JsonObject hdmiCecSinkResult;
+                    JsonObject hdmiCecSinkResultPress,hdmiCecSinkResultRelease;
                     JsonObject param;
 
                     param["logicalAddress"] = 0x5;
@@ -4345,14 +4345,31 @@ namespace WPEFramework {
                     //LOGINFO("Requesting EARC Set mute with  parameters: logicalAddress = %s, keyCode = %s \n", logicalAddress.c_str(), keyCode.c_str());
                     {
                         Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
-                        ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressedWrapper", param, hdmiCecSinkResult);
+                        //ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressedWrapper", param, hdmiCecSinkResult);
+                        //send key press request
+                        ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressed", param, hdmiCecSinkResultPress);
+                        //ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendAudioDeviceMuteMessage", param, hdmiCecSinkResult);
                     }
                     LOGINFO("*****debug3***** ret=%d\n", ret);
-                    if (!hdmiCecSinkResult["success"].Boolean()) {
+                    if (!hdmiCecSinkResultPress["success"].Boolean()) {
                         success = false;
                         LOGERR("HdmiCecSink Plugin returned error\n");
                     }
                     LOGINFO("*****debug4*****\n");
+                                        {
+                        Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
+                        //ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressedWrapper", param, hdmiCecSinkResult);
+                        //send key release request
+                        //LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus Before EARC MUTE set: cec_cache_muted=%d \n", cec_cache_muted);
+                        ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlReleased", param, hdmiCecSinkResultRelease);
+                        //ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendAudioDeviceMuteMessage", param, hdmiCecSinkResult);
+                    }
+                    LOGINFO("*****debug5***** ret=%d\n", ret);
+                    if (!hdmiCecSinkResultRelease["success"].Boolean()) {
+                        success = false;
+                        LOGERR("HdmiCecSink Plugin returned error\n");
+                    }
+                    LOGINFO("*****debug6*****\n");
                 }
             }
             else {
@@ -4917,8 +4934,8 @@ void DisplaySettings::sendMsgThread()
                     // and the cec_cache_muted is updated accordingly
                     // If the mute command fails, it will retry until it succeeds
                     std::thread muteThread([]() {
-                        // Add 20 sec sleep
-                        std::this_thread::sleep_for(std::chrono::seconds(20));
+                        // Add 5 sec sleep
+                        std::this_thread::sleep_for(std::chrono::seconds(5));
                         bool result = false;
                         while ((result = DisplaySettings::_instance->sendSetAudioMuteStatus()) != true) {
                             LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus failed, retrying...");

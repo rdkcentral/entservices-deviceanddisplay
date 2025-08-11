@@ -704,15 +704,10 @@ namespace Plugin {
                 break;
             }
 
-            bool isWiFiSupported = bool (srcMaskCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
-            bool isLanSupported  = bool (srcMaskCurr & WakeupSrcType::WAKEUP_SRC_LAN);
-
             bool isWiFiEnabled = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
             bool isLanEnabled  = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_LAN);
 
-            bool nwStandbyMode = ((isWiFiSupported && isWiFiEnabled && isLanSupported && isLanEnabled)
-                                    || (!isWiFiSupported && isLanSupported && isLanEnabled)
-                                    || (!isLanSupported && isWiFiSupported && isWiFiEnabled));
+            bool nwStandbyMode = isWiFiEnabled || isLanEnabled;
 
             if (nwStandbyMode == currNwStandbyMode) {
                 LOGINFO("nwStandbyMode is already set to %d", nwStandbyMode);

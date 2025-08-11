@@ -772,8 +772,10 @@ protected:
     
         // Collect all returned colorimetry types
         std::vector<Exchange::IDisplayProperties::ColorimetryType> values;
-        for (; colorimetry->IsValid(); colorimetry->Next()) {
-            values.push_back(colorimetry->Current());
+        if (colorimetry->IsValid()) {
+            do {
+                values.push_back(colorimetry->Current());
+            } while (colorimetry->Next());
         }
     
         // Should contain COLORIMETRY_XVYCC601 and COLORIMETRY_BT2020YCCBCBRC

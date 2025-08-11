@@ -4321,6 +4321,7 @@ namespace WPEFramework {
         bool DisplaySettings::sendSetAudioMuteStatus()
         {
             bool success = true;
+            int ret = -1;
             //string keyCode, logicalAddress;
             LOGINFO("*****start*****\n");
             PluginHost::IShell::state state;
@@ -4344,7 +4345,7 @@ namespace WPEFramework {
                     //LOGINFO("Requesting EARC Set mute with  parameters: logicalAddress = %s, keyCode = %s \n", logicalAddress.c_str(), keyCode.c_str());
                     {
                         Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
-                        int ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressedWrapper", param, hdmiCecSinkResult);
+                        ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressedWrapper", param, hdmiCecSinkResult);
                     }
                     LOGINFO("*****debug3***** ret=%d\n", ret);
                     if (!hdmiCecSinkResult["success"].Boolean()) {

@@ -772,7 +772,7 @@ protected:
     
         // Collect all returned colorimetry types
         std::vector<Exchange::IDisplayProperties::ColorimetryType> values;
-        while (colorimetry->Next()) {
+        for (; colorimetry->IsValid(); colorimetry->Next()) {
             values.push_back(colorimetry->Current());
         }
     

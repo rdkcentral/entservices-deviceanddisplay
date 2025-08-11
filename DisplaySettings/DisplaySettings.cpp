@@ -4381,6 +4381,7 @@ namespace WPEFramework {
 			       }/* EARC case end */
 			       else if (m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC) 
 			       {
+                    std::lock_guard<std::mutex> lock(m_SadMutex);
 				   if(m_arcEarcAudioEnabled == false ) 
 			 	   {
                                         LOGINFO("%s: Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n", __FUNCTION__);
@@ -4389,7 +4390,7 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
-					    std::lock_guard<std::mutex> lock(m_SadMutex);
+					    //std::lock_guard<std::mutex> lock(m_SadMutex);
 					    /* Take actions according to SAD udpate state */
 					    switch(m_AudioDeviceSADState)
 					    {
@@ -5070,10 +5071,10 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("ShortAudioDescriptor")) {
                 shortAudioDescriptorList = parameters["ShortAudioDescriptor"].Array();
+                std::lock_guard<std::mutex> lock(m_SadMutex);
 		if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_REQUESTED) {
                     try
                     {
-		        std::lock_guard<std::mutex> lock(m_SadMutex);
 			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_RECEIVED;
 			m_requestSadRetrigger = false;
                         device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");

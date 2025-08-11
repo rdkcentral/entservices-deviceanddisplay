@@ -4333,7 +4333,8 @@ namespace WPEFramework {
                     LOGERR("HdmiCecSink plugin not accessible\n");
                 }
                 else {
-                    JsonObject hdmiCecSinkResultPress,hdmiCecSinkResultRelease;
+                    //JsonObject hdmiCecSinkResultPress,hdmiCecSinkResultRelease;
+                    JsonObject hdmiCecSinkResult;
                     JsonObject param;
 
                     param["logicalAddress"] = 0x5;
@@ -4347,14 +4348,15 @@ namespace WPEFramework {
                         Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
                         //ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressedWrapper", param, hdmiCecSinkResult);
                         //send key press request
-                        ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressed", param, hdmiCecSinkResultPress);
-                        //ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendAudioDeviceMuteMessage", param, hdmiCecSinkResult);
+                        //ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressed", param, hdmiCecSinkResultPress);
+                        ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendAudioDeviceMuteMessage", param, hdmiCecSinkResult);
                     }
                     LOGINFO("*****debug3***** ret=%d\n", ret);
                     if (!hdmiCecSinkResultPress["success"].Boolean()) {
                         success = false;
                         LOGERR("HdmiCecSink Plugin returned error\n");
                     }
+                    #if 0
                     LOGINFO("*****debug4*****\n");
                                         {
                         Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
@@ -4370,6 +4372,7 @@ namespace WPEFramework {
                         LOGERR("HdmiCecSink Plugin returned error\n");
                     }
                     LOGINFO("*****debug6*****\n");
+                    #endif
                 }
             }
             else {
@@ -4934,12 +4937,16 @@ void DisplaySettings::sendMsgThread()
                     // and the cec_cache_muted is updated accordingly
                     // If the mute command fails, it will retry until it succeeds
                     std::thread muteThread([]() {
-                        // Add 5 sec sleep
-                        std::this_thread::sleep_for(std::chrono::seconds(2));
+                        // Add sleep make AVR settle.
+                        static bool sleepExecuted = false;
+                        if (!sleepExecuted) {
+                            std::this_thread::sleep_for(std::chrono::seconds(2));
+                            sleepExecuted = true;
+                        }
                         bool result = false;
                         while ((result = DisplaySettings::_instance->sendSetAudioMuteStatus()) != true) {
                             LOGINFO("gsk:DisplaySettings::sendSetAudioMuteStatus failed, retrying...");
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // wait for 1 second before retrying
+                            std::this_thread::sleep_for(std::chrono::milliseconds(500)); // wait for 1 second before retrying
                         }
                         // After successful mute, update the cec_cache_muted status
                         if (result == true) {
@@ -5316,10 +5323,8 @@ void DisplaySettings::sendMsgThread()
             if (parameters.HasLabel("muteStatus") && parameters.HasLabel("volumeLevel")) {
                 hdmiArcVolumeLevel =  stoi(parameters["volumeLevel"].String());
                 //GSK EARC save the mute.
-                //cec_cache_muted =  stoi(parameters["muteStatus"].String());
-
-                cec_cache_muted = true;
-                LOGINFO("gsk:true for all cec_cache_muted: %d", cec_cache_muted);
+                cec_cache_muted =  stoi(parameters["muteStatus"].String());
+                LOGINFO("gsk:cec_cache_muted: %d", cec_cache_muted);
             } else {
                 LOGERR("Field 'muteStatus' and 'volumeLevel' could not be found in the event's payload.");
             }

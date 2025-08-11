@@ -775,10 +775,26 @@ protected:
         while (colorimetry->Next()) {
             values.push_back(colorimetry->Current());
         }
-        colorimetry->Release();
     
         // Should contain COLORIMETRY_XVYCC601 and COLORIMETRY_BT2020YCCBCBRC
-        EXPECT_NE(std::find(values.begin(), values.end(), Exchange::IDisplayProperties::COLORIMETRY_XVYCC601), values.end());
-        EXPECT_NE(std::find(values.begin(), values.end(), Exchange::IDisplayProperties::COLORIMETRY_BT2020YCCBCBRC), values.end());
+        std::vector<Exchange::IDisplayProperties::ColorimetryType> expected = {
+            Exchange::IDisplayProperties::COLORIMETRY_XVYCC601,
+            Exchange::IDisplayProperties::COLORIMETRY_XVYCC709,
+            Exchange::IDisplayProperties::COLORIMETRY_SYCC601,
+            Exchange::IDisplayProperties::COLORIMETRY_OPYCC601,
+            Exchange::IDisplayProperties::COLORIMETRY_OPRGB,
+            Exchange::IDisplayProperties::COLORIMETRY_BT2020YCCBCBRC,
+            Exchange::IDisplayProperties::COLORIMETRY_BT2020RGB_YCBCR,
+            Exchange::IDisplayProperties::COLORIMETRY_OTHER // DCI_P3 maps to OTHER
+        };
+
+        // Assert: Check that the vectors have the same size
+        ASSERT_EQ(values.size(), expected.size());
+
+        // Compare each element in order
+        for (size_t i = 0; i < expected.size(); ++i) {
+            EXPECT_EQ(values[i], expected[i]);
+        }
+        colorimetry->Release();
     }
         

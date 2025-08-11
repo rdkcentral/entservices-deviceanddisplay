@@ -4352,7 +4352,7 @@ namespace WPEFramework {
                         ret = m_client->Invoke<JsonObject, JsonObject>(2000, "sendAudioDeviceMuteMessage", param, hdmiCecSinkResult);
                     }
                     LOGINFO("*****debug3***** ret=%d\n", ret);
-                    if (!hdmiCecSinkResultPress["success"].Boolean()) {
+                    if (!hdmiCecSinkResult["success"].Boolean()) {
                         success = false;
                         LOGERR("HdmiCecSink Plugin returned error\n");
                     }

@@ -585,17 +585,33 @@ protected:
             .WillByDefault(::testing::Return(dsDISPLAY_COLORSPACE_RGB)); // This should map to FORMAT_RGB_444
 
         // Act: Call the ColorSpace function via the COMRPC interface
+        struct {
+        int input;
+        Exchange::IDisplayProperties::ColourSpaceType expected;
+        } testCases[] = {
+            {dsDISPLAY_COLORSPACE_RGB,        Exchange::IDisplayProperties::FORMAT_RGB_444},
+            {dsDISPLAY_COLORSPACE_YCbCr444,   Exchange::IDisplayProperties::FORMAT_YCBCR_444},
+            {dsDISPLAY_COLORSPACE_YCbCr422,   Exchange::IDisplayProperties::FORMAT_YCBCR_422},
+            {dsDISPLAY_COLORSPACE_YCbCr420,   Exchange::IDisplayProperties::FORMAT_YCBCR_420},
+            {dsDISPLAY_COLORSPACE_AUTO,       Exchange::IDisplayProperties::FORMAT_OTHER},
+            {dsDISPLAY_COLORSPACE_UNKNOWN,    Exchange::IDisplayProperties::FORMAT_UNKNOWN}
+        };
+
         uint32_t _connectionId = 0;
         Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
         ASSERT_NE(displayProperties, nullptr);
 
-        Exchange::IDisplayProperties::ColourSpaceType cs = Exchange::IDisplayProperties::FORMAT_UNKNOWN;
-        uint32_t result = displayProperties->ColorSpace(cs);
+        for (const auto& test : testCases) {
+            EXPECT_CALL(*p_videoOutputPortMock, getColorSpace())
+                .WillOnce(::testing::Return(test.input));
 
-        // Assert: Check the result and the output value
-        EXPECT_EQ(result, Core::ERROR_NONE);
-        EXPECT_EQ(cs, Exchange::IDisplayProperties::FORMAT_RGB_444); // Should match the value set in the mock
+            Exchange::IDisplayProperties::ColourSpaceType cs = Exchange::IDisplayProperties::FORMAT_UNKNOWN;
+            uint32_t result = displayProperties->ColorSpace(cs);
 
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            EXPECT_EQ(cs, test.expected);
+
+        }
         displayProperties->Release();
     }
 

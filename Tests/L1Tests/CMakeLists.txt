@@ -132,6 +132,11 @@ add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USER
 #set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 #add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
 
+# PLUGIN_POWERMANAGER
+set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerManager ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
+add_plugin_test_ex(PLUGIN_POWERMANAGER "tests/test_PowerManager.cpp;tests/test_PowerManagerSettings.cpp;tests/test_PowerManagerThermalController.cpp" "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
+
 # PLUGIN_DEVICEDIAGNOSTICS
 set (DEVICEDIAGNOSTICS_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceDiagnostics ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 set (DEVICEDIAGNOSTICS_LIBS ${NAMESPACE}DeviceDiagnostics ${NAMESPACE}DeviceDiagnosticsImplementation)

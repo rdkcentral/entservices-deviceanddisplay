@@ -1,10 +1,15 @@
 name: L1-tests
 
 on:
-  push:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
-  pull_request:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
+  workflow_call:
+    inputs:
+      caller_source:
+        description: "Specifies the source type (e.g., local or test framework) for the workflow."
+        required: true
+        type: string
+    secrets:
+      RDKCM_RDKE:
+        required: true
 
 env:
   BUILD_TYPE: Debug
@@ -66,6 +71,11 @@ jobs:
           python-version: '3.x'
       - run: pip install jsonref
 
+      - name: ACK External Trigger
+        run: |
+           echo "Message: External Trigger Received for L1 Tests"
+           echo "Trigger Source: ${{ inputs.caller_source }}"
+
       - name: Set up CMake
         uses: jwlawson/actions-setup-cmake@v1.13
         with:
@@ -117,9 +127,18 @@ jobs:
 #          token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
+        if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay
+
+      - name: Checkout entservices-deviceanddisplay-testframework
+        if: ${{ inputs.caller_source == 'testframework' }}
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-deviceanddisplay
+          path: entservices-deviceanddisplay
+          ref: develop
 
       - name: Checkout googletest
         if: steps.cache.outputs.cache-hit != 'true'
@@ -157,6 +176,7 @@ jobs:
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/error_code_R4_4.patch
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/1004-Add-support-for-project-dir.patch
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/RDKEMW-733-Add-ENTOS-IDS.patch
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/Jsonrpc_dynamic_error_handling.patch
           cd -
 
       - name: Build Thunder
@@ -169,7 +189,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DGENERIC_CMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
-          -DBUILD_TYPE=Debug
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
           -DBINDING=127.0.0.1
           -DPORT=55555
           -DEXCEPTIONS_ENABLE=ON
@@ -328,18 +348,18 @@ jobs:
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
           -DRDK_SERVICES_L1_TEST
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
-          -I $GITHUB_WORKSPACE/entservices-deviceanddisplay/helpers
-          -I $GITHUB_WORKSPACE/Thunder/Source
-          -I $GITHUB_WORKSPACE/Thunder/Source/core
-          -I $GITHUB_WORKSPACE/install/usr/include
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I$GITHUB_WORKSPACE/entservices-deviceanddisplay/helpers
+          -I$GITHUB_WORKSPACE/Thunder/Source
+          -I$GITHUB_WORKSPACE/Thunder/Source/core
+          -I$GITHUB_WORKSPACE/install/usr/include
           -I ./usr/include/libdrm
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
@@ -355,7 +375,7 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
           --coverage
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
-          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,pclose -Wl,-wrap,setmntent -Wl,-wrap,getmntent
+          -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,setmntent -Wl,-wrap,getmntent
           -DENABLE_TELEMETRY_LOGGING
           -DUSE_IARMBUS
           -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
@@ -390,19 +410,20 @@ jobs:
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
           -DRDK_SERVICES_L1_TEST
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
-          -I $GITHUB_WORKSPACE/Thunder/Source
-          -I $GITHUB_WORKSPACE/Thunder/Source/core
-          -I $GITHUB_WORKSPACE/install/usr/include
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I$GITHUB_WORKSPACE/Thunder/Source
+          -I$GITHUB_WORKSPACE/Thunder/Source/core
+          -I$GITHUB_WORKSPACE/install/usr/include
           -I ./usr/include/libdrm
-          -I $GITHUB_WORKSPACE/install/usr/include/WPEFramework
+          -I$GITHUB_WORKSPACE/install/usr/include/WPEFramework
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
@@ -417,7 +438,7 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/gdialservice.h
           --coverage
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
-          -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,pclose -Wl,-wrap,setmntent -Wl,-wrap,getmntent
+          -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,setmntent -Wl,-wrap,getmntent
           -DENABLE_TELEMETRY_LOGGING
           -DUSE_IARMBUS
           -DUSE_DEVICESETTINGS
@@ -476,19 +497,19 @@ jobs:
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
           -DRDK_SERVICES_L1_TEST
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
-          -I $GITHUB_WORKSPACE/entservices-deviceanddisplay/helpers
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests
-          -I $GITHUB_WORKSPACE/Thunder/Source
-          -I $GITHUB_WORKSPACE/Thunder/Source/core
-          -I $GITHUB_WORKSPACE/install/usr/include
-          -I $GITHUB_WORKSPACE/install/usr/include/WPEFramework
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
+          -I$GITHUB_WORKSPACE/entservices-deviceanddisplay/helpers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I$GITHUB_WORKSPACE/Thunder/Source
+          -I$GITHUB_WORKSPACE/Thunder/Source/core
+          -I$GITHUB_WORKSPACE/install/usr/include
+          -I$GITHUB_WORKSPACE/install/usr/include/WPEFramework
           -I ./usr/include/libdrm
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
@@ -682,7 +703,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
+          name: artifacts-L1-deviceanddisplay
           path: |
             coverage/
             valgrind_logs

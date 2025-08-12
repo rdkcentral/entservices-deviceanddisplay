@@ -878,7 +878,7 @@ protected:
             
     
             Exchange::IConnectionProperties::HDCPProtectionType hdcp = Exchange::IConnectionProperties::HDCP_Unencrypted;
-            uint32_t result = static_cast<const Exchange::IConnectionPRoperties*>(connectionProperties)->HDCPProtection(hdcp);
+            uint32_t result = static_cast<const Exchange::IConnectionProperties*>(connectionProperties)->HDCPProtection(hdcp);
     
             EXPECT_EQ(result, Core::ERROR_NONE);
             EXPECT_EQ(hdcp, test.expected);

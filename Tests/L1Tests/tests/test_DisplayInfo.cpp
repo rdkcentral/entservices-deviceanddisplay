@@ -838,7 +838,7 @@ protected:
     }
         */
 
-    TEST_F(DisplayInfoTestTest, HDCPProtection)
+    TEST_F(DisplayInfoTestTest, GetHDCPProtection)
     {
         device::VideoOutputPort videoOutputPort;
         device::VideoOutputPortType videoOutputPortType(dsVIDEOPORT_TYPE_HDMI);
@@ -882,6 +882,54 @@ protected:
         }
         connectionProperties->Release();
     }    
+
+    TEST_F(DisplayInfoTestTest, SetHDCPProtection)
+    {
+        device::VideoOutputPort videoOutputPort;
+        device::VideoOutputPortType videoOutputPortType(dsVIDEOPORT_TYPE_HDMI);
+        string videoPort(_T("HDMI0"));
+    
+        ON_CALL(*p_videoOutputPortMock, getName())
+            .WillByDefault(::testing::ReturnRef(videoPort));
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::Return(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPorts())
+            .WillByDefault(::testing::Return(std::vector<device::VideoOutputPort>({videoOutputPort})));
+        ON_CALL(*p_videoOutputPortMock, getType())
+            .WillByDefault(::testing::ReturnRef(videoOutputPortType));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        struct {
+            Exchange::IConnectionProperties::HDCPProtectionType input;
+            dsHdcpProtocolVersion_t expectedVersion;
+        } testCases[] = {
+            {Exchange::IConnectionProperties::HDCP_1X, dsHDCP_VERSION_1X},
+            {Exchange::IConnectionProperties::HDCP_2X, dsHDCP_VERSION_2X},
+            {Exchange::IConnectionProperties::HDCP_AUTO, dsHDCP_VERSION_MAX}
+        };
+    
+        uint32_t _connectionId = 0;
+        Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(connectionProperties, nullptr);
+    
+        for (const auto& test : testCases) {
+            EXPECT_CALL(*p_videoOutputPortMock, SetHdmiPreference(::testing::_))
+            .WillOnce(::testing::Invoke(
+                [&](dsHdcpProtocolVersion_t version) {
+                    EXPECT_EQ(version, test.expectedVersion); // Validate the value
+                    return true;
+                }));
+    
+            uint32_t result = connectionProperties->HDCPProtection(test.input);
+    
+            EXPECT_EQ(result, Core::ERROR_NONE);
+        }
+    
+        connectionProperties->Release();
+    }
 
 
 /*

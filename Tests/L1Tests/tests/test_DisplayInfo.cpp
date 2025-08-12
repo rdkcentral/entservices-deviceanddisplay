@@ -947,6 +947,53 @@ protected:
         connectionProperties->Release();
     }
 
+    TEST_F(DisplayInfoTestTest, EOTF)
+    {
+        device::VideoOutputPort videoOutputPort;
+        device::VideoOutputPortType videoOutputPortType(dsVIDEOPORT_TYPE_HDMI);
+        string videoPort(_T("HDMI0"));
+        std::string videoName = "HDMI-1";
+    
+        ON_CALL(*p_videoOutputPortMock, getName())
+            .WillByDefault(::testing::ReturnRef(videoName));
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::Return(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPorts())
+            .WillByDefault(::testing::Return(std::vector<device::VideoOutputPort>({videoOutputPort})));
+        ON_CALL(*p_videoOutputPortMock, getType())
+            .WillByDefault(::testing::ReturnRef(videoOutputPortType));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+    
+        struct {
+            int input;
+            Exchange::IDisplayProperties::EotfType expected;
+        } testCases[] = {
+            {dsHDRSTANDARD_HDR10, Exchange::IDisplayProperties::EOTF_SMPTE_ST_2084},
+            {dsHDRSTANDARD_HLG, Exchange::IDisplayProperties::EOTF_BT2100},
+            {999, Exchange::IDisplayProperties::EOTF_UNKNOWN} // test an unhandled value
+        };
+    
+        uint32_t _connectionId = 0;
+        Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(displayProperties, nullptr);
+    
+        for (const auto& test : testCases) {
+            EXPECT_CALL(*p_videoOutputPortMock, getVideoEOTF())
+                .WillOnce(::testing::Return(test.input));
+    
+            Exchange::IDisplayProperties::EotfType eotf = Exchange::IDisplayProperties::EOTF_UNKNOWN;
+            uint32_t result = displayProperties->EOTF(eotf);
+    
+            EXPECT_EQ(result, Core::ERROR_NONE);
+            EXPECT_EQ(eotf, test.expected);
+        }
+    
+        displayProperties->Release();
+    }
+
 
 /*
     TEST_F(DisplayInfoTestTest, TVCapabilities)

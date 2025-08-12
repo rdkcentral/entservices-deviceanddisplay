@@ -273,6 +273,7 @@ public:
     uint32_t HDCPProtection(const HDCPProtectionType value) override //set
     {
         dsHdcpProtocolVersion_t hdcpversion = dsHDCP_VERSION_MAX;
+        std::cout << "set HDCPProtection" << std::endl;
         string portname;
         PortName(portname);
         if(!portname.empty())

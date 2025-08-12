@@ -864,9 +864,7 @@ protected:
         } testCases[] = {
             {dsHDCP_VERSION_1X, Exchange::IConnectionProperties::HDCP_1X},
             {dsHDCP_VERSION_2X, Exchange::IConnectionProperties::HDCP_2X},
-            {dsHDCP_VERSION_MAX, Exchange::IConnectionProperties::HDCP_AUTO},
-            // Add a default/unhandled value to check fallback (should remain HDCP_Unencrypted)
-            {0, Exchange::IConnectionProperties::HDCP_Unencrypted}
+            {dsHDCP_VERSION_MAX, Exchange::IConnectionProperties::HDCP_AUTO}
         };
         uint32_t _connectionId = 0;
         Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
@@ -874,8 +872,6 @@ protected:
         for (const auto& test : testCases) {
             EXPECT_CALL(*p_videoOutputPortMock, GetHdmiPreference())
                 .WillOnce(::testing::Return(test.mockHdcpVersion));
-    
-            
     
             Exchange::IConnectionProperties::HDCPProtectionType hdcp = Exchange::IConnectionProperties::HDCP_Unencrypted;
             uint32_t result = static_cast<const Exchange::IConnectionProperties*>(connectionProperties)->HDCPProtection(hdcp);

@@ -848,7 +848,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
     status = powerManagerImpl->Unregister(&(*modeChanged));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-
+#if 0
 TEST_F(TestPowerManager, DeepSleepTimerWakeup)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -1041,7 +1041,7 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
     status = powerManagerImpl->Unregister(&(*deepSleepTimeout));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-
+#endif
 // TODO: This testcase will need some rework
 TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
 {

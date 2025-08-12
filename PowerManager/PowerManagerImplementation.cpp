@@ -707,7 +707,7 @@ namespace Plugin {
             bool isWiFiEnabled = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
             bool isLanEnabled  = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_LAN);
 
-            bool nwStandbyMode = isWiFiEnabled || isLanEnabled;
+            bool nwStandbyMode = isWiFiEnabled && isLanEnabled;
 
             if (nwStandbyMode == currNwStandbyMode) {
                 LOGINFO("nwStandbyMode is already set to %d", nwStandbyMode);

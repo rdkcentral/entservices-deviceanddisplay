@@ -280,117 +280,120 @@ protected:
     }
 };
 
-    TEST_F(DisplayInfoTestTest, Info)
+    TEST_F(DisplayInfoTestTest, Info_AllProperties)
     {
+        // Arrange: Set up device/host mocks to control the environment
+
+        // Video port and display connection
         device::VideoOutputPort videoOutputPort;
         device::AudioOutputPort audioOutputPort;
         device::VideoOutputPortType videoOutputPortType(dsVIDEOPORT_TYPE_HDMI);
-        //std::ofstream file("/proc/meminfo");
-        //file << "MemTotal: 4096";
-        //file.close();
-        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(videoOutputPort));
-
-        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
-            .WillByDefault(::testing::ReturnRef(audioOutputPort));
-
-        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
-            .WillByDefault(::testing::ReturnRef(audioOutputPort));
-
-        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
-            .WillByDefault(::testing::Return(true));
-
-        ON_CALL(*p_hostImplMock, getVideoOutputPorts())
-            .WillByDefault(::testing::Return(std::vector<device::VideoOutputPort>({videoOutputPort})));
-
-        ON_CALL(*p_videoOutputPortMock, getType())
-            .WillByDefault(::testing::ReturnRef(videoOutputPortType));
+        device::Display display;
         std::string videoName = "HDMI-1";
-        
+        string videoPort(_T("HDMI0"));
+
         ON_CALL(*p_videoOutputPortMock, getName())
             .WillByDefault(::testing::ReturnRef(videoName));
+        ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+            .WillByDefault(::testing::Return(videoPort));
+        ON_CALL(*p_hostImplMock, getVideoOutputPorts())
+            .WillByDefault(::testing::Return(std::vector<device::VideoOutputPort>({videoOutputPort})));
+        ON_CALL(*p_videoOutputPortMock, getType())
+            .WillByDefault(::testing::ReturnRef(videoOutputPortType));
+        ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+            .WillByDefault(::testing::ReturnRef(videoOutputPort));
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Return(true));
+        ON_CALL(*p_videoOutputPortMock, getAudioOutputPort())
+            .WillByDefault(::testing::ReturnRef(audioOutputPort));
+        ON_CALL(*p_videoOutputPortMock, getDisplay())
+            .WillByDefault(::testing::ReturnRef(display));
 
-        drmModeRes* res = (drmModeRes*)calloc(1, sizeof(drmModeRes));
-        res->count_connectors = 1;
-        res->connectors = (uint32_t*)calloc(1, sizeof(uint32_t));
-        res->connectors[0] = 123; // Example connector ID
+        // Audio passthrough
+        ON_CALL(*p_audioOutputPortMock, getStereoMode(::testing::_))
+            .WillByDefault(::testing::Return(device::AudioStereoMode::kPassThru));
 
+        // EDID for width/height
+        ON_CALL(*p_displayMock, getEDIDBytes(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](std::vector<uint8_t>& edidVec) {
+                    edidVec = std::vector<uint8_t>(23, 0);
+                    edidVec[21] = 77; // width in cm
+                    edidVec[22] = 55; // height in cm
+                }));
+
+        // DRM for GPU RAM
+        uint64_t expectedTotalGpuRam = 4096;
+        uint64_t expectedFreeGpuRam = 2048;
         ON_CALL(*p_drmMock, drmModeGetResources(::testing::_))
-            .WillByDefault(::testing::Return(res));
-        
-        ON_CALL(*p_drmMock, drmModeGetPlane(::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](int drm_fd, uint32_t plane_id) {
-                    drmModePlanePtr plane = static_cast<drmModePlanePtr>(calloc(1, sizeof(*plane)));
-                    plane->fb_id = 1;
-                    return plane;
-                }));
-
+            .WillByDefault(::testing::Invoke([](int) {
+                drmModeRes* res = (drmModeRes*)calloc(1, sizeof(drmModeRes));
+                res->count_connectors = 1;
+                res->connectors = (uint32_t*)calloc(1, sizeof(uint32_t));
+                res->connectors[0] = 123;
+                return res;
+            }));
         ON_CALL(*p_drmMock, drmModeGetConnector(::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [](int drm_fd, uint32_t connector_id) {
-                    drmModeConnectorPtr connector = static_cast<drmModeConnectorPtr>(calloc(1, sizeof(*connector)));
-                    connector->connector_id = connector_id;
-                    connector->count_modes = 1; // Must be >0 for kms_setup_connector
-                    connector->connection = DRM_MODE_CONNECTED; // Must be connected
-                    return connector;
-                }));
-
+            .WillByDefault(::testing::Invoke([](int, uint32_t connector_id) {
+                drmModeConnectorPtr connector = static_cast<drmModeConnectorPtr>(calloc(1, sizeof(*connector)));
+                connector->connector_id = connector_id;
+                connector->count_modes = 1;
+                connector->connection = DRM_MODE_CONNECTED;
+                return connector;
+            }));
         ON_CALL(*p_drmMock, drmModeGetEncoder(::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [](int drm_fd, uint32_t encoder_id) {
-                    drmModeEncoderPtr encoder = static_cast<drmModeEncoderPtr>(calloc(1, sizeof(*encoder)));
-                    encoder->encoder_id = encoder_id;
-                    encoder->crtc_id = 0; // or any valid CRTC id
-                    encoder->possible_crtcs = 0xFF; // all CRTCs possible
-                    return encoder;
-                }));
-
-        ON_CALL(*p_drmMock, drmModeFreeEncoder(::testing::A<drmModeEncoderPtr>()))
-            .WillByDefault(::testing::Invoke(
-                [](drmModeEncoderPtr encoder) {
-                    free(encoder);
-                }));
-
+            .WillByDefault(::testing::Invoke([](int, uint32_t encoder_id) {
+                drmModeEncoderPtr encoder = static_cast<drmModeEncoderPtr>(calloc(1, sizeof(*encoder)));
+                encoder->encoder_id = encoder_id;
+                encoder->crtc_id = 0;
+                encoder->possible_crtcs = 0xFF;
+                return encoder;
+            }));
         ON_CALL(*p_drmMock, drmModeGetCrtc(::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [](int drm_fd, uint32_t crtc_id) {
-                    drmModeCrtcPtr crtc = static_cast<drmModeCrtcPtr>(calloc(1, sizeof(*crtc)));
-                    crtc->crtc_id = crtc_id;
-                    crtc->mode_valid = 1; // Must be non-zero for kms_setup_crtc
-                    // Optionally set crtc->mode fields if your code uses them
-                    return crtc;
-                }));
+            .WillByDefault(::testing::Invoke([](int, uint32_t crtc_id) {
+                drmModeCrtcPtr crtc = static_cast<drmModeCrtcPtr>(calloc(1, sizeof(*crtc)));
+                crtc->crtc_id = crtc_id;
+                crtc->mode_valid = 1;
+                crtc->mode.hdisplay = 1920;
+                crtc->mode.vdisplay = 1080;
+                return crtc;
+            }));
+        ON_CALL(*p_drmMock, drmModeFreeEncoder(::testing::_)).WillByDefault(::testing::Invoke([](drmModeEncoderPtr encoder) { free(encoder); }));
+        ON_CALL(*p_drmMock, drmModeFreeConnector(::testing::_)).WillByDefault(::testing::Invoke([](drmModeConnectorPtr connector) { free(connector); }));
+        ON_CALL(*p_drmMock, drmModeFreeCrtc(::testing::_)).WillByDefault(::testing::Invoke([](drmModeCrtcPtr crtc) { free(crtc); }));
+        ON_CALL(*p_drmMock, drmModeFreeResources(::testing::_)).WillByDefault(::testing::Invoke([](drmModeResPtr res) {
+            if (res) {
+                free(res->connectors);
+                free(res);
+            }
+        }));
 
-
-        Core::ProxyType<Web::Response> ret;
+        // Act: Call the Info method via HTTP GET
+        Core::ProxyType<Web::Response> ret(PluginHost::IFactories::Instance().Response());
         Web::Request request;
         request.Verb = Web::Request::HTTP_GET;
-        //JsonData::DisplayInfo::DisplayinfoData& displayInfo;
         ret = plugin->Process(request);
 
-        // Check HTTP status
+        // Assert: Check HTTP status
         EXPECT_EQ(Web::STATUS_OK, ret->ErrorCode);
-        //auto jsonBody = dynamic_cast<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>*>(ret->Body());
-        //ASSERT_TRUE(jsonBody.IsValid());
-        //
-        //// Graphics Properties
-        //EXPECT_EQ(jsonBody->Totalgpuram, 2042);
-        //EXPECT_EQ(jsonBody->Freegpuram, 1024);
-        //
-        //// Connection Properties
-        //EXPECT_EQ(jsonBody->Audiopassthrough, false);
-        //EXPECT_EQ(jsonBody->Connected, false);
-        //EXPECT_EQ(jsonBody->Width, 1920);
-        //EXPECT_EQ(jsonBody->Height, 1080);
-        //
-        //// HDCP
-        //EXPECT_EQ(jsonBody->Hdcpprotection, Exchange::IConnectionProperties::HDCP_Unencrypted); // or whatever _value is set to
-        //
-        //// HDR
-        //EXPECT_EQ(jsonBody->Hdrtype, Exchange::IHDRProperties::HDR_OFF); // Default in PlatformImplementation.cpp
-        
 
+        // Extract and check JSON body
+        auto jsonBody = dynamic_cast<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>*>(ret->Body());
+        ASSERT_TRUE(jsonBody != nullptr);
+
+        // Graphics Properties
+        EXPECT_EQ(jsonBody->Width, 1920u);
+        EXPECT_EQ(jsonBody->Height, 1080u);
+        EXPECT_EQ(jsonBody->Totalgpuram, expectedTotalGpuRam);
+        EXPECT_EQ(jsonBody->Freegpuram, expectedFreeGpuRam);
+
+        // Connection Properties
+        EXPECT_EQ(jsonBody->Audiopassthrough, true);
+        EXPECT_EQ(jsonBody->Connected, true);
+
+        // EDID-based width/height in cm
+        EXPECT_EQ(jsonBody->Widthcm, 77u);
+        EXPECT_EQ(jsonBody->Heightcm, 55u);
     }
 
      TEST_F(DisplayInfoTestTest, VerticalFrequency){

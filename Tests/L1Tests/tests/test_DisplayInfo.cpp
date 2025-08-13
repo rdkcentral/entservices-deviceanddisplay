@@ -835,11 +835,9 @@ protected:
         };
     
         // Collect all returned colorimetry types
-        std::vector<Exchange::IDisplayProperties::ColorimetryType> values;
         Exchange::IDisplayProperties::ColorimetryType info;
         int count = 0;
         if (colorimetry->IsValid()) {
-            values.push_back(colorimetry->Current());
             EXPECT_EQ(colorimetry->Current(), expected[count]);
             count++;
             while (colorimetry->Next(info)) {
@@ -850,15 +848,6 @@ protected:
             
         }
     
-        
-
-        // Assert: Check that the vectors have the same size
-        //ASSERT_EQ(values.size(), expected.size());
-//
-        //// Compare each element in order
-        //for (size_t i = 0; i < expected.size(); ++i) {
-        //    EXPECT_EQ(values[i], expected[i]);
-        //}
         colorimetry->Release();
     }
 
@@ -1003,7 +992,6 @@ protected:
     }
 
 
-/*
     TEST_F(DisplayInfoTestTest, TVCapabilities)
     {
         device::VideoOutputPort videoOutputPort;
@@ -1034,6 +1022,10 @@ protected:
             {dsHDRSTANDARD_HDR10 | dsHDRSTANDARD_HLG | dsHDRSTANDARD_DolbyVision, {Exchange::IHDRProperties::HDR_10, Exchange::IHDRProperties::HDR_HLG, Exchange::IHDRProperties::HDR_DOLBYVISION}},
             // Add more combinations as needed
         };
+
+        uint32_t _connectionId = 0;
+        Exchange::IHDRProperties* hdrProperties = service.Root<Exchange::IHDRProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+        ASSERT_NE(hdrProperties, nullptr);
     
         for (const auto& test : testCases) {
             EXPECT_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(::testing::_))
@@ -1041,30 +1033,25 @@ protected:
                     [&](int* caps) {
                         *caps = test.mockCapabilities;
                     }));
-    
-            uint32_t _connectionId = 0;
-            Exchange::IHDRProperties* hdrProperties = service.Root<Exchange::IHDRProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
-            ASSERT_NE(hdrProperties, nullptr);
-    
+                
             Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
             uint32_t result = hdrProperties->TVCapabilities(iterator);
-    
+                
             EXPECT_EQ(result, Core::ERROR_NONE);
             ASSERT_NE(iterator, nullptr);
-    
-            std::vector<Exchange::IHDRProperties::HDRType> values;
-            for (; iterator->IsValid(); iterator->Next(true)) {
-                values.push_back(iterator->Current());
+                
+            Exchange::IHDRProperties::HDRType info;
+            int count = 0;
+            if (iterator->IsValid()) {
+                EXPECT_EQ(iterator->Current(), test.expected[count]);
+                count++;
+                while (iterator->Next(info)) {
+                    EXPECT_EQ(iterator->Current(), test.expected[count]);
+                    count++;
+                }
             }
             iterator->Release();
-    
-            // Assert: Check that the vectors have the same size and values (order matters)
-            ASSERT_EQ(values.size(), test.expected.size());
-            for (size_t i = 0; i < test.expected.size(); ++i) {
-                EXPECT_EQ(values[i], test.expected[i]);
-            }
-    
-            hdrProperties->Release();
+        
         }
+        hdrProperties->Release();
     }
-        */

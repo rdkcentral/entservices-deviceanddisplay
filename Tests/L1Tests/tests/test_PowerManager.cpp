@@ -108,10 +108,6 @@ public:
         setupWg.Add(1);
         powerManagerImpl = Core::ProxyType<Plugin::PowerManagerImplementation>::Create();
         setupWg.Wait();
-
-        // We see sync issues between Thermal pollThermalLevels & Power Manager Thermal Getter APIs
-        // Safer side add a small delay (actual fix will need mutex to sync Caller then and Writer thread)
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     void SetUpMocks()

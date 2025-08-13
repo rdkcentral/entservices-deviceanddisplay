@@ -108,10 +108,6 @@ public:
         setupWg.Add(1);
         powerManagerImpl = Core::ProxyType<Plugin::PowerManagerImplementation>::Create();
         setupWg.Wait();
-
-        // We see sync issues between Thermal pollThermalLevels & Power Manager Thermal Getter APIs
-        // Safer side add a small delay (actual fix will need mutex to sync Caller then and Writer thread)
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     void SetUpMocks()
@@ -651,7 +647,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeup)
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                EXPECT_EQ(deep_sleep_timeout, 10);
+                EXPECT_EQ(deep_sleep_timeout, 10U);
                 EXPECT_TRUE(nullptr != isGPIOWakeup);
                 EXPECT_EQ(networkStandby, false);
                 // Simulate user triggered wakeup
@@ -783,7 +779,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                EXPECT_EQ(deep_sleep_timeout, 10);
+                EXPECT_EQ(deep_sleep_timeout, 10U);
                 EXPECT_TRUE(nullptr != isGPIOWakeup);
                 EXPECT_EQ(networkStandby, false);
                 // Simulate user triggered wakeup
@@ -886,7 +882,7 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                EXPECT_EQ(deep_sleep_timeout, 10);
+                EXPECT_EQ(deep_sleep_timeout, 10U);
                 EXPECT_TRUE(nullptr != isGPIOWakeup);
                 EXPECT_EQ(networkStandby, false);
                 // Simulate timer wakeup
@@ -987,7 +983,7 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                EXPECT_EQ(deep_sleep_timeout, 2);
+                EXPECT_EQ(deep_sleep_timeout, 2U);
                 EXPECT_TRUE(nullptr != isGPIOWakeup);
                 EXPECT_EQ(networkStandby, false);
                 // Simulate timer wakeup
@@ -1077,7 +1073,7 @@ TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                EXPECT_EQ(deep_sleep_timeout, 10);
+                EXPECT_EQ(deep_sleep_timeout, 10U);
                 EXPECT_TRUE(nullptr != isGPIOWakeup);
                 EXPECT_EQ(networkStandby, false);
                 // Simulate timer wakeup
@@ -1164,7 +1160,7 @@ TEST_F(TestPowerManager, DeepSleepEarlyWakeup)
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                EXPECT_EQ(deep_sleep_timeout, 10);
+                EXPECT_EQ(deep_sleep_timeout, 10U);
                 EXPECT_TRUE(nullptr != isGPIOWakeup);
                 EXPECT_EQ(networkStandby, false);
                 // Simulate timer wakeup
@@ -1245,7 +1241,7 @@ TEST_F(TestPowerManager, DeepSleepFailure)
         .Times(5)
         .WillRepeatedly(::testing::Invoke(
             [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                EXPECT_EQ(deep_sleep_timeout, 10);
+                EXPECT_EQ(deep_sleep_timeout, 10U);
                 EXPECT_TRUE(nullptr != isGPIOWakeup);
                 EXPECT_EQ(networkStandby, false);
                 // Simulate timer wakeup

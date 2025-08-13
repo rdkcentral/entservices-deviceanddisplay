@@ -280,8 +280,7 @@ void DeepSleepController::enterDeepSleepDelayed()
 
     bool userWakeup = 0;
 
-    auto startTime = std::chrono::steady_clock::now();
-    auto status    = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, false);
+    auto status = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, false);
 
     if (WPEFramework::Core::ERROR_NONE != status) {
         LOGINFO("Failed to enter deepsleep status %u", status);
@@ -296,7 +295,7 @@ void DeepSleepController::enterDeepSleepDelayed()
         LOGINFO("DeeSleep wakeupReason: user action");
         _parent.onDeepSleepUserWakeup(userWakeup);
     } else {
-        deepSleepTimerWakeup(startTime);
+        deepSleepTimerWakeup();
     }
 }
 
@@ -308,7 +307,6 @@ void DeepSleepController::enterDeepSleepNow()
     bool failed     = true;
     int retryCount  = 5;
     bool userWakeup = 0;
-    auto startTime  = std::chrono::steady_clock::now();
 
     while (retryCount && failed) {
         LOGINFO("Device entering Deep sleep with nwStandbyMode: %s",
@@ -342,25 +340,24 @@ void DeepSleepController::enterDeepSleepNow()
         LOGINFO("DeeSleep wakeupReason: user action");
         _parent.onDeepSleepUserWakeup(userWakeup);
     } else {
-        deepSleepTimerWakeup(startTime);
+        deepSleepTimerWakeup();
     }
 }
 
-void DeepSleepController::deepSleepTimerWakeup(const std::chrono::steady_clock::time_point& startTime)
+void DeepSleepController::deepSleepTimerWakeup()
 {
-    auto elapsed              = std::chrono::steady_clock::now() - startTime;
     WakeupReason wakeupReason = WakeupReason::WAKEUP_REASON_UNKNOWN;
 
-    if (elapsed >= std::chrono::seconds(_deepSleepWakeupTimeoutSec)) {
+    if (Elapsed() >= std::chrono::seconds(_deepSleepWakeupTimeoutSec)) {
         LOGINFO("DeepSleep wakeupReason: TIMER, timeout: %d", _deepSleepWakeupTimeoutSec);
     } else {
-        auto pending       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(_deepSleepWakeupTimeoutSec) - elapsed).count();
+        auto pending       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(_deepSleepWakeupTimeoutSec) - Elapsed()).count();
         uint32_t errorCode = platform().GetLastWakeupReason(wakeupReason);
 
         std::string wakeupReasonStr = WPEFramework::Core::ERROR_NONE == errorCode ? util::str(wakeupReason) : "UNKOWN";
 
         LOGERR("DeepSleep wakeupReason: %s, timeout: %ds, elapsed: %llds, pending: %lldms", wakeupReasonStr.c_str(),
-            _deepSleepWakeupTimeoutSec, std::chrono::duration_cast<std::chrono::seconds>(elapsed).count(), pending);
+            _deepSleepWakeupTimeoutSec, std::chrono::duration_cast<std::chrono::seconds>(Elapsed()).count(), pending);
     }
     // irrespective of wakeup reason / status / elapsed duration always notify deepsleep wakeup
     _parent.onDeepSleepTimerWakeup(_deepSleepWakeupTimeoutSec);
@@ -372,7 +369,8 @@ void DeepSleepController::performActivate(uint32_t timeOut, bool nwStandbyMode)
     if (!IsDeepSleepInProgress()) {
 
         // latch
-        _deepSleepState = DeepSleepState::InProgress;
+        _deepSleepState     = DeepSleepState::InProgress;
+        _deepsleepStartTime = MonotonicClock::now();
 
         // Perform the deep sleep operation
         _deepSleepWakeupTimeoutSec = timeOut;

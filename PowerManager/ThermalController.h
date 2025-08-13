@@ -31,6 +31,7 @@
 #include <functional> // for function
 #include <memory>     // for unique_ptr, default_delete
 #include <utility>    // for move, forward
+#include <mutex>
 
 #include <core/IAction.h>             // for IDispatch
 #include <core/Portability.h>         // for ErrorCodes, EXTERNAL
@@ -137,6 +138,8 @@ static constexpr int DECLOCK_GRACE_INTERVAL = 60;
 
 private:
     std::shared_ptr<IPlatform> _platform;
+    std::shared_ptr<std::mutex> _therm_mutex;
+    std::shared_ptr<std::mutex> _grace_interval_mutex;
 
     bool _rebootZone = false;
 

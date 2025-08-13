@@ -774,7 +774,6 @@ protected:
             displayProperties->Release();
         }
     }
-/*
         TEST_F(DisplayInfoTestTest, Colorimetry)
     {
         device::VideoOutputPort videoOutputPort;
@@ -825,10 +824,12 @@ protected:
     
         // Collect all returned colorimetry types
         std::vector<Exchange::IDisplayProperties::ColorimetryType> values;
+        Exchange::IDisplayProperties::ColorimetryType info;
         if (colorimetry->IsValid()) {
-            do {
-                values.push_back(colorimetry->Current());
-            } while (colorimetry->Next());
+            values.push_back(colorimetry->Current());
+            while (colorimetry->Next(info)) {
+                values.push_back(info);
+            }
         }
     
         // Should contain COLORIMETRY_XVYCC601 and COLORIMETRY_BT2020YCCBCBRC
@@ -852,7 +853,6 @@ protected:
         }
         colorimetry->Release();
     }
-        */
 
     TEST_F(DisplayInfoTestTest, GetHDCPProtection)
     {

@@ -695,6 +695,15 @@ namespace Plugin {
                 break;
             }
 
+            bool isWiFiEnabled = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
+            bool isLanEnabled  = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_LAN);
+
+            // Update nwStandbyMode only if Wi-Fi and LAN are set to same state (both ON or both OFF).
+            if (isWiFiEnabled != isLanEnabled) {
+                LOGINFO("WakeupSrc WIFI: %d, LAN: %d", isWiFiEnabled, isLanEnabled);
+                break;
+            }
+
             bool currNwStandbyMode = false;
 
             errorCode = GetNetworkStandbyMode(currNwStandbyMode);
@@ -704,8 +713,6 @@ namespace Plugin {
                 break;
             }
 
-            bool isWiFiEnabled = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
-            bool isLanEnabled  = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_LAN);
 
             bool nwStandbyMode = isWiFiEnabled && isLanEnabled;
 

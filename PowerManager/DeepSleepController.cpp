@@ -275,9 +275,6 @@ void DeepSleepController::enterDeepSleepDelayed()
 
     LOGINFO("Deep Sleep Timer Expires :Enter to Deep sleep Mode..stop Receiver with sleep 10 before DS");
 
-    // This sleep seems unnecessary, but retaining as old IARM PwrMgr had it.
-    sleep(10);
-
     bool userWakeup = 0;
 
     auto status = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, false);
@@ -301,8 +298,8 @@ void DeepSleepController::enterDeepSleepDelayed()
 
 void DeepSleepController::enterDeepSleepNow()
 {
-    LOGINFO("Enter to Deep sleep Mode..stop Receiver with sleep 2 before DS");
-    sleep(2);
+    LOGINFO("Enter to Deep sleep Mode..stop Receiver with sleep 1 before DS");
+    sleep(1);
 
     bool failed     = true;
     int retryCount  = 5;

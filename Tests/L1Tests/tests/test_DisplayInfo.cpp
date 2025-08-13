@@ -81,6 +81,7 @@ protected:
     AudioOutputPortMock      *p_audioOutputPortMock = nullptr ;
     VideoOutputPortMock      *p_videoOutputPortMock = nullptr ;
     VideoResolutionMock      *p_videoResolutionMock = nullptr ;
+    VideoDeviceMock      *p_videoDeviceMock = nullptr ;
     DisplayMock      *p_displayMock = nullptr ;
     EdidParserMock  *p_edidParserMock = nullptr;
     DRMMock *p_drmMock = nullptr;
@@ -141,6 +142,9 @@ protected:
 
         p_videoOutputPortMock  = new NiceMock <VideoOutputPortMock>;
         device::VideoOutputPort::setImpl(p_videoOutputPortMock);
+
+        p_videoDeviceMock = new NiceMock <VideoDeviceMock>;
+        device::VideoDevice::setImpl(p_videoDeviceMock);
 
         ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(
@@ -213,6 +217,13 @@ protected:
             delete p_videoResolutionMock;
             p_videoResolutionMock = nullptr;
         }  
+
+        device::VideoDevice::setImpl(nullptr);
+        if (p_videoDeviceMock != nullptr)
+        {
+            delete p_videoDeviceMock;
+            p_videoDeviceMock = nullptr;
+        }
            
         
         device::Manager::setImpl(nullptr);

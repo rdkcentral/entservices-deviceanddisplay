@@ -375,6 +375,47 @@ protected:
             }
         }));
 
+        EXPECT_CALL(*p_drmMock, drmModeGetPlane(::testing::_, ::testing::_))
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Invoke([](int fd, uint32_t plane_id) {
+                drmModePlanePtr plane = static_cast<drmModePlanePtr>(calloc(1, sizeof(*plane)));
+                plane->plane_id = plane_id;
+                plane->possible_crtcs = 0xFF;
+                plane->crtc_id = 0;
+                plane->fb_id = 0;
+                plane->crtc_x = 0;
+                plane->crtc_y = 0;
+                plane->x = 0;
+                plane->y = 0;
+                plane->gamma_size = 0;
+                plane->count_formats = 1;
+                plane->formats = (uint32_t*)calloc(1, sizeof(uint32_t));
+                plane->formats[0] = DRM_FORMAT_XRGB8888; // Example format
+                return plane;
+            }));
+
+        EXPECT_CALL(*p_drmMock, drmModeGetFB(::testing::_, ::testing::_))
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Invoke([](int fd, uint32_t buffer_id) {
+                drmModeFBPtr fb = static_cast<drmModeFBPtr>(calloc(1, sizeof(*fb)));
+                fb->fb_id = buffer_id;
+                fb->width = 1920;
+                fb->height = 1080;
+                fb->pitch = 1920 * 4; // Assuming 32-bit RGBA
+                fb->bpp = 32;
+                fb->depth = 24;
+                fb->handle = 123; // Some dummy handle
+                return fb;
+            }));
+
+        ON_CALL(*p_drmMock, drmModeFreeFB(::testing::_))
+            .WillByDefault(::testing::Invoke([](drmModeFBPtr fb) {
+                if (fb) {
+                    free(fb);
+                }
+            }));
+        
+
         // Act: Call the Info method via HTTP GET
         Core::ProxyType<Web::Response> ret(PluginHost::IFactories::Instance().Response());
         Web::Request request;

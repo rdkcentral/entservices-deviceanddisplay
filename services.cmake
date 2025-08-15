@@ -37,6 +37,8 @@ add_definitions(-DRDK_LOG_MILESTONE)
 
 add_definitions (-DUSE_DS)
 
+add_definitions (-D_DRM_MODE_H)
+
 option(PLUGIN_WAREHOUSE "PLUGIN_WAREHOUSE" ON)
 option(HAS_API_HDMI_INPUT "HAS_API_HDMI_INPUT" ON)
 option(PLUGIN_COPILOT "PLUGIN_COPILOT" OFF)

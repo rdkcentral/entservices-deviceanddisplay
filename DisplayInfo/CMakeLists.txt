@@ -67,8 +67,8 @@ if (PLUGIN_DISPLAYINFO_BCM_VERSION_MAJOR)
 endif()
 
 if (USE_DEVICESETTINGS)
-    find_package(DS REQUIRED)
-    find_package(IARMBus REQUIRED)
+    find_package(DS)
+    find_package(IARMBus)
     target_include_directories(${MODULE_NAME} PRIVATE ${IARMBUS_INCLUDE_DIRS}
         ${DS_INCLUDE_DIRS}
         ../helpers)
@@ -76,7 +76,7 @@ if (USE_DEVICESETTINGS)
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
         ${IARMBUS_LIBRARIES}
         ${DS_LIBRARIES}
-	displayinfo-soc)
+	)
     target_sources(${MODULE_NAME}
         PRIVATE
             DeviceSettings/PlatformImplementation.cpp)

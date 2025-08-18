@@ -378,7 +378,7 @@ protected:
         EXPECT_CALL(*p_drmMock, drmModeGetPlane(::testing::_, ::testing::_))
             .Times(::testing::AnyNumber())
             .WillRepeatedly(::testing::Invoke([](int fd, uint32_t plane_id) {
-                drmModePlanePtr plane = static_cast<drmModePlanePtr>(calloc(1, sizeof(*plane)));
+                drmModePlane* plane = static_cast<drmModePlane*>(calloc(1, sizeof(*plane)));
                 plane->plane_id = plane_id;
                 plane->possible_crtcs = 0xFF;
                 plane->crtc_id = 0;
@@ -390,14 +390,14 @@ protected:
                 plane->gamma_size = 0;
                 plane->count_formats = 1;
                 plane->formats = (uint32_t*)calloc(1, sizeof(uint32_t));
-                plane->formats[0] = DRM_FORMAT_XRGB8888; // Example format
+                plane->formats[0] = 1; // Example format
                 return plane;
             }));
 
         EXPECT_CALL(*p_drmMock, drmModeGetFB(::testing::_, ::testing::_))
             .Times(::testing::AnyNumber())
             .WillRepeatedly(::testing::Invoke([](int fd, uint32_t buffer_id) {
-                drmModeFBPtr fb = static_cast<drmModeFBPtr>(calloc(1, sizeof(*fb)));
+                drmModeFB* fb = static_cast<drmModeFB*>(calloc(1, sizeof(*fb)));
                 fb->fb_id = buffer_id;
                 fb->width = 1920;
                 fb->height = 1080;
@@ -424,6 +424,9 @@ protected:
 
         // Assert: Check HTTP status
         EXPECT_EQ(Web::STATUS_OK, ret->ErrorCode);
+        EXPECT_EQ(ret->ContentType, Web::MIMETypes::MIME_JSON);
+        auto body = ret->Body();
+        //EXPECT_EQ(ret->Body(Core::ProxyType<Web::IBody>), true);
 
         // Extract and check JSON body
         //Core::ProxyType<Web::IBody> jsonBody = dynamic_cast<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>*>(ret->Body(Core::ProxyType<Web::IBody>));

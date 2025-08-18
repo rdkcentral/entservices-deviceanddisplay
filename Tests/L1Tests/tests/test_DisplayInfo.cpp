@@ -1261,35 +1261,36 @@ TEST_F(DisplayInfoTestTest, ColorSpace_ExceptionHandling)
     displayProperties->Release();
 }
 
-//TEST_F(DisplayInfoTestTest, FrameRate_ExceptionHandling)
-//{
-//    device::VideoOutputPort videoOutputPort;
-//    device::VideoResolution videoResolution;
-//    string videoPort(_T("HDMI0"));
-//
-//    ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-//        .WillByDefault(::testing::Return(videoPort));
-//    ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
-//        .WillByDefault(::testing::ReturnRef(videoOutputPort));
-//    
-//    // Mock to throw exception
-//    ON_CALL(*p_videoOutputPortMock, getResolution())
-//        .WillByDefault(::testing::Invoke([]() -> device::VideoResolution& {
-//            throw device::Exception("FrameRate device exception");
-//            return *videoResolution;
-//        }));
-//
-//    uint32_t _connectionId = 0;
-//    Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
-//    ASSERT_NE(displayProperties, nullptr);
-//
-//    Exchange::IDisplayProperties::FrameRateType rate = Exchange::IDisplayProperties::FRAMERATE_UNKNOWN;
-//    uint32_t result = displayProperties->FrameRate(rate);
-//
-//    EXPECT_EQ(result, Core::ERROR_GENERAL);
-//    
-//    displayProperties->Release();
-//}
+TEST_F(DisplayInfoTestTest, FrameRate_ExceptionHandling)
+{
+    device::VideoOutputPort videoOutputPort;
+    device::VideoResolution videoResolution;
+    string videoPort(_T("HDMI0"));
+
+    ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+        .WillByDefault(::testing::Return(videoPort));
+    ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(videoOutputPort));
+    
+    // Mock to throw exception
+    ON_CALL(*p_videoOutputPortMock, getResolution())
+        .WillByDefault(::testing::Invoke([&]() -> device::VideoResolution& {
+            throw device::Exception("FrameRate device exception");
+            // This line won't be reached, but needed for compilation
+            return videoResolution;
+        }));
+
+    uint32_t _connectionId = 0;
+    Exchange::IDisplayProperties* displayProperties = service.Root<Exchange::IDisplayProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+    ASSERT_NE(displayProperties, nullptr);
+
+    Exchange::IDisplayProperties::FrameRateType rate = Exchange::IDisplayProperties::FRAMERATE_UNKNOWN;
+    uint32_t result = displayProperties->FrameRate(rate);
+
+    EXPECT_EQ(result, Core::ERROR_GENERAL);
+    
+    displayProperties->Release();
+}
 
 TEST_F(DisplayInfoTestTest, ColourDepth_ExceptionHandling)
 {

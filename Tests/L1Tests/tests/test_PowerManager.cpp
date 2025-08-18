@@ -123,12 +123,8 @@ public:
 
         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_INIT())
             .WillOnce(::testing::Return(PWRMGR_SUCCESS));
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
-            .WillOnce(::testing::Return(PWRMGR_SUCCESS));
 
         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_INIT())
-            .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
             .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
         ON_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
@@ -206,8 +202,24 @@ public:
     ~TestPowerManager() override
     {
         TEST_LOG("DTOR is called, %p", this);
+        WaitGroup wg;
+        wg.Add();
+
+        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
+            .WillOnce(::testing::Invoke([]() {
+                    return PWRMGR_SUCCESS;
+                }));
+
+        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
+            .WillOnce(::testing::Invoke([&]() {
+                    wg.Done();
+                    return DEEPSLEEPMGR_SUCCESS;
+                }));
+
         powerManagerImpl.Release();
         EXPECT_EQ(powerManagerImpl.IsValid(), false);
+        TEST_LOG("powerManagerImpl Released");
+        wg.Wait();
 
         Wraps::setImpl(nullptr);
         if (p_wrapsImplMock != nullptr) {
@@ -359,6 +371,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     int keyCode = 0;
 
     uint32_t clientId = 0;
+    int transaction_id = 0;
     uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
@@ -372,6 +385,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
+                transaction_id = transactionId;
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
 
@@ -396,10 +410,6 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
                 EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
-                // valid PowerModePreChangeComplete
-                status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId);
-                EXPECT_EQ(status, Core::ERROR_NONE);
-
                 wg.Done();
             }));
 
@@ -410,6 +420,11 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     wg.Wait();
+
+    // valid PowerModePreChangeComplete
+    status = powerManagerImpl->PowerModePreChangeComplete(clientId, transaction_id);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
     // some delay to destroy AckController after IModeChanged notification
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 

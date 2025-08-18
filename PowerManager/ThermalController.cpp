@@ -397,10 +397,10 @@ void ThermalController::pollThermalLevels()
 
     while(!_stopThread)
     {
+        _therm_mutex->lock();
         uint32_t result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
         if(WPEFramework::Core::ERROR_NONE == result)
         {
-            _therm_mutex->lock();
             if(m_cur_Thermal_Level != state)//State changed, need to broadcast
             {
                 LOGINFO("Temeperature levels changed %s -> %s", str(m_cur_Thermal_Level), str(state));
@@ -423,14 +423,17 @@ void ThermalController::pollThermalLevels()
             }
             m_cur_Thermal_Value = (int)current_Temp;
 
-            _therm_mutex->unlock();
-
             if (_stopThread) 
             {
                 LOGINFO("pollThermalLevels thread is signalled to be destroyed");
                 break;
             }
+        }
 
+        _therm_mutex->unlock();
+
+        if(WPEFramework::Core::ERROR_NONE == result)
+        {
             _grace_interval_mutex->lock();
             /* Check if we should enter deepsleep based on the current temperature */
             deepSleepIfNeeded();

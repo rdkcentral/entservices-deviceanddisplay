@@ -426,25 +426,14 @@ protected:
         EXPECT_EQ(Web::STATUS_OK, ret->ErrorCode);
         EXPECT_EQ(ret->ContentType, Web::MIMETypes::MIME_JSON);
         auto jsonBody = ret->Body<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>>();
-        //EXPECT_EQ(ret->Body(Core::ProxyType<Web::IBody>), true);
 
-        // Extract and check JSON body
-        //Core::ProxyType<Web::IBody> jsonBody = dynamic_cast<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>*>(ret->Body(Core::ProxyType<Web::IBody>));
-        //ASSERT_TRUE(jsonBody != nullptr);
-//
-        //// Graphics Properties
-        //EXPECT_EQ(jsonBody->Width, 1920u);
-        //EXPECT_EQ(jsonBody->Height, 1080u);
-        //EXPECT_EQ(jsonBody->Totalgpuram, expectedTotalGpuRam);
-        //EXPECT_EQ(jsonBody->Freegpuram, expectedFreeGpuRam);
-//
-        //// Connection Properties
-        //EXPECT_EQ(jsonBody->Audiopassthrough, true);
-        //EXPECT_EQ(jsonBody->Connected, true);
-//
-        //// EDID-based width/height in cm
-        //EXPECT_EQ(jsonBody->Widthcm, 77u);
-        //EXPECT_EQ(jsonBody->Heightcm, 55u);
+        // Connection Properties
+        EXPECT_EQ(jsonBody->Audiopassthrough, true);
+        EXPECT_EQ(jsonBody->Connected, true);
+
+        // EDID-based width/height in cm
+        EXPECT_EQ(jsonBody->Width, 1920);
+        EXPECT_EQ(jsonBody->Height, 1080);
     }
 
      TEST_F(DisplayInfoTestTest, VerticalFrequency){

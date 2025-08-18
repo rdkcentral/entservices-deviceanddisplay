@@ -425,7 +425,7 @@ protected:
         // Assert: Check HTTP status
         EXPECT_EQ(Web::STATUS_OK, ret->ErrorCode);
         EXPECT_EQ(ret->ContentType, Web::MIMETypes::MIME_JSON);
-        auto body = ret->Body();
+        auto jsonBody = ret->Body<Web::JSONBodyType<JsonData::DisplayInfo::DisplayinfoData>>();
         //EXPECT_EQ(ret->Body(Core::ProxyType<Web::IBody>), true);
 
         // Extract and check JSON body

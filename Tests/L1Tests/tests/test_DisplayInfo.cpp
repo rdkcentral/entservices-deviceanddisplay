@@ -39,6 +39,9 @@
 #include "VideoResolutionMock.h"
 #include "DrmMock.h"
 
+#include <thread>
+#include <chrono>
+
 #include "FactoriesImplementation.h"
 #include "HostMock.h"
 #include "IarmBusMock.h"
@@ -1559,6 +1562,217 @@ TEST_F(DisplayInfoTestTest, EDID_ExceptionHandling)
     uint32_t result = connectionProperties->EDID(length, data);
 
     EXPECT_EQ(result, Core::ERROR_GENERAL);
+    
+    connectionProperties->Release();
+}
+
+TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
+{
+    // Arrange: Set up a mock notification observer
+    class MockNotification : public Exchange::IConnectionProperties::INotification {
+    public:
+        MOCK_METHOD(void, Updated, (const Exchange::IConnectionProperties::INotification::Source event), (override));
+        
+        // Required IUnknown methods for reference counting
+        uint32_t AddRef() const override { return 1; }
+        uint32_t Release() const override { return 1; }
+        Core::IUnknown* QueryInterface(const uint32_t) override { return nullptr; }
+    };
+
+    MockNotification mockNotification;
+    
+    // Get the connection properties interface
+    uint32_t _connectionId = 0;
+    Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+    ASSERT_NE(connectionProperties, nullptr);
+
+    // Register our mock notification
+    uint32_t result = connectionProperties->Register(&mockNotification);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+
+    // Test PRE_RESOLUTION_CHANGE event
+    {
+        // Expect the Updated method to be called with PRE_RESOLUTION_CHANGE
+        EXPECT_CALL(mockNotification, Updated(Exchange::IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE))
+            .Times(1);
+
+        // Simulate IARM event data for pre-resolution change
+        IARM_Bus_DSMgr_EventData_t eventData;
+        eventData.data.resn.width = 1920;
+        eventData.data.resn.height = 1080;
+
+        // Call the static ResolutionChange function directly
+        DisplayInfoImplementation::ResolutionChange(
+            IARM_BUS_DSMGR_NAME,
+            IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
+            &eventData,
+            sizeof(eventData)
+        );
+
+        // Allow time for the callback to be processed
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    // Test POST_RESOLUTION_CHANGE event
+    {
+        // Expect the Updated method to be called with POST_RESOLUTION_CHANGE
+        EXPECT_CALL(mockNotification, Updated(Exchange::IConnectionProperties::INotification::Source::POST_RESOLUTION_CHANGE))
+            .Times(1);
+
+        // Simulate IARM event data for post-resolution change
+        IARM_Bus_DSMgr_EventData_t eventData;
+        eventData.data.resn.width = 3840;
+        eventData.data.resn.height = 2160;
+
+        // Call the static ResolutionChange function directly
+        DisplayInfoImplementation::ResolutionChange(
+            IARM_BUS_DSMGR_NAME,
+            IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,
+            &eventData,
+            sizeof(eventData)
+        );
+
+        // Allow time for the callback to be processed
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    // Test with multiple observers
+    {
+        MockNotification secondMockNotification;
+        
+        // Register second observer
+        result = connectionProperties->Register(&secondMockNotification);
+        EXPECT_EQ(result, Core::ERROR_NONE);
+
+        // Both observers should receive the event
+        EXPECT_CALL(mockNotification, Updated(Exchange::IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE))
+            .Times(1);
+        EXPECT_CALL(secondMockNotification, Updated(Exchange::IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE))
+            .Times(1);
+
+        // Trigger another event
+        IARM_Bus_DSMgr_EventData_t eventData;
+        DisplayInfoImplementation::ResolutionChange(
+            IARM_BUS_DSMGR_NAME,
+            IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
+            &eventData,
+            sizeof(eventData)
+        );
+
+        // Allow time for the callback to be processed
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        // Unregister second observer
+        result = connectionProperties->Unregister(&secondMockNotification);
+        EXPECT_EQ(result, Core::ERROR_NONE);
+    }
+
+    // Test unregistering observer
+    {
+        // No calls expected after unregistering
+        EXPECT_CALL(mockNotification, Updated(::testing::_))
+            .Times(0);
+
+        // Unregister the first observer
+        result = connectionProperties->Unregister(&mockNotification);
+        EXPECT_EQ(result, Core::ERROR_NONE);
+
+        // Trigger event - no notifications should be sent
+        IARM_Bus_DSMgr_EventData_t eventData;
+        DisplayInfoImplementation::ResolutionChange(
+            IARM_BUS_DSMGR_NAME,
+            IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
+            &eventData,
+            sizeof(eventData)
+        );
+
+        // Allow time to ensure no callback is processed
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    connectionProperties->Release();
+}
+
+TEST_F(DisplayInfoTestTest, ResolutionChange_IARMIntegration)
+{
+    // Test that IARM event handlers are properly registered during initialization
+    
+    // Verify that the IARM event handler registration was called
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(
+        ::testing::StrEq(IARM_BUS_DSMGR_NAME),
+        IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
+        ::testing::_))
+        .Times(::testing::AtLeast(1));
+        
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(
+        ::testing::StrEq(IARM_BUS_DSMGR_NAME),
+        IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,
+        ::testing::_))
+        .Times(::testing::AtLeast(1));
+
+    // Create a new DisplayInfo implementation to trigger IARM registration
+    uint32_t _connectionId = 0;
+    Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+    ASSERT_NE(connectionProperties, nullptr);
+    
+    connectionProperties->Release();
+}
+
+TEST_F(DisplayInfoTestTest, ResolutionChange_ThreadSafety)
+{
+    // Test thread safety of the notification system
+    
+    class MockNotification : public Exchange::IConnectionProperties::INotification {
+    public:
+        MOCK_METHOD(void, Updated, (const Exchange::IConnectionProperties::INotification::Source event), (override));
+        
+        uint32_t AddRef() const override { return 1; }
+        uint32_t Release() const override { return 1; }
+        Core::IUnknown* QueryInterface(const uint32_t) override { return nullptr; }
+    };
+
+    MockNotification mockNotification;
+    
+    uint32_t _connectionId = 0;
+    Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
+    ASSERT_NE(connectionProperties, nullptr);
+
+    // Register notification
+    uint32_t result = connectionProperties->Register(&mockNotification);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+
+    // Expect multiple events (one from each thread)
+    EXPECT_CALL(mockNotification, Updated(::testing::_))
+        .Times(::testing::AtLeast(2));
+
+    // Test concurrent access with multiple threads
+    std::vector<std::thread> threads;
+    const int numThreads = 5;
+    
+    for (int i = 0; i < numThreads; ++i) {
+        threads.emplace_back([i]() {
+            IARM_Bus_DSMgr_EventData_t eventData;
+            
+            DisplayInfoImplementation::ResolutionChange(
+                IARM_BUS_DSMGR_NAME,
+                (i % 2 == 0) ? IARM_BUS_DSMGR_EVENT_RES_PRECHANGE : IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,
+                &eventData,
+                sizeof(eventData)
+            );
+        });
+    }
+
+    // Wait for all threads to complete
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Allow time for all callbacks to be processed
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    // Unregister notification
+    result = connectionProperties->Unregister(&mockNotification);
+    EXPECT_EQ(result, Core::ERROR_NONE);
     
     connectionProperties->Release();
 }

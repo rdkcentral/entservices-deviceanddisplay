@@ -143,8 +143,6 @@ void ThermalController::initializeThermalProtection()
         if (declockThreshold.graceInterval > 0) {
             LOGINFO("Thermal Monitor [DECLOCK] Thresholds -- Critical:%d Concern:%d Safe:%d Grace Interval:%d",
                 declockThreshold.critical, declockThreshold.concern, declockThreshold.safe, declockThreshold.graceInterval);
-            platform().GetClockSpeed(cur_Cpu_Speed);
-            LOGINFO("Thermal Monitor [DECLOCK] Default Frequency %d", cur_Cpu_Speed);
             /* Discover clock rate for this system. Only discover if the rate is 0 */
             platform().DetemineClockSpeeds( PLAT_CPU_SPEED_NORMAL, PLAT_CPU_SPEED_SCALED, PLAT_CPU_SPEED_MINIMAL);
             LOGINFO("Thermal Monitor [DECLOCK] Frequencies -- Normal:%d Scaled:%d Minimal:%d", PLAT_CPU_SPEED_NORMAL, PLAT_CPU_SPEED_SCALED, PLAT_CPU_SPEED_MINIMAL);
@@ -152,6 +150,8 @@ void ThermalController::initializeThermalProtection()
                 LOGINFO("Thermal Monitor [DECLOCK] **ERROR** At least one clock speed is 0. Disabling declocking!");
                 declockThreshold.graceInterval = 0;
             }
+	    cur_Cpu_Speed = PLAT_CPU_SPEED_NORMAL;
+	    LOGINFO("Thermal Monitor [DECLOCK] Default Frequency during Bootup [%d]", cur_Cpu_Speed);
         }
 #endif
 

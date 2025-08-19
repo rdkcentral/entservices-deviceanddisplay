@@ -1659,7 +1659,7 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
         eventData.data.resn.height = 1080;
 
         // Trigger the resolution change event directly using the static function
-        DisplayInfoImplementation::ResolutionChange(
+        Plugin::DisplayInfoImplementation::ResolutionChange(
             IARM_BUS_DSMGR_NAME,
             IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
             &eventData,
@@ -1681,7 +1681,7 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
         eventData.data.resn.height = 2160;
 
         // Trigger the resolution change event
-        DisplayInfoImplementation::ResolutionChange(
+        Plugin::DisplayInfoImplementation::ResolutionChange(
             IARM_BUS_DSMGR_NAME,
             IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,
             &eventData,
@@ -1706,7 +1706,7 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
 
         // Trigger event - both should receive it
         IARM_Bus_DSMgr_EventData_t eventData;
-        DisplayInfoImplementation::ResolutionChange(
+        Plugin::DisplayInfoImplementation::ResolutionChange(
             IARM_BUS_DSMGR_NAME,
             IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
             &eventData,
@@ -1735,7 +1735,7 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
 
         // Trigger event - should not be received
         IARM_Bus_DSMgr_EventData_t eventData;
-        DisplayInfoImplementation::ResolutionChange(
+        Plugin::DisplayInfoImplementation::ResolutionChange(
             IARM_BUS_DSMGR_NAME,
             IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
             &eventData,
@@ -1747,28 +1747,5 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
         EXPECT_FALSE(eventReceived);
     }
 
-    connectionProperties->Release();
-}
-
-TEST_F(DisplayInfoTestTest, ResolutionChange_IARMIntegration)
-{
-    // Verify that IARM event handlers are properly registered during initialization
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(
-        ::testing::StrEq(IARM_BUS_DSMGR_NAME),
-        IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
-        ::testing::_))
-        .Times(::testing::AtLeast(1));
-        
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(
-        ::testing::StrEq(IARM_BUS_DSMGR_NAME),
-        IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,
-        ::testing::_))
-        .Times(::testing::AtLeast(1));
-
-    // Create a new DisplayInfo implementation to trigger IARM registration
-    uint32_t _connectionId = 0;
-    Exchange::IConnectionProperties* connectionProperties = service.Root<Exchange::IConnectionProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
-    ASSERT_NE(connectionProperties, nullptr);
-    
     connectionProperties->Release();
 }

@@ -196,6 +196,7 @@ const char* getWakeupSrcString(uint32_t src)
     }
 }
 
+#if 0
 /**
  * @brief returns the value of the contents of /opt/gzenabled.
  *
@@ -220,6 +221,7 @@ bool isGzEnabledHelper(bool& enabled)
 
     return retVal;
 }
+#endif
 
 /**
  * @brief returns the value of the contents of requested mac/ip
@@ -438,12 +440,8 @@ namespace WPEFramework {
             registerMethod("getMfgSerialNumber", &SystemServices::getMfgSerialNumber, this);
 #endif
             registerMethod("reboot", &SystemServices::requestSystemReboot, this);
-            //registerMethod("enableMoca", &SystemServices::requestEnableMoca, this);
-            /*registerMethod("queryMocaStatus", &SystemServices::queryMocaStatus,
-                    this);*/
             registerMethod("requestSystemUptime",
                     &SystemServices::requestSystemUptime, this);
-            //registerMethod("getStateInfo", &SystemServices::getStateInfo, this);
 #if defined(HAS_API_SYSTEM) && defined(HAS_API_POWERSTATE)
             registerMethod("getPowerState", &SystemServices::getDevicePowerState,
                     this);
@@ -453,23 +451,15 @@ namespace WPEFramework {
 #ifdef ENABLE_SYSTIMEMGR_SUPPORT
             registerMethod("getTimeStatus", &SystemServices::getSystemTimeStatus,this);
 #endif// ENABLE_SYSTIMEMGR_SUPPORT
-           // registerMethod("setGzEnabled", &SystemServices::setGZEnabled, this);
-            //registerMethod("isGzEnabled", &SystemServices::isGZEnabled, this);
-            //registerMethod("getMode", &SystemServices::getMode, this);
             registerMethod("updateFirmware", &SystemServices::updateFirmware, this);
             registerMethod("setMode", &SystemServices::setMode, this);
-            //registerMethod("setBootLoaderPattern", &SystemServices::setBootLoaderPattern, this);
 	    registerMethod("setBootLoaderSplashScreen", &SystemServices::setBootLoaderSplashScreen, this);	    
             registerMethod("getFirmwareUpdateInfo",
                     &SystemServices::getFirmwareUpdateInfo, this);
             registerMethod("setDeepSleepTimer", &SystemServices::setDeepSleepTimer,
                     this);
-            /*registerMethod("setPreferredStandbyMode",
-                    &SystemServices::setPreferredStandbyMode, this);*/
             registerMethod("getPreferredStandbyMode",
                     &SystemServices::getPreferredStandbyMode, this);
-            /*registerMethod("getAvailableStandbyModes",
-                    &SystemServices::getAvailableStandbyModes, this);*/
             registerMethod("getXconfParams", &SystemServices::getXconfParams, this);
             registerMethod("getSerialNumber", &SystemServices::getSerialNumber,
                     this);
@@ -479,17 +469,10 @@ namespace WPEFramework {
                     &SystemServices::getFirmwareDownloadPercent, this);
             registerMethod("getFirmwareUpdateState",
                     &SystemServices::getFirmwareUpdateState, this);
-            //registerMethod("getMacAddresses",&SystemServices::getMacAddresses, this);
             registerMethod("setTimeZoneDST", &SystemServices::setTimeZoneDST, this);
             registerMethod("getTimeZoneDST", &SystemServices::getTimeZoneDST, this);
             registerMethod("getCoreTemperature", &SystemServices::getCoreTemperature,
                     this);
-            /*registerMethod("getPreviousRebootInfo",
-                    &SystemServices::getPreviousRebootInfo, this);*/
-            /*registerMethod("getLastDeepSleepReason",
-                    &SystemServices::getLastDeepSleepReason, this);
-            registerMethod("clearLastDeepSleepReason",
-                    &SystemServices::clearLastDeepSleepReason, this);*/
 #ifdef ENABLE_THERMAL_PROTECTION
             registerMethod("getTemperatureThresholds",
                     &SystemServices::getTemperatureThresholds, this);
@@ -500,14 +483,7 @@ namespace WPEFramework {
             registerMethod("setOvertempGraceInterval",
                     &SystemServices::setOvertempGraceInterval, this);
 #endif /* ENABLE_THERMAL_PROTECTION */
-            /*registerMethod("getPreviousRebootInfo2",
-                    &SystemServices::getPreviousRebootInfo2, this);*/
-            /*registerMethod("getPreviousRebootReason",
-                    &SystemServices::getPreviousRebootReason, this);*/
             registerMethod("getRFCConfig", &SystemServices::getRFCConfig, this);
-            //registerMethod("getMilestones", &SystemServices::getMilestones, this);
-            registerMethod("enableXREConnectionRetention",
-                    &SystemServices::enableXREConnectionRetention, this);
             registerMethod("getSystemVersions", &SystemServices::getSystemVersions, this);
             registerMethod("setNetworkStandbyMode", &SystemServices::setNetworkStandbyMode, this);
             registerMethod("getNetworkStandbyMode", &SystemServices::getNetworkStandbyMode, this);
@@ -532,20 +508,13 @@ namespace WPEFramework {
             registerMethod("getLastFirmwareFailureReason", &SystemServices::getLastFirmwareFailureReason, this);
             registerMethod("setOptOutTelemetry", &SystemServices::setOptOutTelemetry, this);
             registerMethod("isOptOutTelemetry", &SystemServices::isOptOutTelemetry, this);
-            //registerMethod("fireFirmwarePendingReboot", &SystemServices::fireFirmwarePendingReboot, this);
             registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
             registerMethod("setFirmwareAutoReboot", &SystemServices::setFirmwareAutoReboot, this);
 #ifdef ENABLE_SYSTEM_GET_STORE_DEMO_LINK
             registerMethod("getStoreDemoLink", &SystemServices::getStoreDemoLink, this);
 #endif
-           // registerMethod("deletePersistentPath", &SystemServices::deletePersistentPath, this);
-            /*Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
-                &SystemServices::getPlatformConfiguration, this);
-            GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
-                &SystemServices::getPlatformConfiguration, this);*/
 	    registerMethod("getFriendlyName", &SystemServices::getFriendlyName, this);
             registerMethod("setFriendlyName", &SystemServices::setFriendlyName, this);
-            //registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this);
 
             registerMethod("setFSRFlag", &SystemServices::setFSRFlag, this);
             registerMethod("getFSRFlag", &SystemServices::getFSRFlag, this);
@@ -555,6 +524,40 @@ namespace WPEFramework {
             registerMethod("getBuildType", &SystemServices::getBuildType, this);
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
             registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
+#if 0
+            registerMethod("getPreviousRebootInfo",
+                    &SystemServices::getPreviousRebootInfo, this);
+            registerMethod("getLastDeepSleepReason",
+                    &SystemServices::getLastDeepSleepReason, this);
+            registerMethod("clearLastDeepSleepReason",
+                    &SystemServices::clearLastDeepSleepReason, this);
+            registerMethod("enableMoca", &SystemServices::requestEnableMoca, this);
+            registerMethod("queryMocaStatus", &SystemServices::queryMocaStatus, this);
+            registerMethod("getStateInfo", &SystemServices::getStateInfo, this);
+            registerMethod("setGzEnabled", &SystemServices::setGZEnabled, this);
+            registerMethod("isGzEnabled", &SystemServices::isGZEnabled, this);
+            registerMethod("getMode", &SystemServices::getMode, this);
+            registerMethod("setBootLoaderPattern", &SystemServices::setBootLoaderPattern, this);
+            registerMethod("setPreferredStandbyMode",
+                    &SystemServices::setPreferredStandbyMode, this);
+            registerMethod("getAvailableStandbyModes",
+                    &SystemServices::getAvailableStandbyModes, this);
+            registerMethod("getMacAddresses",&SystemServices::getMacAddresses, this);
+            registerMethod("getPreviousRebootInfo2",
+                    &SystemServices::getPreviousRebootInfo2, this);
+            registerMethod("getPreviousRebootReason",
+                    &SystemServices::getPreviousRebootReason, this);
+            registerMethod("getMilestones", &SystemServices::getMilestones, this);
+            registerMethod("enableXREConnectionRetention",
+                    &SystemServices::enableXREConnectionRetention, this);
+            registerMethod("fireFirmwarePendingReboot", &SystemServices::fireFirmwarePendingReboot, this);
+            registerMethod("deletePersistentPath", &SystemServices::deletePersistentPath, this);
+            Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
+                &SystemServices::getPlatformConfiguration, this);
+            GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
+                &SystemServices::getPlatformConfiguration, this);
+            registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this); 
+#endif
         }
 
         SystemServices::~SystemServices()
@@ -3589,7 +3592,6 @@ namespace WPEFramework {
             }
             returnResponse(retAPIStatus);
         }
-#endif
 
         /***
          * @brief : Used to clear last deep sleep reason.
@@ -3597,7 +3599,6 @@ namespace WPEFramework {
          * @param2[out] : "result":{"success":<bool>}
          * @return      : Core::<StatusCode>
          */
-#if 0 // This API will be removed in the future.
         uint32_t SystemServices::clearLastDeepSleepReason(const JsonObject& parameters,
                 JsonObject& response)
         {
@@ -3840,9 +3841,7 @@ namespace WPEFramework {
             }
             returnResponse(retAPIStatus);
         }
-#endif
 
-#if 0
         /***
          * @brief : Used to retrieve last reboot reason.
          * @param1[in]  : query parameter.
@@ -5191,9 +5190,7 @@ namespace WPEFramework {
 
           returnResponse(result);
         }
-#endif
 
-#if 0
         uint32_t SystemServices::getPlatformConfiguration(const JsonObject &parameters, PlatformCaps &response)
         {
           LOGINFOMETHOD();

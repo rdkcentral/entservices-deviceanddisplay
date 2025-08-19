@@ -18,6 +18,7 @@
  */
 #include <chrono>
 #include <thread>
+#include <bitset>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -48,6 +49,53 @@ using ::testing::NiceMock;
 using WakeupReason  = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 
+template <typename Enum, int N = ((sizeof(int) * 8)-1)>
+class EnumSet {
+public:
+    EnumSet() : bits(0) {}
+    EnumSet(int val) : bits(val) {}
+
+    void set(Enum e) {
+        bits.set(static_cast<int>(e));
+    }
+
+    void set(Enum e, bool value) {
+        if (value) {
+            set(e);
+        } else {
+            reset(e);
+        }
+    }
+
+    void reset(Enum e) {
+        bits.reset(static_cast<int>(e));
+    }
+
+
+    bool test(Enum e) const {
+        return bits.test(static_cast<int>(e));
+    }
+
+    std::string str() const {
+        std::string result;
+        std::stringstream ss;
+        for (int i = N; i >= 0; --i) {
+            if (bits.test(i)) {
+                ss << "1";
+            } else {
+                ss << "0";
+            }
+            if (i % 8 == 0  && i != N && i != 0) {
+                ss << "_";
+            }
+        }
+        return ss.str();
+    }
+
+private:
+    std::bitset<N+1> bits;
+};
+
 class TestPowerManager : public ::testing::Test {
 
 protected:
@@ -59,6 +107,7 @@ public:
     bool wait_call = true;
     std::mutex m_mutex;
     Core::ProxyType<Plugin::PowerManagerImplementation> powerManagerImpl;
+    EnumSet<PWRMGR_WakeupSrcType_t, PWRMGR_WAKEUPSRC_MAX> _wakeupSources;
     WaitGroup setupWg; // wait group created specifically for setup / init (SetUpMocks)
 
     struct PowerModePreChangeEvent : public WPEFramework::Exchange::IPowerManager::IModePreChangeNotification {
@@ -102,6 +151,7 @@ public:
     };
 
     TestPowerManager()
+        : _wakeupSources(0xFF)
     {
         SetUpMocks();
 
@@ -112,6 +162,11 @@ public:
 
         TEST_LOG("MIL: Await mfrGetTemperature to start testCase: %s", testCase.c_str());
         setupWg.Wait();
+
+        // Default Wake-On-LAN is disabled
+        EXPECT_FALSE(_wakeupSources.test(PWRMGR_WAKEUPSRC_WIFI));
+        EXPECT_FALSE(_wakeupSources.test(PWRMGR_WAKEUPSRC_LAN));
+
         TEST_LOG("MIL: >> Exec test now testCase: %s", testCase.c_str());
     }
 
@@ -190,11 +245,17 @@ public:
                 }));
 
         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
-            .Times(2)
             .WillRepeatedly(::testing::Invoke(
-                [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
-                    // EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_WIFI);
-                    // EXPECT_EQ(enabled, true);
+                [this](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
+                    _wakeupSources.set(wakeupSrc, enabled);
+                    return PWRMGR_SUCCESS;
+                }));
+
+        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_GetWakeupSrc(::testing::_, ::testing::_))
+            .WillRepeatedly(::testing::Invoke(
+                [this](PWRMGR_WakeupSrcType_t wakeupSrc, bool *enabled) {
+                    EXPECT_TRUE(nullptr != enabled);
+                    *enabled = _wakeupSources.test(wakeupSrc);
                     return PWRMGR_SUCCESS;
                 }));
     }
@@ -214,14 +275,14 @@ public:
 
         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
             .WillOnce(::testing::Invoke([]() {
-                    return PWRMGR_SUCCESS;
-                }));
+                return PWRMGR_SUCCESS;
+            }));
 
         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
             .WillOnce(::testing::Invoke([&]() {
-                    wg.Done();
-                    return DEEPSLEEPMGR_SUCCESS;
-                }));
+                wg.Done();
+                return DEEPSLEEPMGR_SUCCESS;
+            }));
 
         EXPECT_EQ(powerManagerImpl.IsValid(), true);
         TEST_LOG(">> Release powerManagerImpl %p", &(*powerManagerImpl));
@@ -251,18 +312,21 @@ public:
 
         TearDownMocks();
 
-        if(0!=system("rm /opt/uimgr_settings.bin")){/* do nothig */}
+        if (0 != system("rm /opt/uimgr_settings.bin")) { /* do nothig */
+        }
 
         // Although this file is not created always
         // delete to avoid dependency among test cases
-        if(0!=system("rm -f /tmp/deepSleepTimer")){/* do nothig */}
-        if(0!=system("rm -f /tmp/deepSleepTimerVal")){/* do nothig */}
-        if(0!=system("rm -f /tmp/ignoredeepsleep")){/* do nothig */}
+        if (0 != system("rm -f /tmp/deepSleepTimer")) { /* do nothig */
+        }
+        if (0 != system("rm -f /tmp/deepSleepTimerVal")) { /* do nothig */
+        }
+        if (0 != system("rm -f /tmp/ignoredeepsleep")) { /* do nothig */
+        }
 
         // in some rare cases we saw settings file being reused from
         // old testcase, fs sync would resolve such issues
-        if(0!=system("sync"))
-        {
+        if (0 != system("sync")) {
             // do nothig
         }
     }
@@ -380,9 +444,9 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
 
     int keyCode = 0;
 
-    uint32_t clientId = 0;
+    uint32_t clientId  = 0;
     int transaction_id = 0;
-    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    uint32_t status    = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
@@ -592,8 +656,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
 
 TEST_F(TestPowerManager, DeepSleepIgnore)
 {
-    if(0!=system("touch /tmp/ignoredeepsleep"))
-    {
+    if (0 != system("touch /tmp/ignoredeepsleep")) {
         TEST_LOG("system() failed");
     }
 
@@ -962,12 +1025,10 @@ TEST_F(TestPowerManager, DeepSleepTimerWakeup)
 
 TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
 {
-    if(0!=system("echo 1 > /tmp/deepSleepTimer"))
-    {
+    if (0 != system("echo 1 > /tmp/deepSleepTimer")) {
         TEST_LOG("system() failed");
     }
-    if(0!=system("echo 2 > /tmp/deepSleepTimerVal"))
-    {
+    if (0 != system("echo 2 > /tmp/deepSleepTimerVal")) {
         TEST_LOG("system() failed");
     }
 
@@ -1103,7 +1164,7 @@ TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
                 EXPECT_EQ(networkStandby, false);
                 // Simulate timer wakeup
                 *isGPIOWakeup = false;
-                std::this_thread::sleep_for(std::chrono::seconds(deep_sleep_timeout/2));
+                std::this_thread::sleep_for(std::chrono::seconds(deep_sleep_timeout / 2));
                 return DEEPSLEEPMGR_SUCCESS;
             }));
 
@@ -1383,6 +1444,83 @@ TEST_F(TestPowerManager, NetworkStandby)
     EXPECT_EQ(status, Core::ERROR_NONE);
 };
 
+TEST_F(TestPowerManager, EnableWakeOnLAN)
+{
+    WaitGroup wg;
+    wg.Add(1);
+
+    Core::ProxyType<NetworkStandbyChangedEvent> nwstandbyModeChangedEvent = Core::ProxyType<NetworkStandbyChangedEvent>::Create();
+    EXPECT_CALL(*nwstandbyModeChangedEvent, OnNetworkStandbyModeChanged(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const bool enabled) {
+                EXPECT_EQ(enabled, true);
+                wg.Done();
+            }))
+        .WillOnce(::testing::Invoke(
+            [&](const bool enabled) {
+                EXPECT_EQ(enabled, false);
+                wg.Done();
+            }));
+
+    auto status = powerManagerImpl->Register(&(*nwstandbyModeChangedEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    powerManagerImpl->SetNetworkStandbyMode(true);
+    wg.Wait();
+
+    wg.Add(1);
+
+    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_WIFI, 0);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_LAN, 0);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    wg.Wait();
+
+    bool standbyMode = false;
+
+    status = powerManagerImpl->GetNetworkStandbyMode(standbyMode);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(standbyMode, false);
+
+    status = powerManagerImpl->Unregister(&(*nwstandbyModeChangedEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+};
+
+TEST_F(TestPowerManager, DisableWakeOnLAN)
+{
+    WaitGroup wg;
+    wg.Add(1);
+
+    Core::ProxyType<NetworkStandbyChangedEvent> nwstandbyModeChangedEvent = Core::ProxyType<NetworkStandbyChangedEvent>::Create();
+    EXPECT_CALL(*nwstandbyModeChangedEvent, OnNetworkStandbyModeChanged(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const bool enabled) {
+                EXPECT_EQ(enabled, true);
+                wg.Done();
+            }));
+
+    auto status = powerManagerImpl->Register(&(*nwstandbyModeChangedEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_WIFI, WakeupSrcType::WAKEUP_SRC_WIFI);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_LAN, WakeupSrcType::WAKEUP_SRC_LAN);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    wg.Wait();
+
+    bool standbyMode = false;
+
+    status = powerManagerImpl->GetNetworkStandbyMode(standbyMode);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(standbyMode, true);
+
+    status = powerManagerImpl->Unregister(&(*nwstandbyModeChangedEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+};
 TEST_F(TestPowerManager, SystemMode)
 {
     // dummy test only for coverage

@@ -107,7 +107,12 @@ public:
 
         setupWg.Add(1);
         powerManagerImpl = Core::ProxyType<Plugin::PowerManagerImplementation>::Create();
+
+        const std::string testCase = PowerManagerHalMock::testId();
+
+        TEST_LOG("MIL: Await mfrGetTemperature to start testCase: %s", testCase.c_str());
         setupWg.Wait();
+        TEST_LOG("MIL: >> Exec test now testCase: %s", testCase.c_str());
     }
 
     void SetUpMocks()
@@ -161,6 +166,7 @@ public:
                     *state            = mfrTEMPERATURE_NORMAL;
                     *temperatureValue = 40;
                     *wifiTemp         = 35;
+                    TEST_LOG("signal mfrGetTemperature from testCase: %s", mfrMock::testId().c_str());
                     setupWg.Done();
                     return mfrERR_NONE;
                 }));
@@ -201,6 +207,7 @@ public:
 
     ~TestPowerManager() override
     {
+        TEST_LOG("MIL: << Done Exec testCase: %s, cleanup now", PowerManagerHalMock::testId().c_str());
         TEST_LOG("DTOR is called, %p", this);
         WaitGroup wg;
         wg.Add();
@@ -216,9 +223,12 @@ public:
                     return DEEPSLEEPMGR_SUCCESS;
                 }));
 
+        EXPECT_EQ(powerManagerImpl.IsValid(), true);
+        TEST_LOG(">> Release powerManagerImpl %p", &(*powerManagerImpl));
         powerManagerImpl.Release();
         EXPECT_EQ(powerManagerImpl.IsValid(), false);
-        TEST_LOG("powerManagerImpl Released");
+        TEST_LOG("<< Released powerManagerImpl");
+
         wg.Wait();
 
         Wraps::setImpl(nullptr);
@@ -531,7 +541,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
 
-                // Delay power mode change by 10 seconds
+                // Delay power mode change by 1 seconds
                 auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 1);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 

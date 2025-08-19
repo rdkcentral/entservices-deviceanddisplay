@@ -47,7 +47,7 @@ public:
 
         std::unique_lock<std::mutex> _lock{ _m };
         _cv.wait(_lock, [&]() {
-            return _count == 0;
+            return _count <= 0;
         });
     }
 

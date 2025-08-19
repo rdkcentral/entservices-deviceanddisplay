@@ -1120,22 +1120,24 @@ namespace WPEFramework {
             // there is no /tmp/.make from /lib/rdk/getDeviceDetails.sh, but it can be taken from /etc/device.properties
             if (queryParams.empty() || queryParams == "make") {
 
-				std::string make;
-                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MFG_NAME", make);
-				
-                IARM_Bus_MFRLib_GetSerializedData_Param_t param;
-                param.bufLen = 0;
-                param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
+				std::string Dname;
+                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", Dname);
+				if (Dname == "PLATCO") {
+                    IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+                    param.bufLen = 0;
+                    param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
 
-                IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
-                param.buffer[param.bufLen] = '\0';
+                    IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+                    param.buffer[param.bufLen] = '\0';
 
-                LOGWARN("SystemService getDeviceInfo param type %d result %s", param.type, param.buffer);
+                    LOGWARN("SystemService getDeviceInfo param type %d result %s", param.type, param.buffer);
 
-                bool status = false;
-                if (result == IARM_RESULT_SUCCESS) {
-                    response["make"] = string(param.buffer);
-                    retAPIStatus = true;
+                    if (result == IARM_RESULT_SUCCESS) {
+                        response["make"] = string(param.buffer);
+                        retAPIStatus = true;
+				       } else {
+                            LOGWARN("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
+					}
 				} else {
                 std::string make;
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MFG_NAME", make);

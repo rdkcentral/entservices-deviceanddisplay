@@ -138,7 +138,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: feature/RDKEMW-6451
 
       - name: Checkout googletest
         if: steps.cache.outputs.cache-hit != 'true'

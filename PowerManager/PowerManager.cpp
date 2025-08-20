@@ -173,6 +173,7 @@ namespace Plugin {
 
     void PowerManager::CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId)
     {
+        LOGINFO(">> remote %p, interfaceId = %d", remote, interfaceId);
         if (Exchange::IPowerManager::IRebootNotification::ID == interfaceId) {
             const auto* revokedInterface = remote->QueryInterface<Exchange::IPowerManager::IRebootNotification>();
             if (revokedInterface && _powerManager) {
@@ -210,6 +211,7 @@ namespace Plugin {
                 revokedInterface->Release();
             }
         }
+        LOGINFO("<<");
     }
 } // namespace Plugin
 } // namespace WPEFramework

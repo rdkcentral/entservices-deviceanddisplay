@@ -5337,6 +5337,7 @@ void DisplaySettings::sendMsgThread()
 	    static int retryArcCount = 0;
 	    std::lock_guard<std::mutex> lock(m_callMutex);
             int types = dsAUDIOARCSUPPORT_NONE;
+	    try{
             device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
             aPort.getSupportedARCTypes(&types);
 	    if(m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) {
@@ -5376,6 +5377,11 @@ void DisplaySettings::sendMsgThread()
 				    retryArcCount, m_currentArcRoutingState, m_hdmiInAudioDeviceType);
                     m_ArcDetectionTimer.stop();
             }
+	    }
+            catch(const device::Exception& err)
+            {
+                LOG_DEVICE_EXCEPTION1(string(" Exception in checkArcDeviceConnected"));
+	    }
 	}	
 	/* DisplaaySettings gets notified whenever CEC is made Enable or Disable  */
 	void DisplaySettings::onCecEnabledEventHandler(const JsonObject& parameters)

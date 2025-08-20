@@ -107,10 +107,12 @@ private:
 
 class DeepSleepController {
 
-    using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
-    using PowerState   = WPEFramework::Exchange::IPowerManager::PowerState;
-    using IPlatform    = hal::deepsleep::IPlatform;
-    using DefaultImpl  = DeepSleepImpl;
+    using MonotonicClock = std::chrono::steady_clock;
+    using Timestamp      = std::chrono::time_point<MonotonicClock>;
+    using WakeupReason   = WPEFramework::Exchange::IPowerManager::WakeupReason;
+    using PowerState     = WPEFramework::Exchange::IPowerManager::PowerState;
+    using IPlatform      = hal::deepsleep::IPlatform;
+    using DefaultImpl    = DeepSleepImpl;
 
     typedef enum {
         Failed     = -1, /*!< Deepsleep operation failed */
@@ -167,16 +169,25 @@ public:
         return (DeepSleepState::InProgress == _deepSleepState);
     }
 
+    inline std::chrono::steady_clock::duration Elapsed()
+    {
+        if (_deepsleepStartTime.time_since_epoch() == std::chrono::steady_clock::duration::zero()) {
+            return std::chrono::steady_clock::duration::zero();
+        }
+        return MonotonicClock::now() - _deepsleepStartTime;
+    }
+
 private:
     bool read_integer_conf(const char* file_name, uint32_t& val);
     void enterDeepSleepDelayed();
     void enterDeepSleepNow();
-    void deepSleepTimerWakeup(const std::chrono::steady_clock::time_point& startTime);
+    void deepSleepTimerWakeup();
     void performActivate(uint32_t timeOut, bool nwStandbyMode);
 
 private:
     INotification& _parent;
     WPEFramework::Core::IWorkerPool& _workerPool;
+    Timestamp _deepsleepStartTime;
     std::shared_ptr<IPlatform> _platform;
     DeepSleepState _deepSleepState;
     uint32_t _deepSleepDelaySec;         // Duration to wait before entering deep sleep mode

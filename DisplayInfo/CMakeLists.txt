@@ -76,6 +76,12 @@ if (USE_DEVICESETTINGS)
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
         ${IARMBUS_LIBRARIES}
         ${DS_LIBRARIES}
+    if(DISPLAYINFO_SOC_LIBRARY)
+        target_link_libraries(${MODULE_NAME} PRIVATE displayinfo-soc)
+        message(STATUS "Found displayinfo-soc library: ${DISPLAYINFO_SOC_LIBRARY}")
+    else()
+        message(WARNING "displayinfo-soc library not found - skipping")
+    endif()
 	)
     target_sources(${MODULE_NAME}
         PRIVATE

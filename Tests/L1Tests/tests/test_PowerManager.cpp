@@ -49,6 +49,7 @@ using ::testing::NiceMock;
 using WakeupReason  = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 
+
 template <typename Enum, int N = ((sizeof(int) * 8)-1)>
 class EnumSet {
 public:
@@ -1473,12 +1474,17 @@ TEST_F(TestPowerManager, EnableWakeOnLAN)
     powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_WIFI, 0);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
+    bool standbyMode = false;
+
+    status = powerManagerImpl->GetNetworkStandbyMode(standbyMode);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(standbyMode, true);
+
+    // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets disabled
     powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_LAN, 0);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     wg.Wait();
-
-    bool standbyMode = false;
 
     status = powerManagerImpl->GetNetworkStandbyMode(standbyMode);
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1507,12 +1513,17 @@ TEST_F(TestPowerManager, DisableWakeOnLAN)
     powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_WIFI, WakeupSrcType::WAKEUP_SRC_WIFI);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
+    bool standbyMode = false;
+
+    status = powerManagerImpl->GetNetworkStandbyMode(standbyMode);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(standbyMode, false);
+
+    // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets disabled
     powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_LAN, WakeupSrcType::WAKEUP_SRC_LAN);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     wg.Wait();
-
-    bool standbyMode = false;
 
     status = powerManagerImpl->GetNetworkStandbyMode(standbyMode);
     EXPECT_EQ(status, Core::ERROR_NONE);

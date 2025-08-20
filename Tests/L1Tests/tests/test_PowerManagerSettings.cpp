@@ -14,7 +14,7 @@ using namespace WPEFramework;
 struct PowerManagerSettingsParam {
     // test inputs
     PowerState powerState; // persisted power state
-    int deepSleepTimeout;  // persisted deepsleep timeout
+    uint32_t deepSleepTimeout;  // persisted deepsleep timeout
     bool nwStandbyMode;    // persisted network standby mode
 
     bool restart; // similate plugin restart
@@ -44,7 +44,7 @@ public:
         if(0!=system("rm -f /tmp/pwrmgr_restarted")){/* do nothig */}
     }
 
-    void populateSettingsV1(PowerState prevState, int deepSleepTimeout, bool nwStandbyMode)
+    void populateSettingsV1(PowerState prevState, uint32_t deepSleepTimeout, bool nwStandbyMode)
     {
         Settings settings = Settings::Load(_settingsFile);
 
@@ -65,7 +65,7 @@ TEST_F(TestPowerManagerSettings, Empty)
 
     EXPECT_EQ(settings.powerState(), PowerState::POWER_STATE_ON);
     EXPECT_EQ(settings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
-    EXPECT_EQ(settings.deepSleepTimeout(), 8 * 60 * 60); // 8 hours
+    EXPECT_EQ(settings.deepSleepTimeout(), 8U * 60U * 60U); // 8 hours
     EXPECT_EQ(settings.nwStandbyMode(), false);
 }
 

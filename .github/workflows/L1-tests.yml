@@ -1,4 +1,4 @@
-name: L1-tests
+name: L1-tests-DD
 
 on:
   workflow_call:

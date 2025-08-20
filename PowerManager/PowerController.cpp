@@ -173,7 +173,6 @@ uint32_t PowerController::Reboot(const string& requestor, const string& reasonCu
 
         LOGINFO("------------FINAL REBOOT NOTICE----------\n\tRebooting device requestor: %s, reasonCustom: %s, reasonOther: %s",
             requestor.c_str(), reasonCustom.c_str(), reasonOther.c_str());
-        sleep(5);
         if (0 == access("/rebootNow.sh", F_OK)) {
             v_secure_system("/rebootNow.sh -s '%s' -r '%s' -o '%s'", requestor.c_str(), reasonCustom.c_str(), reasonOther.c_str());
         } else {

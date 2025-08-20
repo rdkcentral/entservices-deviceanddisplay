@@ -99,13 +99,11 @@ void RebootController::heartbeatMsg()
         if (_standbyRebootThreshold.IsThresholdExceeded(uptime)) {
             if (_standbyRebootThreshold.IsGraceIntervalExceeded(_settings.InactiveDuration())) {
                 LOGINFO("Going to reboot after %lld\n", uptime);
-                sleep(10);
                 v_secure_system("sh /rebootNow.sh -s PwrMgr -o 'Standby Maintenance reboot'");
             }
 
             if (_forcedRebootThreshold.IsThresholdExceeded(uptime)) {
                 LOGINFO("Going to force reboot after %lld\n", uptime);
-                sleep(10);
                 v_secure_system("sh /rebootNow.sh -s PwrMgr -o 'Forced Maintenance reboot'");
             }
         }

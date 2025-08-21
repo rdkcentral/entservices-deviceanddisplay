@@ -2178,7 +2178,7 @@ namespace WPEFramework {
 
             dsMgrStandbyVideoStateParam_t param;
             param.isEnabled = enabled;
-            strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
             param.port[sizeof(param.port) - 1] = '\0';
             if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_SetStandbyVideoState, &param, sizeof(param)))
             {
@@ -2205,7 +2205,7 @@ namespace WPEFramework {
             bool success = true;
 
             dsMgrStandbyVideoStateParam_t param;
-            strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
 	    param.port[sizeof(param.port) - 1] = '\0';
             if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_GetStandbyVideoState, &param, sizeof(param)))
             {
@@ -5337,6 +5337,7 @@ void DisplaySettings::sendMsgThread()
 	    static int retryArcCount = 0;
 	    std::lock_guard<std::mutex> lock(m_callMutex);
             int types = dsAUDIOARCSUPPORT_NONE;
+	    try{
             device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
             aPort.getSupportedARCTypes(&types);
 	    if(m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) {
@@ -5376,6 +5377,11 @@ void DisplaySettings::sendMsgThread()
 				    retryArcCount, m_currentArcRoutingState, m_hdmiInAudioDeviceType);
                     m_ArcDetectionTimer.stop();
             }
+	    }
+            catch(const device::Exception& err)
+            {
+                LOG_DEVICE_EXCEPTION1(string(" Exception in checkArcDeviceConnected"));
+	    }
 	}	
 	/* DisplaaySettings gets notified whenever CEC is made Enable or Disable  */
 	void DisplaySettings::onCecEnabledEventHandler(const JsonObject& parameters)
@@ -6089,7 +6095,14 @@ void DisplaySettings::sendMsgThread()
 				if (isDisplayConnected(strVideoPort))
 				{
 					bool enable = (newState == "GAME") ? true : false;
-					vPort.setAllmEnabled(enable);
+					vPort.getDisplay().setAllmEnabled(enable);
+					if(enable){ // Game mode
+					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_GAME);
+					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_UNDERSCAN);
+					}else{ // video mode
+					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_NOT_SIGNALLED);
+					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_NO_DATA);
+					}
 				}
 				else
 				{

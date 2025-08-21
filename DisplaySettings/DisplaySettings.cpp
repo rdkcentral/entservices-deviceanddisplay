@@ -5426,7 +5426,7 @@ void DisplaySettings::sendMsgThread()
                                                 //gsk Call the mute status.
                 //EARC MUTE
                   LOGINFO("gsk:cec_cache_muted: %d\n", cec_cache_muted);
-                  #if 1
+                  #if 0 //setEnableAudioPort is called only when EARC is enabled
                   if(cec_cache_muted)
                   {
                         LOGINFO("gsk:start:sendMsgToQueue SEND_AUDIO_DEVICE_MUTE_MSG AKA  sendSetAudioMuteStatus() to HDMICEC_SINK plugin\n");

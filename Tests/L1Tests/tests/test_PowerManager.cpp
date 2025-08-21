@@ -433,7 +433,7 @@ TEST_F(TestPowerManager, GetCoreTemperature)
     EXPECT_EQ(temp, 40.0); // 40 is set in SetUpMocks
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-#if 0
+
 TEST_F(TestPowerManager, PowerModePreChangeAck)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -517,7 +517,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     status = powerManagerImpl->Unregister(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-#endif
+
 
 TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
 {
@@ -704,7 +704,7 @@ TEST_F(TestPowerManager, DeepSleepIgnore)
     status = powerManagerImpl->Unregister(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-
+#endif
 TEST_F(TestPowerManager, DeepSleepUserWakeup)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -783,7 +783,6 @@ TEST_F(TestPowerManager, DeepSleepUserWakeup)
     status = powerManagerImpl->Unregister(&(*modeChanged));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-#endif
 
 // Only difference from above test-case is a user trigger for SetPowerState ON
 TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
@@ -933,7 +932,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
     status = powerManagerImpl->Unregister(&(*modeChanged));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-#if 0
+
 TEST_F(TestPowerManager, DeepSleepTimerWakeup)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -1124,7 +1123,7 @@ TEST_F(TestPowerManager, DeepSleepDelayedTimerWakeup)
     status = powerManagerImpl->Unregister(&(*deepSleepTimeout));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-#endif
+
 // TODO: This testcase will need some rework
 TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
 {
@@ -1209,7 +1208,7 @@ TEST_F(TestPowerManager, DeepSleepInvalidWakeup)
     status = powerManagerImpl->Unregister(&(*deepSleepTimeout));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-#if 0
+
 TEST_F(TestPowerManager, DeepSleepEarlyWakeup)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -1402,7 +1401,7 @@ TEST_F(TestPowerManager, Reboot)
     status = powerManagerImpl->Unregister(&(*rebootEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-#endif
+
 
 TEST_F(TestPowerManager, NetworkStandby)
 {

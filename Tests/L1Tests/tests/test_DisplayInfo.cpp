@@ -283,11 +283,23 @@ protected:
     }
 };
 
+    /**
+     * @brief Test the Info endpoint via HTTP GET request
+     * 
+     * This test validates that the DisplayInfo plugin correctly aggregates and returns
+     * all display properties through the REST API. It tests:
+     * - HTTP response handling (status code, content type)
+     * - JSON response structure and data accuracy
+     * - Integration between different property sources (DRM, device settings, etc.)
+     * - GPU memory information retrieval
+     * - Display dimensions and connection status
+     */
     TEST_F(DisplayInfoTestTest, Info_AllProperties)
     {
         // Arrange: Set up device/host mocks to control the environment
+        // Mock all underlying hardware/driver calls to provide controlled test data
 
-        // Video port and display connection
+        // Video port and display connection setup
         device::VideoOutputPort videoOutputPort;
         device::AudioOutputPort audioOutputPort;
         device::VideoOutputPortType videoOutputPortType(dsVIDEOPORT_TYPE_HDMI);
@@ -436,6 +448,15 @@ protected:
         EXPECT_EQ(jsonBody->Height, 1080);
     }
 
+        /**
+         * @brief Test the VerticalFreq function to validate EDID-based vertical refresh rate parsing
+         * 
+         * This test ensures that:
+         * - EDID data is properly parsed to extract vertical frequency information
+         * - The mock EDID parser returns expected refresh rate values
+         * - The DisplayInfo implementation correctly maps parsed data to the API response
+         * - COMRPC interface properly handles the vertical frequency query
+         */
      TEST_F(DisplayInfoTestTest, VerticalFrequency){
         device::VideoOutputPort videoOutputPort;
         device::AudioOutputPort audioOutputPort;
@@ -828,6 +849,17 @@ protected:
             displayProperties->Release();
         }
     }
+
+        /**
+         * @brief Test the Colorimetry iterator to validate color space enumeration functionality
+         * 
+         * This test validates the Thunder iterator pattern for colorimetry data:
+         * - Uses proper Thunder iterator pattern with Next(info) instead of ++iterator
+         * - Verifies colorimetry data is correctly retrieved from EDID or device capabilities
+         * - Ensures iterator properly handles multiple colorimetry values (BT709, BT2020, etc.)
+         * - Tests that iterator reaches proper end condition and doesn't loop infinitely
+         * - Validates COMRPC interface properly exposes colorimetry enumeration
+         */
         TEST_F(DisplayInfoTestTest, Colorimetry)
     {
         device::VideoOutputPort videoOutputPort;
@@ -1046,6 +1078,16 @@ protected:
     }
 
 
+    /**
+     * @brief Test the TvCapabilities interface to validate TV-specific display capabilities
+     * 
+     * This test ensures that TV device capabilities are properly exposed:
+     * - Verifies the TvCapabilities COMRPC interface is accessible
+     * - Tests that TV-specific capabilities (resolution modes, refresh rates) are exposed
+     * - Validates proper Thunder iterator pattern usage for capability enumeration
+     * - Ensures device type detection correctly identifies TV vs STB configurations
+     * - Tests EDID parsing for TV-specific capability information
+     */
     TEST_F(DisplayInfoTestTest, TVCapabilities)
     {
         device::VideoOutputPort videoOutputPort;
@@ -1110,6 +1152,16 @@ protected:
         hdrProperties->Release();
     }
 
+    /**
+     * @brief Test the STBCapabilities interface to validate Set-Top Box specific capabilities
+     * 
+     * This test ensures that STB device capabilities are properly exposed:
+     * - Verifies the STBCapabilities COMRPC interface is accessible
+     * - Tests STB-specific capabilities (HDR modes, audio formats, video codecs)
+     * - Validates proper Thunder iterator pattern usage for capability enumeration
+     * - Ensures device type detection correctly identifies STB vs TV configurations
+     * - Tests hardware capability detection and reporting
+     */
     TEST_F(DisplayInfoTestTest, STBCapabilities)
     {
         device::VideoDevice videoDevice;
@@ -1566,6 +1618,18 @@ TEST_F(DisplayInfoTestTest, EDID_ExceptionHandling)
     connectionProperties->Release();
 }
 
+/**
+ * @brief Test ResolutionChange notification handling to validate event system functionality
+ * 
+ * This comprehensive notification test validates:
+ * - Proper implementation of Thunder notification pattern following HdmiCecSource example
+ * - IConnectionProperties::INotification interface usage for resolution change events
+ * - Event triggering through IARM bus resolution change simulation
+ * - Notification callback execution and parameter validation
+ * - COMRPC notification system integration with DisplayInfo plugin
+ * - Threading and synchronization aspects of notification delivery
+ * - Cleanup and unregistration of notification handlers
+ */
 TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
 {
     // Create notification handler class similar to HdmiCecSource

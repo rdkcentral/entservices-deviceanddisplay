@@ -1264,6 +1264,7 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
     PluginHost::IShell *mController_PowerManager;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+    uint32_t signalled1 = POWERMANAGERL2TEST_STATE_INVALID;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();

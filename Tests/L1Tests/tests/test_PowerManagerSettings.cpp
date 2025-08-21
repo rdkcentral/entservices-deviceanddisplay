@@ -63,7 +63,13 @@ TEST_F(TestPowerManagerSettings, Empty)
 {
     Settings settings = Settings::Load(_settingsFile);
 
+#ifdef PLATCO_BOOTTO_STANDBY
+    // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
+    EXPECT_EQ(settings.powerState(), PowerState::POWER_STATE_STANDBY);
+#else
+    // default expected power state is ON
     EXPECT_EQ(settings.powerState(), PowerState::POWER_STATE_ON);
+#endif
     EXPECT_EQ(settings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
     EXPECT_EQ(settings.deepSleepTimeout(), 8U * 60U * 60U); // 8 hours
     EXPECT_EQ(settings.nwStandbyMode(), false);

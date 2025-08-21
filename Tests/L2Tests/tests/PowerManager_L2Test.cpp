@@ -884,6 +884,7 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
     PluginHost::IShell *mController_PowerManager;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+    uint32_t deepSleepTimeout = 10;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
@@ -914,7 +915,7 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
 
             if (PowerManagerPlugin)
             {
-                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(10);
+                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(deepSleepTimeout);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
@@ -935,8 +936,8 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
                 EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
                     .Times(5)
                     .WillRepeatedly(::testing::Invoke(
-                        [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                            EXPECT_EQ(deep_sleep_timeout, 10);
+                        [&](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                            EXPECT_EQ(deep_sleep_timeout, deepSleepTimeout);
                             EXPECT_TRUE(nullptr != isGPIOWakeup);
                             EXPECT_EQ(networkStandby, false);
                             // Simulate timer wakeup
@@ -1148,6 +1149,7 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
     PluginHost::IShell *mController_PowerManager;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+    uint32_t deepSleepTimeout = 10;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
@@ -1178,7 +1180,7 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
 
             if (PowerManagerPlugin)
             {
-                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(10);
+                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(deepSleepTimeout);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
@@ -1199,8 +1201,8 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
 
                 EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
                     .WillOnce(::testing::Invoke(
-                        [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                            EXPECT_EQ(deep_sleep_timeout, 10);
+                        [&](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                            EXPECT_EQ(deep_sleep_timeout, deepSleepTimeout);
                             EXPECT_TRUE(nullptr != isGPIOWakeup);
                             EXPECT_EQ(networkStandby, false);
                             // Simulate timer wakeup
@@ -1264,7 +1266,6 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
     PluginHost::IShell *mController_PowerManager;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
-    uint32_t signalled1 = POWERMANAGERL2TEST_STATE_INVALID;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();

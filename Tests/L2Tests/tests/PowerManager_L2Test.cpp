@@ -19,7 +19,6 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#if 0
 #include "L2Tests.h"
 #include "L2TestsMock.h"
 #include <mutex>
@@ -454,6 +453,7 @@ MATCHER_P(MatchRequestStatus, data, "")
     return match;
 }
 
+#if 0
 /* COM-RPC tests */
 void PowerManager_L2Test::Test_OvertempGraceInterval( Exchange::IPowerManager* PowerManagerPlugin )
 {
@@ -679,6 +679,7 @@ void PowerManager_L2Test::Test_NetworkStandbyMode( Exchange::IPowerManager* Powe
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
+#endif
 
 TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
 {
@@ -800,6 +801,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
     }
 }
 
+#if 0
 /********************************************************
 ************Test case Details **************************
 ** 1. Get temperature from systemservice

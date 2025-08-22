@@ -240,8 +240,13 @@ public:
             .WillRepeatedly(::testing::Invoke(
                 [](PWRMgr_PowerState_t powerState) {
                     // All tests are run without settings file
-                    // so default expected power state is ON
+#ifdef PLATCO_BOOTTO_STANDBY
+                    // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
+                    EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+#else
+                    // default expected power state is ON
                     EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+#endif
                     return PWRMGR_SUCCESS;
                 }));
 
@@ -338,6 +343,17 @@ public:
         static WorkerPoolImplementation workerPool(4, 64 * 1024, 16);
         WPEFramework::Core::WorkerPool::Assign(&workerPool);
         workerPool.Run();
+    }
+
+    PowerState initialPowerState()
+    {
+#ifdef PLATCO_BOOTTO_STANDBY
+        // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
+        return PowerState::POWER_STATE_STANDBY;
+#else
+        // default expected power state is ON
+        return PowerState::POWER_STATE_ON;
+#endif
     }
 };
 
@@ -509,7 +525,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     status = powerManagerImpl->GetPowerState(currentState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-    EXPECT_EQ(int(prevState), int(PowerState::POWER_STATE_ON));
+    EXPECT_EQ(prevState, initialPowerState());
 
     status = powerManagerImpl->RemovePowerModePreChangeClient(clientId);
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -568,7 +584,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
     status = powerManagerImpl->GetPowerState(currentState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-    EXPECT_EQ(prevState, PowerState::POWER_STATE_ON);
+    EXPECT_EQ(prevState, initialPowerState());
 
     status = powerManagerImpl->Unregister(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -646,7 +662,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
     status = powerManagerImpl->GetPowerState(currentState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-    EXPECT_EQ(prevState, PowerState::POWER_STATE_ON);
+    EXPECT_EQ(prevState, initialPowerState());
 
     status = powerManagerImpl->Unregister(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);

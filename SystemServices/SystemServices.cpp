@@ -471,18 +471,6 @@ namespace WPEFramework {
                     &SystemServices::getFirmwareUpdateState, this);
             registerMethod("setTimeZoneDST", &SystemServices::setTimeZoneDST, this);
             registerMethod("getTimeZoneDST", &SystemServices::getTimeZoneDST, this);
-            registerMethod("getCoreTemperature", &SystemServices::getCoreTemperature,
-                    this);
-#ifdef ENABLE_THERMAL_PROTECTION
-            registerMethod("getTemperatureThresholds",
-                    &SystemServices::getTemperatureThresholds, this);
-            registerMethod("setTemperatureThresholds",
-                    &SystemServices::setTemperatureThresholds, this);
-	    registerMethod("getOvertempGraceInterval",
-                    &SystemServices::getOvertempGraceInterval, this);
-            registerMethod("setOvertempGraceInterval",
-                    &SystemServices::setOvertempGraceInterval, this);
-#endif /* ENABLE_THERMAL_PROTECTION */
             registerMethod("getRFCConfig", &SystemServices::getRFCConfig, this);
             registerMethod("getSystemVersions", &SystemServices::getSystemVersions, this);
             registerMethod("setNetworkStandbyMode", &SystemServices::setNetworkStandbyMode, this);
@@ -490,8 +478,6 @@ namespace WPEFramework {
             registerMethod("getPowerStateIsManagedByDevice", &SystemServices::getPowerStateIsManagedByDevice, this);
     	    registerMethod("setTerritory", &SystemServices::setTerritory, this);
 	    registerMethod("getTerritory", &SystemServices::getTerritory, this);
-            registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
-	    registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
 
             // version 2 APIs
             registerMethod(_T("getTimeZones"), &SystemServices::getTimeZones, this);
@@ -508,7 +494,6 @@ namespace WPEFramework {
             registerMethod("getLastFirmwareFailureReason", &SystemServices::getLastFirmwareFailureReason, this);
             registerMethod("setOptOutTelemetry", &SystemServices::setOptOutTelemetry, this);
             registerMethod("isOptOutTelemetry", &SystemServices::isOptOutTelemetry, this);
-            registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
             registerMethod("setFirmwareAutoReboot", &SystemServices::setFirmwareAutoReboot, this);
 #ifdef ENABLE_SYSTEM_GET_STORE_DEMO_LINK
             registerMethod("getStoreDemoLink", &SystemServices::getStoreDemoLink, this);
@@ -525,6 +510,9 @@ namespace WPEFramework {
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
             registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
 #if 0
+            registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
+            registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
+	        registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
             registerMethod("getPreviousRebootInfo",
                     &SystemServices::getPreviousRebootInfo, this);
             registerMethod("getLastDeepSleepReason",
@@ -556,7 +544,19 @@ namespace WPEFramework {
                 &SystemServices::getPlatformConfiguration, this);
             GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
                 &SystemServices::getPlatformConfiguration, this);
-            registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this); 
+            registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this);
+            registerMethod("getCoreTemperature", &SystemServices::getCoreTemperature,
+                    this);
+#ifdef ENABLE_THERMAL_PROTECTION
+            registerMethod("getTemperatureThresholds",
+                    &SystemServices::getTemperatureThresholds, this);
+            registerMethod("setTemperatureThresholds",
+                    &SystemServices::setTemperatureThresholds, this);
+	        registerMethod("getOvertempGraceInterval",
+                    &SystemServices::getOvertempGraceInterval, this);
+            registerMethod("setOvertempGraceInterval",
+                    &SystemServices::setOvertempGraceInterval, this);
+#endif /* ENABLE_THERMAL_PROTECTION */
 #endif
         }
 
@@ -815,6 +815,7 @@ namespace WPEFramework {
             returnResponse(result);
         }//end of requestSystemReboot
 
+#if 0
         /*
          * @brief This function delays the reboot in seconds.
          * This will internally sets the tr181 fwDelayReboot parameter.
@@ -865,6 +866,7 @@ namespace WPEFramework {
             }
             returnResponse(result);
         }
+#endif
 
         /*
          * @brief This function Enable/Disable the AutReboot Feature.
@@ -3464,6 +3466,7 @@ namespace WPEFramework {
             returnResponse(resp);
         }
 
+#if 0
         /***
          * @brief : To fetch core temperature
          * @param1[in]	: {"params":{}}
@@ -3500,7 +3503,6 @@ namespace WPEFramework {
             returnResponse(resp);
         }
 
-#if 0
         /***
          * @brief : To get previous boot info.
          * @param1[in]	: {"params":{}}
@@ -3612,7 +3614,6 @@ namespace WPEFramework {
                 }
             returnResponse(retAPIStatus);
         }
-#endif
 
 #ifdef ENABLE_THERMAL_PROTECTION
         /***
@@ -3777,7 +3778,6 @@ namespace WPEFramework {
 
 #endif /* ENABLE_THERMAL_PROTECTION */
 
-#if 0
         /***
          * @brief : Used to retrieve previous reboot details.
          * @param1[in]  : query parameter.
@@ -4596,6 +4596,7 @@ namespace WPEFramework {
 
             returnResponse(retVal);
         }
+#if 0
         /***
          * @brief : To set the wakeup source configuration.
          * @param1[in] : {"params":{"powerState":<string>,"wakeupSources":[{<WakeupSrcTrigger string>:<bool>},...]}
@@ -4667,7 +4668,7 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
-        
+
         /***
          * @brief : To get the wakeup source configuration.
          * @param1[out] : {"params":{"powerState":<string>,"wakeupSources":[{<WakeupSrcTrigger string>:<bool>},...]}
@@ -4727,6 +4728,7 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
+#endif
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
         /***

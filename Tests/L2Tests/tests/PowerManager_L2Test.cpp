@@ -19,18 +19,16 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#if 0
 #include "L2Tests.h"
 #include "L2TestsMock.h"
+#if 0
 #include <mutex>
 #include <condition_variable>
 #include <fstream>
 #include <interfaces/IPowerManager.h>
 #include "deepSleepMgr.h"
-#endif
 #include "PowerManagerMock.h"
 #include "PowerManagerHalMock.h"
-#if 0
 #include "MfrMock.h"
 
 #define JSON_TIMEOUT   (1000)

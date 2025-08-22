@@ -4381,6 +4381,7 @@ namespace WPEFramework {
 			       }/* EARC case end */
 			       else if (m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC) 
 			       {
+                    std::lock_guard<std::mutex> lock(m_SadMutex);
 				   if(m_arcEarcAudioEnabled == false ) 
 			 	   {
                                         LOGINFO("%s: Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n", __FUNCTION__);
@@ -4389,7 +4390,7 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
-					    std::lock_guard<std::mutex> lock(m_SadMutex);
+					    //std::lock_guard<std::mutex> lock(m_SadMutex);
 					    /* Take actions according to SAD udpate state */
 					    switch(m_AudioDeviceSADState)
 					    {
@@ -4938,12 +4939,14 @@ void DisplaySettings::sendMsgThread()
             }
 	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
 	    // AVR power status is not checked here assuming that ARC init request will happen only when AVR is in ON state
+
+            std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex); // testing
             if ((m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
                 value = parameters["status"].String();
 
 		if( !value.compare("success") ) {
 		    //Update Arc state
-                    std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+                    //std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
                     m_currentArcRoutingState = ARC_STATE_ARC_INITIATED;
 		    //Request SAD
 		    // We will get Arc initiation request only if port is connected and Audio device is detected
@@ -4991,7 +4994,7 @@ void DisplaySettings::sendMsgThread()
 		else{
                     LOGERR("CEC ARC Initiaition Failed !!!");
                     {
-                      std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+                      //std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
                       m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
                     }//Release Mutex m_AudioDeviceStatesUpdateMutex if Arc failure
 		}
@@ -5019,10 +5022,12 @@ void DisplaySettings::sendMsgThread()
 	    }
 
 	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
+
+        std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
 	    if (m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED) {
                 if (parameters.HasLabel("status")) {
                     value = parameters["status"].String();
-                    std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+                    //std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex); //CID 558633
                     m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
 		    m_requestSadRetrigger = false;
 	            LOGINFO("Current ARC routing state after update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
@@ -5066,10 +5071,10 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("ShortAudioDescriptor")) {
                 shortAudioDescriptorList = parameters["ShortAudioDescriptor"].Array();
+                std::lock_guard<std::mutex> lock(m_SadMutex);
 		if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_REQUESTED) {
                     try
                     {
-		        std::lock_guard<std::mutex> lock(m_SadMutex);
 			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_RECEIVED;
 			m_requestSadRetrigger = false;
                         device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");

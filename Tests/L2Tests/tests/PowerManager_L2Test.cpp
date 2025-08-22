@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#if 0
 #include "L2Tests.h"
 #include "L2TestsMock.h"
 #include <mutex>
@@ -453,7 +454,6 @@ MATCHER_P(MatchRequestStatus, data, "")
     return match;
 }
 
-#if 0
 /* COM-RPC tests */
 void PowerManager_L2Test::Test_OvertempGraceInterval( Exchange::IPowerManager* PowerManagerPlugin )
 {

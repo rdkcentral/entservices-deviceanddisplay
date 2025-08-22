@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#if 0
 #include "L2Tests.h"
 #include "L2TestsMock.h"
 #include <mutex>
@@ -26,6 +27,7 @@
 #include <fstream>
 #include <interfaces/IPowerManager.h>
 #include "deepSleepMgr.h"
+#endif
 #include "PowerManagerMock.h"
 #include "PowerManagerHalMock.h"
 #if 0

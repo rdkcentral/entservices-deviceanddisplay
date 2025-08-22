@@ -4425,35 +4425,35 @@ namespace WPEFramework {
 #endif
         }
 
-	string SystemServices::RetrieveModelNumberThroughCOMRPC()
-	{
-	    LOGINFO("RetrieveModelNumberThroughCOMRPC Entry\n");
-	    std::string Number;
-	    if (m_shellService)
-	    {
-	       PluginHost::IShell::state state;
+        string SystemServices::RetrieveModelNumberThroughCOMRPC()
+        {
+            LOGINFO("RetrieveModelNumberThroughCOMRPC Entry\n");
+            std::string Number;
+            if (m_shellService)
+            {
+                PluginHost::IShell::state state;
 
-	       if ((Utils::getServiceState(m_shellService, "DeviceInfo", state) == Core::ERROR_NONE) && (state != PluginHost::IShell::state::ACTIVATED))
-	       {
-		  Utils::activatePlugin(m_shellService, "DeviceInfo");
-	       }
-	       if ((Utils::getServiceState(m_shellService, "DeviceInfo", state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED))
-	       {
-		  auto _remoteDeviceInfoObject = m_shellService->QueryInterfaceByCallsign<Exchange::IDeviceInfo>("DeviceInfo");
+                if ((Utils::getServiceState(m_shellService, "DeviceInfo", state) == Core::ERROR_NONE) && (state != PluginHost::IShell::state::ACTIVATED))
+                {
+                    Utils::activatePlugin(m_shellService, "DeviceInfo");
+                }
+                if ((Utils::getServiceState(m_shellService, "DeviceInfo", state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED))
+                {
+                    auto _remoteDeviceInfoObject = m_shellService->QueryInterfaceByCallsign<Exchange::IDeviceInfo>("DeviceInfo");
 
-		  if(_remoteDeviceInfoObject)
-		  {
-		    _remoteDeviceInfoObject->Sku(Number);
-		    _remoteDeviceInfoObject->Release();
-		  }
-		}
-		else
-		{
-		    LOGERR("Failed to create DeviceInfo object\n");
-		}
-	    }
-	     return Number;
-	}
+                    if (_remoteDeviceInfoObject)
+                    {
+                        _remoteDeviceInfoObject->Sku(Number);
+                        _remoteDeviceInfoObject->Release();
+                    }
+                    else
+                    {
+                        LOGERR("Failed to create DeviceInfo object\n");
+                    }
+                }
+            }
+            return Number;
+        }
 
 	string SystemServices::getStbBranchString()
 	{

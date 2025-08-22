@@ -342,13 +342,6 @@ namespace WPEFramework {
                 uint32_t getTimeZoneDST(const JsonObject& parameters, JsonObject& response);
                 bool processTimeZones(std::string dir, JsonObject& out);
                 uint32_t getTimeZones(const JsonObject& parameters, JsonObject& response);
-                uint32_t getCoreTemperature(const JsonObject& parameters, JsonObject& response);
-#ifdef ENABLE_THERMAL_PROTECTION
-                uint32_t getTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
-                uint32_t setTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
-		uint32_t getOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
-                uint32_t setOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
-#endif /* ENABLE_THERMAL_PROTECTION */
                 uint32_t getRFCConfig(const JsonObject& parameters, JsonObject& response);
                 uint32_t setNetworkStandbyMode (const JsonObject& parameters, JsonObject& response);
                 uint32_t getNetworkStandbyMode (const JsonObject& parameters, JsonObject& response);
@@ -357,11 +350,8 @@ namespace WPEFramework {
                 uint32_t getLastFirmwareFailureReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t setOptOutTelemetry(const JsonObject& parameters,JsonObject& response);
                 uint32_t isOptOutTelemetry(const JsonObject& parameters,JsonObject& response);
-                uint32_t setFirmwareRebootDelay(const JsonObject& parameters, JsonObject& response);
                 uint32_t setFirmwareAutoReboot(const JsonObject& parameters, JsonObject& response);
                 uint32_t getStoreDemoLink(const JsonObject& parameters, JsonObject& response);
-                uint32_t setWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
-		uint32_t getWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
                 uint32_t setFSRFlag(const JsonObject& parameters, JsonObject& response);
                 uint32_t getFSRFlag(const JsonObject& parameters, JsonObject& response);
                 uint32_t setBlocklistFlag(const JsonObject& parameters, JsonObject& response);
@@ -393,6 +383,16 @@ namespace WPEFramework {
                 uint32_t getPlatformConfiguration(const JsonObject& parameters, PlatformCaps& response);
                 uint32_t getStateInfo(const JsonObject& parameter, JsonObject& resposne);
                 uint32_t setBootLoaderPattern(const JsonObject& parameters, JsonObject& response);
+				uint32_t getCoreTemperature(const JsonObject& parameters, JsonObject& response);
+                uint32_t setFirmwareRebootDelay(const JsonObject& parameters, JsonObject& response);
+                uint32_t setWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
+		        uint32_t getWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
+#ifdef ENABLE_THERMAL_PROTECTION
+                uint32_t getTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
+                uint32_t setTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
+		        uint32_t getOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
+                uint32_t setOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
+#endif /* ENABLE_THERMAL_PROTECTION */
 #endif
                 	
         }; /* end of system service class */

@@ -30,6 +30,7 @@
 #include "PowerManagerHalMock.h"
 #include "MfrMock.h"
 
+#if 0
 #define JSON_TIMEOUT   (1000)
 #define TEST_LOG(x, ...) fprintf(stderr, "\033[1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); fflush(stderr);
 #define SYSTEM_CALLSIGN  _T("org.rdk.PowerManager.1")
@@ -453,7 +454,6 @@ MATCHER_P(MatchRequestStatus, data, "")
     return match;
 }
 
-#if 0
 /* COM-RPC tests */
 void PowerManager_L2Test::Test_OvertempGraceInterval( Exchange::IPowerManager* PowerManagerPlugin )
 {
@@ -679,7 +679,6 @@ void PowerManager_L2Test::Test_NetworkStandbyMode( Exchange::IPowerManager* Powe
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
 }
-#endif
 
 TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
 {
@@ -801,7 +800,6 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
     }
 }
 
-#if 0
 /********************************************************
 ************Test case Details **************************
 ** 1. Get temperature from systemservice

@@ -225,6 +225,7 @@ jobs:
           rdk/ds/exception.hpp
           rdk/ds/dsError.h
           rdk/ds/dsMgr.h
+          rdk/ds/displayConnectionChangeListener.hpp
           rdk/ds/manager.hpp
           rdk/ds/dsTypes.h
           rdk/ds/dsUtl.h

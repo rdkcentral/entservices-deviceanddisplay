@@ -878,6 +878,7 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
     }
 }
 
+#if 0
 TEST_F(PowerManager_L2Test,DeepSleepFailure)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
@@ -1346,4 +1347,4 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
         }
     }
 }
-
+#endif

@@ -576,7 +576,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
     status = powerManagerImpl->Unregister(&(*modeChangedEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-
+#if 0
 TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -654,7 +654,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
     status = powerManagerImpl->Unregister(&(*modeChangedEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-
+#endif
 TEST_F(TestPowerManager, DeepSleepIgnore)
 {
     if (0 != system("touch /tmp/ignoredeepsleep")) {

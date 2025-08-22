@@ -34,7 +34,7 @@
 #include "PowerManagerInterface.h"
 
 #include "dsTypes.h"
-#include "ds/include/displayConnectionChangeListener.hpp"
+#include "displayConnectionChangeListener.hpp"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;

@@ -33,7 +33,7 @@
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 
-#include "rpc/include/dsMgrNtf.h"
+#include "dsTypes.h"
 #include "ds/include/displayConnectionChangeListener.hpp"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;

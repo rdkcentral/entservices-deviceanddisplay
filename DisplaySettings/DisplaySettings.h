@@ -33,6 +33,9 @@
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 
+#include "dsMgrNtf.h"
+#include "displayConnectionChangeListener.hpp"
+
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 namespace WPEFramework {
@@ -89,6 +92,31 @@ namespace WPEFramework {
                 DisplaySettings& _parent;
             };
 
+            class DisplayConnectionChangeListenerNotification : public device::DisplayConnectionChangeListener::IEvent {
+            private:
+                DisplayConnectionChangeListenerNotification(const DisplayConnectionChangeListenerNotification&) = delete;
+                DisplayConnectionChangeListenerNotification& operator=(const DisplayConnectionChangeListenerNotification&) = delete;
+
+            public:
+                explicit DisplayConnectionChangeListenerNotification(DisplaySettings& parent)
+                    : _parent(parent)
+                {
+                }
+                ~DisplayConnectionChangeListenerNotification() override = default;
+
+            public:
+                void OnDisplayRxSense(DisplayEvent displayEvent) override
+                {
+                    _parent.OnDisplayRxSense(displayEvent); //TODO
+                }
+
+                BEGIN_INTERFACE_MAP(DisplayConnectionChangeListenerNotification)
+                INTERFACE_ENTRY(device::DisplayConnectionChangeListener::IEvent)
+                END_INTERFACE_MAP
+
+            private:
+                DisplaySettings& _parent;
+            };
 
             // We do not allow this plugin to be copied !!
             DisplaySettings(const DisplaySettings&) = delete;
@@ -298,6 +326,18 @@ namespace WPEFramework {
         void InitializePowerManager();
             JsonObject getAudioOutputPortConfig() { return m_audioOutputPortConfig; }
             static PowerState m_powerState;
+
+    /* Display Listener callback functions*/
+    private:
+        DisplayConnectionChangeListener *_displayConnectionChangeListener;
+        Core::Sink<DisplayConnectionChangeListenerNotification> _displayConnectionChangeListenerNotification;
+        bool _registeredEventHandlersDisplayListener;
+
+    public:
+        void registerEventHandlersRXSense();
+        void OnDisplayRxSense(DisplayEvent displayEvent);
+    /* Display Listener callback functions*/
+
 
             enum {
                 ARC_STATE_REQUEST_ARC_INITIATION,

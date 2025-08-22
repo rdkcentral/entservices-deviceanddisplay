@@ -246,6 +246,7 @@ namespace WPEFramework {
             : PluginHost::JSONRPC()
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
+            , _registeredEventHandlersDisplayListener(false)
         {
             LOGINFO("constructor");
             DisplaySettings::_instance = this;
@@ -672,11 +673,18 @@ namespace WPEFramework {
             PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             Core::hresult retStatus = Core::ERROR_GENERAL;
             IARM_Result_t res;
+
+            _displayConnectionChangeListener = new DisplayConnectionChangeListener;
+            registerEventHandlersRXSense();
+
             if (Utils::IARM::init())
             {
                 // RegisterLockedIarmHandler(UsingClass *mutexOwner, const char *ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler)
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
+//                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
+
+
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS, DisplResolutionHandler) );
+
                 //TODO(MROLLINS) localinput.cpp has PreChange guarded with #if !defined(DISABLE_PRE_RES_CHANGE_EVENTS)
                 //Can we set it all the time from inside here and let localinput put guards around listening for our event?
 		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,ResolutionPreChange) );
@@ -718,11 +726,15 @@ namespace WPEFramework {
 
         void DisplaySettings::DeinitializeIARM()
         {
+
+            delete _displayConnectionChangeListener;
+            _registeredEventHandlersDisplayListener = false;
+
             if (Utils::IARM::isConnected())
             {
                 IARM_Result_t res;
 
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
+                //IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS, DisplResolutionHandler) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE, ResolutionPreChange) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE, ResolutionPostChange) );
@@ -761,6 +773,21 @@ namespace WPEFramework {
                 _registeredEventHandlers = true;
                 _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             }
+        }
+
+        void DisplaySettings::registerEventHandlersRXSense()
+        {
+            ASSERT (nullptr != _displayConnectionChangeListener);
+
+            if(!_registeredEventHandlersDisplayListener && _displayConnectionChangeListener) {
+                _registeredEventHandlersDisplayListener = true;
+                _displayConnectionChangeListener->Register(_displayConnectionChangeListenerNotification);
+            }
+        }
+
+        void DisplaySettings::OnDisplayRxSense(DisplayEvent displayEvent)
+        {
+            LOGINFO("Inside OnDisplayRxSense callback");
         }
 
         void DisplaySettings::ResolutionPreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)

@@ -33,8 +33,8 @@
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 
-#include "dsMgrNtf.h"
-#include "displayConnectionChangeListener.hpp"
+#include "rpc/include/dsMgrNtf.h"
+#include "ds/include/displayConnectionChangeListener.hpp"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;

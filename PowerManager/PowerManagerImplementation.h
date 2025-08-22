@@ -30,10 +30,6 @@
 
 #include <interfaces/IPowerManager.h>
 
-#ifndef ENABLE_THERMAL_PROTECTION
-#define ENABLE_THERMAL_PROTECTION
-#endif
-
 #include "AckController.h"
 
 // controllers
@@ -50,7 +46,6 @@ namespace Plugin {
     class PowerManagerImplementation : public Exchange::IPowerManager, public DeepSleepController::INotification, public ThermalController::INotification {
     public:
         using PreModeChangeController = AckController;
-        using PreModeChangeTimer      = AckTimer<PreModeChangeController>;
 
         // We do not allow this plugin to be copied !!
         PowerManagerImplementation();
@@ -114,17 +109,17 @@ namespace Plugin {
 
     public:
         virtual Core::hresult Register(Exchange::IPowerManager::IRebootNotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IPowerManager::IRebootNotification* notification) override;
+        virtual Core::hresult Unregister(const Exchange::IPowerManager::IRebootNotification* notification) override;
         virtual Core::hresult Register(Exchange::IPowerManager::IModePreChangeNotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IPowerManager::IModePreChangeNotification* notification) override;
+        virtual Core::hresult Unregister(const Exchange::IPowerManager::IModePreChangeNotification* notification) override;
         virtual Core::hresult Register(Exchange::IPowerManager::IModeChangedNotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IPowerManager::IModeChangedNotification* notification) override;
+        virtual Core::hresult Unregister(const Exchange::IPowerManager::IModeChangedNotification* notification) override;
         virtual Core::hresult Register(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification) override;
+        virtual Core::hresult Unregister(const Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification) override;
         virtual Core::hresult Register(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification) override;
+        virtual Core::hresult Unregister(const Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification) override;
         virtual Core::hresult Register(Exchange::IPowerManager::IThermalModeChangedNotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IPowerManager::IThermalModeChangedNotification* notification) override;
+        virtual Core::hresult Unregister(const Exchange::IPowerManager::IThermalModeChangedNotification* notification) override;
 
         Core::hresult GetPowerState(PowerState& currentState, PowerState& prevState) const override;
         Core::hresult SetPowerState(const int keyCode, const PowerState powerState, const string& standbyReason) override;
@@ -192,9 +187,9 @@ namespace Plugin {
         virtual void onDeepSleepForThermalChange() override;
 
         template <typename T>
-        uint32_t Register(std::list<T*>& list, T* notification);
+        Core::hresult Register(std::list<T*>& list, T* notification);
         template <typename T>
-        uint32_t Unregister(std::list<T*>& list, T* notification);
+        Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
         static uint32_t _nextClientId; // static counter for unique client ID generation.
 

@@ -222,16 +222,14 @@ Settings Settings::Load(const std::string& path)
         close(fd);
     }
 
-    if (ok) {
-        settings._powerStateBeforeReboot = settings._powerState;
+    settings._powerStateBeforeReboot = settings._powerState;
 #ifdef PLATCO_BOOTTO_STANDBY
-        struct stat buf = {};
-        if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-            settings._powerState = PowerState::POWER_STATE_STANDBY;
-            LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
-        }
-#endif
+    struct stat buf = {};
+    if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
+        settings._powerState = PowerState::POWER_STATE_STANDBY;
+        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
     }
+#endif
 
     LOGINFO("Final settings: %s", settings.str().c_str());
     return settings;

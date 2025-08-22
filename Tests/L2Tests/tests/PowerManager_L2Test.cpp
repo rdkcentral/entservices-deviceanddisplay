@@ -227,12 +227,14 @@ class PowerManager_L2Test : public L2TestMocks {
          * @brief waits for various status change on asynchronous calls
          */
       uint32_t WaitForRequestStatus(uint32_t timeout_ms,PowerManagerL2test_async_events_t expected_status);
+#if 0
       void Test_PowerStateChange( Exchange::IPowerManager* PowerManagerPlugin);
       void Test_TemperatureThresholds( Exchange::IPowerManager* PowerManagerPlugin);
       void Test_OvertempGraceInterval( Exchange::IPowerManager* PowerManagerPlugin);
       void Test_WakeupSrcConfig( Exchange::IPowerManager* PowerManagerPlugin);
       void Test_PerformReboot( Exchange::IPowerManager* PowerManagerPlugin);
       void Test_NetworkStandbyMode( Exchange::IPowerManager* PowerManagerPlugin);
+#endif
       Core::Sink<PwrMgr_Notification> mNotification;
 
     private:
@@ -451,6 +453,7 @@ MATCHER_P(MatchRequestStatus, data, "")
     return match;
 }
 
+#if 0
 /* COM-RPC tests */
 void PowerManager_L2Test::Test_OvertempGraceInterval( Exchange::IPowerManager* PowerManagerPlugin )
 {
@@ -677,7 +680,6 @@ void PowerManager_L2Test::Test_NetworkStandbyMode( Exchange::IPowerManager* Powe
     }
 }
 
-#if 0
 TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;

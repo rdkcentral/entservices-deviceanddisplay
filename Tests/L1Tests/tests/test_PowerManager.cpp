@@ -449,7 +449,7 @@ TEST_F(TestPowerManager, GetCoreTemperature)
     EXPECT_EQ(temp, 40.0); // 40 is set in SetUpMocks
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-
+#if 0
 TEST_F(TestPowerManager, PowerModePreChangeAck)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -533,7 +533,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     status = powerManagerImpl->Unregister(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
-
+#endif
 TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))

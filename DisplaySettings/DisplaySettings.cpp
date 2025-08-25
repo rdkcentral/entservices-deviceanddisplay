@@ -788,6 +788,35 @@ namespace WPEFramework {
         void DisplaySettings::OnDisplayRxSense(DisplayEvent displayEvent)
         {
             LOGINFO("Inside OnDisplayRxSense callback");
+
+#if 1
+            if(displayEvent == dsDISPLAY_RXSENSE_ON)
+            {
+                LOGINFO("Got dsDISPLAY_RXSENSE_ON -> notifyactiveInputChanged(true)");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->activeInputChanged(true);
+            }
+            else if(displayEvent == dsDISPLAY_RXSENSE_OFF)
+            {
+                LOGINFO("Got dsDISPLAY_RXSENSE_OFF -> notifyactiveInputChanged(false)");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->activeInputChanged(false);
+            }
+#endif
+        }
+
+        void OnDisplayHDCPStatus()
+        {
+            LOGINFO("Inside OnDisplayHDCPStatus callback");
+
+            //TODO(MROLLINS) localinput.cpp was also sending these and they were getting handled by services other then DisplaySettings.  Should DisplaySettings own these as well ?
+            /*
+                IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
+                int hdcpStatus = eventData->data.hdmi_hdcp.hdcpStatus;
+                LOGINFO("Received OnDisplayHDCPStatus  event data:%d ", hdcpStatus);
+                ServiceManagerNotifier::getInstance()->notifyHdmiOutputHDCPStatus(hdcpStatus);
+            */
+
         }
 
         void DisplaySettings::ResolutionPreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)

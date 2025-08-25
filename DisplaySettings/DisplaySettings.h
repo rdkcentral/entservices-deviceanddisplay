@@ -33,8 +33,8 @@
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 
-#include "rpc/include/dsMgrNtf.h"
-#include "ds/include/displayConnectionChangeListener.hpp"
+#include "dsTypes.h"
+#include "host.hpp"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
@@ -92,7 +92,7 @@ namespace WPEFramework {
                 DisplaySettings& _parent;
             };
 
-            class DisplayConnectionChangeListenerNotification : public device::DisplayConnectionChangeListener::IEvent {
+            class DisplayConnectionChangeListenerNotification : public device::Host::IDisplayEvent {
             private:
                 DisplayConnectionChangeListenerNotification(const DisplayConnectionChangeListenerNotification&) = delete;
                 DisplayConnectionChangeListenerNotification& operator=(const DisplayConnectionChangeListenerNotification&) = delete;
@@ -105,9 +105,14 @@ namespace WPEFramework {
                 ~DisplayConnectionChangeListenerNotification() override = default;
 
             public:
-                void OnDisplayRxSense(DisplayEvent displayEvent) override
+                void OnDisplayRxSense(dsDisplayEvent_t displayEvent) override
                 {
                     _parent.OnDisplayRxSense(displayEvent); //TODO
+                }
+
+                void OnDisplayHDCPStatus() override
+                {
+                    _parent.OnDisplayHDCPStatus(); //TODO
                 }
 
                 BEGIN_INTERFACE_MAP(DisplayConnectionChangeListenerNotification)
@@ -336,6 +341,7 @@ namespace WPEFramework {
     public:
         void registerEventHandlersRXSense();
         void OnDisplayRxSense(DisplayEvent displayEvent);
+        void OnDisplayHDCPStatus();
     /* Display Listener callback functions*/
 
 

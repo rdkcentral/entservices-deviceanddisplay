@@ -1,4 +1,4 @@
-name: L2-tests-OOP
+name: L2-tests-OOP-DD
 
 on:
   workflow_call:
@@ -19,7 +19,7 @@ env:
   AUTOMATICS_PASSCODE: ${{ secrets. AUTOMATICS_PASSCODE}}
 
 jobs:
-  L2-tests-OOP:
+  L2-tests-OOP-DD:
     name: Build and run L2 tests
     runs-on: ubuntu-22.04
     strategy:
@@ -389,7 +389,7 @@ jobs:
           -DDS_FOUND=ON
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           &&
-          cmake --build build/entservices-deviceanddisplay -j8
+          cmake --build build/entservices-deviceanddisplay
           &&
           cmake --install build/entservices-deviceanddisplay
 

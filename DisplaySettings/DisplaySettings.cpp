@@ -246,7 +246,7 @@ namespace WPEFramework {
             : PluginHost::JSONRPC()
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
-            , _registeredEventHandlersDisplayListener(false)
+            , _registeredHostEventHandlers(false)
         {
             LOGINFO("constructor");
             DisplaySettings::_instance = this;
@@ -552,6 +552,10 @@ namespace WPEFramework {
 	    m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
 
             InitializeIARM();
+
+            _hostListener = new Host;
+            registerHostEventHandlers();
+
             InitializePowerManager();
 
             if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == getSystemPowerState())
@@ -596,12 +600,19 @@ namespace WPEFramework {
             }
 
             _registeredEventHandlers = false;
+            _registeredHostEventHandlers = false;
             //During DisplaySettings plugin  activation the SystemMode may not be added .But it will be added /tmp/SystemMode.txt . If after 5 min SystemMode got activated then SystemMode fill the client map from /tmp/SystemMode.txt. In this case if we deactivate DisplaySettings then _remotStoreObject will be null here . So we try to QueryInterface the ISystemMode one more time 
 		if(_remotStoreObject1 == nullptr)
 		{
 				_remotStoreObject1 = service->QueryInterfaceByCallsign<Exchange::ISystemMode>("org.rdk.SystemMode");
 
 		}
+
+        if (_hostListener != nullptr)
+        {
+            delete _hostListener;
+            _hostListener = nullptr;
+        }
 
 		ASSERT (nullptr != _remotStoreObject1);
 
@@ -674,32 +685,14 @@ namespace WPEFramework {
             Core::hresult retStatus = Core::ERROR_GENERAL;
             IARM_Result_t res;
 
-            _displayConnectionChangeListener = new DisplayConnectionChangeListener;
-            registerEventHandlersRXSense();
+
 
             if (Utils::IARM::init())
             {
                 // RegisterLockedIarmHandler(UsingClass *mutexOwner, const char *ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler)
-//                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
-
-
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS, DisplResolutionHandler) );
 
                 //TODO(MROLLINS) localinput.cpp has PreChange guarded with #if !defined(DISABLE_PRE_RES_CHANGE_EVENTS)
                 //Can we set it all the time from inside here and let localinput put guards around listening for our event?
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,ResolutionPreChange) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE, ResolutionPostChange) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG, dsHdmiEventHandler) );
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_AUDIO_OUT_HOTPLUG, dsHdmiEventHandler) );
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE, formatUpdateEventHandler) );
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE, formatUpdateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED, checkAtmosCapsEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE, audioPortStateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) ); 
 
                 ASSERT (_powerManagerPlugin);
                 if (_powerManagerPlugin){
@@ -726,31 +719,10 @@ namespace WPEFramework {
 
         void DisplaySettings::DeinitializeIARM()
         {
-
-            delete _displayConnectionChangeListener;
-            _registeredEventHandlersDisplayListener = false;
-
             if (Utils::IARM::isConnected())
             {
                 IARM_Result_t res;
-
-                //IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS, DisplResolutionHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE, ResolutionPreChange) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE, ResolutionPostChange) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_AUDIO_OUT_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE, formatUpdateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE, formatUpdateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED, checkAtmosCapsEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE, audioPortStateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) );
             }
-
             try
             {
                 //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
@@ -775,12 +747,12 @@ namespace WPEFramework {
             }
         }
 
-        void DisplaySettings::registerEventHandlersRXSense()
+        void DisplaySettings::registerHostEventHandlers()
         {
             ASSERT (nullptr != _displayConnectionChangeListener);
 
-            if(!_registeredEventHandlersDisplayListener && _displayConnectionChangeListener) {
-                _registeredEventHandlersDisplayListener = true;
+            if(!_registeredHostEventHandlers && _displayConnectionChangeListener) {
+                _registeredHostEventHandlers = true;
                 _displayConnectionChangeListener->Register(_displayConnectionChangeListenerNotification);
             }
         }
@@ -803,20 +775,6 @@ namespace WPEFramework {
                     DisplaySettings::_instance->activeInputChanged(false);
             }
 #endif
-        }
-
-        void OnDisplayHDCPStatus()
-        {
-            LOGINFO("Inside OnDisplayHDCPStatus callback");
-
-            //TODO(MROLLINS) localinput.cpp was also sending these and they were getting handled by services other then DisplaySettings.  Should DisplaySettings own these as well ?
-            /*
-                IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                int hdcpStatus = eventData->data.hdmi_hdcp.hdcpStatus;
-                LOGINFO("Received OnDisplayHDCPStatus  event data:%d ", hdcpStatus);
-                ServiceManagerNotifier::getInstance()->notifyHdmiOutputHDCPStatus(hdcpStatus);
-            */
-
         }
 
         void DisplaySettings::ResolutionPreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)

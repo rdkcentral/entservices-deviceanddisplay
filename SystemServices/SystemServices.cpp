@@ -5373,8 +5373,8 @@ namespace WPEFramework {
          * @return: Core::<StatusCode>
          */
         uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
-           if(( method == _T("getMigrationStatus") || method == _T("getBootTypeInfo") || method == _T("setMigrationStatus") ) && (errorcode == ERROR_FILE_IO) )
-               errormessage = "File Read or Write error";
+           if(( method == _T("getMigrationStatus") || method == _T("getBootTypeInfo") || method == _T("setMigrationStatus") ) && (errorcode >= static_cast<uint32_t>(ERROR_BASE) && errorcode  < static_cast<uint32_t>(MAX_ERROR_CODE) ))
+               errormessage = ERROR_MESSAGE(errorcode);
            return errorcode;
         }
     } /* namespace Plugin */

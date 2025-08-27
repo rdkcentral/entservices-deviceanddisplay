@@ -37,6 +37,7 @@
 #include "secure_wrapper.h"
 #include <core/core.h>
 #include <core/JSON.h>
+#include<interfaces/entservices_errorcodes.h>
 
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)

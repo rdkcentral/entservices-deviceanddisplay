@@ -501,11 +501,11 @@ namespace WPEFramework {
     private:
         Host *_hostListener;
         Core::Sink<DisplayEventNotification> _displayEventNotification;
-        Core::Sink<AudioOutputPortEventsNotification> _displayEventNotification;
-        Core::Sink<DisplayHDMIHotPlugNotification> _displayEventNotification;
-        Core::Sink<HDMIInEventsNotification> _displayEventNotification;
-        Core::Sink<VideoDeviceEventsNotification> _displayEventNotification;
-        Core::Sink<VideoOutputPortEventsNotification> _displayEventNotification;
+        Core::Sink<AudioOutputPortEventsNotification> _audioOutputPortEventsNotification;
+        Core::Sink<DisplayHDMIHotPlugNotification> _displayHDMIHotPlugNotification;
+        Core::Sink<HDMIInEventsNotification> _hDMIInEventsNotification;
+        Core::Sink<VideoDeviceEventsNotification> _videoDeviceEventsNotification;
+        Core::Sink<VideoOutputPortEventsNotification> _videoOutputPortEventsNotification;
 
         bool _registeredHostEventHandlers;
 

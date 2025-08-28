@@ -683,9 +683,6 @@ namespace WPEFramework {
             PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             Core::hresult retStatus = Core::ERROR_GENERAL;
-            IARM_Result_t res;
-
-
 
             if (Utils::IARM::init())
             {
@@ -719,10 +716,6 @@ namespace WPEFramework {
 
         void DisplaySettings::DeinitializeIARM()
         {
-            if (Utils::IARM::isConnected())
-            {
-                IARM_Result_t res;
-            }
             try
             {
                 //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
@@ -3109,7 +3102,7 @@ namespace WPEFramework {
 		supportedProfiles = aPort.getMS12AudioProfileList();
                 for (size_t i = 0; i < supportedProfiles.size(); i++)
                 {
-		    LOGINFO("Profile[%d]:  %s\n",i,supportedProfiles.at(i).c_str());
+		    LOGINFO("Profile[%ld]:  %s\n",i,supportedProfiles.at(i).c_str());
                 }
             }
             catch(const device::Exception& err)
@@ -5768,11 +5761,17 @@ void DisplaySettings::sendMsgThread()
 #if 1
         void DisplaySettings::registerHostEventHandlers()
         {
-            ASSERT (nullptr != _displayConnectionChangeListener);
+            ASSERT (nullptr != _hostListener);
 
-            if(!_registeredHostEventHandlers && _displayConnectionChangeListener) {
+            if(!_registeredHostEventHandlers && _hostListener)
+            {
                 _registeredHostEventHandlers = true;
-                _displayConnectionChangeListener->Register(_displayConnectionChangeListenerNotification);
+                _hostListener->Register(_displayEventNotification);
+                _hostListener->Register(_audioOutputPortEventsNotification);
+                _hostListener->Register(_displayHDMIHotPlugNotification);
+                _hostListener->Register(_hDMIInEventsNotification);
+                _hostListener->Register(_videoDeviceEventsNotification);
+                _hostListener->Register(_videoOutputPortEventsNotification);
             }
         }
 
@@ -5798,41 +5797,32 @@ void DisplaySettings::sendMsgThread()
         void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected)
         {
             LOGINFO("Received OnAudioOutHotPlug callback");
-            int iAudioPortType = audioPortType;
-            bool isPortConnected = isPortConnected;
-            if(DisplaySettings::_instance) {
-                DisplaySettings::_instance->connectedAudioPortUpdated(iAudioPortType, isPortConnected);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->connectedAudioPortUpdated(audioPortType, isPortConnected);
             }
-            else {
+            else
+            {
                 LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
             }
-
         }
 
         void DisplaySettings::OnAudioFormatUpdate(dsAudioFormat_t audioFormat)
         {
             LOGINFO("Received OnAudioFormatUpdate callback");
-            dsAudioFormat_t audioFormat = dsAUDIO_FORMAT_NONE;
-            audioFormat = audioFormat;
             if(DisplaySettings::_instance)
             {
                 DisplaySettings::_instance->notifyAudioFormatChange(audioFormat);
             }
-
         }
 
         void DisplaySettings::OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status)
         {
-            dsATMOSCapability_t atmosCaps = dsAUDIO_ATMOS_NOTSUPPORTED;
-            bool atmosCapsChangedstatus;
-            atmosCaps = atmosCapability;
-            atmosCapsChangedstatus = status;
-            LOGINFO("Received OnDolbyAtmosCapabilitiesChanged callback:atmosCaps[%d] \n", atmosCaps);
-            if(DisplaySettings::_instance && atmosCapsChangedstatus)
+            LOGINFO("Received OnDolbyAtmosCapabilitiesChanged callback:atmosCaps[%d] \n", atmosCapability);
+            if(DisplaySettings::_instance && status)
             {
-                DisplaySettings::_instance->notifyAtmosCapabilityChange(atmosCaps);
+                DisplaySettings::_instance->notifyAtmosCapabilityChange(atmosCapability);
             }
-
         }
 
         void DisplaySettings::OnAudioPortStateChanged(dsAudioPortState_t audioPortState)
@@ -5927,7 +5917,7 @@ void DisplaySettings::sendMsgThread()
                             DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
                             //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
                             {
-                                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
+                                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, isConnected);
                                 LOGINFO("Received OnHDMIInEventHotPlug  HDMI_ARC Port disconnected. Notify UI !!!  \n");
                             }
                         }
@@ -5990,7 +5980,7 @@ void DisplaySettings::sendMsgThread()
         void DisplaySettings::OnResolutionPostChange(const int width, const int height)
         {
             LOGINFO("Received OnResolutionPostChange callback");
-            if(DisplaySettings::_instance)
+            if(DisplaySettings::_instance) {
                 DisplaySettings::_instance->resolutionChanged(width, height);
             }
         }

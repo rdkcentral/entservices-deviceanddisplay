@@ -114,7 +114,6 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 #define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
-#define ERROR_FILE_IO 1005 
 
 /**
  * @struct firmwareUpdate

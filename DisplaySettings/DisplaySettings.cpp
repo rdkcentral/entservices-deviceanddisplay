@@ -943,6 +943,18 @@ namespace WPEFramework {
         void DisplaySettings::OnZoomSettingsChanged(dsVideoZoom_t zoomSetting)
         {
             LOGINFO("Received OnZoomSettingsChanged callback");
+            if(zoomSetting == dsVIDEO_ZOOM_NONE)
+            {
+                LOGINFO("dsVIDEO_ZOOM_NONE Settings");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->zoomSettingUpdated("NONE");
+            }
+            else if(zoomSetting == dsVIDEO_ZOOM_FULL)
+            {
+                LOGINFO("dsVIDEO_ZOOM_FULL Settings");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->zoomSettingUpdated("FULL");
+            }
 
         }
 
@@ -956,12 +968,17 @@ namespace WPEFramework {
         void DisplaySettings::OnResolutionPostChange(const int width, const int height)
         {
             LOGINFO("Received OnResolutionPostChange callback");
-
+            if(DisplaySettings::_instance)
+                DisplaySettings::_instance->resolutionChanged(width, height);
+            }
         }
 
         void DisplaySettings::OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR)
         {
-            LOGINFO("Received OnVideoFormatUpdate callback");
+            LOGINFO("Received OnVideoFormatUpdate callback. Video format: %d \n", videoFormatHDR);
+            if(DisplaySettings::_instance) {
+                DisplaySettings::_instance->notifyVideoFormatChange(videoFormatHDR);
+            }
 
         }
 

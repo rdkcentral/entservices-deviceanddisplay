@@ -717,36 +717,7 @@ namespace WPEFramework {
             }
         }
 
-        void DisplaySettings::DeinitializeIARM()
-        {
-            if (Utils::IARM::isConnected())
-            {
-                IARM_Result_t res;
-            }
-            try
-            {
-                //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
-                //No need to call device::Manager::DeInitialize for individual plugin. As it is a singleton instance and shared among all wpeframework plugins
-                //Expecting DisplaySettings will be alive for complete run time of wpeframework
-                device::Manager::DeInitialize();
-                LOGINFO("device::Manager::DeInitialize success");
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::DeInitialize failed");
-            }
-        }
-
-        void DisplaySettings::registerEventHandlers()
-        {
-            ASSERT (nullptr != _powerManagerPlugin);
-
-            if(!_registeredEventHandlers && _powerManagerPlugin) {
-                _registeredEventHandlers = true;
-                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
-            }
-        }
-
+#if 1
         void DisplaySettings::registerHostEventHandlers()
         {
             ASSERT (nullptr != _displayConnectionChangeListener);
@@ -757,7 +728,6 @@ namespace WPEFramework {
             }
         }
 
-#if 1
         void DisplaySettings::OnDisplayRxSense(DisplayEvent displayEvent)
         {
             LOGINFO("Received OnDisplayRxSense callback");
@@ -987,6 +957,37 @@ namespace WPEFramework {
         }
 
 #endif
+
+        void DisplaySettings::DeinitializeIARM()
+        {
+            if (Utils::IARM::isConnected())
+            {
+                IARM_Result_t res;
+            }
+            try
+            {
+                //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
+                //No need to call device::Manager::DeInitialize for individual plugin. As it is a singleton instance and shared among all wpeframework plugins
+                //Expecting DisplaySettings will be alive for complete run time of wpeframework
+                device::Manager::DeInitialize();
+                LOGINFO("device::Manager::DeInitialize success");
+            }
+            catch(...)
+            {
+                LOGINFO("device::Manager::DeInitialize failed");
+            }
+        }
+
+        void DisplaySettings::registerEventHandlers()
+        {
+            ASSERT (nullptr != _powerManagerPlugin);
+
+            if(!_registeredEventHandlers && _powerManagerPlugin) {
+                _registeredEventHandlers = true;
+                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+            }
+        }
+        
 
         bool DisplaySettings::isDisplayConnected (std::string port){
             bool isConnected = isHdmiDisplayConnected;

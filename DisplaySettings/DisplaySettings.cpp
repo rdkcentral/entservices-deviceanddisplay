@@ -717,247 +717,6 @@ namespace WPEFramework {
             }
         }
 
-#if 1
-        void DisplaySettings::registerHostEventHandlers()
-        {
-            ASSERT (nullptr != _displayConnectionChangeListener);
-
-            if(!_registeredHostEventHandlers && _displayConnectionChangeListener) {
-                _registeredHostEventHandlers = true;
-                _displayConnectionChangeListener->Register(_displayConnectionChangeListenerNotification);
-            }
-        }
-
-        void DisplaySettings::OnDisplayRxSense(DisplayEvent displayEvent)
-        {
-            LOGINFO("Received OnDisplayRxSense callback");
-
-            if(displayEvent == dsDISPLAY_RXSENSE_ON)
-            {
-                LOGINFO("Got dsDISPLAY_RXSENSE_ON -> notifyactiveInputChanged(true)");
-                if(DisplaySettings::_instance)
-                    DisplaySettings::_instance->activeInputChanged(true);
-            }
-            else if(displayEvent == dsDISPLAY_RXSENSE_OFF)
-            {
-                LOGINFO("Got dsDISPLAY_RXSENSE_OFF -> notifyactiveInputChanged(false)");
-                if(DisplaySettings::_instance)
-                    DisplaySettings::_instance->activeInputChanged(false);
-            }
-        }
-
-        /* AudioOutputPortEventsNotification*/
-        void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected)
-        {
-            LOGINFO("Received OnAudioOutHotPlug callback");
-            int iAudioPortType = audioPortType;
-            bool isPortConnected = isPortConnected;
-            if(DisplaySettings::_instance) {
-                DisplaySettings::_instance->connectedAudioPortUpdated(iAudioPortType, isPortConnected);
-            }
-            else {
-                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
-            }
-
-        }
-
-        void DisplaySettings::OnAudioFormatUpdate(dsAudioFormat_t audioFormat)
-        {
-            LOGINFO("Received OnAudioFormatUpdate callback");
-            dsAudioFormat_t audioFormat = dsAUDIO_FORMAT_NONE;
-            audioFormat = audioFormat;
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->notifyAudioFormatChange(audioFormat);
-            }
-
-        }
-
-        void DisplaySettings::OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status)
-        {
-            dsATMOSCapability_t atmosCaps = dsAUDIO_ATMOS_NOTSUPPORTED;
-            bool atmosCapsChangedstatus;
-            atmosCaps = atmosCapability;
-            atmosCapsChangedstatus = status;
-            LOGINFO("Received OnDolbyAtmosCapabilitiesChanged callback:atmosCaps[%d] \n", atmosCaps);
-            if(DisplaySettings::_instance && atmosCapsChangedstatus)
-            {
-                DisplaySettings::_instance->notifyAtmosCapabilityChange(atmosCaps);
-            }
-
-        }
-
-        void DisplaySettings::OnAudioPortStateChanged(dsAudioPortState_t audioPortState)
-        {
-            LOGINFO("Received OnAudioPortStateChanged callback. Audio Port Init State: %d \n", audioPortState);
-            try
-            {   if( audioPortState == dsAUDIOPORT_STATE_INITIALIZED)
-                {
-                    DisplaySettings::_instance->AudioPortsReInitialize();
-                    DisplaySettings::_instance->InitAudioPorts();
-                }
-           }
-           catch(const device::Exception& err)
-           {
-              LOG_DEVICE_EXCEPTION0();
-           }
-        }
-
-        void DisplaySettings::OnAssociatedAudioMixingChanged(bool mixing)
-        {
-            LOGINFO("Received OnAssociatedAudioMixingChanged callback. Associated Audio Mixing: %d \n", mixing);
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->notifyAssociatedAudioMixingChange(mixing);
-            }
-        }
-
-        void DisplaySettings::OnAudioFaderControlChanged(int mixerBalance)
-        {
-            LOGINFO("Received OnAudioFaderControlChanged. Fader Control: %d \n", mixerBalance);
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->notifyFaderControlChange(mixerBalance);
-            }
-        }
-
-        void DisplaySettings::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
-        {
-            LOGINFO("Received OnAudioPrimaryLanguageChangedcallback. Primary Language: %s \n", primaryLanguage.c_str());
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->notifyPrimaryLanguageChange(primaryLanguage);
-            }
-
-        }
-
-        void DisplaySettings::OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
-        {
-            LOGINFO("Received OnAudioSecondaryLanguageChanged callback. Secondary Language: %s \n", secondaryLanguage.c_str());
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->notifySecondaryLanguageChange(secondaryLanguage);
-            }
-
-        }
-
-        /* DisplayHDMIHotPlugNotification */
-        void DisplaySettings::OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent)
-        {
-            LOGINFO("Received OnDisplayHDMIHotPlug callback. event data:%d ", displayEvent);
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->connectedVideoDisplaysUpdated(displayEvent);
-            }
-        }
-
-        /* HDMIInEventsNotification*/
-        void DisplaySettings::OnHDMIInEventHotPlug(dsHdmiInPort_t port, bool isConnected)
-        {
-            LOGINFO("Received OnHDMIInEventHotPlug callback. Port:%d, connected:%d \n", port, isConnected);
-
-            if(!DisplaySettings::_instance)
-            {
-                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
-                return;
-            }
-
-            if(port == hdmiArcPortId) //HDMI ARC/eARC Port Handling
-            {
-                try
-                {
-                    LOGINFO("Received OnHDMIInEventHotPlug callback. Port [%d], connection status[%d] \n", port, isConnected);
-                    if(!isConnected)
-                    {
-                        LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
-                                              DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
-                        std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
-
-                        if (DisplaySettings::_instance->m_hdmiInAudioDeviceConnected == true)
-                        {
-                            DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
-                            DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
-                            //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
-                            {
-                                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
-                                LOGINFO("Received OnHDMIInEventHotPlug  HDMI_ARC Port disconnected. Notify UI !!!  \n");
-                            }
-                        }
-
-                        {
-                           DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
-                           DisplaySettings::_instance->m_requestSadRetrigger = false;
-                        }
-
-                        if (DisplaySettings::_instance->m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED)
-                        {
-                            DisplaySettings::_instance->m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
-                            LOGINFO("%s: Clearing Audio device SAD\n", __FUNCTION__);
-                            sad_list.clear();
-                        }
-                        else
-                        {
-                            LOGINFO("SAD already cleared\n");
-                        }
-
-                        }// Release Mutex m_AudioDeviceStatesUpdateMutex
-                    }
-                    catch (const device::Exception& err)
-                    {
-                        LOG_DEVICE_EXCEPTION1(string("HDMI_ARC0"));
-                    }
-            }
-        }
-
-        /* VideoDeviceEventsNotification */
-        void DisplaySettings::OnZoomSettingsChanged(dsVideoZoom_t zoomSetting)
-        {
-            LOGINFO("Received OnZoomSettingsChanged callback");
-            if(zoomSetting == dsVIDEO_ZOOM_NONE)
-            {
-                LOGINFO("dsVIDEO_ZOOM_NONE Settings");
-                if(DisplaySettings::_instance)
-                    DisplaySettings::_instance->zoomSettingUpdated("NONE");
-            }
-            else if(zoomSetting == dsVIDEO_ZOOM_FULL)
-            {
-                LOGINFO("dsVIDEO_ZOOM_FULL Settings");
-                if(DisplaySettings::_instance)
-                    DisplaySettings::_instance->zoomSettingUpdated("FULL");
-            }
-
-        }
-
-        /* VideoOutputPortEventsNotification*/
-        void DisplaySettings::OnResolutionPreChange(const int width, const int height)
-        {
-            LOGINFO("Received OnResolutionPreChange callback");
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->resolutionPreChange();
-            }
-            isResCacheUpdated = false;
-        }
-
-        void DisplaySettings::OnResolutionPostChange(const int width, const int height)
-        {
-            LOGINFO("Received OnResolutionPostChange callback");
-            if(DisplaySettings::_instance)
-                DisplaySettings::_instance->resolutionChanged(width, height);
-            }
-        }
-
-        void DisplaySettings::OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR)
-        {
-            LOGINFO("Received OnVideoFormatUpdate callback. Video format: %d \n", videoFormatHDR);
-            if(DisplaySettings::_instance) {
-                DisplaySettings::_instance->notifyVideoFormatChange(videoFormatHDR);
-            }
-
-        }
-
-#endif
-
         void DisplaySettings::DeinitializeIARM()
         {
             if (Utils::IARM::isConnected())
@@ -5966,44 +5725,286 @@ void DisplaySettings::sendMsgThread()
 
 	    return mode;
         }
-    Core::hresult DisplaySettings::Request(const string& newState)
-	{
-		vector<string> connectedDisplays;
-		getConnectedVideoDisplaysHelper(connectedDisplays);
-		for (int i = 0; i < (int)connectedDisplays.size(); i++)
-		{
-			try
-			{
-				std::string strVideoPort = connectedDisplays.at(i);;
-				device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
-				if (isDisplayConnected(strVideoPort))
-				{
-					bool enable = (newState == "GAME") ? true : false;
-					vPort.getDisplay().setAllmEnabled(enable);
-					if(enable){ // Game mode
-					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_GAME);
-					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_UNDERSCAN);
-					}else{ // video mode
-					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_NOT_SIGNALLED);
-					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_NO_DATA);
-					}
-				}
-				else
-				{
-					LOGWARN("failure: %s is not connected!",strVideoPort.c_str());
-				}
-			}
-			catch (const device::Exception& err)
-			{
-				LOG_DEVICE_EXCEPTION0();
-			}
-		}
-		if( 0 == (int)connectedDisplays.size())
-		{
-			LOGWARN("No display connected to device (or)device's powerstate is not ON");
-            return Core::ERROR_GENERAL;
-		}
-        return Core::ERROR_NONE;
-	}
+        Core::hresult DisplaySettings::Request(const string& newState)
+        {
+        	vector<string> connectedDisplays;
+        	getConnectedVideoDisplaysHelper(connectedDisplays);
+        	for (int i = 0; i < (int)connectedDisplays.size(); i++)
+        	{
+        		try
+        		{
+        			std::string strVideoPort = connectedDisplays.at(i);;
+        			device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
+        			if (isDisplayConnected(strVideoPort))
+        			{
+        				bool enable = (newState == "GAME") ? true : false;
+        				vPort.getDisplay().setAllmEnabled(enable);
+        				if(enable){ // Game mode
+        				    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_GAME);
+        				    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_UNDERSCAN);
+        				}else{ // video mode
+        				    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_NOT_SIGNALLED);
+        				    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_NO_DATA);
+        				}
+        			}
+        			else
+        			{
+        				LOGWARN("failure: %s is not connected!",strVideoPort.c_str());
+        			}
+        		}
+        		catch (const device::Exception& err)
+        		{
+        			LOG_DEVICE_EXCEPTION0();
+        		}
+        	}
+        	if( 0 == (int)connectedDisplays.size())
+        	{
+        		LOGWARN("No display connected to device (or)device's powerstate is not ON");
+                return Core::ERROR_GENERAL;
+        	}
+            return Core::ERROR_NONE;
+        }
+
+#if 1
+        void DisplaySettings::registerHostEventHandlers()
+        {
+            ASSERT (nullptr != _displayConnectionChangeListener);
+
+            if(!_registeredHostEventHandlers && _displayConnectionChangeListener) {
+                _registeredHostEventHandlers = true;
+                _displayConnectionChangeListener->Register(_displayConnectionChangeListenerNotification);
+            }
+        }
+
+        void DisplaySettings::OnDisplayRxSense(DisplayEvent displayEvent)
+        {
+            LOGINFO("Received OnDisplayRxSense callback");
+
+            if(displayEvent == dsDISPLAY_RXSENSE_ON)
+            {
+                LOGINFO("Got dsDISPLAY_RXSENSE_ON -> notifyactiveInputChanged(true)");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->activeInputChanged(true);
+            }
+            else if(displayEvent == dsDISPLAY_RXSENSE_OFF)
+            {
+                LOGINFO("Got dsDISPLAY_RXSENSE_OFF -> notifyactiveInputChanged(false)");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->activeInputChanged(false);
+            }
+        }
+
+        /* AudioOutputPortEventsNotification*/
+        void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected)
+        {
+            LOGINFO("Received OnAudioOutHotPlug callback");
+            int iAudioPortType = audioPortType;
+            bool isPortConnected = isPortConnected;
+            if(DisplaySettings::_instance) {
+                DisplaySettings::_instance->connectedAudioPortUpdated(iAudioPortType, isPortConnected);
+            }
+            else {
+                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
+            }
+
+        }
+
+        void DisplaySettings::OnAudioFormatUpdate(dsAudioFormat_t audioFormat)
+        {
+            LOGINFO("Received OnAudioFormatUpdate callback");
+            dsAudioFormat_t audioFormat = dsAUDIO_FORMAT_NONE;
+            audioFormat = audioFormat;
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyAudioFormatChange(audioFormat);
+            }
+
+        }
+
+        void DisplaySettings::OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status)
+        {
+            dsATMOSCapability_t atmosCaps = dsAUDIO_ATMOS_NOTSUPPORTED;
+            bool atmosCapsChangedstatus;
+            atmosCaps = atmosCapability;
+            atmosCapsChangedstatus = status;
+            LOGINFO("Received OnDolbyAtmosCapabilitiesChanged callback:atmosCaps[%d] \n", atmosCaps);
+            if(DisplaySettings::_instance && atmosCapsChangedstatus)
+            {
+                DisplaySettings::_instance->notifyAtmosCapabilityChange(atmosCaps);
+            }
+
+        }
+
+        void DisplaySettings::OnAudioPortStateChanged(dsAudioPortState_t audioPortState)
+        {
+            LOGINFO("Received OnAudioPortStateChanged callback. Audio Port Init State: %d \n", audioPortState);
+            try
+            {   if( audioPortState == dsAUDIOPORT_STATE_INITIALIZED)
+                {
+                    DisplaySettings::_instance->AudioPortsReInitialize();
+                    DisplaySettings::_instance->InitAudioPorts();
+                }
+           }
+           catch(const device::Exception& err)
+           {
+              LOG_DEVICE_EXCEPTION0();
+           }
+        }
+
+        void DisplaySettings::OnAssociatedAudioMixingChanged(bool mixing)
+        {
+            LOGINFO("Received OnAssociatedAudioMixingChanged callback. Associated Audio Mixing: %d \n", mixing);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyAssociatedAudioMixingChange(mixing);
+            }
+        }
+
+        void DisplaySettings::OnAudioFaderControlChanged(int mixerBalance)
+        {
+            LOGINFO("Received OnAudioFaderControlChanged. Fader Control: %d \n", mixerBalance);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyFaderControlChange(mixerBalance);
+            }
+        }
+
+        void DisplaySettings::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
+        {
+            LOGINFO("Received OnAudioPrimaryLanguageChangedcallback. Primary Language: %s \n", primaryLanguage.c_str());
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyPrimaryLanguageChange(primaryLanguage);
+            }
+
+        }
+
+        void DisplaySettings::OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
+        {
+            LOGINFO("Received OnAudioSecondaryLanguageChanged callback. Secondary Language: %s \n", secondaryLanguage.c_str());
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifySecondaryLanguageChange(secondaryLanguage);
+            }
+
+        }
+
+        /* DisplayHDMIHotPlugNotification */
+        void DisplaySettings::OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent)
+        {
+            LOGINFO("Received OnDisplayHDMIHotPlug callback. event data:%d ", displayEvent);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->connectedVideoDisplaysUpdated(displayEvent);
+            }
+        }
+
+        /* HDMIInEventsNotification*/
+        void DisplaySettings::OnHDMIInEventHotPlug(dsHdmiInPort_t port, bool isConnected)
+        {
+            LOGINFO("Received OnHDMIInEventHotPlug callback. Port:%d, connected:%d \n", port, isConnected);
+
+            if(!DisplaySettings::_instance)
+            {
+                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
+                return;
+            }
+
+            if(port == hdmiArcPortId) //HDMI ARC/eARC Port Handling
+            {
+                try
+                {
+                    LOGINFO("Received OnHDMIInEventHotPlug callback. Port [%d], connection status[%d] \n", port, isConnected);
+                    if(!isConnected)
+                    {
+                        LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
+                                              DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
+                        std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
+
+                        if (DisplaySettings::_instance->m_hdmiInAudioDeviceConnected == true)
+                        {
+                            DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
+                            DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
+                            //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
+                            {
+                                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
+                                LOGINFO("Received OnHDMIInEventHotPlug  HDMI_ARC Port disconnected. Notify UI !!!  \n");
+                            }
+                        }
+
+                        {
+                           DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
+                           DisplaySettings::_instance->m_requestSadRetrigger = false;
+                        }
+
+                        if (DisplaySettings::_instance->m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED)
+                        {
+                            DisplaySettings::_instance->m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
+                            LOGINFO("%s: Clearing Audio device SAD\n", __FUNCTION__);
+                            sad_list.clear();
+                        }
+                        else
+                        {
+                            LOGINFO("SAD already cleared\n");
+                        }
+
+                        }// Release Mutex m_AudioDeviceStatesUpdateMutex
+                    }
+                    catch (const device::Exception& err)
+                    {
+                        LOG_DEVICE_EXCEPTION1(string("HDMI_ARC0"));
+                    }
+            }
+        }
+
+        /* VideoDeviceEventsNotification */
+        void DisplaySettings::OnZoomSettingsChanged(dsVideoZoom_t zoomSetting)
+        {
+            LOGINFO("Received OnZoomSettingsChanged callback");
+            if(zoomSetting == dsVIDEO_ZOOM_NONE)
+            {
+                LOGINFO("dsVIDEO_ZOOM_NONE Settings");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->zoomSettingUpdated("NONE");
+            }
+            else if(zoomSetting == dsVIDEO_ZOOM_FULL)
+            {
+                LOGINFO("dsVIDEO_ZOOM_FULL Settings");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->zoomSettingUpdated("FULL");
+            }
+
+        }
+
+        /* VideoOutputPortEventsNotification*/
+        void DisplaySettings::OnResolutionPreChange(const int width, const int height)
+        {
+            LOGINFO("Received OnResolutionPreChange callback");
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->resolutionPreChange();
+            }
+            isResCacheUpdated = false;
+        }
+
+        void DisplaySettings::OnResolutionPostChange(const int width, const int height)
+        {
+            LOGINFO("Received OnResolutionPostChange callback");
+            if(DisplaySettings::_instance)
+                DisplaySettings::_instance->resolutionChanged(width, height);
+            }
+        }
+
+        void DisplaySettings::OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR)
+        {
+            LOGINFO("Received OnVideoFormatUpdate callback. Video format: %d \n", videoFormatHDR);
+            if(DisplaySettings::_instance) {
+                DisplaySettings::_instance->notifyVideoFormatChange(videoFormatHDR);
+            }
+
+        }
+
+#endif
+
     } // namespace Plugin
 } // namespace WPEFramework

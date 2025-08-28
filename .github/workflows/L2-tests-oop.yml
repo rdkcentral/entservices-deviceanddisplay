@@ -100,6 +100,21 @@ jobs:
           path: ThunderTools
           ref: R4.4.3
 
+      - name: Checkout entservices-local-testframework
+        if: ${{ inputs.caller_source == 'testframework' }}
+        uses: actions/checkout@v3
+        with:
+          path: entservices-testframework
+
+      - name: Checkout entservices-testframework
+        if: ${{ inputs.caller_source == 'local' }}
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-testframework
+          path: entservices-testframework
+          ref: develop
+          token: ${{ secrets.RDKCM_RDKE }}
+
       - name: Checkout entservices-deviceanddisplay
         if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
@@ -194,21 +209,6 @@ jobs:
           cmake --build build/entservices-apis -j8
           &&
           cmake --install build/entservices-apis
-
-      - name: Checkout entservices-local-testframework
-        if: ${{ inputs.caller_source == 'testframework' }}
-        uses: actions/checkout@v3
-        with:
-          path: entservices-testframework
-
-      - name: Checkout entservices-testframework
-        if: ${{ inputs.caller_source == 'local' }}
-        uses: actions/checkout@v3
-        with:
-          repository: rdkcentral/entservices-testframework
-          path: entservices-testframework
-          ref: develop
-          token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Generate external headers
         # Empty headers to mute errors

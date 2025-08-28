@@ -757,11 +757,11 @@ namespace WPEFramework {
             }
         }
 
+#if 1
         void DisplaySettings::OnDisplayRxSense(DisplayEvent displayEvent)
         {
-            LOGINFO("Inside OnDisplayRxSense callback");
+            LOGINFO("Received OnDisplayRxSense callback");
 
-#if 1
             if(displayEvent == dsDISPLAY_RXSENSE_ON)
             {
                 LOGINFO("Got dsDISPLAY_RXSENSE_ON -> notifyactiveInputChanged(true)");
@@ -774,8 +774,128 @@ namespace WPEFramework {
                 if(DisplaySettings::_instance)
                     DisplaySettings::_instance->activeInputChanged(false);
             }
-#endif
         }
+
+        /* AudioOutputPortEventsNotification*/
+        void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected)
+        {
+            LOGINFO("Received OnAudioOutHotPlug callback");
+            int iAudioPortType = audioPortType;
+            bool isPortConnected = isPortConnected;
+            if(DisplaySettings::_instance) {
+                DisplaySettings::_instance->connectedAudioPortUpdated(iAudioPortType, isPortConnected);
+            }
+            else {
+                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
+            }
+
+        }
+
+        void DisplaySettings::OnAudioFormatUpdate(dsAudioFormat_t audioFormat)
+        {
+            LOGINFO("Received OnAudioFormatUpdate callback");
+            dsAudioFormat_t audioFormat = dsAUDIO_FORMAT_NONE;
+            audioFormat = audioFormat;
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyAudioFormatChange(audioFormat);
+            }
+
+        }
+
+        void DisplaySettings::OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status)
+        {
+            dsATMOSCapability_t atmosCaps = dsAUDIO_ATMOS_NOTSUPPORTED;
+            bool atmosCapsChangedstatus;
+            atmosCaps = atmosCapability;
+            atmosCapsChangedstatus = status;
+            LOGINFO("Received OnDolbyAtmosCapabilitiesChanged callback:atmosCaps[%d] \n", atmosCaps);
+            if(DisplaySettings::_instance && atmosCapsChangedstatus)
+            {
+                DisplaySettings::_instance->notifyAtmosCapabilityChange(atmosCaps);
+            }
+
+        }
+
+        void DisplaySettings::OnAudioPortStateChanged(dsAudioPortState_t audioPortState)
+        {
+            LOGINFO("Received OnAudioPortStateChanged callback");
+
+        }
+
+        void DisplaySettings::OnAssociatedAudioMixingChanged(bool mixing)
+        {
+            LOGINFO("Received OnAssociatedAudioMixingChanged callback");
+
+        }
+
+        void DisplaySettings::OnAudioFaderControlChanged(int mixerBalance)
+        {
+            LOGINFO("Received OnAudioFaderControlChanged");
+
+        }
+
+        void DisplaySettings::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
+        {
+            LOGINFO("Received OnAudioPrimaryLanguageChangedcallback. Primary Language: %s \n", primaryLanguage.c_str());
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyPrimaryLanguageChange(primaryLanguage);
+            }
+
+        }
+
+        void DisplaySettings::OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
+        {
+            LOGINFO("Received OnAudioSecondaryLanguageChanged callback. Secondary Language: %s \n", secondaryLanguage.c_str());
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifySecondaryLanguageChange(secondaryLanguage);
+            }
+
+        }
+
+        /* DisplayHDMIHotPlugNotification */
+        void DisplaySettings::OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent)
+        {
+            LOGINFO("Received OnDisplayHDMIHotPlug callback");
+
+        }
+
+        /* HDMIInEventsNotification*/
+        void DisplaySettings::OnHDMIInEventHotPlug(dsHdmiInPort_t port, bool isConnected)
+        {
+            LOGINFO("Received OnHDMIInEventHotPlug callback");
+
+        }
+
+        /* VideoDeviceEventsNotification */
+        void DisplaySettings::OnZoomSettingsChanged(dsVideoZoom_t zoomSetting)
+        {
+            LOGINFO("Received OnZoomSettingsChanged callback");
+
+        }
+
+        /* VideoOutputPortEventsNotification*/
+        void DisplaySettings::OnResolutionPreChange(const int width, const int height)
+        {
+            LOGINFO("Received OnResolutionPreChange callback");
+
+        }
+
+        void DisplaySettings::OnResolutionPostChange(const int width, const int height)
+        {
+            LOGINFO("Received OnResolutionPostChange callback");
+
+        }
+
+        void DisplaySettings::OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR)
+        {
+            LOGINFO("Received OnVideoFormatUpdate callback");
+
+        }
+
+#endif
 
         void DisplaySettings::ResolutionPreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {

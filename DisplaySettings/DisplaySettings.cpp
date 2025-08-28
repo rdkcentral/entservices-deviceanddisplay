@@ -819,20 +819,36 @@ namespace WPEFramework {
 
         void DisplaySettings::OnAudioPortStateChanged(dsAudioPortState_t audioPortState)
         {
-            LOGINFO("Received OnAudioPortStateChanged callback");
-
+            LOGINFO("Received OnAudioPortStateChanged callback. Audio Port Init State: %d \n", audioPortState);
+            try
+            {   if( audioPortState == dsAUDIOPORT_STATE_INITIALIZED)
+                {
+                    DisplaySettings::_instance->AudioPortsReInitialize();
+                    DisplaySettings::_instance->InitAudioPorts();
+                }
+           }
+           catch(const device::Exception& err)
+           {
+              LOG_DEVICE_EXCEPTION0();
+           }
         }
 
         void DisplaySettings::OnAssociatedAudioMixingChanged(bool mixing)
         {
-            LOGINFO("Received OnAssociatedAudioMixingChanged callback");
-
+            LOGINFO("Received OnAssociatedAudioMixingChanged callback. Associated Audio Mixing: %d \n", mixing);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyAssociatedAudioMixingChange(mixing);
+            }
         }
 
         void DisplaySettings::OnAudioFaderControlChanged(int mixerBalance)
         {
-            LOGINFO("Received OnAudioFaderControlChanged");
-
+            LOGINFO("Received OnAudioFaderControlChanged. Fader Control: %d \n", mixerBalance);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyFaderControlChange(mixerBalance);
+            }
         }
 
         void DisplaySettings::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
@@ -858,15 +874,69 @@ namespace WPEFramework {
         /* DisplayHDMIHotPlugNotification */
         void DisplaySettings::OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent)
         {
-            LOGINFO("Received OnDisplayHDMIHotPlug callback");
-
+            LOGINFO("Received OnDisplayHDMIHotPlug callback. event data:%d ", displayEvent);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->connectedVideoDisplaysUpdated(displayEvent);
+            }
         }
 
         /* HDMIInEventsNotification*/
         void DisplaySettings::OnHDMIInEventHotPlug(dsHdmiInPort_t port, bool isConnected)
         {
-            LOGINFO("Received OnHDMIInEventHotPlug callback");
+            LOGINFO("Received OnHDMIInEventHotPlug callback. Port:%d, connected:%d \n", port, isConnected);
 
+            if(!DisplaySettings::_instance)
+            {
+                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
+                return;
+            }
+
+            if(port == hdmiArcPortId) //HDMI ARC/eARC Port Handling
+            {
+                try
+                {
+                    LOGINFO("Received OnHDMIInEventHotPlug callback. Port [%d], connection status[%d] \n", port, isConnected);
+                    if(!isConnected)
+                    {
+                        LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
+                                              DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
+                        std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
+
+                        if (DisplaySettings::_instance->m_hdmiInAudioDeviceConnected == true)
+                        {
+                            DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
+                            DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
+                            //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
+                            {
+                                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
+                                LOGINFO("Received OnHDMIInEventHotPlug  HDMI_ARC Port disconnected. Notify UI !!!  \n");
+                            }
+                        }
+
+                        {
+                           DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
+                           DisplaySettings::_instance->m_requestSadRetrigger = false;
+                        }
+
+                        if (DisplaySettings::_instance->m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED)
+                        {
+                            DisplaySettings::_instance->m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
+                            LOGINFO("%s: Clearing Audio device SAD\n", __FUNCTION__);
+                            sad_list.clear();
+                        }
+                        else
+                        {
+                            LOGINFO("SAD already cleared\n");
+                        }
+
+                        }// Release Mutex m_AudioDeviceStatesUpdateMutex
+                    }
+                    catch (const device::Exception& err)
+                    {
+                        LOG_DEVICE_EXCEPTION1(string("HDMI_ARC0"));
+                    }
+            }
         }
 
         /* VideoDeviceEventsNotification */

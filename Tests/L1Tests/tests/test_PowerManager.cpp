@@ -450,6 +450,92 @@ TEST_F(TestPowerManager, GetCoreTemperature)
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
 
+TEST_F(TestPowerManager, PowerModePreChangeAck)
+{
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
+                return PWRMGR_SUCCESS;
+            }));
+
+    int keyCode = 0;
+
+    uint32_t clientId  = 0;
+    int transaction_id = 0;
+    uint32_t status    = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
+
+    status = powerManagerImpl->Register(&(*prechangeEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    WaitGroup wg;
+    wg.Add();
+    EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
+                transaction_id = transactionId;
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                EXPECT_EQ(stateChangeAfter, 1);
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+                // Delay power mode change by 10 seconds
+                auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Delay Change with invalid clientId
+                status = powerManagerImpl->DelayPowerModeChangeBy(clientId + 10, transactionId, 10);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId + 10, 10);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+
+                // delay by smaller value
+                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 5);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Acknowledge - Change Complete with invalid transactionId
+                status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId + 10);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+                // Acknowledge - Change Complete with invalid clientId
+                status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+
+                wg.Done();
+            }));
+
+    // Even though same state is set multiple times only one pre change notification is invoked
+    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    wg.Wait();
+
+    // valid PowerModePreChangeComplete
+    status = powerManagerImpl->PowerModePreChangeComplete(clientId, transaction_id);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // some delay to destroy AckController after IModeChanged notification
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
+
+    status = powerManagerImpl->GetPowerState(currentState, prevState);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    EXPECT_EQ(prevState, initialPowerState());
+
+    status = powerManagerImpl->RemovePowerModePreChangeClient(clientId);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    status = powerManagerImpl->Unregister(&(*prechangeEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+}
+
 TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
 {
     EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
@@ -493,6 +579,86 @@ TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
     wg.Wait();
     // some delay to destroy AckController after IModeChanged notification
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
+
+    status = powerManagerImpl->GetPowerState(currentState, prevState);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    EXPECT_EQ(prevState, initialPowerState());
+
+    status = powerManagerImpl->Unregister(&(*prechangeEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    status = powerManagerImpl->Unregister(&(*modeChangedEvent));
+    EXPECT_EQ(status, Core::ERROR_NONE);
+}
+
+TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
+{
+    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
+                return PWRMGR_SUCCESS;
+            }));
+
+    int keyCode = 0;
+
+    uint32_t clientId = 0;
+    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
+    Core::ProxyType<PowerModeChangedEvent> modeChangedEvent = Core::ProxyType<PowerModeChangedEvent>::Create();
+
+    EXPECT_EQ(status, powerManagerImpl->Register(&(*prechangeEvent)));
+    EXPECT_EQ(status, powerManagerImpl->Register(&(*modeChangedEvent)));
+
+    WaitGroup wg;
+    wg.Add();
+    EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                EXPECT_EQ(stateChangeAfter, 1);
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+                // Delay power mode change by 1 seconds
+                auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 1);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Extend delay power mode change by 10 seconds
+                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // acknowledge after a short delay
+                std::this_thread::sleep_for(std::chrono::milliseconds(250));
+                wg.Done();
+            }));
+
+    // Even though same state is set multiple times only one pre change notification is invoked
+    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    wg.Wait();
+
+    wg.Add();
+    EXPECT_CALL(*modeChangedEvent, OnPowerModeChanged(::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const PowerState currState, const PowerState newState) {
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                wg.Done();
+            }));
+
+    status = powerManagerImpl->RemovePowerModePreChangeClient(clientId);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    wg.Wait();
 
     PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
     PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
@@ -1434,167 +1600,3 @@ TEST_F(TestPowerManager, OverTemperatureGraceInterval)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(250));
 }
-
-#ifdef NEVER
-TEST_F(TestPowerManager, PowerModePreChangeAck)
-{
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
-                return PWRMGR_SUCCESS;
-            }));
-
-    int keyCode = 0;
-
-    uint32_t clientId  = 0;
-    int transaction_id = 0;
-    uint32_t status    = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
-
-    status = powerManagerImpl->Register(&(*prechangeEvent));
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    WaitGroup wg;
-    wg.Add();
-    EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
-                transaction_id = transactionId;
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                EXPECT_EQ(stateChangeAfter, 1);
-
-                // Delay power mode change by 10 seconds
-                auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
-                EXPECT_EQ(status, Core::ERROR_NONE);
-
-                // Delay Change with invalid clientId
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId + 10, transactionId, 10);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId + 10, 10);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-
-                // delay by smaller value
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 5);
-                EXPECT_EQ(status, Core::ERROR_NONE);
-
-                // Acknowledge - Change Complete with invalid transactionId
-                status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId + 10);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-                // Acknowledge - Change Complete with invalid clientId
-                status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-
-                wg.Done();
-            }));
-
-    // Even though same state is set multiple times only one pre change notification is invoked
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    wg.Wait();
-
-    // valid PowerModePreChangeComplete
-    status = powerManagerImpl->PowerModePreChangeComplete(clientId, transaction_id);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // some delay to destroy AckController after IModeChanged notification
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-    PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
-
-    status = powerManagerImpl->GetPowerState(currentState, prevState);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-    EXPECT_EQ(prevState, initialPowerState());
-
-    status = powerManagerImpl->RemovePowerModePreChangeClient(clientId);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    status = powerManagerImpl->Unregister(&(*prechangeEvent));
-    EXPECT_EQ(status, Core::ERROR_NONE);
-}
-
-TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
-{
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
-                return PWRMGR_SUCCESS;
-            }));
-
-    int keyCode = 0;
-
-    uint32_t clientId = 0;
-    uint32_t status   = powerManagerImpl->AddPowerModePreChangeClient("l1-test-client", clientId);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    Core::ProxyType<PowerModePreChangeEvent> prechangeEvent = Core::ProxyType<PowerModePreChangeEvent>::Create();
-    Core::ProxyType<PowerModeChangedEvent> modeChangedEvent = Core::ProxyType<PowerModeChangedEvent>::Create();
-
-    EXPECT_EQ(status, powerManagerImpl->Register(&(*prechangeEvent)));
-    EXPECT_EQ(status, powerManagerImpl->Register(&(*modeChangedEvent)));
-
-    WaitGroup wg;
-    wg.Add();
-    EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                EXPECT_EQ(stateChangeAfter, 1);
-
-                // Delay power mode change by 1 seconds
-                auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 1);
-                EXPECT_EQ(status, Core::ERROR_NONE);
-
-                // Extend delay power mode change by 10 seconds
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
-                EXPECT_EQ(status, Core::ERROR_NONE);
-
-                // acknowledge after a short delay
-                std::this_thread::sleep_for(std::chrono::milliseconds(250));
-                wg.Done();
-            }));
-
-    // Even though same state is set multiple times only one pre change notification is invoked
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    status = powerManagerImpl->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "l1-test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    wg.Wait();
-
-    wg.Add();
-    EXPECT_CALL(*modeChangedEvent, OnPowerModeChanged(::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [&](const PowerState currState, const PowerState newState) {
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-                wg.Done();
-            }));
-
-    status = powerManagerImpl->RemovePowerModePreChangeClient(clientId);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    wg.Wait();
-
-    PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-    PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
-
-    status = powerManagerImpl->GetPowerState(currentState, prevState);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
-    EXPECT_EQ(prevState, initialPowerState());
-
-    status = powerManagerImpl->Unregister(&(*prechangeEvent));
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    status = powerManagerImpl->Unregister(&(*modeChangedEvent));
-    EXPECT_EQ(status, Core::ERROR_NONE);
-}
-#endif /* NEVER */

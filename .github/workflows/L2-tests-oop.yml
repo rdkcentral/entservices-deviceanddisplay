@@ -115,20 +115,6 @@ jobs:
           ref: develop
           token: ${{ secrets.RDKCM_RDKE }}
 
-      - name: Checkout entservices-deviceanddisplay
-        if: ${{ inputs.caller_source == 'local' }}
-        uses: actions/checkout@v3
-        with:
-          path: entservices-deviceanddisplay
-
-      - name: Checkout entservices-deviceanddisplay-testframework
-        if: ${{ inputs.caller_source == 'testframework' }}
-        uses: actions/checkout@v3
-        with:
-          repository: rdkcentral/entservices-deviceanddisplay
-          path: entservices-deviceanddisplay
-          ref: topic/RDKEMW-5410
-
       - name: Apply patches ThunderTools
         run: |
           cd $GITHUB_WORKSPACE/ThunderTools
@@ -209,6 +195,20 @@ jobs:
           cmake --build build/entservices-apis -j8
           &&
           cmake --install build/entservices-apis
+
+      - name: Checkout entservices-deviceanddisplay
+        if: ${{ inputs.caller_source == 'local' }}
+        uses: actions/checkout@v3
+        with:
+          path: entservices-deviceanddisplay
+
+      - name: Checkout entservices-deviceanddisplay-testframework
+        if: ${{ inputs.caller_source == 'testframework' }}
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-deviceanddisplay
+          path: entservices-deviceanddisplay
+          ref: topic/RDKEMW-5410
 
       - name: Generate external headers
         # Empty headers to mute errors

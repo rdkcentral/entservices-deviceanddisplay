@@ -100,12 +100,19 @@ jobs:
           path: ThunderTools
           ref: R4.4.3
 
+      - name: Checkout entservices-local-testframework
+        if: ${{ inputs.caller_source == 'testframework' }}
+        uses: actions/checkout@v3
+        with:
+          path: entservices-testframework
+
       - name: Checkout entservices-testframework
+        if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: topic/RDKEMW-5410
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
@@ -120,7 +127,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: topic/RDKEMW-5410
 
       - name: Apply patches ThunderTools
         run: |
@@ -183,10 +190,12 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/entservices-apis/apis/Proc"
           mkdir -p "$GITHUB_WORKSPACE/entservices-apis/apis/RBus"
           mkdir -p "$GITHUB_WORKSPACE/entservices-apis/apis/Rfc"
+          mkdir -p "$GITHUB_WORKSPACE/entservices-apis/apis/PowerManagerHal"
           cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IIarm.h" "$GITHUB_WORKSPACE/entservices-apis/apis/IARM/"
           cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IProc.h" "$GITHUB_WORKSPACE/entservices-apis/apis/Proc/"
           cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IRBus.h" "$GITHUB_WORKSPACE/entservices-apis/apis/RBus/"
           cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IRfc.h" "$GITHUB_WORKSPACE/entservices-apis/apis/Rfc/"
+          cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IPowerManagerHal.h" "$GITHUB_WORKSPACE/entservices-apis/apis/PowerManagerHal/"
 
       - name: Build entservices-apis
         run: >
@@ -306,6 +315,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DL2_TEST_OOP_RPC=ON
           -DCMAKE_CXX_FLAGS="
+          -DL2_TEST_OOP_RPC=ON
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/install/usr/include"
           &&
@@ -384,7 +394,7 @@ jobs:
           -DDS_FOUND=ON
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           &&
-          cmake --build build/entservices-deviceanddisplay -j8
+          cmake --build build/entservices-deviceanddisplay
           &&
           cmake --install build/entservices-deviceanddisplay
 

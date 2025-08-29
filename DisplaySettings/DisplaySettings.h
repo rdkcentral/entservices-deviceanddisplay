@@ -113,10 +113,6 @@ namespace WPEFramework {
                     _parent.OnDisplayRxSense(displayEvent); //TODO
                 }
 
-                BEGIN_INTERFACE_MAP(DisplayEventNotification)
-                INTERFACE_ENTRY(device::Host::IDisplayEvent)
-                END_INTERFACE_MAP
-
             private:
                 DisplaySettings& _parent;
             };
@@ -166,10 +162,6 @@ namespace WPEFramework {
                     _parent.OnAudioSecondaryLanguageChanged(secondaryLanguage); //TODO
                 }
 
-                BEGIN_INTERFACE_MAP(AudioOutputPortEventsNotification)
-                INTERFACE_ENTRY(device::Host::IAudioOutputPortEvents)
-                END_INTERFACE_MAP
-
             private:
                 DisplaySettings& _parent;
             };
@@ -191,10 +183,6 @@ namespace WPEFramework {
                 {
                     _parent.OnDisplayHDMIHotPlug(displayEvent); //TODO
                 }
-
-                BEGIN_INTERFACE_MAP(DisplayHDMIHotPlugNotification)
-                INTERFACE_ENTRY(device::Host::IDisplayHDMIHotPlugEvents)
-                END_INTERFACE_MAP
 
             private:
                 DisplaySettings& _parent;
@@ -218,10 +206,6 @@ namespace WPEFramework {
                     _parent.OnHDMIInEventHotPlug(port, isConnected); //TODO
                 }
 
-                BEGIN_INTERFACE_MAP(HDMIInEventsNotification)
-                INTERFACE_ENTRY(device::Host::IHDMIInEvents)
-                END_INTERFACE_MAP
-
             private:
                 DisplaySettings& _parent;
             };
@@ -243,10 +227,6 @@ namespace WPEFramework {
                 {
                     _parent.OnZoomSettingsChanged(zoomSetting); //TODO
                 }
-
-                BEGIN_INTERFACE_MAP(VideoDeviceEventsNotification)
-                INTERFACE_ENTRY(device::Host::IVideoDeviceEvents)
-                END_INTERFACE_MAP
 
             private:
                 DisplaySettings& _parent;
@@ -277,10 +257,6 @@ namespace WPEFramework {
                 {
                     _parent.OnVideoFormatUpdate(videoFormatHDR); //TODO
                 }
-
-                BEGIN_INTERFACE_MAP(VideoOutputPortEventsNotification)
-                INTERFACE_ENTRY(device::Host::IVideoOutputPortEvents)
-                END_INTERFACE_MAP
 
             private:
                 DisplaySettings& _parent;
@@ -434,8 +410,8 @@ namespace WPEFramework {
 	    Core::hresult Request(const string& newState);
 
         private:
-            void InitializeIARM();
-            void DeinitializeIARM();
+            void InitializeDeviceManager();
+            void DeinitializeDeviceManager();
             static void ResolutionPreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
             static void ResolutionPostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
             static void DisplResolutionHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
@@ -499,13 +475,14 @@ namespace WPEFramework {
 
 #if 1
     private:
-        Host *_hostListener;
-        Core::Sink<DisplayEventNotification> _displayEventNotification;
-        Core::Sink<AudioOutputPortEventsNotification> _audioOutputPortEventsNotification;
-        Core::Sink<DisplayHDMIHotPlugNotification> _displayHDMIHotPlugNotification;
-        Core::Sink<HDMIInEventsNotification> _hDMIInEventsNotification;
-        Core::Sink<VideoDeviceEventsNotification> _videoDeviceEventsNotification;
-        Core::Sink<VideoOutputPortEventsNotification> _videoOutputPortEventsNotification;
+        device::Host &_hostListener;
+
+        DisplayEventNotification _displayEventNotification;
+        AudioOutputPortEventsNotification _audioOutputPortEventsNotification;
+        DisplayHDMIHotPlugNotification _displayHDMIHotPlugNotification;
+        HDMIInEventsNotification _hDMIInEventsNotification;
+        VideoDeviceEventsNotification _videoDeviceEventsNotification;
+        VideoOutputPortEventsNotification _videoOutputPortEventsNotification;
 
         bool _registeredHostEventHandlers;
 

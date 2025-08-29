@@ -112,8 +112,22 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: topic/RDKEMW-5410
           token: ${{ secrets.RDKCM_RDKE }}
+
+      - name: Checkout entservices-deviceanddisplay
+        if: ${{ inputs.caller_source == 'local' }}
+        uses: actions/checkout@v3
+        with:
+          path: entservices-deviceanddisplay
+
+      - name: Checkout entservices-deviceanddisplay-testframework
+        if: ${{ inputs.caller_source == 'testframework' }}
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-deviceanddisplay
+          path: entservices-deviceanddisplay
+          ref: topic/RDKEMW-5410
 
       - name: Apply patches ThunderTools
         run: |
@@ -195,20 +209,6 @@ jobs:
           cmake --build build/entservices-apis -j8
           &&
           cmake --install build/entservices-apis
-
-      - name: Checkout entservices-deviceanddisplay
-        if: ${{ inputs.caller_source == 'local' }}
-        uses: actions/checkout@v3
-        with:
-          path: entservices-deviceanddisplay
-
-      - name: Checkout entservices-deviceanddisplay-testframework
-        if: ${{ inputs.caller_source == 'testframework' }}
-        uses: actions/checkout@v3
-        with:
-          repository: rdkcentral/entservices-deviceanddisplay
-          path: entservices-deviceanddisplay
-          ref: topic/RDKEMW-5410
 
       - name: Generate external headers
         # Empty headers to mute errors
@@ -319,6 +319,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DL2_TEST_OOP_RPC=ON
           -DCMAKE_CXX_FLAGS="
+          -DL2_TEST_OOP_RPC=ON
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/install/usr/include"
           &&

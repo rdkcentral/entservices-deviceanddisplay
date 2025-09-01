@@ -36,9 +36,43 @@
 #include <vector>
 #include <boost/variant.hpp>
 
+#if 1 /* Display Events from libds Library */
+#include "dsTypes.h"
+#include "host.hpp"
+#endif
+
 namespace WPEFramework {
     namespace Plugin {
         class FrameRateImplementation : public Exchange::IFrameRate {
+            private:
+            #if 1 /* VideoDevice Events from libds Library */
+            class VideoDeviceEventNotification : public device::Host::IVideoDeviceEvents {
+            private:
+                VideoDeviceEventNotification(const VideoDeviceEventNotification&) = delete;
+                VideoDeviceEventNotification& operator=(const VideoDeviceEventNotification&) = delete;
+
+            public:
+                explicit VideoDeviceEventNotification(FrameRateImplementation& parent)
+                    : _parent(parent)
+                {
+                }
+                ~VideoDeviceEventNotification() override = default;
+
+            public:
+                void OnDisplayFrameratePreChange(const std::string& frameRate) override
+                {
+                    _parent.OnDisplayFrameratePreChange(frameRate);
+                }
+
+				void OnDisplayFrameratePostChange(const std::string& frameRate) override
+                {
+                    _parent.OnDisplayFrameratePostChange(frameRate);
+                }
+
+            private:
+                FrameRateImplementation& _parent;
+            };
+            #endif
             public:
                 // We do not allow this plugin to be copied !!
                 FrameRateImplementation();
@@ -115,8 +149,8 @@ namespace WPEFramework {
                 //End methods
 
                 void onReportFpsTimer();
-                void InitializeIARM();
-                void DeinitializeIARM();
+                void InitializeDeviceManager();
+                void DeinitializeDeviceManager();
 
                 static FrameRateImplementation* _instance;
 
@@ -146,6 +180,21 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
+
+            #if 1
+            private:
+                //device::Host &_hostListener;
+
+                VideoDeviceEventNotification _videoDeviceEventNotification;
+
+                bool _registeredHostEventHandlers;
+            public:
+                void registerHostEventHandlers();
+
+                /* VideoDeviceEventNotification*/
+                void OnDisplayFrameratePreChange(const std::string& frameRate);
+                void OnDisplayFrameratePostChange(const std::string& frameRate);
+            #endif
 
                 friend class Job;
         };

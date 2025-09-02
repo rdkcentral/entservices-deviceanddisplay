@@ -478,7 +478,7 @@ jobs:
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_SYSTEMSERVICES=ON
           &&
-          cmake --build build/entservices-deviceanddisplay -j8
+          cmake --build build/entservices-deviceanddisplay
           &&
           cmake --install build/entservices-deviceanddisplay
 

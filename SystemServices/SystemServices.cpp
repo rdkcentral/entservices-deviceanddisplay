@@ -1125,8 +1125,10 @@ namespace WPEFramework {
                     param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
 
                     IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
-                    param.buffer[param.bufLen] = '\0';
-
+					param.bufLen = strlen(param.buffer);
+					if (param.bufLen < 1280) {
+                        param.buffer[param.bufLen] = '\0';
+					}
                     LOGWARN("SystemService getDeviceInfo param type %d result %s", param.type, param.buffer);
 
                     if (result == IARM_RESULT_SUCCESS) {

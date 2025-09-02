@@ -82,8 +82,7 @@ namespace WPEFramework
         }
 
         // IARM EventHandler
-        static void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-        //void DisplaySettings::InitializeDeviceManager()
+        //static void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
 
         void FrameRateImplementation::InitializeDeviceManager()
         {

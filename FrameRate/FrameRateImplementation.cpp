@@ -558,7 +558,7 @@ namespace WPEFramework
             if(!_registeredHostEventHandlers)
             {
                 _registeredHostEventHandlers = true;
-                device::Host::getInstance().Register(_videoDeviceEventNotification);
+                device::Host::getInstance().Register(_videoDeviceEventNotification, "WPEFramework::FrameRate");
             }
         }
 

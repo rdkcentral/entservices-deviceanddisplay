@@ -105,7 +105,7 @@ namespace WPEFramework
                 //No need to call device::Manager::DeInitialize for individual plugin. As it is a singleton instance and shared among all wpeframework plugins
                 //Expecting DisplaySettings will be alive for complete run time of wpeframework
                 LOGINFO("device::Manager::DeInitialize success");
-                device::Host::getInstance().Unregister(_videoDeviceEventNotification);
+                device::Host::getInstance().UnRegister(_videoDeviceEventNotification);
             }
             catch(...)
             {

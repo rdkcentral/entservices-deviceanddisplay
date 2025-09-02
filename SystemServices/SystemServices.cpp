@@ -1122,13 +1122,11 @@ namespace WPEFramework {
 				if (device_name == "PLATCO") {
                     IARM_Bus_MFRLib_GetSerializedData_Param_t param;
                     param.bufLen = 0;
+					memset(&param, 0, sizeof(param));
                     param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
 
                     IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
-					param.bufLen = strlen(param.buffer);
-					if (param.bufLen < 1280) {
-                        param.buffer[param.bufLen] = '\0';
-					}
+                    param.buffer[param.bufLen] = '\0';
                     LOGWARN("SystemService getDeviceInfo param type %d result %s", param.type, param.buffer);
 
                     if (result == IARM_RESULT_SUCCESS) {

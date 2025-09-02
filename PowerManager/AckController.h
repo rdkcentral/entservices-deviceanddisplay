@@ -54,7 +54,7 @@ public:
         : _workerPool(WPEFramework::Core::WorkerPool::Instance())
         , _powerState(powerState)
         , _transactionId(++_nextTransactionId)
-        , _timeout(0)
+        , _timeout(WPEFramework::Core::Time::Now())
         , _handler(nullptr)
         , _running(false)
     {

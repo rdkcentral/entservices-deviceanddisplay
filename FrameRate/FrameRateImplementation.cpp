@@ -72,7 +72,7 @@ namespace WPEFramework
         FrameRateImplementation::~FrameRateImplementation()
         {
             //DeinitializeIARM();
-            DeinitializeDeviceManager
+            DeinitializeDeviceManager();
             _registeredHostEventHandlers = false;
             //Stop the timer if running
             if (m_reportFpsTimer.isActive())

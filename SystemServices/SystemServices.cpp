@@ -1126,13 +1126,13 @@ namespace WPEFramework {
 
                     IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
                     param.buffer[param.bufLen] = '\0';
-                    LOGWARN("SystemService getDeviceInfo param type %d result %s", param.type, param.buffer);
+                    LOGINFO("SystemService getDeviceInfo param type %d result %s param.bufLen = %u", param.type, param.buffer, param.bufLen);
 
                     if (result == IARM_RESULT_SUCCESS) {
                         response["make"] = string(param.buffer);
                         retAPIStatus = true;
 				       } else {
-                        LOGWARN("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
+                        LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
 						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
                         retAPIStatus = false;
 					}

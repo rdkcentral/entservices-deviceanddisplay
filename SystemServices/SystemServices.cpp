@@ -1117,7 +1117,7 @@ namespace WPEFramework {
 
             // there is no /tmp/.make from /lib/rdk/getDeviceDetails.sh, but it can be taken from /etc/device.properties
             if (queryParams.empty() || queryParams == "make") {
-                std::string device_name;
+                std::string device_name{};
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
 				if (device_name == "PLATCO") {
                     IARM_Bus_MFRLib_GetSerializedData_Param_t param;

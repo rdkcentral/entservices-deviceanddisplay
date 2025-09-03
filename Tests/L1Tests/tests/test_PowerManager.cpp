@@ -34,6 +34,7 @@
 #include "PowerManagerImplementation.h"
 #include "WorkerPoolImplementation.h"
 
+#include "IarmBusMock.h"
 #include "MfrMock.h"
 #include "RfcApiMock.h"
 #include "WrapsMock.h"
@@ -103,6 +104,7 @@ protected:
     RfcApiImplMock* p_rfcApiImplMock   = nullptr;
     PowerManagerHalMock* p_powerManagerHalMock = nullptr;
     mfrMock *p_mfrMock = nullptr;
+    IarmBusImplMock* p_iarmBusMock = nullptr;
 
 public:
     bool wait_call = true;
@@ -176,6 +178,9 @@ public:
 
         p_rfcApiImplMock = new NiceMock<RfcApiImplMock>;
         RfcApi::setImpl(p_rfcApiImplMock);
+
+        p_iarmBusMock = new testing::NiceMock<IarmBusImplMock>;
+        IarmBus::setImpl(p_iarmBusMock);
 
         p_powerManagerHalMock = new NiceMock<PowerManagerHalMock>;
         PowerManagerAPI::setImpl(p_powerManagerHalMock);
@@ -307,6 +312,12 @@ public:
         if (p_rfcApiImplMock != nullptr) {
             delete p_rfcApiImplMock;
             p_rfcApiImplMock = nullptr;
+        }
+
+        IarmBus::setImpl(nullptr);
+        if (p_iarmBusMock != nullptr) {
+            delete p_iarmBusMock;
+            p_iarmBusMock = nullptr;
         }
 
         PowerManagerAPI::setImpl(nullptr);

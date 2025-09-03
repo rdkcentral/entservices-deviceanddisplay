@@ -80,7 +80,7 @@ public:
         mfr::setImpl(p_mfrMock);
 
         p_iarmBusMock = new testing::NiceMock<IarmBusImplMock>;
-        IarmBusImpl::setImpl(p_iarmBusMock);
+        IarmBus::setImpl(p_iarmBusMock);
 
         setupDefaultMocks();
     }
@@ -145,7 +145,7 @@ public:
             p_mfrMock = nullptr;
         }
 
-        IarmBusImpl::setImpl(nullptr);
+        IarmBus::setImpl(nullptr);
         if (p_iarmBusMock != nullptr) {
             delete p_iarmBusMock;
             p_iarmBusMock = nullptr;

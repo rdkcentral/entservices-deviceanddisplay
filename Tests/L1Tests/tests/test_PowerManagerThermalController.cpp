@@ -79,6 +79,9 @@ public:
         p_mfrMock = new testing::NiceMock<mfrMock>;
         mfr::setImpl(p_mfrMock);
 
+        p_iarmBusMock = new testing::NiceMock<IarmBusImplMock>;
+        IarmBusImpl::setImpl(p_iarmBusMock);
+
         setupDefaultMocks();
     }
 
@@ -141,6 +144,12 @@ public:
             delete p_mfrMock;
             p_mfrMock = nullptr;
         }
+
+        IarmBusImpl::setImpl(nullptr);
+        if (p_iarmBusMock != nullptr) {
+            delete p_iarmBusMock;
+            p_iarmBusMock = nullptr;
+        }
     }
 
 protected:
@@ -148,6 +157,7 @@ protected:
     RfcApiImplMock* p_rfcApiImplMock   = nullptr;
     PowerManagerHalMock* p_powerManagerHalMock = nullptr;
     mfrMock *p_mfrMock = nullptr;
+    IarmBusImplMock* p_iarmBusMock = nullptr;
 };
 
 TEST_F(TestThermalController, temperatureThresholds)

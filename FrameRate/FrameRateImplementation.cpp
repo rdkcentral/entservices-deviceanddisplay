@@ -27,6 +27,7 @@
 #include "FrameRateImplementation.h"
 #include "host.hpp"
 #include "exception.hpp"
+#include "manager.hpp"
 
 #include "UtilsJsonRpc.h"
 #include "UtilsIarm.h"

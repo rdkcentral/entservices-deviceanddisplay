@@ -4381,6 +4381,7 @@ namespace WPEFramework {
 			       }/* EARC case end */
 			       else if (m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC) 
 			       {
+				   std::lock_guard<std::mutex> lock(m_arcEarcAudioEnabledMutex);
 				   if(m_arcEarcAudioEnabled == false ) 
 			 	   {
                                         LOGINFO("%s: Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n", __FUNCTION__);

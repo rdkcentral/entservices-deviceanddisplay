@@ -47,6 +47,7 @@ using ::testing::NiceMock;
 using WakeupReason  = WPEFramework::Exchange::IPowerManager::WakeupReason;
 using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 
+#define TEST_LOG(x, ...) fprintf(stderr, "\033[1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); fflush(stderr);
 
 template <typename Enum, int N = ((sizeof(int) * 8)-1)>
 class EnumSet {

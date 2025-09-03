@@ -131,6 +131,20 @@ namespace WPEFramework {
                         const Event _event;
                         JsonValue _params;
                 };
+
+            private:
+                //device::Host &_hostListener;
+
+                VideoDeviceEventNotification _videoDeviceEventNotification;
+
+                bool _registeredHostEventHandlers;
+            public:
+                void registerHostEventHandlers();
+
+                /* VideoDeviceEventNotification*/
+                void OnDisplayFrameratePreChange(const std::string& frameRate);
+                void OnDisplayFrameratePostChange(const std::string& frameRate);
+
             public:
                 virtual Core::hresult Register(Exchange::IFrameRate::INotification *notification) override;
                 virtual Core::hresult Unregister(Exchange::IFrameRate::INotification *notification) override;
@@ -178,19 +192,6 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
-
-            private:
-                //device::Host &_hostListener;
-
-                VideoDeviceEventNotification _videoDeviceEventNotification;
-
-                bool _registeredHostEventHandlers;
-            public:
-                void registerHostEventHandlers();
-
-                /* VideoDeviceEventNotification*/
-                void OnDisplayFrameratePreChange(const std::string& frameRate);
-                void OnDisplayFrameratePostChange(const std::string& frameRate);
 
                 friend class Job;
         };

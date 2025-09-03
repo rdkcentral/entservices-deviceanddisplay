@@ -1126,7 +1126,7 @@ namespace WPEFramework {
 
                     IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
                     param.buffer[param.bufLen] = '\0';
-                    LOGINFO("SystemService getDeviceInfo param type %d result %s param.bufLen = %u", param.type, param.buffer, param.bufLen);
+                    LOGINFO("SystemService getDeviceInfo param type %d result %s bufLen = %d", param.type, param.buffer, param.bufLen);
 
                     if (result == IARM_RESULT_SUCCESS) {
                         response["make"] = string(param.buffer);

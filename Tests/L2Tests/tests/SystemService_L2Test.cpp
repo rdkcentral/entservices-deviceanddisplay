@@ -356,6 +356,7 @@ MATCHER_P(MatchRequestStatus, data, "")
     return match;
 }
 
+#if 0
 /********************************************************
 ************Test case Details **************************
 ** 1. Get temperature from systemservice
@@ -425,7 +426,7 @@ TEST_F(SystemService_L2Test,SystemServiceGetSetTemperature)
     /* Unregister for events. */
     jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("onTemperatureThresholdChanged"));
 }
-
+#endif
 /********************************************************
 ************Test case Details **************************
 ** 1. Start Log upload

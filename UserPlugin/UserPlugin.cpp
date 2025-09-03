@@ -108,7 +108,7 @@ LOGINFO("Madhu, Trace - 5");
 
 	string port = "HDMI3";
 
-        auto ports = device::Host::getInstance().getAudioOutputPortsport(port);
+        auto ports = device::Host::getInstance().getAudioOutputPort(port);
         for (size_t i = 0; i < ports.size(); ++i) {
             LOGINFO("Available port: %s Vol Level %s", ports.at(i).getName().c_str(), to_string(ports.getLevel()));
         }

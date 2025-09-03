@@ -89,12 +89,13 @@ namespace WPEFramework
         {
             try
             {
-                LOGINFO("InitializeDeviceManager success");
+                device::Manager::Initialize();
+                LOGINFO("device::Manager::Initialize success");
                 registerHostEventHandlers();
             }
             catch(...)
             {
-                LOGINFO("InitializeDeviceManager failed");
+                LOGINFO("device::Manager::Initialize failed");
             }
         }
 
@@ -102,12 +103,13 @@ namespace WPEFramework
         {
             try
             {
-                LOGINFO("DeinitializeDeviceManager success");
+                device::Manager::DeInitialize();
+                LOGINFO("device::Manager::DeInitialize success");
                 device::Host::getInstance().UnRegister(_videoDeviceEventNotification);
             }
             catch(...)
             {
-                LOGINFO("DeinitializeDeviceManager failed");
+                LOGINFO("device::Manager::DeInitialize failed");
             }
         }
 

@@ -19,6 +19,8 @@
 #include "RfcApiMock.h"
 #include "WrapsMock.h"
 #include "hal/ThermalImpl.h"
+#include "PowerManagerHalMock.h"
+#include "MfrMock.h"
 
 using namespace WPEFramework;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;

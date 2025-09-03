@@ -4384,6 +4384,7 @@ namespace WPEFramework {
 				   std::lock_guard<std::mutex> lock(m_arcEarcAudioEnabledMutex);
 				   if(m_arcEarcAudioEnabled == false ) 
 			 	   {
+					   					std::cout << "Akshay using new lock" << std::endl;
                                         LOGINFO("%s: Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n", __FUNCTION__);
                                         sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
 					/* Check SAD for passthru and Auto mode only */
@@ -4392,6 +4393,7 @@ namespace WPEFramework {
 					  {
 					    std::lock_guard<std::mutex> lock(m_SadMutex);
 					    /* Take actions according to SAD udpate state */
+						  std::cout << "akshay value of m_AudioDeviceSADState" << m_AudioDeviceSADState << std::endl;
 					    switch(m_AudioDeviceSADState)
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   

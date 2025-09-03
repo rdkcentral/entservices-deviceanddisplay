@@ -5300,7 +5300,7 @@ namespace WPEFramework {
             }
 			if(fopen("/opt/check1.txt","r")!=NULL)
              {
-                 return Core::ERROR_INPROGRESS;
+                 return WPEFramework::Core::ERROR_INPROGRESS;
              }
 	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
 	}//end of getBootTypeInfo method
@@ -5407,7 +5407,7 @@ namespace WPEFramework {
          * @return: Core::<StatusCode>
          */
         uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
-           if(IS_VALID_ERRORCODE(errorcode))
+           if(IS_ENTSERVICES_ERRORCODE(errorcode))
                errormessage = ERROR_MESSAGE(errorcode);
            return errorcode;
         }

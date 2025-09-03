@@ -101,7 +101,6 @@ jobs:
           ref: R4.4.3
 
       - name: Checkout entservices-testframework
-        if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-testframework
@@ -110,6 +109,7 @@ jobs:
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
+        if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay

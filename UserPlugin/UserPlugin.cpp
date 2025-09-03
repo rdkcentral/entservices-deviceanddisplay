@@ -106,23 +106,28 @@ LOGINFO("Madhu, Trace - 4");
 LOGINFO("Madhu, Trace - 5");
         // On success return empty, to indicate there is no error text.
 
-        auto ports = device::Host::getInstance().getAudioOutputPorts();
+	string port = "HDMI3";
+
+        auto ports = device::Host::getInstance().getAudioOutputPortsport(port);
         for (size_t i = 0; i < ports.size(); ++i) {
-            LOGINFO("Available port: %s", ports.at(i).getName().c_str());
+            LOGINFO("Available port: %s Vol Level %s", ports.at(i).getName().c_str(), to_string(ports.getLevel()));
         }
 
         string portName = "HDMI0"; // Replace with the actual port name as needed
+
     //    string volumeLevel;
     //    Core::hresult result = getVolumeLevel(portName, volumeLevel);
     //    LOGINFO("Volume level for port %s: %s", portName.c_str(), volumeLevel.c_str());
 
         device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(portName);
-        if (aPort.getName().empty()) {
+    
+    	if (aPort.getName().empty()) {
             LOGERR("AudioOutputPort '%s' is not valid!", portName.c_str());
         } else {
-            string volumeLevel;
-            GetVolumeLevel(portName, volumeLevel);
-            LOGINFO("Volume level for port %s: %s", portName.c_str(), volumeLevel.c_str());
+            float volumeLevel;
+	    volumeLevel = aPort.getLevel();
+//            GetVolumeLevel(portName, volumeLevel);
+            LOGINFO("Volume level for port %s: Vol Level[HDMI0] %s", portName.c_str(), to_string(volumeLevel));
         }
 
         return (string());

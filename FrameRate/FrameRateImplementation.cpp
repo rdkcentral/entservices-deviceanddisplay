@@ -60,6 +60,7 @@ namespace WPEFramework
               , m_numberOfFpsUpdates(0)
               , m_fpsCollectionInProgress(false)
               , m_lastFpsValue(0)
+              , _videoDeviceEventNotification(*this)
               , _registeredHostEventHandlers(false)
         {
             FrameRateImplementation::_instance = this;
@@ -88,28 +89,25 @@ namespace WPEFramework
         {
             try
             {
-                LOGINFO("device::Manager::Initialize success");
+                LOGINFO("InitializeDeviceManager success");
                 registerHostEventHandlers();
             }
             catch(...)
             {
-                LOGINFO("device::Manager::Initialize failed");
+                LOGINFO("InitializeDeviceManager failed");
             }
         }
 
         void FrameRateImplementation::DeinitializeDeviceManager()
         {
-			try
+            try
             {
-                //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
-                //No need to call device::Manager::DeInitialize for individual plugin. As it is a singleton instance and shared among all wpeframework plugins
-                //Expecting DisplaySettings will be alive for complete run time of wpeframework
-                LOGINFO("device::Manager::DeInitialize success");
+                LOGINFO("DeinitializeDeviceManager success");
                 device::Host::getInstance().UnRegister(_videoDeviceEventNotification);
             }
             catch(...)
             {
-                LOGINFO("device::Manager::DeInitialize failed");
+                LOGINFO("DeinitializeDeviceManager failed");
             }
         }
 
@@ -551,7 +549,6 @@ namespace WPEFramework
             }
         }
 
-    #if 1
         void FrameRateImplementation::registerHostEventHandlers()
         {
             LOGINFO("registerHostEventHandlers");
@@ -572,11 +569,10 @@ namespace WPEFramework
 
         void FrameRateImplementation::OnDisplayFrameratePostChange(const std::string& frameRate)
         {
-			LOGINFO("Received OnDisplayFrameratePostChange callback");
-			Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
+            LOGINFO("Received OnDisplayFrameratePostChange callback");
+            Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
                                     FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE,
                                     frameRate));
         }
-    #endif
     } // namespace Plugin
 } // namespace WPEFramework

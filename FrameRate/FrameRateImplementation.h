@@ -36,16 +36,15 @@
 #include <vector>
 #include <boost/variant.hpp>
 
-#if 1 /* Display Events from libds Library */
+/* Display Events from libds Library */
 #include "dsTypes.h"
 #include "host.hpp"
-#endif
 
 namespace WPEFramework {
     namespace Plugin {
         class FrameRateImplementation : public Exchange::IFrameRate {
             private:
-            #if 1 /* VideoDevice Events from libds Library */
+            /* VideoDevice Events from libds Library */
             class VideoDeviceEventNotification : public device::Host::IVideoDeviceEvents {
             private:
                 VideoDeviceEventNotification(const VideoDeviceEventNotification&) = delete;
@@ -64,7 +63,7 @@ namespace WPEFramework {
                     _parent.OnDisplayFrameratePreChange(frameRate);
                 }
 
-				void OnDisplayFrameratePostChange(const std::string& frameRate) override
+                void OnDisplayFrameratePostChange(const std::string& frameRate) override
                 {
                     _parent.OnDisplayFrameratePostChange(frameRate);
                 }
@@ -72,7 +71,6 @@ namespace WPEFramework {
             private:
                 FrameRateImplementation& _parent;
             };
-            #endif
             public:
                 // We do not allow this plugin to be copied !!
                 FrameRateImplementation();
@@ -181,7 +179,6 @@ namespace WPEFramework {
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
 
-            #if 1
             private:
                 //device::Host &_hostListener;
 
@@ -194,7 +191,6 @@ namespace WPEFramework {
                 /* VideoDeviceEventNotification*/
                 void OnDisplayFrameratePreChange(const std::string& frameRate);
                 void OnDisplayFrameratePostChange(const std::string& frameRate);
-            #endif
 
                 friend class Job;
         };

@@ -73,10 +73,10 @@ public:
         p_rfcApiImplMock = new testing::NiceMock<RfcApiImplMock>;
         RfcApi::setImpl(p_rfcApiImplMock);
 
-        p_powerManagerHalMock = new NiceMock<PowerManagerHalMock>;
+        p_powerManagerHalMock = new testing::NiceMock<PowerManagerHalMock>;
         PowerManagerAPI::setImpl(p_powerManagerHalMock);
 
-        p_mfrMock = new NiceMock<mfrMock>;
+        p_mfrMock = new testing::NiceMock<mfrMock>;
         mfr::setImpl(p_mfrMock);
 
         setupDefaultMocks();

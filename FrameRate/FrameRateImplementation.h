@@ -179,8 +179,8 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
-                bool _registeredHostEventHandlers;
                 VideoDeviceEventNotification _videoDeviceEventNotification;
+                bool _registeredHostEventHandlers;
                 friend class Job;
 
             public:

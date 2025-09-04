@@ -247,6 +247,11 @@ namespace WPEFramework {
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
             , _registeredHostEventHandlers(false)
+            , m_displayEventNotification(this)
+            , m_audioOutputPortEventsNotification(this)
+            , m_HdmiInEventsNotification(this)
+            , m_videoDeviceEventsNotification(this)
+            , m_videoOutputPortEventsNotification(this)
         {
             LOGINFO("constructor");
             DisplaySettings::_instance = this;
@@ -698,17 +703,14 @@ namespace WPEFramework {
         {
             try
             {
-                //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
-                //No need to call device::Manager::DeInitialize for individual plugin. As it is a singleton instance and shared among all wpeframework plugins
-                //Expecting DisplaySettings will be alive for complete run time of wpeframework
-                device::Manager::DeInitialize();
                 LOGINFO("device::Manager::DeInitialize success");
-                device::Host::getInstance().Unregister(_displayEventNotification);
-                device::Host::getInstance().Unregister(_audioOutputPortEventsNotification);
-                device::Host::getInstance().Unregister(_displayHDMIHotPlugNotification);
-                device::Host::getInstance().Unregister(_hDMIInEventsNotification);
-                device::Host::getInstance().Unregister(_videoDeviceEventsNotification);
-                device::Host::getInstance().Unregister(_videoOutputPortEventsNotification);
+                device::Host::getInstance().UnRegister(m_displayEventNotification);
+                device::Host::getInstance().UnRegister(m_audioOutputPortEventsNotification);
+                device::Host::getInstance().UnRegister(m_HdmiInEventsNotification);
+                device::Host::getInstance().UnRegister(m_videoDeviceEventsNotification);
+                device::Host::getInstance().UnRegister(m_videoOutputPortEventsNotification);
+
+                device::Manager::DeInitialize();
             }
             catch(...)
             {
@@ -5751,16 +5753,15 @@ void DisplaySettings::sendMsgThread()
             if(!_registeredHostEventHandlers)
             {
                 _registeredHostEventHandlers = true;
-                device::Host::getInstance().Register(_displayEventNotification);
-                device::Host::getInstance().Register(_audioOutputPortEventsNotification);
-                device::Host::getInstance().Register(_displayHDMIHotPlugNotification);
-                device::Host::getInstance().Register(_hDMIInEventsNotification);
-                device::Host::getInstance().Register(_videoDeviceEventsNotification);
-                device::Host::getInstance().Register(_videoOutputPortEventsNotification);
+                device::Host::getInstance().Register(m_displayEventNotification);
+                device::Host::getInstance().Register(m_audioOutputPortEventsNotification);
+                device::Host::getInstance().Register(m_HdmiInEventsNotification);
+                device::Host::getInstance().Register(m_videoDeviceEventsNotification);
+                device::Host::getInstance().Register(m_videoOutputPortEventsNotification);
             }
         }
 
-        void DisplaySettings::OnDisplayRxSense(DisplayEvent displayEvent)
+        void DisplaySettings::OnDisplayRxSense(dsDisplayEvent_t displayEvent)
         {
             LOGINFO("Received OnDisplayRxSense callback");
 

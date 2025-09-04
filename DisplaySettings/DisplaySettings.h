@@ -33,17 +33,15 @@
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 
-#if 1 /* Display Events from libds Library */
+/* Display Events from libds Library */
 #include "dsTypes.h"
 #include "host.hpp"
-#endif
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 namespace WPEFramework {
 
     namespace Plugin {
-
 		// This is a server for a JSONRPC communication channel.
 		// For a plugin to be capable to handle JSONRPC, inherit from PluginHost::JSONRPC.
 		// By inheriting from this class, the plugin realizes the interface PluginHost::IDispatcher.
@@ -56,7 +54,10 @@ namespace WPEFramework {
 		// As the registration/unregistration of notifications is realized by the class PluginHost::JSONRPC,
 		// this class exposes a public method called, Notify(), using this methods, all subscribed clients
 		// will receive a JSONRPC message as a notification, in case this method is called.
-        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator {
+        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator,
+                                public device::Host::IDisplayEvents, public device::Host::IAudioOutputPortEvents,
+                                public device::Host::IHdmiInEvents, public device::Host::IVideoDeviceEvents,
+                                public device::Host::IVideoOutputPortEvents {
         private:
             typedef Core::JSON::String JString;
             typedef Core::JSON::ArrayType<JString> JStringArray;
@@ -93,176 +94,6 @@ namespace WPEFramework {
             private:
                 DisplaySettings& _parent;
             };
-
-#if 1 /* Display Events from libds Library */
-            class DisplayEventNotification : public device::Host::IDisplayEvent {
-            private:
-                DisplayEventNotification(const DisplayEventNotification&) = delete;
-                DisplayEventNotification& operator=(const DisplayEventNotification&) = delete;
-
-            public:
-                explicit DisplayEventNotification(DisplaySettings& parent)
-                    : _parent(parent)
-                {
-                }
-                ~DisplayEventNotification() override = default;
-
-            public:
-                void OnDisplayRxSense(dsDisplayEvent_t displayEvent) override
-                {
-                    _parent.OnDisplayRxSense(displayEvent); //TODO
-                }
-
-            private:
-                DisplaySettings& _parent;
-            };
-
-            class AudioOutputPortEventsNotification : public device::Host::IAudioOutputPortEvents {
-            private:
-                AudioOutputPortEventsNotification(const AudioOutputPortEventsNotification&) = delete;
-                AudioOutputPortEventsNotification& operator=(const AudioOutputPortEventsNotification&) = delete;
-
-            public:
-                explicit AudioOutputPortEventsNotification(DisplaySettings& parent)
-                    : _parent(parent)
-                {
-                }
-                ~AudioOutputPortEventsNotification() override = default;
-
-                void OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected) override
-                {
-                    _parent.OnAudioOutHotPlug(audioPortType, uiPortNumber, isPortConnected);
-                }
-                void OnAudioFormatUpdate(dsAudioFormat_t audioFormat) override
-                {
-                    _parent.OnAudioFormatUpdate(audioFormat); //TODO
-                }
-                void OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status)  override
-                {
-                    _parent.OnDolbyAtmosCapabilitiesChanged(atmosCapability, status); //TODO
-                }
-                    void OnAudioPortStateChanged(dsAudioPortState_t audioPortState) override
-                {
-                    _parent.OnAudioPortStateChanged(audioPortState); //TODO
-                }
-                    void OnAssociatedAudioMixingChanged(bool mixing) override
-                {
-                    _parent.OnAssociatedAudioMixingChanged(mixing); //TODO
-                }
-                    void OnAudioFaderControlChanged(int mixerBalance) override
-                {
-                    _parent.OnAudioFaderControlChanged(mixerBalance); //TODO
-                }
-                void OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage) override
-                {
-                    _parent.OnAudioPrimaryLanguageChanged(primaryLanguage); //TODO
-                }
-                void OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage) override
-                {
-                    _parent.OnAudioSecondaryLanguageChanged(secondaryLanguage); //TODO
-                }
-
-            private:
-                DisplaySettings& _parent;
-            };
-
-            class DisplayHDMIHotPlugNotification : public device::Host::IDisplayHDMIHotPlugEvents {
-            private:
-                DisplayHDMIHotPlugNotification(const DisplayHDMIHotPlugNotification&) = delete;
-                DisplayHDMIHotPlugNotification& operator=(const DisplayHDMIHotPlugNotification&) = delete;
-
-            public:
-                explicit DisplayHDMIHotPlugNotification(DisplaySettings& parent)
-                    : _parent(parent)
-                {
-                }
-                ~DisplayHDMIHotPlugNotification() override = default;
-
-            public:
-                void void OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent) override
-                {
-                    _parent.OnDisplayHDMIHotPlug(displayEvent); //TODO
-                }
-
-            private:
-                DisplaySettings& _parent;
-            };
-
-            class HDMIInEventsNotification : public device::Host::IHDMIInEvents {
-            private:
-                HDMIInEventsNotification(const HDMIInEventsNotification&) = delete;
-                HDMIInEventsNotification& operator=(const HDMIInEventsNotification&) = delete;
-
-            public:
-                explicit HDMIInEventsNotification(DisplaySettings& parent)
-                    : _parent(parent)
-                {
-                }
-                ~HDMIInEventsNotification() override = default;
-
-            public:
-                void OnHDMIInEventHotPlug(dsHdmiInPort_t port, bool isConnected) override
-                {
-                    _parent.OnHDMIInEventHotPlug(port, isConnected); //TODO
-                }
-
-            private:
-                DisplaySettings& _parent;
-            };
-
-            class VideoDeviceEventsNotification : public device::Host::IVideoDeviceEvents {
-            private:
-                VideoDeviceEventsNotification(const VideoDeviceEventsNotification&) = delete;
-                VideoDeviceEventsNotification& operator=(const VideoDeviceEventsNotification&) = delete;
-
-            public:
-                explicit VideoDeviceEventsNotification(DisplaySettings& parent)
-                    : _parent(parent)
-                {
-                }
-                ~VideoDeviceEventsNotification() override = default;
-
-            public:
-                void OnZoomSettingsChanged(dsVideoZoom_t zoomSetting) override
-                {
-                    _parent.OnZoomSettingsChanged(zoomSetting); //TODO
-                }
-
-            private:
-                DisplaySettings& _parent;
-            };
-
-            class VideoOutputPortEventsNotification : public device::Host::IVideoOutputPortEvents {
-            private:
-                VideoOutputPortEventsNotification(const VideoOutputPortEventsNotification&) = delete;
-                VideoOutputPortEventsNotification& operator=(const VideoOutputPortEventsNotification&) = delete;
-
-            public:
-                explicit VideoOutputPortEventsNotification(DisplaySettings& parent)
-                    : _parent(parent)
-                {
-                }
-                ~VideoOutputPortEventsNotification() override = default;
-
-            public:
-                void OnResolutionPreChange(const int width, const int height) override
-                {
-                    _parent.OnResolutionPreChange(width, height); //TODO
-                }
-                void OnResolutionPostChange(const int width, const int height) override
-                {
-                    _parent.OnResolutionPostChange(width, height); //TODO
-                }
-                void OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR) override
-                {
-                    _parent.OnVideoFormatUpdate(videoFormatHDR); //TODO
-                }
-
-            private:
-                DisplaySettings& _parent;
-            };
-
-#endif
 
             // We do not allow this plugin to be copied !!
             DisplaySettings(const DisplaySettings&) = delete;
@@ -473,50 +304,41 @@ namespace WPEFramework {
             JsonObject getAudioOutputPortConfig() { return m_audioOutputPortConfig; }
             static PowerState m_powerState;
 
-#if 1
     private:
-        device::Host &_hostListener;
-
-        DisplayEventNotification _displayEventNotification;
-        AudioOutputPortEventsNotification _audioOutputPortEventsNotification;
-        DisplayHDMIHotPlugNotification _displayHDMIHotPlugNotification;
-        HDMIInEventsNotification _hDMIInEventsNotification;
-        VideoDeviceEventsNotification _videoDeviceEventsNotification;
-        VideoOutputPortEventsNotification _videoOutputPortEventsNotification;
+        device::Host::IDisplayEvents *m_displayEventNotification;
+        device::Host::IAudioOutputPortEvents *m_audioOutputPortEventsNotification;
+        device::Host::IHdmiInEvents *m_HdmiInEventsNotification;
+        device::Host::IVideoDeviceEvents *m_videoDeviceEventsNotification;
+        device::Host::IVideoOutputPortEvents *m_videoOutputPortEventsNotification;
 
         bool _registeredHostEventHandlers;
 
     public:
         void registerHostEventHandlers();
 
-        /* DisplayEventNotification*/
-        void OnDisplayRxSense(DisplayEvent displayEvent);
+        /* IDisplayEvents*/
+        void OnDisplayRxSense(dsDisplayEvent_t displayEvent) override;
 
-        /* AudioOutputPortEventsNotification*/
-        void OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected);
-        void OnAudioFormatUpdate(dsAudioFormat_t audioFormat);
-        void OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status);
-        void OnAudioPortStateChanged(dsAudioPortState_t audioPortState);
-        void OnAssociatedAudioMixingChanged(bool mixing);
-        void OnAudioFaderControlChanged(int mixerBalance);
-        void OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage);
-        void OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage);
+        /* IAudioOutputPortEvents*/
+        void OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected) override;
+        void OnAudioFormatUpdate(dsAudioFormat_t audioFormat) override;
+        void OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status) override;
+        void OnAudioPortStateChanged(dsAudioPortState_t audioPortState) override;
+        void OnAssociatedAudioMixingChanged(bool mixing) override;
+        void OnAudioFaderControlChanged(int mixerBalance) override;
+        void OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage) override;
+        void OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage) override;
 
-        /* DisplayHDMIHotPlugNotification */
-        void OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent);
+        /* IHdmiInEvents*/
+        void OnHdmiInEventHotPlug(dsHdmiInPort_t port, bool isConnected) override;
 
-        /* HDMIInEventsNotification*/
-        void OnHDMIInEventHotPlug(dsHdmiInPort_t port, bool isConnected);
+        /* IVideoDeviceEvents */
+        void OnZoomSettingsChanged(dsVideoZoom_t zoomSetting) override;
 
-        /* VideoDeviceEventsNotification */
-        void OnZoomSettingsChanged(dsVideoZoom_t zoomSetting);
-
-        /* VideoOutputPortEventsNotification*/
-        void OnResolutionPreChange(const int width, const int height);
-        void OnResolutionPostChange(const int width, const int height);
-        void OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR);
-
-#endif
+        /* IVideoOutputPortEvents */
+        void OnResolutionPreChange(const int width, const int height) override;
+        void OnResolutionPostChange(const int width, const int height) override;
+        void OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR) override;
 
             enum {
                 ARC_STATE_REQUEST_ARC_INITIATION,

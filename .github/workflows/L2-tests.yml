@@ -227,7 +227,6 @@ jobs:
           rdk/ds/dsMgr.h
           rdk/ds/manager.hpp
           rdk/ds/dsTypes.h
-          rdk/ds/displayConnectionChangeListener.hpp
           rdk/ds/dsUtl.h
           rdk/iarmbus/libIARM.h
           rdk/iarmbus/libIBus.h

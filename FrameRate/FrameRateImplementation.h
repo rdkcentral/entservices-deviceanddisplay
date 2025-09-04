@@ -160,7 +160,7 @@ namespace WPEFramework {
                 Core::ProxyType<RPC::CommunicatorClient> _communicatorClient;
                 PluginHost::IShell* _service;
                 std::list<Exchange::IFrameRate::INotification*> _framerateNotification;
-                VideoDeviceEventNotification _videoDeviceEventNotification;
+
                 //Begin Notifications
                 void dispatchOnFpsEvent(int average, int min, int max);
                 void dispatchOnDisplayFrameRateChangingEvent(const string& displayFrameRate);
@@ -180,6 +180,7 @@ namespace WPEFramework {
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
                 bool _registeredHostEventHandlers;
+                VideoDeviceEventNotification _videoDeviceEventNotification;
                 friend class Job;
 
             public:

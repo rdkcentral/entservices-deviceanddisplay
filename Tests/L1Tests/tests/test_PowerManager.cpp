@@ -188,7 +188,7 @@ public:
         p_mfrMock = new NiceMock<mfrMock>;
         mfr::setImpl(p_mfrMock);
 
-        EXPECT_CALL(*p_powerManagerHalMock, PLAT_INIT())
+        EXPECT_CALL( *p_powerManagerHalMock, PLAT_INIT())
             .WillOnce(::testing::Return(PWRMGR_SUCCESS));
 
         EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_INIT())

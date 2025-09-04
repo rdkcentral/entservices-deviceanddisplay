@@ -61,7 +61,7 @@ namespace WPEFramework
               , m_numberOfFpsUpdates(0)
               , m_fpsCollectionInProgress(false)
               , m_lastFpsValue(0)
-              , _videoDeviceEventNotification(&this)
+              , _videoDeviceEventNotification(*this)
               , _registeredHostEventHandlers(false)
         {
             FrameRateImplementation::_instance = this;
@@ -106,7 +106,7 @@ namespace WPEFramework
             {
                 device::Manager::DeInitialize();
                 LOGINFO("device::Manager::DeInitialize success");
-                device::Host::getInstance().UnRegister(_videoDeviceEventNotification);
+                device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
             }
             catch(...)
             {
@@ -558,7 +558,7 @@ namespace WPEFramework
             if(!_registeredHostEventHandlers)
             {
                 _registeredHostEventHandlers = true;
-                device::Host::getInstance().Register(_videoDeviceEventNotification, "WPEFramework::FrameRate");
+                device::Host::getInstance().Register(&_videoDeviceEventNotification, "WPE::FrameRate");
             }
         }
 

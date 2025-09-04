@@ -61,7 +61,7 @@ namespace WPEFramework
               , m_numberOfFpsUpdates(0)
               , m_fpsCollectionInProgress(false)
               , m_lastFpsValue(0)
-              , _videoDeviceEventNotification(*this)
+              , _videoDeviceEventNotification(&this)
               , _registeredHostEventHandlers(false)
         {
             FrameRateImplementation::_instance = this;

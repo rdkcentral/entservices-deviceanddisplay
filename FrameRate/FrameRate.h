@@ -25,6 +25,9 @@
 #include <interfaces/json/JFrameRate.h>
 #include <interfaces/json/JsonData_FrameRate.h>
 
+/* Display Events from libds Library */
+#include "dsTypes.h"
+#include "host.hpp"
 namespace WPEFramework
 {
     namespace Plugin

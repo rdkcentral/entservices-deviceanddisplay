@@ -148,8 +148,6 @@ namespace WPEFramework {
                 //End methods
 
                 void onReportFpsTimer();
-                void InitializeDeviceManager();
-                void DeinitializeDeviceManager();
 
                 static FrameRateImplementation* _instance;
 

@@ -65,16 +65,14 @@ namespace WPEFramework
               , _registeredHostEventHandlers(false)
         {
             FrameRateImplementation::_instance = this;
-            //InitializeIARM();
-            InitializeDeviceManager();
+            registerHostEventHandlers();
             // Connect the timer callback handle for triggering FrameRate notifications.
             m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
         }
 
         FrameRateImplementation::~FrameRateImplementation()
         {
-            //DeinitializeIARM();
-            DeinitializeDeviceManager();
+            device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
             _registeredHostEventHandlers = false;
             //Stop the timer if running
             if (m_reportFpsTimer.isActive())
@@ -85,34 +83,6 @@ namespace WPEFramework
 
         // IARM EventHandler
         //static void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-
-        void FrameRateImplementation::InitializeDeviceManager()
-        {
-            try
-            {
-                device::Manager::Initialize();
-                LOGINFO("device::Manager::Initialize success");
-                registerHostEventHandlers();
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::Initialize failed");
-            }
-        }
-
-        void FrameRateImplementation::DeinitializeDeviceManager()
-        {
-            try
-            {
-                device::Manager::DeInitialize();
-                LOGINFO("device::Manager::DeInitialize success");
-                device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::DeInitialize failed");
-            }
-        }
 
         /******************************************* Notifications ****************************************/
 

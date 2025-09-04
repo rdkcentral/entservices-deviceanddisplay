@@ -72,6 +72,16 @@ namespace WPEFramework
 
             SYSLOG(Logging::Startup, (_T("FrameRate::Initialize: PID=%u"), getpid()));
 
+            try
+            {
+                device::Manager::Initialize();
+                LOGINFO("device::Manager::Initialize success");
+            }
+            catch(...)
+            {
+                LOGINFO("device::Manager::Initialize failed");
+            }
+
             _service = service;
             _service->AddRef();
             _service->Register(&_FrameRateNotification);
@@ -98,6 +108,17 @@ namespace WPEFramework
             ASSERT(_service == service);
 
             SYSLOG(Logging::Shutdown, (string(_T("FrameRate::Deinitialize"))));
+
+            try
+            {
+                device::Manager::DeInitialize();
+                LOGINFO("device::Manager::DeInitialize success");
+                device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
+            }
+            catch(...)
+            {
+                LOGINFO("device::Manager::DeInitialize failed");
+            }
 
             // Make sure the Activated and Deactivated are no longer called before we start cleaning up..
             _service->Unregister(&_FrameRateNotification);

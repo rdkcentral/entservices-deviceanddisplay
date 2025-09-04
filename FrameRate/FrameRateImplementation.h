@@ -178,11 +178,11 @@ namespace WPEFramework {
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
                 VideoDeviceEventNotification _videoDeviceEventNotification;
-                bool _registeredHostEventHandlers;
+                bool _registeredDsEventHandlers;
                 friend class Job;
 
             public:
-                void registerHostEventHandlers();
+                void registerDsEventHandlers();
 
                 /* VideoDeviceEventNotification*/
                 void OnDisplayFrameratePreChange(const std::string& frameRate);

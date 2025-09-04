@@ -27,7 +27,6 @@
 #include "FrameRateImplementation.h"
 #include "host.hpp"
 #include "exception.hpp"
-#include "manager.hpp"
 
 #include "UtilsJsonRpc.h"
 #include "UtilsIarm.h"
@@ -62,10 +61,10 @@ namespace WPEFramework
               , m_fpsCollectionInProgress(false)
               , m_lastFpsValue(0)
               , _videoDeviceEventNotification(*this)
-              , _registeredHostEventHandlers(false)
+              , _registeredDsEventHandlers(false)
         {
             FrameRateImplementation::_instance = this;
-            registerHostEventHandlers();
+            registerDsEventHandlers();
             // Connect the timer callback handle for triggering FrameRate notifications.
             m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
         }
@@ -73,16 +72,13 @@ namespace WPEFramework
         FrameRateImplementation::~FrameRateImplementation()
         {
             device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
-            _registeredHostEventHandlers = false;
+            _registeredDsEventHandlers = false;
             //Stop the timer if running
             if (m_reportFpsTimer.isActive())
             {
                 m_reportFpsTimer.stop();
             }
         }
-
-        // IARM EventHandler
-        //static void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
 
         /******************************************* Notifications ****************************************/
 
@@ -522,12 +518,12 @@ namespace WPEFramework
             }
         }
 
-        void FrameRateImplementation::registerHostEventHandlers()
+        void FrameRateImplementation::registerDsEventHandlers()
         {
-            LOGINFO("registerHostEventHandlers");
-            if(!_registeredHostEventHandlers)
+            LOGINFO("registerDsEventHandlers");
+            if(!_registeredDsEventHandlers)
             {
-                _registeredHostEventHandlers = true;
+                _registeredDsEventHandlers = true;
                 device::Host::getInstance().Register(&_videoDeviceEventNotification, "WPE::FrameRate");
             }
         }

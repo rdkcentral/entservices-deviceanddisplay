@@ -18,7 +18,7 @@
  **/
 
 #include "FrameRate.h"
-
+#include "manager.hpp"
 #include "UtilsJsonRpc.h"
 
 #define API_VERSION_NUMBER_MAJOR 1
@@ -109,16 +109,6 @@ namespace WPEFramework
 
             SYSLOG(Logging::Shutdown, (string(_T("FrameRate::Deinitialize"))));
 
-            try
-            {
-                device::Manager::DeInitialize();
-                LOGINFO("device::Manager::DeInitialize success");
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::DeInitialize failed");
-            }
-
             // Make sure the Activated and Deactivated are no longer called before we start cleaning up..
             _service->Unregister(&_FrameRateNotification);
 
@@ -162,6 +152,17 @@ namespace WPEFramework
             _connectionId = 0;
             _service->Release();
             _service = nullptr;
+
+            try
+            {
+                device::Manager::DeInitialize();
+                LOGINFO("device::Manager::DeInitialize success");
+            }
+            catch(...)
+            {
+                LOGINFO("device::Manager::DeInitialize failed");
+            }
+
             SYSLOG(Logging::Shutdown, (string(_T("FrameRate de-initialised"))));
         }
 

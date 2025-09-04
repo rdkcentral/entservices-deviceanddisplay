@@ -249,6 +249,7 @@ namespace WPEFramework {
             , _registeredHostEventHandlers(false)
             , m_displayEventNotification(this)
             , m_audioOutputPortEventsNotification(this)
+            , m_displayDeviceEvents(this)
             , m_HdmiInEventsNotification(this)
             , m_videoDeviceEventsNotification(this)
             , m_videoOutputPortEventsNotification(this)
@@ -706,6 +707,7 @@ namespace WPEFramework {
                 LOGINFO("device::Manager::DeInitialize success");
                 device::Host::getInstance().UnRegister(m_displayEventNotification);
                 device::Host::getInstance().UnRegister(m_audioOutputPortEventsNotification);
+                device::Host::getInstance().UnRegister(m_displayDeviceEvents);
                 device::Host::getInstance().UnRegister(m_HdmiInEventsNotification);
                 device::Host::getInstance().UnRegister(m_videoDeviceEventsNotification);
                 device::Host::getInstance().UnRegister(m_videoOutputPortEventsNotification);
@@ -5755,6 +5757,7 @@ void DisplaySettings::sendMsgThread()
                 _registeredHostEventHandlers = true;
                 device::Host::getInstance().Register(m_displayEventNotification);
                 device::Host::getInstance().Register(m_audioOutputPortEventsNotification);
+                device::Host::getInstance().Register(m_displayDeviceEvents);
                 device::Host::getInstance().Register(m_HdmiInEventsNotification);
                 device::Host::getInstance().Register(m_videoDeviceEventsNotification);
                 device::Host::getInstance().Register(m_videoOutputPortEventsNotification);
@@ -5779,7 +5782,6 @@ void DisplaySettings::sendMsgThread()
             }
         }
 
-        /* AudioOutputPortEventsNotification*/
         void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected)
         {
             LOGINFO("Received OnAudioOutHotPlug callback");
@@ -5865,7 +5867,6 @@ void DisplaySettings::sendMsgThread()
 
         }
 
-        /* DisplayHDMIHotPlugNotification */
         void DisplaySettings::OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent)
         {
             LOGINFO("Received OnDisplayHDMIHotPlug callback. event data:%d ", displayEvent);
@@ -5879,12 +5880,10 @@ void DisplaySettings::sendMsgThread()
             }
         }
 
-        /* HDMIInEventsNotification*/
-        void DisplaySettings::OnHDMIInEventHotPlug(dsHdmiInPort_t port, bool isConnected)
+        void DisplaySettings::OnHdmiInEventHotPlug(dsHdmiInPort_t port, bool isConnected)
         {
             LOGINFO("Received OnHDMIInEventHotPlug callback. Port:%d, connected:%d \n", port, isConnected);
 
-#if 1
            int hdmiin_hotplug_port = port;
            bool hdmiin_hotplug_conn = isConnected;
            LOGINFO("Received OnHDMIInEventHotPlug Port:%d, connected:%d \n", hdmiin_hotplug_port, hdmiin_hotplug_conn);
@@ -5936,7 +5935,6 @@ void DisplaySettings::sendMsgThread()
             }// HDMI_IN_ARC_PORT_ID
         }
 
-        /* VideoDeviceEventsNotification */
         void DisplaySettings::OnZoomSettingsChanged(dsVideoZoom_t zoomSetting)
         {
             LOGINFO("Received OnZoomSettingsChanged callback");
@@ -5954,7 +5952,6 @@ void DisplaySettings::sendMsgThread()
             }
         }
 
-        /* VideoOutputPortEventsNotification*/
         void DisplaySettings::OnResolutionPreChange(const int width, const int height)
         {
             LOGINFO("Received OnResolutionPreChange callback");
@@ -5981,8 +5978,6 @@ void DisplaySettings::sendMsgThread()
             }
 
         }
-
-#endif
 
     } // namespace Plugin
 } // namespace WPEFramework

@@ -55,9 +55,9 @@ namespace WPEFramework {
 		// this class exposes a public method called, Notify(), using this methods, all subscribed clients
 		// will receive a JSONRPC message as a notification, in case this method is called.
         class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator,
-                                public device::Host::IDisplayEvents, public device::Host::IAudioOutputPortEvents,
-                                public device::Host::IHdmiInEvents, public device::Host::IVideoDeviceEvents,
-                                public device::Host::IVideoOutputPortEvents {
+                                public device::Host::IDisplayEvent, public device::Host::IAudioOutputPortEvents,
+                                public device::Host::IDisplayDeviceEvents, public device::Host::IHdmiInEvents,
+                                public device::Host::IVideoDeviceEvents, public device::Host::IVideoOutputPortEvents {
         private:
             typedef Core::JSON::String JString;
             typedef Core::JSON::ArrayType<JString> JStringArray;
@@ -307,6 +307,7 @@ namespace WPEFramework {
     private:
         device::Host::IDisplayEvents *m_displayEventNotification;
         device::Host::IAudioOutputPortEvents *m_audioOutputPortEventsNotification;
+        device::Host::IDisplayDeviceEvents *m_displayDeviceEvents;
         device::Host::IHdmiInEvents *m_HdmiInEventsNotification;
         device::Host::IVideoDeviceEvents *m_videoDeviceEventsNotification;
         device::Host::IVideoOutputPortEvents *m_videoOutputPortEventsNotification;
@@ -316,7 +317,7 @@ namespace WPEFramework {
     public:
         void registerHostEventHandlers();
 
-        /* IDisplayEvents*/
+        /* IDisplayEvents */
         void OnDisplayRxSense(dsDisplayEvent_t displayEvent) override;
 
         /* IAudioOutputPortEvents*/
@@ -328,6 +329,9 @@ namespace WPEFramework {
         void OnAudioFaderControlChanged(int mixerBalance) override;
         void OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage) override;
         void OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage) override;
+
+        /* IDisplayDeviceEvents */
+        void OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent) override;
 
         /* IHdmiInEvents*/
         void OnHdmiInEventHotPlug(dsHdmiInPort_t port, bool isConnected) override;

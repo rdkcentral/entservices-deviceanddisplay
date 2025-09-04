@@ -312,10 +312,10 @@ namespace WPEFramework {
         device::Host::IVideoDeviceEvents *m_videoDeviceEventsNotification;
         device::Host::IVideoOutputPortEvents *m_videoOutputPortEventsNotification;
 
-        bool _registeredHostEventHandlers;
+        bool _registeredDsEventHandlers;
 
     public:
-        void registerHostEventHandlers();
+        void registerDsEventHandlers();
 
         /* IDisplayEvents */
         void OnDisplayRxSense(dsDisplayEvent_t displayEvent) override;

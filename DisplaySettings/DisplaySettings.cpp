@@ -246,7 +246,7 @@ namespace WPEFramework {
             : PluginHost::JSONRPC()
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
-            , _registeredHostEventHandlers(false)
+            , _registeredDsEventHandlers(false)
             , m_displayEventNotification(this)
             , m_audioOutputPortEventsNotification(this)
             , m_displayDeviceEvents(this)
@@ -648,8 +648,14 @@ namespace WPEFramework {
 
             stopCecTimeAndUnsubscribeEvent();
 
+            device::Host::getInstance().UnRegister(m_displayEventNotification);
+            device::Host::getInstance().UnRegister(m_audioOutputPortEventsNotification);
+            device::Host::getInstance().UnRegister(m_displayDeviceEvents);
+            device::Host::getInstance().UnRegister(m_HdmiInEventsNotification);
+            device::Host::getInstance().UnRegister(m_videoDeviceEventsNotification);
+            device::Host::getInstance().UnRegister(m_videoOutputPortEventsNotification);
+            _registeredDsEventHandlers = false;
             DeinitializeDeviceManager();
-            _registeredHostEventHandlers = false;
 
             DisplaySettings::_instance = nullptr;
 
@@ -689,10 +695,9 @@ namespace WPEFramework {
         {
             try
             {
-                //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
                 device::Manager::Initialize();
                 LOGINFO("device::Manager::Initialize success");
-                registerHostEventHandlers();
+                registerDsEventHandlers();
             }
             catch(...)
             {
@@ -704,15 +709,8 @@ namespace WPEFramework {
         {
             try
             {
-                LOGINFO("device::Manager::DeInitialize success");
-                device::Host::getInstance().UnRegister(m_displayEventNotification);
-                device::Host::getInstance().UnRegister(m_audioOutputPortEventsNotification);
-                device::Host::getInstance().UnRegister(m_displayDeviceEvents);
-                device::Host::getInstance().UnRegister(m_HdmiInEventsNotification);
-                device::Host::getInstance().UnRegister(m_videoDeviceEventsNotification);
-                device::Host::getInstance().UnRegister(m_videoOutputPortEventsNotification);
-
                 device::Manager::DeInitialize();
+                LOGINFO("device::Manager::DeInitialize success");
             }
             catch(...)
             {
@@ -5748,13 +5746,12 @@ void DisplaySettings::sendMsgThread()
             return Core::ERROR_NONE;
         }
 
-#if 1
-        void DisplaySettings::registerHostEventHandlers()
+        void DisplaySettings::registerDsEventHandlers()
         {
-            LOGINFO("registerHostEventHandlers");
-            if(!_registeredHostEventHandlers)
+            LOGINFO("registerDsEventHandlers");
+            if(!_registeredDsEventHandlers)
             {
-                _registeredHostEventHandlers = true;
+                _registeredDsEventHandlers = true;
                 device::Host::getInstance().Register(m_displayEventNotification);
                 device::Host::getInstance().Register(m_audioOutputPortEventsNotification);
                 device::Host::getInstance().Register(m_displayDeviceEvents);

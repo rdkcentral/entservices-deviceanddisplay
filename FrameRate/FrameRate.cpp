@@ -113,7 +113,6 @@ namespace WPEFramework
             {
                 device::Manager::DeInitialize();
                 LOGINFO("device::Manager::DeInitialize success");
-                device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
             }
             catch(...)
             {

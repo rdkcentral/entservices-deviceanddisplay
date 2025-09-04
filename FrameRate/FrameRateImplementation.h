@@ -132,19 +132,6 @@ namespace WPEFramework {
                         JsonValue _params;
                 };
 
-            private:
-                //device::Host &_hostListener;
-
-                VideoDeviceEventNotification _videoDeviceEventNotification;
-
-                bool _registeredHostEventHandlers;
-            public:
-                void registerHostEventHandlers();
-
-                /* VideoDeviceEventNotification*/
-                void OnDisplayFrameratePreChange(const std::string& frameRate);
-                void OnDisplayFrameratePostChange(const std::string& frameRate);
-
             public:
                 virtual Core::hresult Register(Exchange::IFrameRate::INotification *notification) override;
                 virtual Core::hresult Unregister(Exchange::IFrameRate::INotification *notification) override;
@@ -173,7 +160,7 @@ namespace WPEFramework {
                 Core::ProxyType<RPC::CommunicatorClient> _communicatorClient;
                 PluginHost::IShell* _service;
                 std::list<Exchange::IFrameRate::INotification*> _framerateNotification;
-
+                VideoDeviceEventNotification _videoDeviceEventNotification;
                 //Begin Notifications
                 void dispatchOnFpsEvent(int average, int min, int max);
                 void dispatchOnDisplayFrameRateChangingEvent(const string& displayFrameRate);
@@ -192,8 +179,15 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
-
+                bool _registeredHostEventHandlers;
                 friend class Job;
+
+            public:
+                void registerHostEventHandlers();
+
+                /* VideoDeviceEventNotification*/
+                void OnDisplayFrameratePreChange(const std::string& frameRate);
+                void OnDisplayFrameratePostChange(const std::string& frameRate);
         };
     } // namespace Plugin
 } // namespace WPEFramework

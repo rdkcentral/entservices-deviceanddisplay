@@ -807,7 +807,7 @@ namespace Plugin {
                     // std::string str = Core::EnumerateType<WakeupSrcType>(mask).Data();
                     std::string wakeupSrc = util::str(static_cast<WakeupSrcType>(mask));
                     LOGINFO("wakeupSrc: %s, enabled: %d", wakeupSrc.c_str(), bool(config & mask));
-                    configs.push_back({ wakeupSrc, bool(config & mask) });
+                    configs.push_back({ std::move(wakeupSrc), bool(config & mask) });
                 }
             }
 

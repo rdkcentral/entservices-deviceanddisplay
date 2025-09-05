@@ -34,7 +34,6 @@
 #include "libIARM.h"
 
 #include <vector>
-#include <boost/variant.hpp>
 
 /* Display Events from libds Library */
 #include "dsTypes.h"

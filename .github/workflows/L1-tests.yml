@@ -123,8 +123,8 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
           token: ${{ secrets.RDKCM_RDKE }}
+          ref: feature/RDKEMW-7722
 
       - name: Checkout entservices-deviceanddisplay
         if: ${{ inputs.caller_source == 'local' }}

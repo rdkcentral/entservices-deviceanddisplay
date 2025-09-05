@@ -856,6 +856,19 @@ namespace WPEFramework {
             }
         }
 
+        DisplaySettings::AUDIO_DEVICE_SAD_STATE DisplaySettings::getAudioDeviceSADState() const {
+            //function used to read the current SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            return m_AudioDeviceSADState;
+        }
+
+        DisplaySettings::AUDIO_DEVICE_SAD_STATE DisplaySettings::setAudioDeviceSADState(AUDIO_DEVICE_SAD_STATE newState) {
+            //function used to set the requried SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            m_AudioDeviceSADState = newState;
+            return m_AudioDeviceSADState;
+        }
+
         void DisplaySettings::dsHdmiEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
             switch (eventId)
@@ -4389,9 +4402,10 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
-					    std::lock_guard<std::mutex> lock(m_SadMutex);
-					    /* Take actions according to SAD udpate state */
-					    switch(m_AudioDeviceSADState)
+					    // std::lock_guard<std::mutex> lock(m_SadMutex);
+					    // /* Take actions according to SAD udpate state */
+					    // switch(m_AudioDeviceSADState)
+                        switch(getAudioDeviceSADState()) // calling getAudioDeviceSADState function to get the SAD state with lock in the function
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
 						{
@@ -4404,7 +4418,7 @@ namespace WPEFramework {
 						case AUDIO_DEVICE_SAD_RECEIVED: 
 						{
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
-							m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+                            setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED); // calling setAudioDeviceSADState function to update the SAD state with lock inside the function
 							aPort.setSAD(sad_list);
 
 							if(aPort.getStereoAuto() == true) {
@@ -4435,6 +4449,7 @@ namespace WPEFramework {
 											
 						default: 
 						{
+                            std::lock_guard<std::mutex> lock(m_SadMutex);
 							LOGINFO("Incorrect Audio Deivce SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
 						}
 						break;

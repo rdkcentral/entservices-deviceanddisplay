@@ -805,7 +805,9 @@ namespace Plugin {
                 if (mask & srcType) {
                     // TODO: after understanding why JsonEnums_** is not generated for WakupSrcType
                     // std::string str = Core::EnumerateType<WakeupSrcType>(mask).Data();
-                    configs.push_back({ std::string(util::str(static_cast<WakeupSrcType>(mask))), bool(config & mask) });
+                    std::string wakeupSrc = util::str(static_cast<WakeupSrcType>(mask));
+                    LOGINFO("wakeupSrc: %s, enabled: %d", wakeupSrc.c_str(), bool(config & mask));
+                    configs.push_back({ wakeupSrc, bool(config & mask) });
                 }
             }
 

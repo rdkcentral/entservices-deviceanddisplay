@@ -802,7 +802,7 @@ namespace Plugin {
             std::list<Exchange::IPowerManager::WakeupSrcConfig> configs;
 
             for (uint32_t mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
-                if (mask && srcType) {
+                if (mask & srcType) {
                     // TODO: after understanding why JsonEnums_** is not generated for WakupSrcType
                     // std::string str = Core::EnumerateType<WakeupSrcType>(mask).Data();
                     configs.push_back({ std::string(util::str(static_cast<WakeupSrcType>(mask))), bool(config & mask) });

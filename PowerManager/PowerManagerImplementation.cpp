@@ -751,7 +751,7 @@ namespace Plugin {
                 srcConfig |= mask;
             }
 
-            LOGINFO("wakupSrc %s, enabled: %d", config.wakeupSource.c_str(), config.enabled);
+            LOGINFO("wakeupSrc %s, enabled: %d", config.wakeupSource.c_str(), config.enabled);
         }
 
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;

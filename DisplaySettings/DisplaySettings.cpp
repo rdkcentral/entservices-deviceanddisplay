@@ -247,12 +247,6 @@ namespace WPEFramework {
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
             , _registeredDsEventHandlers(false)
-            , m_displayEventNotification(this)
-            , m_audioOutputPortEventsNotification(this)
-            , m_displayDeviceEvents(this)
-            , m_HdmiInEventsNotification(this)
-            , m_videoDeviceEventsNotification(this)
-            , m_videoOutputPortEventsNotification(this)
         {
             LOGINFO("constructor");
             DisplaySettings::_instance = this;
@@ -558,7 +552,16 @@ namespace WPEFramework {
             m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
 
             InitializePowerManager();
-            InitializeDeviceManager();
+            try
+            {
+                device::Manager::Initialize();
+                LOGINFO("device::Manager::Initialize success");
+                registerDsEventHandlers();
+            }
+            catch(...)
+            {
+                LOGINFO("device::Manager::Initialize failed");
+            }
 
             if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == getSystemPowerState())
             {
@@ -648,14 +651,23 @@ namespace WPEFramework {
 
             stopCecTimeAndUnsubscribeEvent();
 
-            device::Host::getInstance().UnRegister(m_displayEventNotification);
-            device::Host::getInstance().UnRegister(m_audioOutputPortEventsNotification);
-            device::Host::getInstance().UnRegister(m_displayDeviceEvents);
-            device::Host::getInstance().UnRegister(m_HdmiInEventsNotification);
-            device::Host::getInstance().UnRegister(m_videoDeviceEventsNotification);
-            device::Host::getInstance().UnRegister(m_videoOutputPortEventsNotification);
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IDisplayEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IAudioOutputPortEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IDisplayDeviceEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IHdmiInEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IVideoDeviceEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IVideoOutputPortEvents>());
             _registeredDsEventHandlers = false;
-            DeinitializeDeviceManager();
+
+            try
+            {
+                device::Manager::DeInitialize();
+                LOGINFO("device::Manager::DeInitialize success");
+            }
+            catch(...)
+            {
+                LOGINFO("device::Manager::DeInitialize failed");
+            }
 
             DisplaySettings::_instance = nullptr;
 
@@ -688,33 +700,6 @@ namespace WPEFramework {
             {
                 m_powerState = pwrStateCur;
                 LOGINFO("DisplaySettings::m_powerState:%d", m_powerState);
-            }
-        }
-
-        void DisplaySettings::InitializeDeviceManager()
-        {
-            try
-            {
-                device::Manager::Initialize();
-                LOGINFO("device::Manager::Initialize success");
-                registerDsEventHandlers();
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::Initialize failed");
-            }
-        }
-
-        void DisplaySettings::DeinitializeDeviceManager()
-        {
-            try
-            {
-                device::Manager::DeInitialize();
-                LOGINFO("device::Manager::DeInitialize success");
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::DeInitialize failed");
             }
         }
 
@@ -5752,12 +5737,12 @@ void DisplaySettings::sendMsgThread()
             if(!_registeredDsEventHandlers)
             {
                 _registeredDsEventHandlers = true;
-                device::Host::getInstance().Register(m_displayEventNotification);
-                device::Host::getInstance().Register(m_audioOutputPortEventsNotification);
-                device::Host::getInstance().Register(m_displayDeviceEvents);
-                device::Host::getInstance().Register(m_HdmiInEventsNotification);
-                device::Host::getInstance().Register(m_videoDeviceEventsNotification);
-                device::Host::getInstance().Register(m_videoOutputPortEventsNotification);
+                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayEvents>());
+                device::Host::getInstance().Register(baseInterface<device::Host::IAudioOutputPortEvents>());
+                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayDeviceEvents>());
+                device::Host::getInstance().Register(baseInterface<device::Host::IHdmiInEvents>());
+                device::Host::getInstance().Register(baseInterface<device::Host::IVideoDeviceEvents>());
+                device::Host::getInstance().Register(baseInterface<device::Host::IVideoOutputPortEvents>());
             }
         }
 

@@ -19,6 +19,8 @@
 #include "RfcApiMock.h"
 #include "WrapsMock.h"
 #include "hal/ThermalImpl.h"
+#include "PowerManagerHalMock.h"
+#include "MfrMock.h"
 
 using namespace WPEFramework;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
@@ -71,8 +73,14 @@ public:
         p_rfcApiImplMock = new testing::NiceMock<RfcApiImplMock>;
         RfcApi::setImpl(p_rfcApiImplMock);
 
-        p_iarmBusImplMock = new testing::NiceMock<IarmBusImplMock>;
-        IarmBus::setImpl(p_iarmBusImplMock);
+        p_powerManagerHalMock = new testing::NiceMock<PowerManagerHalMock>;
+        PowerManagerAPI::setImpl(p_powerManagerHalMock);
+
+        p_mfrMock = new testing::NiceMock<mfrMock>;
+        mfr::setImpl(p_mfrMock);
+
+        p_iarmBusMock = new testing::NiceMock<IarmBusImplMock>;
+        IarmBus::setImpl(p_iarmBusMock);
 
         setupDefaultMocks();
     }
@@ -102,7 +110,7 @@ public:
                 }));
 
         // called from ThermalController constructor in initializeThermalProtection
-        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))
             .WillOnce(::testing::Invoke(
                 [](int high, int critical) {
                     EXPECT_EQ(high, 100);
@@ -125,19 +133,31 @@ public:
             p_rfcApiImplMock = nullptr;
         }
 
-        IarmBus::setImpl(nullptr);
-        if (p_iarmBusImplMock != nullptr) {
-            delete p_iarmBusImplMock;
-            p_iarmBusImplMock = nullptr;
+        PowerManagerAPI::setImpl(nullptr);
+        if (p_powerManagerHalMock != nullptr) {
+            delete p_powerManagerHalMock;
+            p_powerManagerHalMock = nullptr;
         }
 
-        mfrMock::Delete();
+        mfr::setImpl(nullptr);
+        if (p_mfrMock != nullptr) {
+            delete p_mfrMock;
+            p_mfrMock = nullptr;
+        }
+
+        IarmBus::setImpl(nullptr);
+        if (p_iarmBusMock != nullptr) {
+            delete p_iarmBusMock;
+            p_iarmBusMock = nullptr;
+        }
     }
 
 protected:
     WrapsImplMock* p_wrapsImplMock     = nullptr;
     RfcApiImplMock* p_rfcApiImplMock   = nullptr;
-    IarmBusImplMock* p_iarmBusImplMock = nullptr;
+    PowerManagerHalMock* p_powerManagerHalMock = nullptr;
+    mfrMock *p_mfrMock = nullptr;
+    IarmBusImplMock* p_iarmBusMock = nullptr;
 };
 
 TEST_F(TestThermalController, temperatureThresholds)
@@ -147,7 +167,7 @@ TEST_F(TestThermalController, temperatureThresholds)
 
     wg.Add();
 
-    EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
             [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                 *curTemperature  = 60; // safe temperature
@@ -161,7 +181,7 @@ TEST_F(TestThermalController, temperatureThresholds)
 
     // Set
     {
-        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))
             .WillOnce(::testing::Invoke(
                 [](int high, int critical) {
                     EXPECT_EQ((int)high, 90);
@@ -175,7 +195,7 @@ TEST_F(TestThermalController, temperatureThresholds)
 
     // Get
     {
-        EXPECT_CALL(mfrMock::Mock(), mfrGetTempThresholds(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrGetTempThresholds(::testing::_, ::testing::_))
             .WillOnce(::testing::Invoke(
                 [](int* high, int* critical) {
                     *high     = 90;
@@ -200,7 +220,7 @@ TEST_F(TestThermalController, modeChangeHigh)
 {
     WaitGroup wg;
 
-    EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
             [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                 *curTemperature  = 100; // high temperature
@@ -227,7 +247,7 @@ TEST_F(TestThermalController, modeChangeCritical)
 {
     WaitGroup wg;
 
-    EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
             [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                 *curTemperature  = 115; // critical temperature

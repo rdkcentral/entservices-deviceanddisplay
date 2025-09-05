@@ -36,6 +36,8 @@
 #define L2TEST_CALLSIGN _T("L2tests.1")
 #define KED_FP_POWER 10
 
+#define POWERMANAGER_MOCK (*p_powerManagerHalMock)
+
 using ::testing::NiceMock;
 using namespace WPEFramework;
 using testing::StrictMock;
@@ -84,7 +86,7 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
         PwrMgr_Notification(){}
         ~PwrMgr_Notification(){}
 
-	template <typename T>
+       template <typename T>
        T* baseInterface()
        {
            static_assert(std::is_base_of<T, PwrMgr_Notification>(), "base type mismatch");
@@ -256,13 +258,13 @@ PowerManager_L2Test::PowerManager_L2Test()
         uint32_t status = Core::ERROR_GENERAL;
         m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
-         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_INIT())
+         EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_INIT())
          .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
-         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_INIT())
+         EXPECT_CALL(POWERMANAGER_MOCK, PLAT_INIT())
          .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
 
-         EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
+         EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
          .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
 
          ON_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
@@ -283,7 +285,7 @@ PowerManager_L2Test::PowerManager_L2Test()
                  }
              }));
 
-        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))
          .WillOnce(::testing::Invoke(
              [](int high, int critical) {
                  EXPECT_EQ(high, 100);
@@ -291,14 +293,14 @@ PowerManager_L2Test::PowerManager_L2Test()
                  return mfrERR_NONE;
              }));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_GetPowerState(::testing::_))
+        EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_GetPowerState(::testing::_))
          .WillRepeatedly(::testing::Invoke(
              [](PWRMgr_PowerState_t* powerState) {
                  *powerState = PWRMGR_POWERSTATE_OFF; // by default over boot up, return PowerState OFF
                  return PWRMGR_SUCCESS;
              }));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+        EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
          .WillRepeatedly(::testing::Invoke(
              [](PWRMgr_PowerState_t powerState) {
                  // All tests are run without settings file
@@ -307,7 +309,7 @@ PowerManager_L2Test::PowerManager_L2Test()
                  return PWRMGR_SUCCESS;
              }));
 
-          EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+          EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
               .WillRepeatedly(::testing::Invoke(
                   [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                       *curTemperature  = 60; // safe temperature
@@ -330,16 +332,14 @@ PowerManager_L2Test::~PowerManager_L2Test()
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
+    EXPECT_CALL(POWERMANAGER_MOCK, PLAT_TERM())
         .WillOnce(::testing::Return(PWRMGR_SUCCESS));
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
+    EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_TERM())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
-    PowerManagerHalMock::Delete();
-    mfrMock::Delete();
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)
@@ -482,12 +482,11 @@ void PowerManager_L2Test::Test_OvertempGraceInterval( Exchange::IPowerManager* P
 /* COM-RPC tests */
 void PowerManager_L2Test::Test_TemperatureThresholds( Exchange::IPowerManager* PowerManagerPlugin )
 {
-    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
     float high = 100, critical = 110;
     TEST_LOG("\n################## Running Test_TemperatureThresholds Test #################\n");
 
-    EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+    EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))
      .WillOnce(::testing::Invoke(
          [](int high, int critical) {
              EXPECT_EQ(high, 100);
@@ -505,7 +504,7 @@ void PowerManager_L2Test::Test_TemperatureThresholds( Exchange::IPowerManager* P
 
     float high1 = 0, critical1 = 0;
 
-    EXPECT_CALL(mfrMock::Mock(), mfrGetTempThresholds(::testing::_, ::testing::_))
+    EXPECT_CALL(*p_mfrMock, mfrGetTempThresholds(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](int* high, int* critical) {
                 *high     = 100;
@@ -583,7 +582,7 @@ void PowerManager_L2Test::Test_WakeupSrcConfig( Exchange::IPowerManager* PowerMa
     int config = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE;
     TEST_LOG("\n################### Running Test_WakeupSrcConfig Test ########################\n");
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
+    EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
             [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
                 return PWRMGR_SUCCESS;
@@ -599,7 +598,7 @@ void PowerManager_L2Test::Test_WakeupSrcConfig( Exchange::IPowerManager* PowerMa
 
     int powerMode1, srcType1, config1;
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_GetWakeupSrc(::testing::_, ::testing::_))
+    EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_GetWakeupSrc(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
             [](PWRMGR_WakeupSrcType_t wakeupSrc, bool* enabled) {
                 if(wakeupSrc == PWRMGR_WAKEUPSRC_VOICE) {
@@ -716,7 +715,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(10);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
-                EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+                EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
                     .WillRepeatedly(::testing::Invoke(
                         [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                             *curTemperature  = 120; // high temperature
@@ -728,7 +727,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3,POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillRepeatedly(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
@@ -738,20 +737,20 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
                     .WillRepeatedly(::testing::Invoke(
                         [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
                             return DEEPSLEEPMGR_SUCCESS;
                         }));
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_GetLastWakeupReason(::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_GetLastWakeupReason(::testing::_))
                     .WillRepeatedly(::testing::Invoke(
                         [](DeepSleep_WakeupReason_t* wakeupReason) {
                             *wakeupReason = DEEPSLEEP_WAKEUPREASON_GPIO;
                             return DEEPSLEEPMGR_SUCCESS;
                         }));
 
-                EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+                EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
                     .WillRepeatedly(::testing::Invoke(
                         [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                             *curTemperature  = 60; // safe temperature
@@ -763,13 +762,13 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_DeepSleepWakeup())
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
                     .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 15, POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillRepeatedly(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
@@ -841,7 +840,7 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
             if (PowerManagerPlugin)
             {
 
-                EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+                EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
                     .WillRepeatedly(::testing::Invoke(
                         [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                             *curTemperature  = 60; // safe temperature
@@ -884,6 +883,7 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
     PluginHost::IShell *mController_PowerManager;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+    uint32_t deepSleepTimeout = 10;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
@@ -914,13 +914,13 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
 
             if (PowerManagerPlugin)
             {
-                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(10);
+                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(deepSleepTimeout);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
@@ -932,11 +932,11 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
                             return PWRMGR_SUCCESS;
                         }));
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
                     .Times(5)
                     .WillRepeatedly(::testing::Invoke(
-                        [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                            EXPECT_EQ(deep_sleep_timeout, 10);
+                        [&](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                            EXPECT_EQ(deep_sleep_timeout, deepSleepTimeout);
                             EXPECT_TRUE(nullptr != isGPIOWakeup);
                             EXPECT_EQ(networkStandby, false);
                             // Simulate timer wakeup
@@ -944,7 +944,7 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
                             return DEEPSLEEPMGR_INVALID_ARGUMENT;
                         }));
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_DeepSleepWakeup())
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
                     .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
 
                 int keyCode = 0;
@@ -1096,7 +1096,7 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
 
             if (PowerManagerPlugin)
             {
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
                     .WillOnce(::testing::Invoke(
                         [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
                             EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_WIFI);
@@ -1148,6 +1148,7 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
     PluginHost::IShell *mController_PowerManager;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+    uint32_t deepSleepTimeout = 10;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
@@ -1178,13 +1179,13 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
 
             if (PowerManagerPlugin)
             {
-                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(10);
+                uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(deepSleepTimeout);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .Times(2)
                     .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
@@ -1197,10 +1198,10 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                             return PWRMGR_SUCCESS;
                         }));
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
                     .WillOnce(::testing::Invoke(
-                        [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                            EXPECT_EQ(deep_sleep_timeout, 10);
+                        [&](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                            EXPECT_EQ(deep_sleep_timeout, deepSleepTimeout);
                             EXPECT_TRUE(nullptr != isGPIOWakeup);
                             EXPECT_EQ(networkStandby, false);
                             // Simulate timer wakeup
@@ -1208,7 +1209,7 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                             return DEEPSLEEPMGR_SUCCESS;
                         }));
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_GetLastWakeupReason(::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_GetLastWakeupReason(::testing::_))
                     .WillOnce(::testing::Invoke(
                         [](DeepSleep_WakeupReason_t* wakeupReason) {
                             // Invalid wakeup reason
@@ -1225,7 +1226,7 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 15, POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_DeepSleepWakeup())
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
                     .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
 
                 sleep(3);
@@ -1300,7 +1301,7 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                 uint32_t status   = PowerManagerPlugin->AddPowerModePreChangeClient("l2-test-client", clientId);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
-                EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);

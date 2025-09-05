@@ -20,8 +20,9 @@
 #include "PowerUtils.h"
 #include "UtilsLogging.h"
 
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
+using PowerState    = WPEFramework::Exchange::IPowerManager::PowerState;
+using WakeupReason  = WPEFramework::Exchange::IPowerManager::WakeupReason;
+using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 
 const char* PowerUtils::str(const WakeupReason reason)
 {
@@ -84,5 +85,69 @@ const char* PowerUtils::str(const PowerState state)
     default:
         LOGERR("Unknown power state: %d", state);
         return "UNKNOWN";
+    }
+}
+
+// IMPORTANT: Keep this in sync with text alias provided for 
+//            WakeupSrcType in IPowerManager.h interface file
+const char* PowerUtils::str(WakeupSrcType wakeupSrc)
+{
+    switch (wakeupSrc) {
+    case WakeupSrcType::WAKEUP_SRC_VOICE:
+        return "VOICE";
+    case WakeupSrcType::WAKEUP_SRC_PRESENCEDETECTED:
+        return "PRESENCEDETECTED";
+    case WakeupSrcType::WAKEUP_SRC_BLUETOOTH:
+        return "BLUETOOTH";
+    case WakeupSrcType::WAKEUP_SRC_WIFI:
+        return "WIFI";
+    case WakeupSrcType::WAKEUP_SRC_IR:
+        return "IR";
+    case WakeupSrcType::WAKEUP_SRC_POWERKEY:
+        return "POWERKEY";
+    case WakeupSrcType::WAKEUP_SRC_TIMER:
+        return "TIMER";
+    case WakeupSrcType::WAKEUP_SRC_CEC:
+        return "CEC";
+    case WakeupSrcType::WAKEUP_SRC_LAN:
+        return "LAN";
+    case WakeupSrcType::WAKEUP_SRC_RF4CE:
+        return "RF4CE";
+    default:
+        LOGERR("Unknown wakeup source: %d", wakeupSrc);
+        return "UNKNOWN";
+    }
+}
+
+// IMPORTANT: Keep this in conversion sync with text alias provided for 
+//            WakeupSrcType in IPowerManager.h interface file
+WakeupSrcType PowerUtils::conv(const std::string& wakeupSrc)
+{
+    std::string src = wakeupSrc;
+    std::transform(src.begin(), src.end(), src.begin(), ::toupper);
+
+    if (src == "VOICE") {
+        return WakeupSrcType::WAKEUP_SRC_VOICE;
+    } else if (src == "PRESENCEDETECTED") {
+        return WakeupSrcType::WAKEUP_SRC_PRESENCEDETECTED;
+    } else if (src == "BLUETOOTH") {
+        return WakeupSrcType::WAKEUP_SRC_BLUETOOTH;
+    } else if (src == "WIFI") {
+        return WakeupSrcType::WAKEUP_SRC_WIFI;
+    } else if (src == "IR") {
+        return WakeupSrcType::WAKEUP_SRC_IR;
+    } else if (src == "POWERKEY") {
+        return WakeupSrcType::WAKEUP_SRC_POWERKEY;
+    } else if (src == "TIMER") {
+        return WakeupSrcType::WAKEUP_SRC_TIMER;
+    } else if (src == "CEC") {
+        return WakeupSrcType::WAKEUP_SRC_CEC;
+    } else if (src == "LAN") {
+        return WakeupSrcType::WAKEUP_SRC_LAN;
+    } else if (src == "RF4CE") {
+        return WakeupSrcType::WAKEUP_SRC_RF4CE;
+    } else {
+        LOGERR("Unknown wakeup source string: %s", wakeupSrc.c_str());
+        return WakeupSrcType::WAKEUP_SRC_UNKNOWN;
     }
 }

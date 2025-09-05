@@ -18,7 +18,7 @@
  **/
 
 #include "FrameRate.h"
-#include "manager.hpp"
+
 #include "UtilsJsonRpc.h"
 
 #define API_VERSION_NUMBER_MAJOR 1

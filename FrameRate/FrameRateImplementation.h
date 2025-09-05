@@ -34,11 +34,42 @@
 #include "libIARM.h"
 
 #include <vector>
-#include <boost/variant.hpp>
+
+/* Display Events from libds Library */
+#include "dsTypes.h"
+#include "host.hpp"
 
 namespace WPEFramework {
     namespace Plugin {
         class FrameRateImplementation : public Exchange::IFrameRate {
+            private:
+            /* VideoDevice Events from libds Library */
+            class VideoDeviceEventNotification : public device::Host::IVideoDeviceEvents {
+            private:
+                VideoDeviceEventNotification(const VideoDeviceEventNotification&) = delete;
+                VideoDeviceEventNotification& operator=(const VideoDeviceEventNotification&) = delete;
+
+            public:
+                explicit VideoDeviceEventNotification(FrameRateImplementation& parent)
+                    : _parent(parent)
+                {
+                }
+                ~VideoDeviceEventNotification() override = default;
+
+            public:
+                void OnDisplayFrameratePreChange(const std::string& frameRate) override
+                {
+                    _parent.OnDisplayFrameratePreChange(frameRate);
+                }
+
+                void OnDisplayFrameratePostChange(const std::string& frameRate) override
+                {
+                    _parent.OnDisplayFrameratePostChange(frameRate);
+                }
+
+            private:
+                FrameRateImplementation& _parent;
+            };
             public:
                 // We do not allow this plugin to be copied !!
                 FrameRateImplementation();
@@ -99,6 +130,7 @@ namespace WPEFramework {
                         const Event _event;
                         JsonValue _params;
                 };
+
             public:
                 virtual Core::hresult Register(Exchange::IFrameRate::INotification *notification) override;
                 virtual Core::hresult Unregister(Exchange::IFrameRate::INotification *notification) override;
@@ -115,8 +147,6 @@ namespace WPEFramework {
                 //End methods
 
                 void onReportFpsTimer();
-                void InitializeIARM();
-                void DeinitializeIARM();
 
                 static FrameRateImplementation* _instance;
 
@@ -146,8 +176,16 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
-
+                VideoDeviceEventNotification _videoDeviceEventNotification;
+                bool _registeredDsEventHandlers;
                 friend class Job;
+
+            public:
+                void registerDsEventHandlers();
+
+                /* VideoDeviceEventNotification*/
+                void OnDisplayFrameratePreChange(const std::string& frameRate);
+                void OnDisplayFrameratePostChange(const std::string& frameRate);
         };
     } // namespace Plugin
 } // namespace WPEFramework

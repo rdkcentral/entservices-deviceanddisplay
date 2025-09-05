@@ -31,7 +31,8 @@
 
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 
-using util = PowerUtils;
+using util                      = PowerUtils;
+using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>>;
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
@@ -338,7 +339,7 @@ namespace Plugin {
     //    - This was introduced because immerse ui was not launching if there is a direct transition from DEEP_SLEEP => ON (see RDKEMW-5633)
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
-        static WPEFramework::Core::BinairySemaphore selfLock { 1, 1 };
+        static WPEFramework::Core::BinairySemaphore selfLock{ 1, 1 };
 
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
@@ -369,7 +370,7 @@ namespace Plugin {
             isSync = isSyncStateChange(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
-                if (_deepSleepController.IsDeepSleepInProgress() 
+                if (_deepSleepController.IsDeepSleepInProgress()
                     && (_deepSleepController.Elapsed() < std::chrono::seconds(kTransientDeepsleepThresholdSec))) {
 
                     LOGINFO("deepsleep in  progress  ignoring %s request, elapsed: %" PRId64 " sec",
@@ -713,7 +714,6 @@ namespace Plugin {
                 break;
             }
 
-
             bool nwStandbyMode = isWiFiEnabled && isLanEnabled;
 
             if (nwStandbyMode == currNwStandbyMode) {
@@ -729,6 +729,46 @@ namespace Plugin {
         return errorCode;
     }
 
+    Core::hresult PowerManagerImplementation::SetWakeupSourceConfig(IWakeupSrcConfigIterator* wakeupSources)
+    {
+        int powerMode = 0;
+        int srcMask   = 0;
+        int srcConfig = 0;
+
+        WakeupSrcConfig config{ "", false };
+        LOGINFO(">>");
+
+        while (wakeupSources->Next(config)) {
+            int mask = util::conv(config.wakeupSource);
+
+            if (!mask) {
+                LOGERR("Invalid wakeup source %s", config.wakeupSource.c_str());
+                continue;
+            }
+
+            srcMask |= mask;
+            if (config.enabled) {
+                srcConfig |= mask;
+            }
+
+            LOGINFO("wakupSrc %s, enabled: %d", config.wakeupSource.c_str(), config.enabled);
+        }
+
+        uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
+
+        if (!srcMask) {
+            LOGERR("atleast one valid srcMask is expected");
+        } else {
+            _apiLock.Lock();
+            errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcMask, srcConfig);
+            _apiLock.Unlock();
+        }
+
+        LOGINFO("<< errorCode: %d", errorCode);
+
+        return errorCode;
+    }
+
     Core::hresult PowerManagerImplementation::GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const
     {
         LOGINFO(">> Power Mode stored: %x, srcType: %x,  config: %x", powerMode, srcType, config);
@@ -738,6 +778,39 @@ namespace Plugin {
         uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
 
         _apiLock.Unlock();
+
+        LOGINFO("<< errorCode: %d", errorCode);
+
+        return errorCode;
+    }
+
+    Core::hresult PowerManagerImplementation::GetWakeupSourceConfig(IWakeupSrcConfigIterator*& wakeupSources) const
+    {
+        int powerMode = 0;
+        int srcType   = 0;
+        int config    = 0;
+
+        LOGINFO(">>");
+
+        _apiLock.Lock();
+
+        uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
+
+        _apiLock.Unlock();
+
+        if (Core::ERROR_NONE == errorCode) {
+            std::list<Exchange::IPowerManager::WakeupSrcConfig> configs;
+
+            for (uint32_t mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
+                if (mask && srcType) {
+                    // TODO: after understanding why JsonEnums_** is not generated for WakupSrcType
+                    // std::string str = Core::EnumerateType<WakeupSrcType>(mask).Data();
+                    configs.push_back({ std::string(util::str(static_cast<WakeupSrcType>(mask))), bool(config & mask) });
+                }
+            }
+
+            wakeupSources = WakeSrcConfigIteratorImpl::Create<IWakeupSrcConfigIterator>(configs);
+        }
 
         LOGINFO("<< errorCode: %d", errorCode);
 

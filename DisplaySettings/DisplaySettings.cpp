@@ -95,6 +95,7 @@ bool isStbHDRcapabilitiesCache = false;
 static int  hdmiArcPortId = -1;
 static int retryPowerRequestCount = 0;
 static int  hdmiArcVolumeLevel = 0;
+static bool hdmiArcMuteStatus = false;
 bool audioPortInitActive = false;
 std::vector<int> sad_list;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
@@ -474,7 +475,9 @@ namespace WPEFramework {
 			     if (m_hdmiCecAudioDeviceDetected)
 			     {
 	                        m_systemAudioMode_Power_RequestedAndReceived = false; // Means we have not received system audio mode ON or power ON msg from AVR.
-                                sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
+                                LOGINFO("Audio Port : [HDMI_ARC0] SEND_DEVICE_AUDIO_STATUS !!! \n");
+                                sendMsgToQueue(SEND_DEVICE_AUDIO_STATUS, NULL);
+				sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
 				LOGINFO("Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n");
 				// Some AVR's and SB are not sending response for power on message even though it is in ON state
 				// Send power request immediately to query power status of the AVR
@@ -4315,6 +4318,78 @@ namespace WPEFramework {
 
             return success;
         }
+        
+	bool DisplaySettings::requestDeviceAudioStatus()
+        {
+            bool success = true;
+
+            PluginHost::IShell::state state;
+            if ((getServiceState(m_service, HDMICECSINK_CALLSIGN, state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED)) {
+                LOGINFO("%s is active", HDMICECSINK_CALLSIGN);
+
+                getHdmiCecSinkPlugin();
+                if (!m_client) {
+                    LOGERR("HdmiCecSink plugin not accessible\n");
+                }
+                else {
+                    JsonObject hdmiCecSinkResult;
+                    JsonObject param;
+
+                    LOGINFO("Requesting Audio Status \n");
+                    {
+                        Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
+                        m_client->Invoke<JsonObject, JsonObject>(2000, "sendGetAudioStatusMessage", param, hdmiCecSinkResult);
+                    }
+                    if (!hdmiCecSinkResult["success"].Boolean()) {
+                        success = false;
+                        LOGERR("HdmiCecSink Plugin returned error\n");
+                    }
+                }
+            }
+            else {
+                success = false;
+                LOGERR("HdmiCecSink plugin not ready\n");
+            }
+
+            return success;
+        }
+
+        bool DisplaySettings::sendUserControlPressCommand(int keyCode)
+        {
+            bool success = true;
+
+            PluginHost::IShell::state state;
+            if ((getServiceState(m_service, HDMICECSINK_CALLSIGN, state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED)) {
+                LOGINFO("%s is active", HDMICECSINK_CALLSIGN);
+
+                getHdmiCecSinkPlugin();
+                if (!m_client) {
+                    LOGERR("HdmiCecSink plugin not accessible\n");
+                }
+                else {
+                    JsonObject hdmiCecSinkResult;
+                    JsonObject param;
+                    param["logicalAddress"] = 5;
+                    param["keyCode"] = keyCode;
+
+                    LOGINFO(" Send mute key code \n");
+                    {
+                        Utils::Synchro::UnlockApiGuard<DisplaySettings> unlockApi;
+                        m_client->Invoke<JsonObject, JsonObject>(2000, "sendUserControlPressed", param, hdmiCecSinkResult);
+                    }
+                    if (!hdmiCecSinkResult["success"].Boolean()) {
+                        success = false;
+                        LOGERR("HdmiCecSink Plugin returned error\n");
+                    }
+                }
+            }
+            else {
+                success = false;
+                LOGERR("HdmiCecSink plugin not ready\n");
+            }
+
+            return success;
+        }
 
         uint32_t DisplaySettings::setEnableAudioPort (const JsonObject& parameters, JsonObject& response)
         {   //TODO: Handle other audio ports. Currently only supports HDMI ARC/eARC
@@ -4322,6 +4397,7 @@ namespace WPEFramework {
             returnIfParamNotFound(parameters, "audioPort");
 
             bool success = true;
+	    bool isAudioPortMuted = false;
             string audioPort = parameters["audioPort"].String();
 
             returnIfParamNotFound(parameters, "enable");
@@ -4355,11 +4431,17 @@ namespace WPEFramework {
                     } else if (aPort.isMuted()) {
                         LOGWARN("DisplaySettings::setEnableAudioPort aPort.isMuted()\n");
                         aPort.setMuted(true);
+			isAudioPortMuted = true;
+			LOGWARN("DisplaySettings::setEnableAudioPort isAudioPortMuted true\n");
                     }
                 }
                 else /* for HDMI_ARC0 audio port */ 
 		{
-			LOGINFO("%s: m_hdmiInAudioDeviceConnected: %d , pEnable: %d \n",__FUNCTION__,m_hdmiInAudioDeviceConnected, pEnable);
+			if (aPort.isMuted()) {
+                            LOGWARN("Amit DisplaySettings::setEnableAudioPort aPort.isMuted()\n");
+                            isAudioPortMuted = true;
+			}
+			LOGINFO("Amit %s: m_hdmiInAudioDeviceConnected: %d , pEnable: %d \n",__FUNCTION__,m_hdmiInAudioDeviceConnected, pEnable);
 
 			device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(audioPort);
 			device::AudioStereoMode mode = device::AudioStereoMode::kStereo;  //default to stereo
@@ -4383,7 +4465,7 @@ namespace WPEFramework {
 			       {
 				   if(m_arcEarcAudioEnabled == false ) 
 			 	   {
-                                        LOGINFO("%s: Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n", __FUNCTION__);
+                                        LOGINFO("Amit %s: Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n", __FUNCTION__);
                                         sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
 					/* Check SAD for passthru and Auto mode only */
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
@@ -4446,23 +4528,31 @@ namespace WPEFramework {
 					    //PCM
 					    aPort.enableARC(dsAUDIOARCSUPPORT_ARC, true);
                                             m_arcEarcAudioEnabled = true;
-					    LOGINFO("%s: Enable ARC... \n",__FUNCTION__);
+					    LOGINFO("Amit %s: Enable ARC... \n",__FUNCTION__);
+                                        }
+					LOGINFO("Amit isAudioPortMuted :%d  hdmiArcMuteStatus: %d: \n", isAudioPortMuted, hdmiArcMuteStatus);
+					// Send mute if not already
+					if(isAudioPortMuted != hdmiArcMuteStatus)
+					{
+			                    LOGINFO("Amit send SEND_MUTE_KEY_EVENT \n");			
+                                            sendMsgToQueue(SEND_MUTE_KEY_EVENT, NULL);
 					}
-				   } 
-				   else /* m_arcEarcAudioEnabled == true */
+
+                                   }
+                                   else /* m_arcEarcAudioEnabled == true */
 				   {
 					// audio already routed.
-                                        LOGINFO("ARC/eARC is audio already enabled. Value of m_arcEarcAudioEnabled is %d: \n", m_arcEarcAudioEnabled);
+                                        LOGINFO("Amit ARC/eARC is audio already enabled. Value of m_arcEarcAudioEnabled is %d: \n", m_arcEarcAudioEnabled);
 				   }/*End of if(m_arcEarcAudioEnabled == false ) */
 				}/* ARC Case end*/
 			        else
 				{
-				    LOGWARN("DisplaySettings::setEnableAudioPort Connected device doesn't have ARC/eARC capability \n");
+				    LOGWARN("Amit DisplaySettings::setEnableAudioPort Connected device doesn't have ARC/eARC capability \n");
 				}
 			    }
 			    else /*m_hdmiInAudioDeviceConnected == false */
 			    {
-				LOGWARN("Audio device may be unplugged, not routing returning failure, m_hdmiInAudioDeviceConnected is %d: \n", m_hdmiInAudioDeviceConnected);
+				LOGWARN("Amit Audio device may be unplugged, not routing returning failure, m_hdmiInAudioDeviceConnected is %d: \n", m_hdmiInAudioDeviceConnected);
                                 success = false; /* Returning failure since m_hdmiInAudioDeviceConnected=flase (HPD unplug case), but received call to enable audio*/
 			    }/* End of (m_hdmiInAudioDeviceConnected == true) */
 
@@ -4829,6 +4919,19 @@ void DisplaySettings::sendMsgThread()
 					result = DisplaySettings::_instance->requestAudioDevicePowerStatus();
 				}
 				break;
+
+				case SEND_MUTE_KEY_EVENT:
+                                {
+                                        LOGINFO(" Send Mute code ");
+                                        result = DisplaySettings::_instance->sendUserControlPressCommand(67);
+                                }
+
+				case SEND_DEVICE_AUDIO_STATUS:
+                                {
+                                        LOGINFO(" Send Device Audio Status message");
+                                        result = DisplaySettings::_instance->requestDeviceAudioStatus();
+                                }
+                                break;
 
 				case SEND_REQUEST_ARC_INITIATION: // spearte initiation and termination cases
 				{
@@ -5206,6 +5309,9 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("muteStatus") && parameters.HasLabel("volumeLevel")) {
                 hdmiArcVolumeLevel =  stoi(parameters["volumeLevel"].String());
+		hdmiArcMuteStatus = stoi(parameters["muteStatus"].String());
+		LOGINFO("[ARC Audio Status Event], %s  mute strings : %s  ", __FUNCTION__,parameters["muteStatus"].String().c_str());
+		LOGINFO("[ARC Audio Status Event], %s  hdmiArcVolumeLevel : %d hdmiArcMuteStatus: %d ", __FUNCTION__,hdmiArcVolumeLevel,hdmiArcMuteStatus);
             } else {
                 LOGERR("Field 'muteStatus' and 'volumeLevel' could not be found in the event's payload.");
             }
@@ -5253,6 +5359,7 @@ void DisplaySettings::sendMsgThread()
 		if (m_hdmiCecAudioDeviceDetected)
 		{
                     LOGINFO("Trigger Audio Device Power State Request status ... \n");
+                    sendMsgToQueue(SEND_DEVICE_AUDIO_STATUS, NULL);
 		    m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_REQUEST;
                     sendMsgToQueue(REQUEST_AUDIO_DEVICE_POWER_STATUS, NULL);
 
@@ -5260,6 +5367,7 @@ void DisplaySettings::sendMsgThread()
                     LOGINFO("Audio Device is removed \n");
 		}
                 hdmiArcVolumeLevel = 0;
+		hdmiArcMuteStatus = false;
         }
 
 	void DisplaySettings::onAudioDevicePowerStatusEventHandler(const JsonObject& parameters) {

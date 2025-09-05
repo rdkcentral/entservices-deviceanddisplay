@@ -757,7 +757,7 @@ namespace Plugin {
         uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
 
         if (!srcMask) {
-            LOGERR("atleast one valid srcMask is expected");
+            LOGERR("at least one valid srcMask is expected");
         } else {
             _apiLock.Lock();
             errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcMask, srcConfig);

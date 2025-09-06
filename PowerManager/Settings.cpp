@@ -219,7 +219,6 @@ Settings Settings::Load(const std::string& path)
         }
 
         fsync(fd);
-        close(fd);
     }
 
     settings._powerStateBeforeReboot = settings._powerState;

@@ -265,6 +265,7 @@ namespace WPEFramework {
 	    bool sendHdmiCecSinkAudioDevicePowerOn();
 	    bool getHdmiCecSinkCecEnableStatus();
 	    bool getHdmiCecSinkAudioDeviceConnectedStatus();
+        bool sendSetAudioMuteStatus();
 
 	    void onTimer();
 	    void stopCecTimeAndUnsubscribeEvent();
@@ -333,7 +334,9 @@ namespace WPEFramework {
 		REQUEST_AUDIO_DEVICE_POWER_STATUS,
 		SEND_REQUEST_ARC_INITIATION,
 		SEND_REQUEST_ARC_TERMINATION,
+        SEND_AUDIO_DEVICE_MUTE_MSG,
 		} msg_t;
+
 
 	   typedef struct sendMsgInfo {
                    int msg;

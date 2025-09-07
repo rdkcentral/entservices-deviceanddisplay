@@ -856,7 +856,7 @@ namespace WPEFramework {
             }
         }
 
-        DisplaySettings::AUDIO_DEVICE_SAD_STATE DisplaySettings::getAudioDeviceSADState() const {
+        int DisplaySettings::getAudioDeviceSADState() const {
             LOGINFO();
             //function used to read the current SAD state with lock
             std::lock_guard<std::mutex> lock(m_SadMutex);
@@ -865,16 +865,18 @@ namespace WPEFramework {
             return m_AudioDeviceSADState;
         }
 
-        DisplaySettings::AUDIO_DEVICE_SAD_STATE DisplaySettings::setAudioDeviceSADState(AUDIO_DEVICE_SAD_STATE newState) {
-            //function used to set the requried SAD state with lock
-            std::lock_guard<std::mutex> lock(m_SadMutex);
-            LOGINFO("akshay in setAudioDeviceSADState and new SAD state requested :%d",newState);
-            std::cout<<"akshay in setAudioDeviceSADState and new SAD state requested :"<<newState<<std::endl;
-            m_AudioDeviceSADState = newState;
-            LOGINFO("akshay in setAudioDeviceSADState and returing updated m_AudioDeviceSADState :%d",m_AudioDeviceSADState);
-            std::cout<<"akshay in setAudioDeviceSADState and returing updated m_AudioDeviceSADState :"<<m_AudioDeviceSADState<<std::endl;
-            return m_AudioDeviceSADState;
-        }
+void DisplaySettings::setAudioDeviceSADState(int newState) {
+    // function used to set the required SAD state with lock
+    std::lock_guard<std::mutex> lock(m_SadMutex);
+
+    LOGINFO("akshay in setAudioDeviceSADState and new SAD state requested : %d", newState);
+    std::cout << "akshay in setAudioDeviceSADState and new SAD state requested : " << newState << std::endl;
+
+    m_AudioDeviceSADState = newState;
+
+    LOGINFO("akshay in setAudioDeviceSADState updated m_AudioDeviceSADState : %d", m_AudioDeviceSADState);
+    std::cout << "akshay in setAudioDeviceSADState updated m_AudioDeviceSADState : " << m_AudioDeviceSADState << std::endl;
+}
 
         void DisplaySettings::dsHdmiEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {

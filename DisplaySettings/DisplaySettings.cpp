@@ -856,7 +856,7 @@ namespace WPEFramework {
             }
         }
 
-        int DisplaySettings::getAudioDeviceSADState() const {
+        int DisplaySettings::getAudioDeviceSADState(void) {
             LOGINFO();
             //function used to read the current SAD state with lock
             std::lock_guard<std::mutex> lock(m_SadMutex);
@@ -4982,8 +4982,8 @@ void DisplaySettings::sendMsgThread()
 		    device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
 		    device::AudioStereoMode mode = device::AudioStereoMode::kStereo;  //default to stereo
                     mode = aPort.getStereoMode(); //get Last User set stereo mode and set
-		    if ((m_AudioDeviceSADState == AUDIO_DEVICE_SAD_CLEARED || m_AudioDeviceSADState == AUDIO_DEVICE_SAD_UNKNOWN) && \ //akshay m_AudioDeviceSADState reading with m_AudioDeviceStatesUpdateMutex lock
-				    ((mode == device::AudioStereoMode::kPassThru) || aPort.getStereoAuto() == true)) {
+		    if ((m_AudioDeviceSADState == AUDIO_DEVICE_SAD_CLEARED || m_AudioDeviceSADState == AUDIO_DEVICE_SAD_UNKNOWN) && \
+				    ((mode == device::AudioStereoMode::kPassThru) || aPort.getStereoAuto() == true)) {  //akshay m_AudioDeviceSADState reading with m_AudioDeviceStatesUpdateMutex lock
 			   LOGINFO("Initiate SAD request\n");
 			   m_AudioDeviceSADState = AUDIO_DEVICE_SAD_REQUESTED; //akshay m_AudioDeviceSADState writing with m_AudioDeviceStatesUpdateMutex lock
 			   sendMsgToQueue(REQUEST_SHORT_AUDIO_DESCRIPTOR, NULL);

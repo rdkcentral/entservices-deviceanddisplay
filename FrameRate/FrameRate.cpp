@@ -17,6 +17,7 @@
  * limitations under the License.
  **/
 
+#include <exception>
 #include "FrameRate.h"
 #include "manager.hpp"
 #include "UtilsJsonRpc.h"
@@ -77,9 +78,10 @@ namespace WPEFramework
                 device::Manager::Initialize();
                 LOGINFO("device::Manager::Initialize success");
             }
-            catch(...)
+            catch(const std::exception& e)
             {
                 LOGINFO("device::Manager::Initialize failed");
+                LOGERR("Exception caught: {%s}", e.what());
             }
 
             _service = service;
@@ -158,9 +160,10 @@ namespace WPEFramework
                 device::Manager::DeInitialize();
                 LOGINFO("device::Manager::DeInitialize success");
             }
-            catch(...)
+            catch(const std::exception& e)
             {
                 LOGINFO("device::Manager::DeInitialize failed");
+                LOGERR("Exception caught: {%s}", e.what());
             }
 
             SYSLOG(Logging::Shutdown, (string(_T("FrameRate de-initialised"))));

@@ -33,22 +33,13 @@
 #include "tptimer.h"
 #include "libIARM.h"
 
-#include <vector>
-
 /* Display Events from libds Library */
 #include "dsTypes.h"
 #include "host.hpp"
 
 namespace WPEFramework {
     namespace Plugin {
-        class FrameRateImplementation : public Exchange::IFrameRate {
-            private:
-            /* VideoDevice Events from libds Library */
-            class VideoDeviceEventNotification : public device::Host::IVideoDeviceEvents {
-            private:
-                VideoDeviceEventNotification(const VideoDeviceEventNotification&) = delete;
-                VideoDeviceEventNotification& operator=(const VideoDeviceEventNotification&) = delete;
-
+        class FrameRateImplementation : public Exchange::IFrameRate, public device::Host::IVideoDeviceEvents {
             public:
                 explicit VideoDeviceEventNotification(FrameRateImplementation& parent)
                     : _parent(parent)
@@ -177,11 +168,9 @@ namespace WPEFramework {
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
                 VideoDeviceEventNotification _videoDeviceEventNotification;
-                bool _registeredDsEventHandlers;
                 friend class Job;
 
             public:
-                void registerDsEventHandlers();
 
                 /* VideoDeviceEventNotification*/
                 void OnDisplayFrameratePreChange(const std::string& frameRate);

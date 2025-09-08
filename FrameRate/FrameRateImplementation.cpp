@@ -61,10 +61,9 @@ namespace WPEFramework
               , m_fpsCollectionInProgress(false)
               , m_lastFpsValue(0)
               , _videoDeviceEventNotification(*this)
-              , _registeredDsEventHandlers(false)
         {
             FrameRateImplementation::_instance = this;
-            registerDsEventHandlers();
+            device::Host::getInstance().Register(&_videoDeviceEventNotification, "WPE::FrameRate");
             // Connect the timer callback handle for triggering FrameRate notifications.
             m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
         }
@@ -72,7 +71,6 @@ namespace WPEFramework
         FrameRateImplementation::~FrameRateImplementation()
         {
             device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
-            _registeredDsEventHandlers = false;
             //Stop the timer if running
             if (m_reportFpsTimer.isActive())
             {
@@ -515,16 +513,6 @@ namespace WPEFramework
                 m_maxFpsValue = DEFAULT_MAX_FPS_VALUE;
                 m_totalFpsValues = 0;
                 m_numberOfFpsUpdates = 0;
-            }
-        }
-
-        void FrameRateImplementation::registerDsEventHandlers()
-        {
-            LOGINFO("registerDsEventHandlers");
-            if(!_registeredDsEventHandlers)
-            {
-                _registeredDsEventHandlers = true;
-                device::Host::getInstance().Register(&_videoDeviceEventNotification, "WPE::FrameRate");
             }
         }
 

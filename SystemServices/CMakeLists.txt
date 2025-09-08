@@ -22,6 +22,7 @@ set(PLUGIN_SYSTEM_AUTOSTART false CACHE STRING "To automatically start System pl
 set(PLUGIN_SYSTEMSERVICE_STARTUPORDER "" CACHE STRING "To configure startup order of SystemServices plugin")
 
 find_package(${NAMESPACE}Plugins REQUIRED)
+find_package(${NAMESPACE}Definitions REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 
 if(BUILD_TESTS)
@@ -67,6 +68,7 @@ if(PROCPS_LIBRARIES)
     target_link_libraries(${MODULE_NAME} PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
 
+target_link_libraries(${MODULE_NAME} PRIVATE${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 find_package(DS)
 if (DS_FOUND)
 	find_package(IARMBus)

@@ -163,6 +163,10 @@ namespace WPEFramework {
                 std::mutex m_callMutex;
                 friend class Job;
 
+            private:
+
+                device::Host::IVideoDeviceEvents *m_VideoDeviceEventNotification;
+
             public:
 
                 /* VideoDeviceEventNotification*/

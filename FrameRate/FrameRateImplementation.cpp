@@ -62,14 +62,14 @@ namespace WPEFramework
               , m_lastFpsValue(0)
         {
             FrameRateImplementation::_instance = this;
-            device::Host::getInstance().Register(&_videoDeviceEventNotification, "WPE::FrameRate");
+            device::Host::getInstance().Register(m_VideoDeviceEventNotification, "WPE::FrameRate");
             // Connect the timer callback handle for triggering FrameRate notifications.
             m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
         }
 
         FrameRateImplementation::~FrameRateImplementation()
         {
-            device::Host::getInstance().UnRegister(&_videoDeviceEventNotification);
+            device::Host::getInstance().UnRegister(m_VideoDeviceEventNotification);
             //Stop the timer if running
             if (m_reportFpsTimer.isActive())
             {

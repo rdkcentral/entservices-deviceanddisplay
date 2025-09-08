@@ -4319,6 +4319,7 @@ namespace WPEFramework {
         uint32_t DisplaySettings::setEnableAudioPort (const JsonObject& parameters, JsonObject& response)
         {   //TODO: Handle other audio ports. Currently only supports HDMI ARC/eARC
             LOGINFOMETHOD();
+            std::cout << "akshay value of AUDIO_DEVICE_SAD_UPDATED" << AUDIO_DEVICE_SAD_UPDATED << std::endl;
             returnIfParamNotFound(parameters, "audioPort");
 
             bool success = true;
@@ -4405,6 +4406,7 @@ namespace WPEFramework {
 						{
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
 							m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+                            std::cout << "akshay value of m_AudioDeviceSADState updated" << m_AudioDeviceSADState << std::endl;
 							aPort.setSAD(sad_list);
 
 							if(aPort.getStereoAuto() == true) {

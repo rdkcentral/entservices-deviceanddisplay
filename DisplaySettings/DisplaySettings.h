@@ -54,7 +54,7 @@ namespace WPEFramework {
 		// this class exposes a public method called, Notify(), using this methods, all subscribed clients
 		// will receive a JSONRPC message as a notification, in case this method is called.
         class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator,
-                                public device::Host::IDisplayEvent, public device::Host::IAudioOutputPortEvents,
+                                public device::Host::IDisplayEvents, public device::Host::IAudioOutputPortEvents,
                                 public device::Host::IDisplayDeviceEvents, public device::Host::IHdmiInEvents,
                                 public device::Host::IVideoDeviceEvents, public device::Host::IVideoOutputPortEvents {
         private:
@@ -309,7 +309,7 @@ namespace WPEFramework {
         void OnDisplayRxSense(dsDisplayEvent_t displayEvent) override;
 
         /* IAudioOutputPortEvents*/
-        void OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected) override;
+        void OnAudioOutHotPlug(dsAudioPortType_t portType, uint32_t uiPortNumber, bool isPortConnected) override;
         void OnAudioFormatUpdate(dsAudioFormat_t audioFormat) override;
         void OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status) override;
         void OnAudioPortStateChanged(dsAudioPortState_t audioPortState) override;

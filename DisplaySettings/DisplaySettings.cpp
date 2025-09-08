@@ -4416,11 +4416,11 @@ void DisplaySettings::setAudioDeviceSADState(int newState) {
 					    // std::lock_guard<std::mutex> lock(m_SadMutex);
 					    // /* Take actions according to SAD udpate state */
 					    // switch(m_AudioDeviceSADState)
-                        std::cout << "akshay calling setAudioDeviceSADState 3 timesfunction" << std::endl;
-                        setAudioDeviceSADState(AUDIO_DEVICE_SAD_REQUESTED); // set the SAD state to REQUESTED when ARC is enabled
-                        setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED); // set the SAD state to UPDATED for testing purpose
-                        setAudioDeviceSADState(AUDIO_DEVICE_SAD_UNKNOWN); // set the SAD state to UNKNOWN for testing purpose
-                        std::cout<< "akshay calling getAudioDeviceSADState function after 3 times of set" << std::endl;
+                        // std::cout << "akshay calling setAudioDeviceSADState 3 timesfunction" << std::endl;
+                        // setAudioDeviceSADState(AUDIO_DEVICE_SAD_REQUESTED); // set the SAD state to REQUESTED when ARC is enabled
+                        // setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED); // set the SAD state to UPDATED for testing purpose
+                        // setAudioDeviceSADState(AUDIO_DEVICE_SAD_UNKNOWN); // set the SAD state to UNKNOWN for testing purpose
+                        // std::cout<< "akshay calling getAudioDeviceSADState function after 3 times of set" << std::endl;
                         LOGINFO("akshay in getAudioDeviceSADState calling getAudioDeviceSADState");
                         switch(getAudioDeviceSADState()) // calling getAudioDeviceSADState function to get the SAD state with lock in the function
 					    {

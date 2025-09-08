@@ -22,6 +22,7 @@
 
 #include "DisplaySettings.h"
 #include <algorithm>
+#include "dsMgr.h"
 #include "exception.hpp"
 #include "videoOutputPort.hpp"
 #include "videoOutputPortType.hpp"
@@ -30,12 +31,20 @@
 #include "audioOutputPort.hpp"
 #include "audioOutputPortType.hpp"
 #include "audioOutputPortConfig.hpp"
+#include "dsUtl.h"
+#include "dsError.h"
 #include "list.hpp"
+#include "dsDisplay.h"
 
 #include "tr181api.h"
 
 #include "tracing/Logging.h"
 #include <syscall.h>
+#include "UtilsCStr.h"
+#include "UtilsIarm.h"
+#include "UtilsJsonRpc.h"
+#include "UtilsString.h"
+#include "UtilsisValidInt.h"
 #include "UtilsSynchroIarm.hpp"
 
 using namespace std;

@@ -68,7 +68,7 @@ if(PROCPS_LIBRARIES)
     target_link_libraries(${MODULE_NAME} PRIVATE ${PROCPS_LIBRARIES})
 endif(PROCPS_LIBRARIES)
 
-target_link_libraries(${MODULE_NAME} PRIVATE${NAMESPACE}Definitions::${NAMESPACE}Definitions)
+target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 find_package(DS)
 if (DS_FOUND)
 	find_package(IARMBus)

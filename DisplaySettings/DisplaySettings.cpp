@@ -4461,7 +4461,7 @@ namespace WPEFramework {
 				   else /* m_arcEarcAudioEnabled == true */
 				   {
 					// audio already routed.
-                                        LOGINFO("akshay inside else if m_arcEarcAudioEnabled is true")
+                                        LOGINFO("akshay inside else if m_arcEarcAudioEnabled is true");
                                         LOGINFO("ARC/eARC is audio already enabled. Value of m_arcEarcAudioEnabled is %d: \n", m_arcEarcAudioEnabled);
 				   }/*End of if(m_arcEarcAudioEnabled == false ) */
 				}/* ARC Case end*/

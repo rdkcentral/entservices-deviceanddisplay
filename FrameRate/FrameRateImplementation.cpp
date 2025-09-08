@@ -60,7 +60,6 @@ namespace WPEFramework
               , m_numberOfFpsUpdates(0)
               , m_fpsCollectionInProgress(false)
               , m_lastFpsValue(0)
-              , _videoDeviceEventNotification(*this)
         {
             FrameRateImplementation::_instance = this;
             device::Host::getInstance().Register(&_videoDeviceEventNotification, "WPE::FrameRate");

@@ -40,12 +40,6 @@
 namespace WPEFramework {
     namespace Plugin {
         class FrameRateImplementation : public Exchange::IFrameRate, public device::Host::IVideoDeviceEvents {
-            public:
-                explicit VideoDeviceEventNotification(FrameRateImplementation& parent)
-                    : _parent(parent)
-                {
-                }
-                ~VideoDeviceEventNotification() override = default;
 
             public:
                 void OnDisplayFrameratePreChange(const std::string& frameRate) override
@@ -167,7 +161,6 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
-                VideoDeviceEventNotification _videoDeviceEventNotification;
                 friend class Job;
 
             public:

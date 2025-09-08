@@ -42,20 +42,6 @@ namespace WPEFramework {
         class FrameRateImplementation : public Exchange::IFrameRate, public device::Host::IVideoDeviceEvents {
 
             public:
-                void OnDisplayFrameratePreChange(const std::string& frameRate) override
-                {
-                    _parent.OnDisplayFrameratePreChange(frameRate);
-                }
-
-                void OnDisplayFrameratePostChange(const std::string& frameRate) override
-                {
-                    _parent.OnDisplayFrameratePostChange(frameRate);
-                }
-
-            private:
-                FrameRateImplementation& _parent;
-            };
-            public:
                 // We do not allow this plugin to be copied !!
                 FrameRateImplementation();
                 ~FrameRateImplementation() override;
@@ -69,6 +55,13 @@ namespace WPEFramework {
                 BEGIN_INTERFACE_MAP(FrameRateImplementation)
                     INTERFACE_ENTRY(Exchange::IFrameRate)
                 END_INTERFACE_MAP
+
+                template <typename T>
+                T* baseInterface()
+                {
+                    static_assert(std::is_base_of<T, FrameRateImplementation>(), "base type mismatch");
+                    return static_cast<T*>(this);
+                }
 
             public:
                 enum Event
@@ -162,10 +155,6 @@ namespace WPEFramework {
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
                 friend class Job;
-
-            private:
-
-                device::Host::IVideoDeviceEvents *m_VideoDeviceEventNotification;
 
             public:
 

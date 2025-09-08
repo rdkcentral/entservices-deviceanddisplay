@@ -4341,6 +4341,7 @@ void DisplaySettings::setAudioDeviceSADState(int newState) {
         uint32_t DisplaySettings::setEnableAudioPort (const JsonObject& parameters, JsonObject& response)
         {   //TODO: Handle other audio ports. Currently only supports HDMI ARC/eARC
             LOGINFOMETHOD();
+            std::cout << "akshay value of m_AudioDeviceSADState in setEnableAudioPort function and before get called: " << m_AudioDeviceSADState << std::endl;
             returnIfParamNotFound(parameters, "audioPort");
 
             bool success = true;
@@ -4415,12 +4416,17 @@ void DisplaySettings::setAudioDeviceSADState(int newState) {
 					    // std::lock_guard<std::mutex> lock(m_SadMutex);
 					    // /* Take actions according to SAD udpate state */
 					    // switch(m_AudioDeviceSADState)
-                        std::cout<< "akshay calling getAudioDeviceSADState function" << std::endl;
+                        std::cout << "akshay calling setAudioDeviceSADState 3 timesfunction" << std::endl;
+                        setAudioDeviceSADState(AUDIO_DEVICE_SAD_REQUESTED); // set the SAD state to REQUESTED when ARC is enabled
+                        setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED); // set the SAD state to UPDATED for testing purpose
+                        setAudioDeviceSADState(AUDIO_DEVICE_SAD_UNKNOWN); // set the SAD state to UNKNOWN for testing purpose
+                        std::cout<< "akshay calling getAudioDeviceSADState function after 3 times of set" << std::endl;
                         LOGINFO("akshay in getAudioDeviceSADState calling getAudioDeviceSADState");
                         switch(getAudioDeviceSADState()) // calling getAudioDeviceSADState function to get the SAD state with lock in the function
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
 						{
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_UPDATED case");
 							LOGINFO("%s: Enable ARC... \n",__FUNCTION__);
 					 	        aPort.enableARC(dsAUDIOARCSUPPORT_ARC, true);
 							m_arcEarcAudioEnabled = true;
@@ -4429,6 +4435,7 @@ void DisplaySettings::setAudioDeviceSADState(int newState) {
 
 						case AUDIO_DEVICE_SAD_RECEIVED: 
 						{
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_RECEIVED case");
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
                             std::cout << "akshay calling getAudioDeviceSAD function" << std::endl;
                             LOGINFO("akshay in getAudioDeviceSAD calling getAudioDeviceSAD");
@@ -4450,6 +4457,7 @@ void DisplaySettings::setAudioDeviceSADState(int newState) {
 											
 						case AUDIO_DEVICE_SAD_REQUESTED: 
 						{
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_REQUESTED case");
 							// SAD is not yet received so start a timer to wait for SAD update
 							if ( !(m_SADDetectionTimer.isActive()))
 							{ 			    
@@ -4463,8 +4471,9 @@ void DisplaySettings::setAudioDeviceSADState(int newState) {
 											
 						default: 
 						{
+                            LOGINFO("akshay inside default case");
                             std::lock_guard<std::mutex> lock(m_SadMutex);
-							LOGINFO("Incorrect Audio Deivce SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
+							LOGINFO("Incorrect Audio Device SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
 						}
 						break;
 					    }

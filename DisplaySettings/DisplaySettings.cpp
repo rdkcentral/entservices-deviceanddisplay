@@ -5752,7 +5752,7 @@ void DisplaySettings::sendMsgThread()
             }
         }
 
-        void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t audioPortType, int uiPortNumber, bool isPortConnected)
+        void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t portType, uint32_t uiPortNumber, bool isPortConnected)
         {
             LOGINFO("Received OnAudioOutHotPlug callback");
             if(DisplaySettings::_instance)

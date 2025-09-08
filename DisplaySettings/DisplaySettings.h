@@ -32,10 +32,9 @@
 #include <fstream>
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
-
-/* Display Events from libds Library */
-#include "dsTypes.h"
 #include "host.hpp"
+#include "manager.hpp"
+#include "dsRpc.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;

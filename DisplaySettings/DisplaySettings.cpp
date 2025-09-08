@@ -22,8 +22,6 @@
 
 #include "DisplaySettings.h"
 #include <algorithm>
-#include "dsMgr.h"
-#include "host.hpp"
 #include "exception.hpp"
 #include "videoOutputPort.hpp"
 #include "videoOutputPortType.hpp"
@@ -32,24 +30,12 @@
 #include "audioOutputPort.hpp"
 #include "audioOutputPortType.hpp"
 #include "audioOutputPortConfig.hpp"
-#include "manager.hpp"
-#include "dsUtl.h"
-#include "dsError.h"
 #include "list.hpp"
-#include "dsDisplay.h"
 
 #include "tr181api.h"
 
 #include "tracing/Logging.h"
 #include <syscall.h>
-
-#include "UtilsCStr.h"
-#include "UtilsIarm.h"
-#include "UtilsJsonRpc.h"
-#include "UtilsString.h"
-#include "UtilsisValidInt.h"
-#include "dsRpc.h"
-
 #include "UtilsSynchroIarm.hpp"
 
 using namespace std;
@@ -561,6 +547,7 @@ namespace WPEFramework {
             catch(...)
             {
                 LOGINFO("device::Manager::Initialize failed");
+                LOG_DEVICE_EXCEPTION0();
             }
 
             if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == getSystemPowerState())
@@ -667,6 +654,7 @@ namespace WPEFramework {
             catch(...)
             {
                 LOGINFO("device::Manager::DeInitialize failed");
+                LOG_DEVICE_EXCEPTION0();
             }
 
             DisplaySettings::_instance = nullptr;

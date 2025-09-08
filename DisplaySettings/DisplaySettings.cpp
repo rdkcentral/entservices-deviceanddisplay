@@ -4390,8 +4390,11 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
+                        LOGINFO("akshay current SAD Status before lock %d", m_AudioDeviceSADState);
 					    std::lock_guard<std::mutex> lock(m_SadMutex);
 					    /* Take actions according to SAD udpate state */
+                        LOGINFO("akshay current SAD Status after lock %d", m_AudioDeviceSADState);
+
 					    switch(m_AudioDeviceSADState)
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
@@ -4399,6 +4402,7 @@ namespace WPEFramework {
 							LOGINFO("%s: Enable ARC... \n",__FUNCTION__);
 					 	        aPort.enableARC(dsAUDIOARCSUPPORT_ARC, true);
 							m_arcEarcAudioEnabled = true;
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_UPDATED case");
 						}
 						break;
 
@@ -4407,6 +4411,7 @@ namespace WPEFramework {
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
 							m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
                             std::cout << "akshay value of m_AudioDeviceSADState updated" << m_AudioDeviceSADState << std::endl;
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_RECEIVED case");
 							aPort.setSAD(sad_list);
 
 							if(aPort.getStereoAuto() == true) {
@@ -4424,6 +4429,7 @@ namespace WPEFramework {
 											
 						case AUDIO_DEVICE_SAD_REQUESTED: 
 						{
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_REQUESTED case");
 							// SAD is not yet received so start a timer to wait for SAD update
 							if ( !(m_SADDetectionTimer.isActive()))
 							{ 			    
@@ -4437,6 +4443,7 @@ namespace WPEFramework {
 											
 						default: 
 						{
+                            LOGINFO( "akshay inside default case");
 							LOGINFO("Incorrect Audio Deivce SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
 						}
 						break;
@@ -4454,6 +4461,7 @@ namespace WPEFramework {
 				   else /* m_arcEarcAudioEnabled == true */
 				   {
 					// audio already routed.
+                                        LOGINFO("akshay inside else if m_arcEarcAudioEnabled is true")
                                         LOGINFO("ARC/eARC is audio already enabled. Value of m_arcEarcAudioEnabled is %d: \n", m_arcEarcAudioEnabled);
 				   }/*End of if(m_arcEarcAudioEnabled == false ) */
 				}/* ARC Case end*/

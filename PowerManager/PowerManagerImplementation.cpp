@@ -735,15 +735,17 @@ namespace Plugin {
         int srcMask   = 0;
         int srcConfig = 0;
 
+        uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
         WakeupSrcConfig config{ "", false };
+
         LOGINFO(">>");
 
         while (wakeupSources->Next(config)) {
             int mask = util::conv(config.wakeupSource);
 
             if (!mask) {
-                LOGERR("Invalid wakeup source %s", config.wakeupSource.c_str());
-                continue;
+                LOGERR("<< Invalid wakeup source %s errorCode:%d", config.wakeupSource.c_str(), errorCode);
+                return errorCode;
             }
 
             srcMask |= mask;
@@ -754,15 +756,9 @@ namespace Plugin {
             LOGINFO("wakeupSrc %s, enabled: %d", config.wakeupSource.c_str(), config.enabled);
         }
 
-        uint32_t errorCode = Core::ERROR_INVALID_PARAMETER;
-
-        if (!srcMask) {
-            LOGERR("at least one valid srcMask is expected");
-        } else {
-            _apiLock.Lock();
-            errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcMask, srcConfig);
-            _apiLock.Unlock();
-        }
+        _apiLock.Lock();
+        errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcMask, srcConfig);
+        _apiLock.Unlock();
 
         LOGINFO("<< errorCode: %d", errorCode);
 

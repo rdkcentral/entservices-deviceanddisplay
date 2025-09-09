@@ -267,7 +267,7 @@ namespace WPEFramework {
 	    bool getHdmiCecSinkAudioDeviceConnectedStatus();
         int getAudioDeviceSADState(void);
         void setAudioDeviceSADState(int newState);
-        int DisplaySettings::getCurrentArcRoutingState(void);
+        int getCurrentArcRoutingState(void);
 
 	    void onTimer();
 	    void stopCecTimeAndUnsubscribeEvent();

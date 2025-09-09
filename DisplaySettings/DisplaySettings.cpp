@@ -856,6 +856,28 @@ namespace WPEFramework {
             }
         }
 
+        int DisplaySettings::getAudioDeviceSADState(void) {
+            LOGINFO();
+            //function used to read the current SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            LOGINFO("akshay in getAudioDeviceSADState and Current SAD state:%d",m_AudioDeviceSADState);
+            std::cout<<"akshay Current SAD akshay in getAudioDeviceSADState and Current SAD state:"<<m_AudioDeviceSADState<<std::endl;
+            return m_AudioDeviceSADState;
+        }
+
+void DisplaySettings::setAudioDeviceSADState(int newState) {
+    // function used to set the required SAD state with lock
+    std::lock_guard<std::mutex> lock(m_SadMutex);
+
+    LOGINFO("akshay in setAudioDeviceSADState and new SAD state requested : %d", newState);
+    std::cout << "akshay in setAudioDeviceSADState and new SAD state requested : " << newState << std::endl;
+
+    m_AudioDeviceSADState = newState;
+
+    LOGINFO("akshay in setAudioDeviceSADState updated m_AudioDeviceSADState : %d", m_AudioDeviceSADState);
+    std::cout << "akshay in setAudioDeviceSADState updated m_AudioDeviceSADState : " << m_AudioDeviceSADState << std::endl;
+}
+
         void DisplaySettings::dsHdmiEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
             switch (eventId)
@@ -949,7 +971,7 @@ namespace WPEFramework {
 				                   DisplaySettings::_instance->m_requestSadRetrigger = false;
                                 }
 
-                                if (DisplaySettings::_instance->m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED) {
+                                if (DisplaySettings::_instance->m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED) { //akshay m_AudioDeviceSADState is read and write by m_AudioDeviceStatesUpdateMutex lock
 				                	DisplaySettings::_instance->m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
 				                	LOGINFO("%s: Clearing Audio device SAD\n", __FUNCTION__);
 				                	sad_list.clear();
@@ -1167,7 +1189,7 @@ namespace WPEFramework {
 			m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
 			m_requestSadRetrigger = false;
 			m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
-			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UNKNOWN;
+			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UNKNOWN; //akshay m_AudioDeviceStatesUpdateMutex writing without lock
 			DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
 			LOGINFO("[HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n");
 			sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
@@ -1816,16 +1838,16 @@ namespace WPEFramework {
 				    if((m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC) && (m_hdmiInAudioDeviceConnected == true)) {
 					if (mode == device::AudioStereoMode::kPassThru) {
 					    if (m_AudioDeviceSADState  == AUDIO_DEVICE_SAD_CLEARED || \
-							    m_AudioDeviceSADState  == AUDIO_DEVICE_SAD_UNKNOWN) {
+							    m_AudioDeviceSADState  == AUDIO_DEVICE_SAD_UNKNOWN) { // akshay m_AudioDeviceSADState reading without lock m_AudioDeviceSADStatek
 						LOGINFO("%s: sending SAD request\n", __FUNCTION__);
 			                        sendMsgToQueue(REQUEST_SHORT_AUDIO_DESCRIPTOR, NULL);
-                                                m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_REQUESTED; 
+                                                m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_REQUESTED; // akshay m_AudioDeviceSADState wrting without lock
                                                 LOGINFO("setSoundMode Passthru: SAD Requested\n");
 					    }
 					} else if (mode == device::AudioStereoMode::kStereo) {
-					    if (m_AudioDeviceSADState  != AUDIO_DEVICE_SAD_CLEARED) {
+					    if (m_AudioDeviceSADState  != AUDIO_DEVICE_SAD_CLEARED) { //akshay m_AudioDeviceSADState reading without lock
 						LOGINFO("%s: Clearing the SAD since audio mode is changed to PCM\n", __FUNCTION__);
-						m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_CLEARED;
+						m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_CLEARED; //akshay m_AudioDeviceSADState writing without lock
 						m_requestSadRetrigger = false;
 						//clear the SAD list
 						sad_list.clear();
@@ -1841,10 +1863,10 @@ namespace WPEFramework {
 				}
 				else if ((m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC) && (m_hdmiInAudioDeviceConnected == true)) {
 				    if (m_AudioDeviceSADState  == AUDIO_DEVICE_SAD_CLEARED ||\
-						    m_AudioDeviceSADState  == AUDIO_DEVICE_SAD_UNKNOWN) {
+						    m_AudioDeviceSADState  == AUDIO_DEVICE_SAD_UNKNOWN) { // akshay m_AudioDeviceSADState reading without lock
 					LOGINFO("%s: sending SAD request\n", __FUNCTION__);
 			                sendMsgToQueue(REQUEST_SHORT_AUDIO_DESCRIPTOR, NULL);
-                                        m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_REQUESTED;
+                                        m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_REQUESTED; // akshay m_AudioDeviceSADState writing without lock
                                         LOGINFO("setSoundMode Auto: SAD Requested\n");
 				    }
 				    aPort.setStereoAuto(stereoAuto, persist); //setStereoAuto true
@@ -4319,6 +4341,7 @@ namespace WPEFramework {
         uint32_t DisplaySettings::setEnableAudioPort (const JsonObject& parameters, JsonObject& response)
         {   //TODO: Handle other audio ports. Currently only supports HDMI ARC/eARC
             LOGINFOMETHOD();
+            std::cout << "akshay value of m_AudioDeviceSADState in setEnableAudioPort function and before get called: " << m_AudioDeviceSADState << std::endl;
             returnIfParamNotFound(parameters, "audioPort");
 
             bool success = true;
@@ -4389,12 +4412,21 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
-					    std::lock_guard<std::mutex> lock(m_SadMutex);
-					    /* Take actions according to SAD udpate state */
-					    switch(m_AudioDeviceSADState)
+                        LOGINFO("akshay in getAudioDeviceSADState and Current SAD state:%d",m_AudioDeviceSADState);
+					    // std::lock_guard<std::mutex> lock(m_SadMutex);
+					    // /* Take actions according to SAD udpate state */
+					    // switch(m_AudioDeviceSADState)
+                        // std::cout << "akshay calling setAudioDeviceSADState 3 timesfunction" << std::endl;
+                        // setAudioDeviceSADState(AUDIO_DEVICE_SAD_REQUESTED); // set the SAD state to REQUESTED when ARC is enabled
+                        // setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED); // set the SAD state to UPDATED for testing purpose
+                        // setAudioDeviceSADState(AUDIO_DEVICE_SAD_UNKNOWN); // set the SAD state to UNKNOWN for testing purpose
+                        // std::cout<< "akshay calling getAudioDeviceSADState function after 3 times of set" << std::endl;
+                        LOGINFO("akshay in getAudioDeviceSADState calling getAudioDeviceSADState");
+                        switch(getAudioDeviceSADState()) // calling getAudioDeviceSADState function to get the SAD state with lock in the function
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
 						{
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_UPDATED case");
 							LOGINFO("%s: Enable ARC... \n",__FUNCTION__);
 					 	        aPort.enableARC(dsAUDIOARCSUPPORT_ARC, true);
 							m_arcEarcAudioEnabled = true;
@@ -4403,8 +4435,11 @@ namespace WPEFramework {
 
 						case AUDIO_DEVICE_SAD_RECEIVED: 
 						{
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_RECEIVED case");
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
-							m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+                            std::cout << "akshay calling getAudioDeviceSAD function" << std::endl;
+                            LOGINFO("akshay in getAudioDeviceSAD calling getAudioDeviceSAD");
+                            setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED); // calling setAudioDeviceSADState function to update the SAD state with lock inside the function
 							aPort.setSAD(sad_list);
 
 							if(aPort.getStereoAuto() == true) {
@@ -4422,6 +4457,7 @@ namespace WPEFramework {
 											
 						case AUDIO_DEVICE_SAD_REQUESTED: 
 						{
+                            LOGINFO("akshay inside AUDIO_DEVICE_SAD_REQUESTED case");
 							// SAD is not yet received so start a timer to wait for SAD update
 							if ( !(m_SADDetectionTimer.isActive()))
 							{ 			    
@@ -4435,7 +4471,9 @@ namespace WPEFramework {
 											
 						default: 
 						{
-							LOGINFO("Incorrect Audio Deivce SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
+                            LOGINFO("akshay inside default case");
+                            std::lock_guard<std::mutex> lock(m_SadMutex);
+							LOGINFO("Incorrect Audio Device SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
 						}
 						break;
 					    }
@@ -4518,14 +4556,14 @@ namespace WPEFramework {
 		LOGINFO("Inside checkSADUpdate\n");
 		std::lock_guard<std::mutex> lock(m_SadMutex);
 		device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
-		LOGINFO("m_AudioDeviceSADState = %d, m_arcEarcAudioEnabled = %d, m_hdmiInAudioDeviceConnected = %d\n",m_AudioDeviceSADState, m_arcEarcAudioEnabled, m_hdmiInAudioDeviceConnected);
+		LOGINFO("m_AudioDeviceSADState = %d, m_arcEarcAudioEnabled = %d, m_hdmiInAudioDeviceConnected = %d\n",m_AudioDeviceSADState, m_arcEarcAudioEnabled, m_hdmiInAudioDeviceConnected); //akshay m_AudioDeviceSADState reading with m_sadmutex lock
 		if (m_SADDetectionTimer.isActive()) {
 			m_SADDetectionTimer.stop();
 		}
 		if (m_arcEarcAudioEnabled == false && m_hdmiInAudioDeviceConnected == true){
-			if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_RECEIVED)
+			if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_RECEIVED) //akshay m_AudioDeviceSADState reading with m_sadmutex lock
 			{
-                           m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+                           m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED; //akshay m_AudioDeviceSADState writing with m_sadmutex lock
 			   aPort.setSAD(sad_list);
         		   if(aPort.getStereoAuto() == true) {
             			aPort.setStereoAuto(true,true);
@@ -4535,14 +4573,14 @@ namespace WPEFramework {
             			mode = aPort.getStereoMode(); //get Last User set stereo mode and set
             			aPort.setStereoMode(mode.toString(), true);
         		   }
-                           LOGINFO("SAD is updated m_AudioDeviceSADState = %d\n", m_AudioDeviceSADState);
+                           LOGINFO("SAD is updated m_AudioDeviceSADState = %d\n", m_AudioDeviceSADState); //akshay 
 			}else{
 				if( m_requestSadRetrigger == false )
                                {
                                        LOGINFO("Not recieved SAD update after 3sec timeout, retriggering the SAD request and starting the timer for 3 seconds\n");
                                        m_requestSadRetrigger = true;
                                        sendMsgToQueue(REQUEST_SHORT_AUDIO_DESCRIPTOR, NULL);
-                                       m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_REQUESTED;
+                                       m_AudioDeviceSADState  = AUDIO_DEVICE_SAD_REQUESTED; //akshay m_AudioDeviceSADState writing with m_sadmutex lock
                                        m_SADDetectionTimer.start(SAD_UPDATE_CHECK_TIME_IN_MILLISECONDS);
                                }
                                else
@@ -4941,7 +4979,8 @@ void DisplaySettings::sendMsgThread()
             if ((m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
                 value = parameters["status"].String();
 
-		if( !value.compare("success") ) {
+		if( !value.compare("success") ) 
+        {
 		    //Update Arc state
                     std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
                     m_currentArcRoutingState = ARC_STATE_ARC_INITIATED;
@@ -4953,12 +4992,12 @@ void DisplaySettings::sendMsgThread()
 		    device::AudioStereoMode mode = device::AudioStereoMode::kStereo;  //default to stereo
                     mode = aPort.getStereoMode(); //get Last User set stereo mode and set
 		    if ((m_AudioDeviceSADState == AUDIO_DEVICE_SAD_CLEARED || m_AudioDeviceSADState == AUDIO_DEVICE_SAD_UNKNOWN) && \
-				    ((mode == device::AudioStereoMode::kPassThru) || aPort.getStereoAuto() == true)) {
+				    ((mode == device::AudioStereoMode::kPassThru) || aPort.getStereoAuto() == true)) {  //akshay m_AudioDeviceSADState reading with m_AudioDeviceStatesUpdateMutex lock
 			   LOGINFO("Initiate SAD request\n");
-			   m_AudioDeviceSADState = AUDIO_DEVICE_SAD_REQUESTED;
+			   m_AudioDeviceSADState = AUDIO_DEVICE_SAD_REQUESTED; //akshay m_AudioDeviceSADState writing with m_AudioDeviceStatesUpdateMutex lock
 			   sendMsgToQueue(REQUEST_SHORT_AUDIO_DESCRIPTOR, NULL);
 		    } else {
-			    LOGINFO("SAD not requested m_AudioDeviceSADState =%d, soundmode = %s", m_AudioDeviceSADState, mode.toString().c_str());
+			    LOGINFO("SAD not requested m_AudioDeviceSADState =%d, soundmode = %s", m_AudioDeviceSADState, mode.toString().c_str()); //akshay m_AudioDeviceSADState reading with m_AudioDeviceStatesUpdateMutex lock
 		    }
 		    //update device type in case we receive ARC init before power ON request
 		    if (m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_NONE) {
@@ -5008,8 +5047,8 @@ void DisplaySettings::sendMsgThread()
             parameters.ToString(message);
             LOGINFO("[ARC Termination Event], %s : %s", __FUNCTION__, C_STR(message));
 
-	    if (m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED) {
-		m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
+	    if (m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED) { // akshay m_AudioDeviceSADState reading with without lock
+		m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED; // akshay m_AudioDeviceSADState writing with without lock
 		m_requestSadRetrigger = false;
 		LOGINFO("%s: Clearing Audio device SAD\n", __FUNCTION__);
 		//clear the SAD list
@@ -5066,11 +5105,12 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("ShortAudioDescriptor")) {
                 shortAudioDescriptorList = parameters["ShortAudioDescriptor"].Array();
-		if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_REQUESTED) {
+		if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_REQUESTED) { // akshay m_AudioDeviceSADState reading with without lock
                     try
-                    {
+                    
+    {
 		        std::lock_guard<std::mutex> lock(m_SadMutex);
-			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_RECEIVED;
+			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_RECEIVED; // akshay m_AudioDeviceSADState writing with m_SadMutex lock
 			m_requestSadRetrigger = false;
                         device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
 			LOGINFO("Total Short Audio Descriptors received from connected ARC device: %d\n",shortAudioDescriptorList.Length());
@@ -5232,11 +5272,11 @@ void DisplaySettings::sendMsgThread()
 		    m_requestSadRetrigger = false;
 				    connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
 			    }
-		        if (m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED && m_AudioDeviceSADState != AUDIO_DEVICE_SAD_UNKNOWN) {
+		        if (m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED && m_AudioDeviceSADState != AUDIO_DEVICE_SAD_UNKNOWN) { //akshay m_AudioDeviceSADState reading without lock
 		            LOGINFO("%s: Clearing Audio device SAD previous state= %d current state = %d\n", __FUNCTION__, m_AudioDeviceSADState, AUDIO_DEVICE_SAD_CLEARED);
 		            //clear the SAD list
 		            sad_list.clear();
-		            m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
+		            m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED; // akshay m_AudioDeviceSADState writing without lock
 			    m_requestSadRetrigger = false;
 		        } else {
 		            LOGINFO("SAD already cleared\n");

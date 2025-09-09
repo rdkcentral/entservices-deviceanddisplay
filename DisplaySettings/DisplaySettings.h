@@ -265,6 +265,9 @@ namespace WPEFramework {
 	    bool sendHdmiCecSinkAudioDevicePowerOn();
 	    bool getHdmiCecSinkCecEnableStatus();
 	    bool getHdmiCecSinkAudioDeviceConnectedStatus();
+        int getAudioDeviceSADState(void);
+        void setAudioDeviceSADState(int newState);
+
 
 	    void onTimer();
 	    void stopCecTimeAndUnsubscribeEvent();

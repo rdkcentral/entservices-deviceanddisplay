@@ -56,13 +56,6 @@ namespace WPEFramework {
                     INTERFACE_ENTRY(Exchange::IFrameRate)
                 END_INTERFACE_MAP
 
-                template <typename T>
-                T* baseInterface()
-                {
-                    static_assert(std::is_base_of<T, FrameRateImplementation>(), "base type mismatch");
-                    return static_cast<T*>(this);
-                }
-
             public:
                 enum Event
                 {
@@ -159,8 +152,8 @@ namespace WPEFramework {
             public:
 
                 /* VideoDeviceEventNotification*/
-                void OnDisplayFrameratePreChange(const std::string& frameRate);
-                void OnDisplayFrameratePostChange(const std::string& frameRate);
+                void OnDisplayFrameratePreChange(const std::string& frameRate) override;
+                void OnDisplayFrameratePostChange(const std::string& frameRate) override;
         };
     } // namespace Plugin
 } // namespace WPEFramework

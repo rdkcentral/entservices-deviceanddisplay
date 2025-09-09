@@ -80,8 +80,7 @@ namespace WPEFramework
             }
             catch(const std::exception& e)
             {
-                LOGINFO("device::Manager::Initialize failed");
-                LOGERR("Exception caught: {%s}", e.what());
+                LOGERR("device::Manager::Initialize failed, Exception: {%s}", e.what());
             }
 
             _service = service;
@@ -162,8 +161,7 @@ namespace WPEFramework
             }
             catch(const std::exception& e)
             {
-                LOGINFO("device::Manager::DeInitialize failed");
-                LOGERR("Exception caught: {%s}", e.what());
+                LOGERR("device::Manager::DeInitialize failed, Exception: {%s}", e.what());
             }
 
             SYSLOG(Logging::Shutdown, (string(_T("FrameRate de-initialised"))));

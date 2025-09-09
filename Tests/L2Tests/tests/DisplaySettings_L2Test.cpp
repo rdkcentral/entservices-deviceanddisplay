@@ -72,13 +72,13 @@ DisplaySettings_L2test::DisplaySettings_L2test()
         printf("DISPLAYSETTINGS Constructor\n");
         uint32_t status = Core::ERROR_GENERAL;
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_INIT())
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_INIT())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_INIT())
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_INIT())
         .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
 
         ON_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
@@ -99,7 +99,7 @@ DisplaySettings_L2test::DisplaySettings_L2test()
            }
         }));
 
-        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
         [](int high, int critical) {
            EXPECT_EQ(high, 100);
@@ -107,14 +107,14 @@ DisplaySettings_L2test::DisplaySettings_L2test()
            return mfrERR_NONE;
         }));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_GetPowerState(::testing::_))
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_GetPowerState(::testing::_))
         .WillRepeatedly(::testing::Invoke(
         [](PWRMgr_PowerState_t* powerState) {
            *powerState = PWRMGR_POWERSTATE_OFF; // by default over boot up, return PowerState OFF
            return PWRMGR_SUCCESS;
         }));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillRepeatedly(::testing::Invoke(
         [](PWRMgr_PowerState_t powerState) {
            // All tests are run without settings file
@@ -122,7 +122,7 @@ DisplaySettings_L2test::DisplaySettings_L2test()
            return PWRMGR_SUCCESS;
         }));
 
-        EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
             [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                 *curTemperature  = 90; // safe temperature
@@ -151,16 +151,14 @@ DisplaySettings_L2test::~DisplaySettings_L2test()
     status = DeactivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_TERM())
         .WillOnce(::testing::Return(PWRMGR_SUCCESS));
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_TERM())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
-    PowerManagerHalMock::Delete();
-    mfrMock::Delete();
 }
 
 TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)

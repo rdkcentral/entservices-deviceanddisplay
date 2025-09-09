@@ -1130,6 +1130,27 @@ namespace WPEFramework {
             // there is no /tmp/.make from /lib/rdk/getDeviceDetails.sh, but it can be taken from /etc/device.properties
             if (queryParams.empty() || queryParams == "make") {
 
+				std::string device_name;
+                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
+				if (device_name == "PLATCO") {
+                    IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+                    param.bufLen = 0;
+                    param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
+
+                    IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+                    param.buffer[param.bufLen] = '\0';
+
+                    LOGWARN("SystemService getDeviceInfo param type %d result %s", param.type, param.buffer);
+
+                    if (result == IARM_RESULT_SUCCESS) {
+                        response["make"] = string(param.buffer);
+                        retAPIStatus = true;
+				       } else {
+                        LOGWARN("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
+						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
+                        retAPIStatus = false;
+					}
+				} else {
                 std::string make;
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MFG_NAME", make);
 
@@ -1139,7 +1160,7 @@ namespace WPEFramework {
                 } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
                 }
-
+				}
                 if (!queryParams.empty()) {
 
 

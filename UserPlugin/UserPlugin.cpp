@@ -25,6 +25,9 @@
 #include "dsError.h"
 #include "list.hpp"
 #include "host.hpp"
+#include "exception.hpp"
+#include "manager.hpp"
+#include "UtilsIarm.h"
 
 #define API_VERSION_NUMBER_MAJOR 1
 #define API_VERSION_NUMBER_MINOR 1
@@ -76,10 +79,9 @@ namespace Plugin {
         _service = service;
         _service->AddRef();
 
-	ASSERT(_pwrMgrNotification != nullptr);
-	LOGINFO("Madhu, Trace - 1");
+	    ASSERT(_pwrMgrNotification != nullptr);
+
         //_service->Register(&_pwrMgrNotification);
-LOGINFO("Madhu, Trace");
         _powerManager = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
             .withIShell(_service)
             .withRetryIntervalMS(200)
@@ -87,47 +89,103 @@ LOGINFO("Madhu, Trace");
             .createInterface().operator->();
 
         //_powerManager = service->Root<Exchange::IPowerManager>(_connectionId, 2000, _T("org.rdk.PowerManager"));
-	LOGINFO("Madhu, Trace - 2");
+	
         ASSERT(_powerManager != nullptr);
-	 LOGINFO("Madhu, Trace - 21");
-	ASSERT(&_pwrMgrNotification != nullptr);
+	
+	    ASSERT(&_pwrMgrNotification != nullptr);
 
     
-
-
-	LOGINFO("Madhu, Trace - 3");
-        if (_powerManager && &_pwrMgrNotification) {
+        if (_powerManager && &_pwrMgrNotification) 
+        {
             _powerManager->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
-	} else {
-	    LOGERR("PowerManager or Notification is NULL");
-	}
-LOGINFO("Madhu, Trace - 4");
-        Exchange::JUserPlugin::Register(*this, this);
-LOGINFO("Madhu, Trace - 5");
-        // On success return empty, to indicate there is no error text.
-
-	string port = "HDMI3";
-
-        auto ports = device::Host::getInstance().getAudioOutputPort(port);
-        for (size_t i = 0; i < ports.size(); ++i) {
-            LOGINFO("Available port: %s Vol Level %s", ports.at(i).getName().c_str(), to_string(ports.getLevel()));
+        } else {
+            LOGERR("PowerManager or Notification is NULL");
         }
 
-        string portName = "HDMI0"; // Replace with the actual port name as needed
+        Exchange::JUserPlugin::Register(*this, this);
 
-    //    string volumeLevel;
-    //    Core::hresult result = getVolumeLevel(portName, volumeLevel);
-    //    LOGINFO("Volume level for port %s: %s", portName.c_str(), volumeLevel.c_str());
+        // On success return empty, to indicate there is no error text.
+        if (Utils::IARM::init())
+        {
+            LOGINFO("Utils::IARM::initialize failed");
+        }
 
-        device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(portName);
+        try
+        {
+            //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
+            device::Manager::Initialize();
+            LOGINFO("device::Manager::Initialize success");
+        }
+        catch(...)
+        {
+            LOGINFO("device::Manager::Initialize failed");
+        }
+
+        /*dsMgr - getCurrentResolution*/
+        std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
+
+        string videoDisplay = strVideoPort;
+
+        try
+        {
+            int width = 0;
+            int height = 0;
+            bool progressive = false;
+
+            device::VideoOutputPort &vPort = device::Host::getInstance().getVideoOutputPort(videoDisplay);
+
+            string res = vPort.getResolution().getName();
+
+            if(res.rfind("480", 0) == 0)
+            {
+                width =  720;
+                height = 480;
+            }
+            else if(res.rfind("576", 0) == 0)
+            {
+                width =  720;
+                height = 576;
+            }
+            else if(res.rfind("720", 0) == 0)
+            {
+                width =  1280;
+                height = 720;
+            }
+            else if(res.rfind("768", 0) == 0)
+            {
+                width =  1366;
+                height = 768;
+            }
+            else if(res.rfind("1080", 0) == 0)
+            {
+                width =  1920;
+                height = 1080;
+            }
+            else if(res.rfind("2160", 0) == 0)
+            {
+                width =  3840;
+                height = 2160;
+            }
+            else if(res.rfind("4096x2160", 0) == 0)
+            {
+                width =  4096;
+                height = 2160;
+            }
+            else
+            {
+                width =  1280;
+                height = 720;
+            }
     
-    	if (aPort.getName().empty()) {
-            LOGERR("AudioOutputPort '%s' is not valid!", portName.c_str());
-        } else {
-            float volumeLevel;
-	    volumeLevel = aPort.getLevel();
-//            GetVolumeLevel(portName, volumeLevel);
-            LOGINFO("Volume level for port %s: Vol Level[HDMI0] %s", portName.c_str(), to_string(volumeLevel));
+            if(res.find('p') != std::string::npos) {
+                progressive = true;
+            }
+
+            LOGINFO("Current Res. for port %s: Resolution %s width %d height %d progressive %d", videoDisplay.c_str(), res.c_str(), width, height, progressive);
+        }
+        catch(const device::Exception& err)
+        {
+            LOG_DEVICE_EXCEPTION1(videoDisplay);
         }
 
         return (string());

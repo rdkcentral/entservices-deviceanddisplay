@@ -135,7 +135,9 @@ namespace Plugin {
         Core::hresult SetNetworkStandbyMode(const bool standbyMode) override;
         Core::hresult GetNetworkStandbyMode(bool& standbyMode) override;
         Core::hresult SetWakeupSrcConfig(const int powerMode, const int srcType, int config) override;
+        Core::hresult SetWakeupSourceConfig(IWakeupSrcConfigIterator* wakeupSources) override;
         Core::hresult GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const override;
+        Core::hresult GetWakeupSourceConfig(IWakeupSrcConfigIterator*& wakeupSources) const override;
         Core::hresult SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const override;
         Core::hresult GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot) override;
         Core::hresult PowerModePreChangeComplete(const uint32_t clientId, const int transactionId) override;

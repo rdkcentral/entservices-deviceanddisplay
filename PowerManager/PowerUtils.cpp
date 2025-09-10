@@ -88,7 +88,7 @@ const char* PowerUtils::str(const PowerState state)
     }
 }
 
-// IMPORTANT: Keep this in sync with text alias provided for 
+// IMPORTANT: Keep this in sync with the text alias provided for 
 //            WakeupSrcType in IPowerManager.h interface file
 const char* PowerUtils::str(WakeupSrcType wakeupSrc)
 {

@@ -865,7 +865,7 @@ namespace WPEFramework {
         void DisplaySettings::setAudioDeviceSADState(int newState) {
             // function used to set the required SAD state with lock
             std::lock_guard<std::mutex> lock(m_SadMutex);
-            LOGINFO("Updating m_AudioDeviceSADState : %d", newState);
+            LOGINFO("Updating SAD State [%d] -> [%d] ", m_AudioDeviceSADState,newState);
             m_AudioDeviceSADState = newState;
         }
 

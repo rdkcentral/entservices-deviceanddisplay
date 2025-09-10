@@ -756,9 +756,7 @@ namespace Plugin {
             LOGINFO("wakeupSrc %s, enabled: %d", config.wakeupSource.c_str(), config.enabled);
         }
 
-        _apiLock.Lock();
-        errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcMask, srcConfig);
-        _apiLock.Unlock();
+        errorCode = SetWakeupSrcConfig(powerMode, srcMask, srcConfig);
 
         LOGINFO("<< errorCode: %d", errorCode);
 
@@ -788,11 +786,7 @@ namespace Plugin {
 
         LOGINFO(">>");
 
-        _apiLock.Lock();
-
-        uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
-
-        _apiLock.Unlock();
+        uint32_t errorCode = GetWakeupSrcConfig(powerMode, srcType, config);
 
         if (Core::ERROR_NONE == errorCode) {
             std::list<Exchange::IPowerManager::WakeupSrcConfig> configs;

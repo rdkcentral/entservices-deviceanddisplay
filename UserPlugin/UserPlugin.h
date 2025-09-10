@@ -92,6 +92,7 @@ namespace WPEFramework
 
             Core::hresult GetDevicePowerState(std::string& powerState) const;
             Core::hresult GetVolumeLevel (const string& port, string& level) const;
+	    Core::hresult GetCurrentResolutionValue(std::string& resolution) const;
             void OnPowerModeChanged(const PowerState currentState, const PowerState newState);
             void onPowerStateChanged(string currentPowerState, string powerState);
 
@@ -100,6 +101,7 @@ namespace WPEFramework
             virtual const string Initialize(PluginHost::IShell *service) override;
             virtual void Deinitialize(PluginHost::IShell *service) override;
             virtual string Information() const override;
+            // -------------------------------------------------------------------------------------------------------
 
         private:
             PluginHost::IShell* _service{};

@@ -121,72 +121,7 @@ namespace Plugin {
             LOGINFO("device::Manager::Initialize failed");
         }
 
-        /*dsMgr - getCurrentResolution*/
-        std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-
-        string videoDisplay = strVideoPort;
-
-        try
-        {
-            int width = 0;
-            int height = 0;
-            bool progressive = false;
-
-            device::VideoOutputPort &vPort = device::Host::getInstance().getVideoOutputPort(videoDisplay);
-
-            string res = vPort.getResolution().getName();
-
-            if(res.rfind("480", 0) == 0)
-            {
-                width =  720;
-                height = 480;
-            }
-            else if(res.rfind("576", 0) == 0)
-            {
-                width =  720;
-                height = 576;
-            }
-            else if(res.rfind("720", 0) == 0)
-            {
-                width =  1280;
-                height = 720;
-            }
-            else if(res.rfind("768", 0) == 0)
-            {
-                width =  1366;
-                height = 768;
-            }
-            else if(res.rfind("1080", 0) == 0)
-            {
-                width =  1920;
-                height = 1080;
-            }
-            else if(res.rfind("2160", 0) == 0)
-            {
-                width =  3840;
-                height = 2160;
-            }
-            else if(res.rfind("4096x2160", 0) == 0)
-            {
-                width =  4096;
-                height = 2160;
-            }
-            else
-            {
-                width =  1280;
-                height = 720;
-            }
-    
-            if(res.find('p') != std::string::npos) {
-                progressive = true;
-            }
-
-            LOGINFO("Current Res. for port %s: Resolution %s width %d height %d progressive %d", videoDisplay.c_str(), res.c_str(), width, height, progressive);
-        }
-        catch(const device::Exception& err)
-        {
-            LOG_DEVICE_EXCEPTION1(videoDisplay);
-        }
+    //    GetCurrentResolutionValue();
 
         return (string());
     }
@@ -284,5 +219,78 @@ namespace Plugin {
 
         return Core::ERROR_NONE;
     }
+
+    Core::hresult UserPlugin::GetCurrentResolutionValue(std::string& resolution) const
+    {
+        std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
+
+        string videoDisplay = strVideoPort;
+
+        try
+        {
+            int width = 0;
+            int height = 0;
+            bool progressive = false;
+
+            device::VideoOutputPort &vPort = device::Host::getInstance().getVideoOutputPort(videoDisplay);
+
+            string res = vPort.getResolution().getName();
+
+            if(res.rfind("480", 0) == 0)
+            {
+                width =  720;
+                height = 480;
+            }
+            else if(res.rfind("576", 0) == 0)
+            {
+                width =  720;
+                height = 576;
+            }
+            else if(res.rfind("720", 0) == 0)
+            {
+                width =  1280;
+                height = 720;
+            }
+            else if(res.rfind("768", 0) == 0)
+            {
+                width =  1366;
+                height = 768;
+            }
+            else if(res.rfind("1080", 0) == 0)
+            {
+                width =  1920;
+                height = 1080;
+            }
+            else if(res.rfind("2160", 0) == 0)
+            {
+                width =  3840;
+                height = 2160;
+            }
+            else if(res.rfind("4096x2160", 0) == 0)
+            {
+                width =  4096;
+                height = 2160;
+            }
+            else
+            {
+                width =  1280;
+                height = 720;
+            }
+    
+            if(res.find('p') != std::string::npos) {
+                progressive = true;
+            }
+
+            LOGINFO("Current Res. for port %s: Resolution %s width %d height %d progressive %d", videoDisplay.c_str(), res.c_str(), width, height, progressive);
+
+            resolution = std::to_string(width) + "X" + std::to_string(height);
+        }
+        catch(const device::Exception& err)
+        {
+            LOG_DEVICE_EXCEPTION1(videoDisplay);
+        }
+        return Core::ERROR_NONE;
+    }
+
 } // namespace Plugin
 } // namespace WPEFramework

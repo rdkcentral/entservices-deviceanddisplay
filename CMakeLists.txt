@@ -94,6 +94,8 @@ if(PLUGIN_SYSTEMMODE)
     add_subdirectory(SystemMode)
 endif()
 
+add_subdirectory(UserPlugin)
+
 if(WPEFRAMEWORK_CREATE_IPKG_TARGETS)
     set(CPACK_GENERATOR "DEB")
     set(CPACK_DEB_COMPONENT_INSTALL ON)

@@ -741,7 +741,7 @@ namespace Plugin {
         LOGINFO(">>");
 
         while (wakeupSources->Next(config)) {
-            int mask = util::conv(config.wakeupSource);
+            int mask = static_cast<int>(util::conv(config.wakeupSource));
 
             if (!mask) {
                 LOGERR("<< Invalid wakeup source %s errorCode:%d", config.wakeupSource.c_str(), errorCode);

@@ -509,9 +509,14 @@ namespace WPEFramework {
             registerMethod("getBuildType", &SystemServices::getBuildType, this);
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
             registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
+            registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
+            registerMethod("getMacAddresses",&SystemServices::getMacAddresses, this);
+            Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
+                &SystemServices::getPlatformConfiguration, this);
+            GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
+                &SystemServices::getPlatformConfiguration, this);
 #if 0
             registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
-            registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
 	        registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
             registerMethod("getPreviousRebootInfo",
                     &SystemServices::getPreviousRebootInfo, this);
@@ -530,7 +535,6 @@ namespace WPEFramework {
                     &SystemServices::setPreferredStandbyMode, this);
             registerMethod("getAvailableStandbyModes",
                     &SystemServices::getAvailableStandbyModes, this);
-            registerMethod("getMacAddresses",&SystemServices::getMacAddresses, this);
             registerMethod("getPreviousRebootInfo2",
                     &SystemServices::getPreviousRebootInfo2, this);
             registerMethod("getPreviousRebootReason",
@@ -540,10 +544,6 @@ namespace WPEFramework {
                     &SystemServices::enableXREConnectionRetention, this);
             registerMethod("fireFirmwarePendingReboot", &SystemServices::fireFirmwarePendingReboot, this);
             registerMethod("deletePersistentPath", &SystemServices::deletePersistentPath, this);
-            Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
-                &SystemServices::getPlatformConfiguration, this);
-            GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
-                &SystemServices::getPlatformConfiguration, this);
             registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this);
             registerMethod("getCoreTemperature", &SystemServices::getCoreTemperature,
                     this);
@@ -2733,7 +2733,6 @@ namespace WPEFramework {
             }
         }
 
-#if 0
         /***
          * @brief : Worker to fetch details of various MAC addresses.
          * @Event : {"ecm_mac":"<MAC>","estb_mac":"<MAC>","moca_mac":"<MAC>",
@@ -2816,7 +2815,6 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
-#endif
 
         /***
          * @brief : called when Temperature Threshold is changed
@@ -4596,7 +4594,7 @@ namespace WPEFramework {
 
             returnResponse(retVal);
         }
-#if 0
+
         /***
          * @brief : To set the wakeup source configuration.
          * @param1[in] : {"params":{"powerState":<string>,"wakeupSources":[{<WakeupSrcTrigger string>:<bool>},...]}
@@ -4669,6 +4667,7 @@ namespace WPEFramework {
             returnResponse(status);
         }
 
+#if 0
         /***
          * @brief : To get the wakeup source configuration.
          * @param1[out] : {"params":{"powerState":<string>,"wakeupSources":[{<WakeupSrcTrigger string>:<bool>},...]}
@@ -5193,6 +5192,14 @@ namespace WPEFramework {
           returnResponse(result);
         }
 
+        uint32_t SystemServices::getThunderStartReason(const JsonObject& parameters, JsonObject& response)
+        {
+            LOGINFOMETHOD();
+
+            response["startReason"] = (Utils::fileExists(SYSTEM_SERVICE_THUNDER_RESTARTED_FILE))?"RESTART":"NORMAL";
+            returnResponse(true);
+        }
+#endif
         uint32_t SystemServices::getPlatformConfiguration(const JsonObject &parameters, PlatformCaps &response)
         {
           LOGINFOMETHOD();
@@ -5203,15 +5210,6 @@ namespace WPEFramework {
 
           return Core::ERROR_NONE;
         }
-
-        uint32_t SystemServices::getThunderStartReason(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            response["startReason"] = (Utils::fileExists(SYSTEM_SERVICE_THUNDER_RESTARTED_FILE))?"RESTART":"NORMAL";
-            returnResponse(true);
-        }
-#endif
 
         /***
          * @brief : To set the fsr flag into the emmc raw area.
@@ -5244,6 +5242,7 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
+
         /***
          * @brief : To get the fsr flag from emmc
          * @param1[out] : {"params":{"params":{"fsrFlag":<bool>}

@@ -77,6 +77,9 @@ if (USE_DEVICESETTINGS)
         ${IARMBUS_LIBRARIES}
         ${DS_LIBRARIES})
 
+    # Try to locate the optional displayinfo-soc library
+    find_library(DISPLAYINFO_SOC_LIBRARY NAMES displayinfo-soc)
+
     if(DISPLAYINFO_SOC_LIBRARY)
         target_link_libraries(${MODULE_NAME} PRIVATE displayinfo-soc)
         message(STATUS "Found displayinfo-soc library: ${DISPLAYINFO_SOC_LIBRARY}")

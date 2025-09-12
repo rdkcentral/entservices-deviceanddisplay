@@ -292,6 +292,7 @@ jobs:
           telemetry_busmessage_sender.h
           maintenanceMGR.h
           pkg.h
+          edid-parser.hpp
           secure_wrapper.h
           wpa_ctrl.h
           proc/readproc.h
@@ -425,6 +426,7 @@ jobs:
           -I ./usr/include/libdrm
           -I$GITHUB_WORKSPACE/install/usr/include/WPEFramework
           -I$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
+          -I ./usr/include/libdrm
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h

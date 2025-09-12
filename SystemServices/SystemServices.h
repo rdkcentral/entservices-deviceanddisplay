@@ -361,6 +361,9 @@ namespace WPEFramework {
 		uint32_t setMigrationStatus(const JsonObject& parameters, JsonObject& response);
                 uint32_t getMigrationStatus(const JsonObject& parameters, JsonObject& response);
                 uint32_t getPreferredStandbyMode(const JsonObject& parameters, JsonObject& response);
+                uint32_t setWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
+                uint32_t getMacAddresses(const JsonObject& parameters, JsonObject& response);
+                uint32_t getPlatformConfiguration(const JsonObject& parameters, PlatformCaps& response);
 #if 0
                 uint32_t clearLastDeepSleepReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t deletePersistentPath(const JsonObject& parameters, JsonObject& response);
@@ -378,14 +381,11 @@ namespace WPEFramework {
                 uint32_t getThunderStartReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t fireFirmwarePendingReboot(const JsonObject& parameters, JsonObject& response);
                 uint32_t getLastDeepSleepReason(const JsonObject& parameters, JsonObject& response);
-                uint32_t getMacAddresses(const JsonObject& parameters, JsonObject& response);
                 uint32_t getMode(const JsonObject& parameters, JsonObject& response);
-                uint32_t getPlatformConfiguration(const JsonObject& parameters, PlatformCaps& response);
                 uint32_t getStateInfo(const JsonObject& parameter, JsonObject& resposne);
                 uint32_t setBootLoaderPattern(const JsonObject& parameters, JsonObject& response);
 				uint32_t getCoreTemperature(const JsonObject& parameters, JsonObject& response);
                 uint32_t setFirmwareRebootDelay(const JsonObject& parameters, JsonObject& response);
-                uint32_t setWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
 		        uint32_t getWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
 #ifdef ENABLE_THERMAL_PROTECTION
                 uint32_t getTemperatureThresholds(const JsonObject& parameters, JsonObject& response);

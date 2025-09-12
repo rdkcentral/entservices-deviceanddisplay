@@ -943,5 +943,20 @@ namespace Plugin {
         LOGINFO("<<");
     }
 
+    Core::hresult GetPowerStateIsManagedByDevice(bool &powerStateManagedByDevice, bool &success)
+    {
+        char *env_var= getenv("RDK_ACTION_ON_POWER_KEY");
+        if (env_var)
+        {
+            int isPowerStateManagedByDeviceValue = atoi(env_var);
+            if (1 == isPowerStateManagedByDeviceValue)
+            {
+                powerStateManagedByDevice = true;
+            }
+        }
+        success = true;
+        return Core::ERROR_NONE;
+    }
+
 }
 }

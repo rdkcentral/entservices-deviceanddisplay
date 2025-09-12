@@ -2462,7 +2462,7 @@ namespace WPEFramework {
             std::string estbMac = collectDeviceInfo("estb_mac");
             removeCharsFromString(estbMac, "\n\r");
             rConf["eStbMac"] = estbMac;
-            rConf["model"] = RetrieveModelNumberThroughCOMRPC();
+            rConf["model"] = retrieveModelNumberThroughCOMRPC();
             rConf["firmwareVersion"] = stbVersion;
             response["xconfParams"] = rConf;
             returnResponse(true);
@@ -4448,9 +4448,9 @@ namespace WPEFramework {
 #endif
         }
 
-        string SystemServices::RetrieveModelNumberThroughCOMRPC()
+        string SystemServices::retrieveModelNumberThroughCOMRPC()
         {
-            LOGINFO("RetrieveModelNumberThroughCOMRPC Entry\n");
+            LOGINFO("retrieveModelNumberThroughCOMRPC Entry\n");
             std::string Number;
             if (m_shellService)
             {

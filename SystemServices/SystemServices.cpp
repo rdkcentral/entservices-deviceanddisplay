@@ -5297,10 +5297,6 @@ namespace WPEFramework {
             {
                 LOGERR("BootType is not present");
             }
-			if(fopen("/opt/check1.txt","r")!=NULL)
-             {
-                 return WPEFramework::Core::ERROR_INPROGRESS;
-             }
 	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
 	}//end of getBootTypeInfo method
 

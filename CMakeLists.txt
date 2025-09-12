@@ -90,6 +90,8 @@ if(PLUGIN_DEVICEDIAGNOSTICS)
     add_subdirectory(DeviceDiagnostics)
 endif()
 
+add_subdirectory(DeviceSettingsManager)
+
 if(PLUGIN_SYSTEMMODE)
     add_subdirectory(SystemMode)
 endif()

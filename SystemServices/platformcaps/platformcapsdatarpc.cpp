@@ -80,7 +80,7 @@ string PlatformCapsData::GetDeviceType() {
     // as it doesnt comply with plugin spec. See RDKEMW-276
     device_type = deviceType.c_str();
     deviceType = (strcmp("mediaclient", device_type) == 0) ? "IpStb" :
-        (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "TV";
+        (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
   }
   return deviceType;
 }

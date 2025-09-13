@@ -385,7 +385,7 @@ namespace WPEFramework {
             catch(const device::Exception& err)
             {
                 LOGWARN("Audio Port : AudioPortsReInitialize failed\n");
-                //LOG_DEVICE_EXCEPTION0();
+                LOG_DEVICE_EXCEPTION0();
             }
         }
      

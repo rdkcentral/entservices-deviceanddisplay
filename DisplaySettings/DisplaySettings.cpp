@@ -634,7 +634,7 @@ namespace WPEFramework {
             try
             {
                 if (m_sendMsgThread.joinable())
-                m_sendMsgThread.join();
+                    m_sendMsgThread.join();
             }
             catch(const std::system_error& e)
             {
@@ -5696,7 +5696,7 @@ void DisplaySettings::sendMsgThread()
         	{
         		try
         		{
-        			std::string strVideoPort = connectedDisplays.at(i);;
+        			std::string strVideoPort = connectedDisplays.at(i);
         			device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
         			if (isDisplayConnected(strVideoPort))
         			{
@@ -5766,7 +5766,7 @@ void DisplaySettings::sendMsgThread()
             LOGINFO("Received OnAudioOutHotPlug callback");
             if(DisplaySettings::_instance)
             {
-                DisplaySettings::_instance->connectedAudioPortUpdated(portType, isPortConnected);
+                DisplaySettings::_instance->connectedAudioPortUpdated((int)portType, isPortConnected);
             }
             else
             {
@@ -5853,7 +5853,7 @@ void DisplaySettings::sendMsgThread()
 
             if(DisplaySettings::_instance)
             {
-                DisplaySettings::_instance->connectedVideoDisplaysUpdated(displayEvent);
+                DisplaySettings::_instance->connectedVideoDisplaysUpdated((int)displayEvent);
             }
         }
 

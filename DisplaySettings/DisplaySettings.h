@@ -32,13 +32,15 @@
 #include <fstream>
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
+#include "host.hpp"
+#include "manager.hpp"
+#include "dsRpc.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 namespace WPEFramework {
 
     namespace Plugin {
-
 		// This is a server for a JSONRPC communication channel.
 		// For a plugin to be capable to handle JSONRPC, inherit from PluginHost::JSONRPC.
 		// By inheriting from this class, the plugin realizes the interface PluginHost::IDispatcher.
@@ -51,7 +53,10 @@ namespace WPEFramework {
 		// As the registration/unregistration of notifications is realized by the class PluginHost::JSONRPC,
 		// this class exposes a public method called, Notify(), using this methods, all subscribed clients
 		// will receive a JSONRPC message as a notification, in case this method is called.
-        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator {
+        class DisplaySettings : public PluginHost::IPlugin, public PluginHost::JSONRPC,Exchange::IDeviceOptimizeStateActivator,
+                                public device::Host::IDisplayEvents, public device::Host::IAudioOutputPortEvents,
+                                public device::Host::IDisplayDeviceEvents, public device::Host::IHdmiInEvents,
+                                public device::Host::IVideoDeviceEvents, public device::Host::IVideoOutputPortEvents {
         private:
             typedef Core::JSON::String JString;
             typedef Core::JSON::ArrayType<JString> JStringArray;
@@ -89,15 +94,21 @@ namespace WPEFramework {
                 DisplaySettings& _parent;
             };
 
-
             // We do not allow this plugin to be copied !!
             DisplaySettings(const DisplaySettings&) = delete;
             DisplaySettings& operator=(const DisplaySettings&) = delete;
 
+            template <typename T>
+            T* baseInterface()
+            {
+                static_assert(std::is_base_of<T, DisplaySettings>(), "base type mismatch");
+                return static_cast<T*>(this);
+            }
+
             //Begin methods
             uint32_t getConnectedVideoDisplays(const JsonObject& parameters, JsonObject& response);
             uint32_t getConnectedAudioPorts(const JsonObject& parameters, JsonObject& response);
-	    uint32_t setEnableAudioPort (const JsonObject& parameters, JsonObject& response);
+            uint32_t setEnableAudioPort (const JsonObject& parameters, JsonObject& response);
             uint32_t getSupportedResolutions(const JsonObject& parameters, JsonObject& response);
             uint32_t getSupportedVideoDisplays(const JsonObject& parameters, JsonObject& response);
             uint32_t getSupportedTvResolutions(const JsonObject& parameters, JsonObject& response);
@@ -236,19 +247,8 @@ namespace WPEFramework {
 	    Core::hresult Request(const string& newState);
 
         private:
-            void InitializeIARM();
-            void DeinitializeIARM();
-            static void ResolutionPreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-            static void ResolutionPostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-            static void DisplResolutionHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-            static void dsHdmiEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-	    static void formatUpdateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-        static void checkAtmosCapsEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-            static void powerEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-            static void audioPortStateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-            static void dsSettingsChangeEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
             void getConnectedVideoDisplaysHelper(std::vector<string>& connectedDisplays);
-	    void audioFormatToString(dsAudioFormat_t audioFormat, JsonObject &response);
+            void audioFormatToString(dsAudioFormat_t audioFormat, JsonObject &response);
             const char *getVideoFormatTypeToString(dsHDRStandard_t format);
             dsHDRStandard_t getVideoFormatTypeFromString(const char *mode);
             JsonArray getSupportedVideoFormats();
@@ -296,8 +296,41 @@ namespace WPEFramework {
         Core::Sink<PowerManagerNotification> _pwrMgrNotification;
         bool _registeredEventHandlers;
         void InitializePowerManager();
-            JsonObject getAudioOutputPortConfig() { return m_audioOutputPortConfig; }
-            static PowerState m_powerState;
+        JsonObject getAudioOutputPortConfig() { return m_audioOutputPortConfig; }
+        static PowerState m_powerState;
+
+    private:
+        bool _registeredDsEventHandlers;
+
+    public:
+        void registerDsEventHandlers();
+
+        /* IDisplayEvents */
+        void OnDisplayRxSense(dsDisplayEvent_t displayEvent) override;
+
+        /* IAudioOutputPortEvents*/
+        void OnAudioOutHotPlug(dsAudioPortType_t portType, uint32_t uiPortNumber, bool isPortConnected) override;
+        void OnAudioFormatUpdate(dsAudioFormat_t audioFormat) override;
+        void OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status) override;
+        void OnAudioPortStateChanged(dsAudioPortState_t audioPortState) override;
+        void OnAssociatedAudioMixingChanged(bool mixing) override;
+        void OnAudioFaderControlChanged(int mixerBalance) override;
+        void OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage) override;
+        void OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage) override;
+
+        /* IDisplayDeviceEvents */
+        void OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent) override;
+
+        /* IHdmiInEvents*/
+        void OnHdmiInEventHotPlug(dsHdmiInPort_t port, bool isConnected) override;
+
+        /* IVideoDeviceEvents */
+        void OnZoomSettingsChanged(dsVideoZoom_t zoomSetting) override;
+
+        /* IVideoOutputPortEvents */
+        void OnResolutionPreChange(const int width, const int height) override;
+        void OnResolutionPostChange(const int width, const int height) override;
+        void OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR) override;
 
             enum {
                 ARC_STATE_REQUEST_ARC_INITIATION,

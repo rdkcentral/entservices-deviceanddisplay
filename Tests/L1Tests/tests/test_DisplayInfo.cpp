@@ -22,6 +22,14 @@
 
 #include <gtest/gtest.h>
 
+// Standard library includes first
+#include <fstream>
+#include <thread>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <boost/filesystem.hpp>
+
 #include "../../../DisplayInfo/DeviceSettings/PlatformImplementation.cpp"
 #include "DisplayInfo.h"
 #include "DisplayInfoMock.h"

@@ -5297,7 +5297,7 @@ namespace WPEFramework {
             {
                 LOGERR("BootType is not present");
             }
-	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+	    return (status ? static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) : static_cast<uint32_t>(ERROR_FILE_IO));
 	}//end of getBootTypeInfo method
 
         /**
@@ -5389,7 +5389,7 @@ namespace WPEFramework {
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+         return (status ?  static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) :  static_cast<uint32_t>(ERROR_FILE_IO));
         }//end of getMigrationStatus method
        /*
          * @brief This function updates plugin API error text.

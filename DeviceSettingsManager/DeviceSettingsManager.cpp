@@ -46,43 +46,56 @@ namespace Plugin
     DeviceSettingsManager::DeviceSettingsManager()
         : mConnectionId(0)
         , mService(nullptr)
-        , mDeviceSettingsManagerAudio(nullptr)
+        , _mDeviceSettingsManagerFPD(nullptr)
         , mNotificationSink(this)
 
     {
     }
 
+    DeviceSettingsManager::~DeviceSettingsManager()
+    {
+        ENTRY_LOG;
+        EXIT_LOG;
+    }
     const string DeviceSettingsManager::Initialize(PluginHost::IShell * service)
     {
+        ENTRY_LOG;
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
-        ASSERT(mDeviceSettingsManagerAudio == nullptr);
+        ASSERT(_mDeviceSettingsManagerFPD == nullptr);
         mService = service;
         mService->AddRef();
 
         LOGINFO();
         // Register the Process::Notification stuff. The Remote process might die before we get a
         // change to "register" the sink for these events !!! So do it ahead of instantiation.
-        mService->Register(&mNotificationSink);
+        //mService->Register(&mNotificationSink);
+        mService->Register(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
+        mService->Register(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
 
-        /*mDeviceSettingsManagerAudio = service->Root<Exchange::IDeviceSettingsManager>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
-        if (mDeviceSettingsManagerAudio != nullptr) {
-            mDeviceSettingsManagerAudio->Initialize(service);
-            mDeviceSettingsManagerAudio->Register(&mNotificationSink);
-            Exchange::IDeviceSettingsManagerAudio::Register(*this, mDeviceSettingsManagerAudio);
-        }*/
+        _mDeviceSettingsManagerFPD = service->Root<Exchange::IDeviceSettingsManagerFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
+
+        if (_mDeviceSettingsManagerFPD != nullptr) {
+            LOGINFO("Registering JDeviceSettingsManagerFPD");
+            _mDeviceSettingsManagerFPD->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManagerFPD::INotification>());
+            Exchange::JDeviceSettingsManagerFPD::Register(*this, _mDeviceSettingsManagerFPD);
+        }
+
+        EXIT_LOG;
+
         // On success return empty, to indicate there is no error text.
         return (string());
     }
 
     void DeviceSettingsManager::Deinitialize(PluginHost::IShell* service VARIABLE_IS_NOT_USED)
     {
-        LOGINFO();
+        ENTRY_LOG;
         if (mService != nullptr) {
             ASSERT(mService == service);
-            mService->Unregister(&mNotificationSink);
-
+            //mService->Unregister(&mNotificationSink);
+        mService->Unregister(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
+        mService->Unregister(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
             /*if (mDeviceSettingsManagerAudio != nullptr) {
                 mDeviceSettingsManagerAudio->Unregister(&mNotificationSink);
                 Exchange::IDeviceSettingsManagerAudio::Unregister(*this);
@@ -93,10 +106,13 @@ namespace Plugin
             mConnectionId = 0;
             SYSLOG(Logging::Shutdown, (string(_T("DeviceSettingsManager de-initialised"))));
         }
+        EXIT_LOG;
     }
 
     string DeviceSettingsManager::Information() const
     {
+        ENTRY_LOG;
+        EXIT_LOG;
         // No additional info to report.
         return (string());
     }
@@ -104,13 +120,14 @@ namespace Plugin
 
     void DeviceSettingsManager::Deactivated(RPC::IRemoteConnection* connection)
     {
-        LOGINFO();
+        ENTRY_LOG
         // This can potentially be called on a socket thread, so the deactivation (wich in turn kills this object) must be done
         // on a seperate thread. Also make sure this call-stack can be unwound before we are totally destructed.
         if (mConnectionId == connection->Id()) {
             ASSERT(mService != nullptr);
             Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(mService, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
         }
+        EXIT_LOG;
     }
 
 } // namespace Plugin

@@ -39,6 +39,9 @@
 #include "dsDisplay.h"
 #include "dsRpc.h"
 
+#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
+#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
+
 namespace WPEFramework {
 namespace Plugin {
     class DeviceSettingsManagerImp :   public Exchange::IDeviceSettingsManagerFPD

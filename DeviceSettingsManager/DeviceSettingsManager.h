@@ -35,6 +35,9 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
+#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
+#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
+
 /*using AudioPortType         = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType;
 using AudioPortType         = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioFormat;
 using AudioPortType         = WPEFramework::Exchange::IDeviceSettingsManagerAudio::DolbyAtmosCapability;
@@ -49,6 +52,7 @@ namespace Plugin {
     private:
         class NotificationHandler
             : public RPC::IRemoteConnection::INotification
+              , public PluginHost::IShell::ICOMLink::INotification
            // , public Exchange::IDeviceSettingsManagerCompositeIn::INotification
            // , public Exchange::IDeviceSettingsManagerAudio::INotification
             , public Exchange::IDeviceSettingsManagerFPD::INotification
@@ -59,6 +63,7 @@ namespace Plugin {
            // , public Exchange::IDeviceSettingsManagerVideoPort::INotification
             {
         private:
+            NotificationHandler()                                      = delete;
             NotificationHandler(const NotificationHandler&)            = delete;
             NotificationHandler& operator=(const NotificationHandler&) = delete;
 
@@ -100,6 +105,18 @@ namespace Plugin {
                 mParent.Deactivated(connection);
             }
 
+            void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override
+            {
+                ASSERT(remote != nullptr);
+                mParent.CallbackRevoked(remote, interfaceId);
+            }
+
+            void Revoked(const Core::IUnknown* remote, const uint32_t interfaceId) override
+            {
+                ASSERT(remote != nullptr);
+                mParent.CallbackRevoked(remote, interfaceId);
+            }
+
             virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override
             {
                 LOGINFO("OnFPDTimeFormatChanged: timeFormat %d", timeFormat);
@@ -116,20 +133,20 @@ namespace Plugin {
         DeviceSettingsManager& operator=(DeviceSettingsManager&) = delete;
 
         DeviceSettingsManager();
-        ~DeviceSettingsManager() override;
+        virtual ~DeviceSettingsManager();
 
         // Build QueryInterface implementation, specifying all possible interfaces to be returned.
         BEGIN_INTERFACE_MAP(DeviceSettingsManager)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerCompositeIn, mDeviceSettingsManagerCompositeIn)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerAudio, mDeviceSettingsManagerAudio)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerFPD, mDeviceSettingsManagerFPD)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerVideoDevice, mDeviceSettingsManagerVideoDevice)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerDisplay, mDeviceSettingsManagerDisplay)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerHDMIIn, mDeviceSettingsManagerHDMIIn)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerHost, mDeviceSettingsManagerHost)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerVideoPort, mDeviceSettingsManagerVideoPort)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerCompositeIn, _mDeviceSettingsManagerCompositeIn)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerAudio, _mDeviceSettingsManagerAudio)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerFPD, _mDeviceSettingsManagerFPD)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerVideoDevice, _mDeviceSettingsManagerVideoDevice)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerDisplay, _mDeviceSettingsManagerDisplay)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerHDMIIn, _mDeviceSettingsManagerHDMIIn)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerHost, _mDeviceSettingsManagerHost)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerVideoPort, _mDeviceSettingsManagerVideoPort)
         END_INTERFACE_MAP
 
     public:
@@ -143,18 +160,19 @@ namespace Plugin {
 
     private:
         void Deactivated(RPC::IRemoteConnection* connection);
+        void CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId);
 
     private:
         uint32_t mConnectionId;
         PluginHost::IShell* mService;
-        Exchange::IDeviceSettingsManagerCompositeIn* mDeviceSettingsManagerCompositeIn;
-        Exchange::IDeviceSettingsManagerAudio* mDeviceSettingsManagerAudio;
-        Exchange::IDeviceSettingsManagerFPD* mDeviceSettingsManagerFPD;
-        Exchange::IDeviceSettingsManagerVideoDevice* mDeviceSettingsManagerVideoDevice;
-        Exchange::IDeviceSettingsManagerDisplay* mDeviceSettingsManagerDisplay;
-        Exchange::IDeviceSettingsManagerHDMIIn* mDeviceSettingsManagerHDMIIn;
-        Exchange::IDeviceSettingsManagerHost* mDeviceSettingsManagerHost;
-        Exchange::IDeviceSettingsManagerVideoPort* mDeviceSettingsManagerVideoPort;
+        Exchange::IDeviceSettingsManagerCompositeIn* _mDeviceSettingsManagerCompositeIn;
+        Exchange::IDeviceSettingsManagerAudio* _mDeviceSettingsManagerAudio;
+        Exchange::IDeviceSettingsManagerFPD* _mDeviceSettingsManagerFPD;
+        Exchange::IDeviceSettingsManagerVideoDevice* _mDeviceSettingsManagerVideoDevice;
+        Exchange::IDeviceSettingsManagerDisplay* _mDeviceSettingsManagerDisplay;
+        Exchange::IDeviceSettingsManagerHDMIIn* _mDeviceSettingsManagerHDMIIn;
+        Exchange::IDeviceSettingsManagerHost* _mDeviceSettingsManagerHost;
+        Exchange::IDeviceSettingsManagerVideoPort* _mDeviceSettingsManagerVideoPort;
         Core::Sink<NotificationHandler> mNotificationSink;
 
     };

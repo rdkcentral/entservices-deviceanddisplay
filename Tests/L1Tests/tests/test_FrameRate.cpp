@@ -90,6 +90,13 @@ protected:
                     return Core::ERROR_NONE;
                 }));
 
+        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
+        device::Manager::setImpl(p_managerImplMock);
+
+        EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
                 .WillByDefault(::testing::Invoke(
@@ -103,13 +110,6 @@ protected:
 #endif
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
-
-        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
-        device::Manager::setImpl(p_managerImplMock);
-
-        EXPECT_CALL(*p_managerImplMock, Initialize())
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(::testing::Return());
 
         Core::IWorkerPool::Assign(&(*workerPool));
             workerPool->Run();

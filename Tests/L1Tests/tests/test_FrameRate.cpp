@@ -29,7 +29,7 @@
 #include "ServiceMock.h"
 #include "VideoDeviceMock.h"
 #include "devicesettings.h"
-#include "dsMgr.h"
+//#include "dsMgr.h"
 #include "ThunderPortability.h"
 #include "FrameRateImplementation.h"
 #include "FrameRateMock.h"
@@ -61,7 +61,7 @@ protected:
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
     IARM_EventHandler_t _iarmDSFramerateEventHandler;
     IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
-
+    ManagerImplMock         *p_managerImplMock = nullptr ;
 
     FrameRateTest()
         : plugin(Core::ProxyType<Plugin::FrameRate>::Create())
@@ -74,8 +74,11 @@ protected:
 
         p_framerateMock  = new NiceMock <FrameRateMock>;
 
-	p_wrapsImplMock = new NiceMock<WrapsImplMock>;
+        p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
+
+        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
+        device::Manager::setImpl(p_managerImplMock);
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
@@ -87,8 +90,12 @@ protected:
             .WillByDefault(::testing::Invoke(
                 [&](Exchange::IFrameRate::INotification* notification) {
                     FrameRateNotification = notification;
-		    return Core::ERROR_NONE;
+                    return Core::ERROR_NONE;
                 }));
+
+        EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
 
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
@@ -160,6 +167,13 @@ protected:
         {
             delete p_videoDeviceMock;
             p_videoDeviceMock = nullptr;
+        }
+
+        device::Manager::setImpl(nullptr);
+        if (p_managerImplMock != nullptr)
+        {
+            delete p_managerImplMock;
+            p_managerImplMock = nullptr;
         }
 
         device::Host::setImpl(nullptr);

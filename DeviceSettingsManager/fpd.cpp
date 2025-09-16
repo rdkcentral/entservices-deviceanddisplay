@@ -35,6 +35,11 @@ static  dsFPDColor_t      _dsPowerLedColor   = dsFPD_COLOR_BLUE;
 static  dsFPDTimeFormat_t _dsTextTimeFormat	 = dsFPD_TIME_12_HOUR;
 static  dsFPDMode_t       _dsFPDMode         = dsFPD_MODE_ANY;*/
 
+extern IARM_Result_t _dsGetFPBrightness(void *arg);
+extern IARM_Result_t _dsSetFPBrightness(void *arg);
+extern IARM_Result_t _dsSetFPState(void *arg);
+extern IARM_Result_t _dsGetFPState(void *arg);
+
 FPD::FPD() : _workerPool(WPEFramework::Core::WorkerPool::Instance())
 {
     ENTRY_LOG;

@@ -37,6 +37,10 @@ add_library(${MODULE_NAME} SHARED
     Module.cpp
     DeviceSettingsManager.cpp)
 
+#add_executable(${MODULE_NAME}
+#    Module.cpp
+#    DeviceSettingsManager.cpp)
+
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
@@ -55,6 +59,12 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DeviceSettingsManagerImp.cpp
     fpd.cpp
 )
+
+#add_executable(${PLUGIN_IMPLEMENTATION}
+#    Module.cpp
+#    DeviceSettingsManagerImp.cpp
+#    fpd.cpp
+#)
 
 find_package(dshal)
 
@@ -104,12 +114,27 @@ else (DS_FOUND)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 endif(DS_FOUND)
 
+find_path(DEVICE_HAL_INCLUDE_DIR
+  NAMES dsFPD.h
+  PATH_SUFFIXES rdk/halif/ds-hal
+)
+
+find_library(DEVICE_HAL_LIBRARY
+  NAMES ds-hal
+)
+
+set(DEVICE_HAL_INCLUDE_DIRS ${DEVICE_HAL_INCLUDE_DIR})
+set(DEVICE_HAL_LIBRARIES ${DEVICE_HAL_LIBRARY})
+
+
 #find_library(DSHAL_LIBRARIES NAMES dshalsrv)
 #set(DS_LIBRARIES ${DS_LIBRARIES} ${DSHAL_LIBRARIES})
 
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_HAL_INCLUDE_DIRS})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_HAL_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DSHALSRV_LIBRARIES})
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${OEMHAL_LIBRARIES})
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
 
 #if(DEEPSLEEP_HAL_FOUND)
 #    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEEPSLEEP_HAL_INCLUDE_DIRS})

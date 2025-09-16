@@ -35,7 +35,7 @@
 
 #define SYSTEMMODE_CALLSIGN _T("org.rdk.SystemMode.1")
 #define SYSTEMMODEL2TEST_CALLSIGN _T("L2tests.1")
-#define FRAMERATE_CALLSIGN _T("org.rdk.DeviceDiagnostics.1")
+#define DISPLAYSETTINGS_CALLSIGN _T("org.rdk.DisplaySettings.1")
 
 using ::testing::NiceMock;
 using namespace WPEFramework;
@@ -307,7 +307,7 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivationLifecycle)
     JsonObject params;
     JsonObject result;
     params["callsign"] = SYSTEMMODEL2TEST_CALLSIGN;
-    params["systemMode"] = "device_optimize";
+    params["systemMode"] = "DEVICE_OPTIMIZE";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientActivated", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     // reuse params for deactivation
@@ -347,18 +347,18 @@ TEST_F(SystemMode_L2test, JSONRPC_StateTransition_VIDEO_GAME_VIDEO)
 TEST_F(SystemMode_L2test, Interface_ClientActivated_Idempotent)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    const std::string modeName = "device_optimize";
+    const std::string modeName = "DEVICE_OPTIMIZE";
 
     // First activation
-    Core::hresult rcAct1 = m_sysmodeplugin->ClientActivated(FRAMERATE_CALLSIGN, modeName);
+    Core::hresult rcAct1 = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcAct1);
 
     // Second activation should be handled gracefully (idempotent)
-    Core::hresult rcAct2 = m_sysmodeplugin->ClientActivated(FRAMERATE_CALLSIGN, modeName);
+    Core::hresult rcAct2 = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcAct2);
 
     // Cleanup: deactivate once
-    Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(FRAMERATE_CALLSIGN, modeName);
+    Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcDeact);
 }
 
@@ -366,7 +366,7 @@ TEST_F(SystemMode_L2test, Interface_ClientActivated_Idempotent)
 TEST_F(SystemMode_L2test, Interface_ClientDeactivated_WithoutActivation)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    const std::string modeName = "device_optimize";
+    const std::string modeName = "DEVICE_OPTIMIZE";
 
     // Attempt deactivation for a callsign that was not activated
     Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated("nonexistent.callsign", modeName);
@@ -378,8 +378,8 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivation_Idempotent)
 {
     JsonObject params;
     JsonObject result;
-    params["callsign"] = FRAMERATE_CALLSIGN;
-    params["systemMode"] = "device_optimize";
+    params["callsign"] = DISPLAYSETTINGS_CALLSIGN;
+    params["systemMode"] = "DEVICE_OPTIMIZE";
 
     // First activation
     uint32_t status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientActivated", params, result);

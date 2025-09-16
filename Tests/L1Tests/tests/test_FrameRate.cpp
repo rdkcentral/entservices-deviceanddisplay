@@ -77,7 +77,7 @@ protected:
         p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
 
-        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
+        p_managerImplMock  = new NiceMock <ManagerImplMock>;
         device::Manager::setImpl(p_managerImplMock);
 
         EXPECT_CALL(*p_managerImplMock, Initialize())

@@ -88,7 +88,7 @@ const char* PowerUtils::str(const PowerState state)
     }
 }
 
-// IMPORTANT: Keep this in sync with the text alias provided for 
+// IMPORTANT: Keep this in sync with the text alias provided for
 //            WakeupSrcType in IPowerManager.h interface file
 const char* PowerUtils::str(WakeupSrcType wakeupSrc)
 {
@@ -119,7 +119,7 @@ const char* PowerUtils::str(WakeupSrcType wakeupSrc)
     }
 }
 
-// IMPORTANT: Keep this conversion in sync with the text alias provided for 
+// IMPORTANT: Keep this conversion in sync with the text alias provided for
 //            WakeupSrcType in IPowerManager.h interface file
 WakeupSrcType PowerUtils::conv(const std::string& wakeupSrc)
 {

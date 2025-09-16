@@ -134,9 +134,7 @@ namespace Plugin {
         Core::hresult Reboot(const string& rebootRequestor, const string& rebootReasonCustom, const string& rebootReasonOther) override;
         Core::hresult SetNetworkStandbyMode(const bool standbyMode) override;
         Core::hresult GetNetworkStandbyMode(bool& standbyMode) override;
-        Core::hresult SetWakeupSrcConfig(const int powerMode, const int srcType, int config) override;
         Core::hresult SetWakeupSourceConfig(IWakeupSrcConfigIterator* wakeupSources) override;
-        Core::hresult GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const override;
         Core::hresult GetWakeupSourceConfig(IWakeupSrcConfigIterator*& wakeupSources) const override;
         Core::hresult SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const override;
         Core::hresult GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot) override;
@@ -192,6 +190,10 @@ namespace Plugin {
         Core::hresult Register(std::list<T*>& list, T* notification);
         template <typename T>
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
+
+        bool isWakeupSrcEnabled(const std::list<WakeupSrcConfig>& configs, WakeupSrcType src) const;
+        Core::hresult setWakeupSourceConfig(const std::list<WakeupSrcConfig>& configs);
+        Core::hresult getWakeupSourceConfig(std::list<WakeupSrcConfig>& configs) const;
 
         static uint32_t _nextClientId; // static counter for unique client ID generation.
 

@@ -34,6 +34,7 @@
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
+using WakeupSrcConfig = WPEFramework::Exchange::IPowerManager::WakeupSrcConfig;
 using IPlatform = hal::power::IPlatform;
 using DefaultImpl = PowerImpl;
 using util = PowerUtils;
@@ -54,9 +55,14 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 
     // Settings initialization will never fail
     // It will either be deserialized from file or initialized to default values
-    int wakeupSrcConfig = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_LAN;
-    int wakeupSrcValue = _settings.nwStandbyMode() ? wakeupSrcConfig : 0;
-    this->platform().SetWakeupSrcConfig(0, wakeupSrcConfig, wakeupSrcValue);
+    bool wakeupSrcValue = _settings.nwStandbyMode();
+
+    std::list<WakeupSrcConfig> configs = {
+        { WakeupSrcType::WAKEUP_SRC_WIFI, wakeupSrcValue },
+        { WakeupSrcType::WAKEUP_SRC_LAN, wakeupSrcValue }
+    };
+
+    SetWakeupSrcConfig(configs);
 
     init();
 }
@@ -133,21 +139,26 @@ uint32_t PowerController::SetNetworkStandbyMode(const bool standbyMode)
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    int wakeupSrcConfig = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_LAN;
-    int wakeupSrcValue = standbyMode ? wakeupSrcConfig : 0;
+    std::list<WakeupSrcConfig> configs = {
+        { WakeupSrcType::WAKEUP_SRC_WIFI, standbyMode },
+        { WakeupSrcType::WAKEUP_SRC_LAN, standbyMode }
+    };
 
-    this->platform().SetWakeupSrcConfig(0, wakeupSrcConfig, wakeupSrcValue);
+    uint32_t errorCode = SetWakeupSrcConfig(configs);
 
-    _settings.SetNwStandbyMode(standbyMode);
+    if (WPEFramework::Core::ERROR_NONE == errorCode) {
 
-    bool ok = _settings.Save(m_settingsFile);
+        _settings.SetNwStandbyMode(standbyMode);
 
-    if (!ok) {
-        LOGERR("Failed to save settings");
-        return WPEFramework::Core::ERROR_GENERAL;
+        bool ok = _settings.Save(m_settingsFile);
+
+        if (!ok) {
+            LOGERR("Failed to save settings");
+            errorCode = WPEFramework::Core::ERROR_GENERAL;
+        }
     }
 
-    return WPEFramework::Core::ERROR_NONE;
+    return errorCode;
 }
 
 uint32_t PowerController::GetNetworkStandbyMode(bool& standbyMode) const
@@ -156,14 +167,52 @@ uint32_t PowerController::GetNetworkStandbyMode(bool& standbyMode) const
     return WPEFramework::Core::ERROR_NONE;
 }
 
-uint32_t PowerController::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)
+uint32_t PowerController::SetWakeupSrcConfig(const std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig>& configs)
 {
-    return platform().SetWakeupSrcConfig(powerMode, srcType, config);
+    bool failed = false;
+
+    for (auto& config : configs) {
+        bool supported = false;
+        int result = platform().SetWakeupSrc(config.wakeupSource, config.enabled, supported);
+        if (WPEFramework::Core::ERROR_NONE != result && supported) {
+            // latch failed status
+            failed = true;
+        }
+    }
+
+    uint32_t errorCode = failed ? WPEFramework::Core::ERROR_GENERAL : WPEFramework::Core::ERROR_NONE;
+
+    LOGINFO("errorCode: %d", errorCode);
+
+    return errorCode;
 }
 
-uint32_t PowerController::GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const
+uint32_t PowerController::GetWakeupSrcConfig(std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig>& configs) const
 {
-    return platform().GetWakeupSrcConfig(powerMode, srcType, config);
+    bool failed = false;
+
+    for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
+        WakeupSrcType wakeupSrc = static_cast<WakeupSrcType>(mask);
+
+        bool supported = false, enabled = false;
+
+        uint32_t result = platform().GetWakeupSrc(wakeupSrc, enabled, supported);
+
+        if (WPEFramework::Core::ERROR_NONE == result) {
+            configs.push_back({ wakeupSrc, enabled });
+        } else if (!supported) {
+            // Not supported, won't append to config list
+            // platform API already has logs so not logging here
+        } else {
+            // failed, latch failed status
+            failed = true;
+        }
+    }
+    uint32_t errorCode = failed ? WPEFramework::Core::ERROR_GENERAL : WPEFramework::Core::ERROR_NONE;
+
+    LOGINFO("errorCode: %d", errorCode);
+
+    return errorCode;
 }
 
 uint32_t PowerController::Reboot(const string& requestor, const string& reasonCustom, const string& reasonOther)

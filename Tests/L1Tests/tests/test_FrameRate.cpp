@@ -77,6 +77,13 @@ protected:
         p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
 
+        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
+        device::Manager::setImpl(p_managerImplMock);
+
+        EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
         dispatcher = static_cast<PLUGINHOST_DISPATCHER*>(
@@ -89,13 +96,6 @@ protected:
                     FrameRateNotification = notification;
                     return Core::ERROR_NONE;
                 }));
-
-        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
-        device::Manager::setImpl(p_managerImplMock);
-
-        EXPECT_CALL(*p_managerImplMock, Initialize())
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(::testing::Return());
 
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))

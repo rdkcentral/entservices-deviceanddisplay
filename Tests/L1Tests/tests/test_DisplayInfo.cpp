@@ -96,8 +96,8 @@ protected:
     DisplayMock      *p_displayMock = nullptr ;
     EdidParserMock  *p_edidParserMock = nullptr;
     DRMMock *p_drmMock = nullptr;
-    IARM_EventHandler_t _iarmDisplayInfoPreChangeEventHandler;
-    IARM_EventHandler_t _iarmDisplayInfoPowtChangeEventHandler;
+    IARM_EventHandler_t _iarmDisplayInfoPreChangeEventHandler = nullptr;
+    IARM_EventHandler_t _iarmDisplayInfoPowtChangeEventHandler = nullptr;
     Exchange::IConnectionProperties::INotification *ConnectionProperties = nullptr;
 
     DisplayInfoTest()
@@ -501,6 +501,8 @@ protected:
                     // Mocked parsing logic
                     edid_parser::edid_res_t res;
                     res.refresh = 60;
+                    res.width = 0;
+                    res.height = 0;
                     data_ptr->res = res; // Set the expected vertical frequency
                     return edid_parser::EDID_STATUS_OK;
                 }));

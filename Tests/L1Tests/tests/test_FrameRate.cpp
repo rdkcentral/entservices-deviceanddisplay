@@ -29,7 +29,7 @@
 #include "ServiceMock.h"
 #include "VideoDeviceMock.h"
 #include "devicesettings.h"
-//#include "dsMgr.h"
+#include "ManagerMock.h"
 #include "ThunderPortability.h"
 #include "FrameRateImplementation.h"
 #include "FrameRateMock.h"
@@ -59,9 +59,9 @@ protected:
     FrameRateMock* p_framerateMock = nullptr;
     HostImplMock      *p_hostImplMock = nullptr;
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
-    IARM_EventHandler_t _iarmDSFramerateEventHandler;
+    //IARM_EventHandler_t _iarmDSFramerateEventHandler;
     IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
-    ManagerImplMock         *p_managerImplMock = nullptr ;
+    ManagerImplMock   *p_managerImplMock = nullptr ;
 
     FrameRateTest()
         : plugin(Core::ProxyType<Plugin::FrameRate>::Create())
@@ -77,9 +77,6 @@ protected:
         p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
 
-        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
-        device::Manager::setImpl(p_managerImplMock);
-
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
         dispatcher = static_cast<PLUGINHOST_DISPATCHER*>(
@@ -92,10 +89,6 @@ protected:
                     FrameRateNotification = notification;
                     return Core::ERROR_NONE;
                 }));
-
-        EXPECT_CALL(*p_managerImplMock, Initialize())
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(::testing::Return());
 
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
@@ -111,19 +104,12 @@ protected:
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
 
-        ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE)) 			{
-			//FrameRatePreChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE))			{
-			//FrameRatePostChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    return IARM_RESULT_SUCCESS;
-                }));
+        p_managerImplMock  = new testing::NiceMock <ManagerImplMock>;
+        device::Manager::setImpl(p_managerImplMock);
+
+        EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
 
         Core::IWorkerPool::Assign(&(*workerPool));
             workerPool->Run();

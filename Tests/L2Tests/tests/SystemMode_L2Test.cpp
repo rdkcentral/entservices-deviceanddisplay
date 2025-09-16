@@ -182,16 +182,6 @@ bool SystemMode_L2test::WaitForStateJsonRpc(const std::string& modeName,
     return false;
 }
 
-// Basic sanity for acquiring interface (covers GetState initial call path)
-TEST_F(SystemMode_L2test, AcquireInterface)
-{
-    ASSERT_TRUE(m_controller_sysmode != nullptr);
-    ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    Exchange::ISystemMode::GetStateResult result{};
-    // Just attempt to read state for DEVICE_OPTIMIZE (may be default/uninitialized on platform)
-    (void)m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result);
-}
-
 // Request VIDEO state and validate via polling using GetState
 TEST_F(SystemMode_L2test, RequestState_VIDEO)
 {

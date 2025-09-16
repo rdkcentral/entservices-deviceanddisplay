@@ -175,6 +175,7 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
             }
 
             signalled = m_event_signalled;
+            m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
             return signalled;
         }
 
@@ -426,6 +427,7 @@ uint32_t PowerManager_L2Test::WaitForRequestStatus(uint32_t timeout_ms,PowerMana
    }
 
     signalled = m_event_signalled;
+    m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     return signalled;
 }
@@ -775,6 +777,9 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                             return PWRMGR_SUCCESS;
                      }));
 
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -916,9 +921,6 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
             {
                 uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(deepSleepTimeout);
                 EXPECT_EQ(status, Core::ERROR_NONE);
-
-                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
-                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillOnce(::testing::Invoke(

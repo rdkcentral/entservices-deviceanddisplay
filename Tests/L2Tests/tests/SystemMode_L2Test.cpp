@@ -35,7 +35,7 @@
 
 #define SYSTEMMODE_CALLSIGN _T("org.rdk.SystemMode.1")
 #define SYSTEMMODEL2TEST_CALLSIGN _T("L2tests.1")
-#define FRAMERATE_CALLSIGN _T("org.rdk.FrameRate.1")
+#define FRAMERATE_CALLSIGN _T("org.rdk.DeviceDiagnostics.1")
 
 using ::testing::NiceMock;
 using namespace WPEFramework;

@@ -494,7 +494,7 @@ namespace WPEFramework {
             registerMethod("getLastFirmwareFailureReason", &SystemServices::getLastFirmwareFailureReason, this);
             registerMethod("setOptOutTelemetry", &SystemServices::setOptOutTelemetry, this);
             registerMethod("isOptOutTelemetry", &SystemServices::isOptOutTelemetry, this);
-            registerMethod("setFirmwareAutoReboot", &SystemServices::setFirmwareAutoReboot, this);
+            // registerMethod("setFirmwareAutoReboot", &SystemServices::setFirmwareAutoReboot, this);
 #ifdef ENABLE_SYSTEM_GET_STORE_DEMO_LINK
             registerMethod("getStoreDemoLink", &SystemServices::getStoreDemoLink, this);
 #endif
@@ -867,7 +867,7 @@ namespace WPEFramework {
             returnResponse(result);
         }
 #endif
-
+#if 0
         /*
          * @brief This function Enable/Disable the AutReboot Feature.
          * This will internally sets the tr181 AutoReboot.Enable to True/False.
@@ -909,7 +909,7 @@ namespace WPEFramework {
            }
            returnResponse(result);
         }
-
+#endif
 #if 0
         /*
          * @brief This function notifies about pending Reboot.

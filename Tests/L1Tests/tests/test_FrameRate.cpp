@@ -80,11 +80,17 @@ protected:
         p_managerImplMock  = new NiceMock <ManagerImplMock>;
         device::Manager::setImpl(p_managerImplMock);
 
+        p_hostImplMock  = new NiceMock <HostImplMock>;
+        device::Host::setImpl(p_hostImplMock);
+
         EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())
             .WillRepeatedly(::testing::Return());
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
+
+        EXPECT_CALL(*p_hostImplMock, Register(testing::_))
+            .WillOnce(testing::Return(dsError_t::dsERR_NONE));
 
         dispatcher = static_cast<PLUGINHOST_DISPATCHER*>(
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
@@ -115,8 +121,6 @@ protected:
             workerPool->Run();
 
         plugin->Initialize(&service);
-        p_hostImplMock  = new NiceMock <HostImplMock>;
-        device::Host::setImpl(p_hostImplMock);
 
         device::VideoDevice videoDevice;
         p_videoDeviceMock  = new NiceMock <VideoDeviceMock>;
@@ -155,6 +159,13 @@ protected:
             p_videoDeviceMock = nullptr;
         }
 
+        EXPECT_CALL(*p_hostImplMock, UnRegister(testing::_))
+            .WillOnce(testing::Return(dsError_t::dsERR_NONE));
+
+        EXPECT_CALL(*p_managerImplMock, DeInitialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
         device::Manager::setImpl(nullptr);
         if (p_managerImplMock != nullptr)
         {
@@ -172,7 +183,7 @@ protected:
         dispatcher->Release();
 
         PluginHost::IFactories::Assign(nullptr);
-	IarmBus::setImpl(nullptr);
+        IarmBus::setImpl(nullptr);
         if (p_iarmBusImplMock != nullptr) {
             delete p_iarmBusImplMock;
             p_iarmBusImplMock = nullptr;

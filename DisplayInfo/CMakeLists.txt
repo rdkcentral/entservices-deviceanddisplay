@@ -83,6 +83,7 @@ else()
         ${IARMBUS_LIBRARIES}
         ${DS_LIBRARIES}
         displayinfo-soc)
+endif()
 
     target_sources(${MODULE_NAME}
         PRIVATE

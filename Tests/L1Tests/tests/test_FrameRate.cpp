@@ -96,7 +96,7 @@ protected:
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
         dispatcher->Activate(&service);
 
-        ON_CALL(*p_framerateMock, Register(::testing::_))
+        ON_CALL(*p_framerateMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_))))
             .WillByDefault(::testing::Invoke(
                 [&](Exchange::IFrameRate::INotification* notification) {
                     FrameRateNotification = notification;
@@ -159,7 +159,7 @@ protected:
             p_videoDeviceMock = nullptr;
         }
 
-        EXPECT_CALL(*p_hostImplMock, UnRegister(testing::_))
+        EXPECT_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
             .WillOnce(testing::Return(dsError_t::dsERR_NONE));
 
         EXPECT_CALL(*p_managerImplMock, DeInitialize())

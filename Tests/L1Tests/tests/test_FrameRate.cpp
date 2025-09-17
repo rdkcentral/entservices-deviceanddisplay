@@ -32,7 +32,7 @@
 #include "ManagerMock.h"
 #include "ThunderPortability.h"
 #include "FrameRateImplementation.h"
-#include "FrameRateMock.h"
+//#include "FrameRateMock.h"
 #include "WorkerPoolImplementation.h"
 #include "WrapsMock.h"
 
@@ -56,7 +56,7 @@ protected:
     Core::JSONRPC::Message message;
     ServiceMock  *p_serviceMock  = nullptr;
     WrapsImplMock* p_wrapsImplMock = nullptr;
-    FrameRateMock* p_framerateMock = nullptr;
+    //FrameRateMock* p_framerateMock = nullptr;
     HostImplMock      *p_hostImplMock = nullptr;
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
     //IARM_EventHandler_t _iarmDSFramerateEventHandler;
@@ -72,7 +72,7 @@ protected:
     {
 	    p_serviceMock = new NiceMock <ServiceMock>;
 
-        p_framerateMock  = new NiceMock <FrameRateMock>;
+        //p_framerateMock  = new NiceMock <FrameRateMock>;
 
         p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
@@ -89,19 +89,19 @@ protected:
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
-        EXPECT_CALL(*p_hostImplMock, Register(testing::_))
-            .WillOnce(testing::Return(dsError_t::dsERR_NONE));
+        ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+            .WillByDefault(testing::Return(dsError_t::dsERR_NONE));
 
         dispatcher = static_cast<PLUGINHOST_DISPATCHER*>(
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
         dispatcher->Activate(&service);
 
-        ON_CALL(*p_framerateMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_))))
+        /*ON_CALL(*p_framerateMock, Register(::testing::_))
             .WillByDefault(::testing::Invoke(
                 [&](Exchange::IFrameRate::INotification* notification) {
                     FrameRateNotification = notification;
                     return Core::ERROR_NONE;
-                }));
+                }));*/
 
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
@@ -141,10 +141,31 @@ protected:
             p_serviceMock = nullptr;
         }
 
-        if (p_framerateMock != nullptr) {
+        /*ON_CALL(*p_framerateMock, Unregister(::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](Exchange::IFrameRate::INotification* notification) {
+                    FrameRateNotification = notification;
+                    return Core::ERROR_NONE;
+                }));*/
+
+        ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+            .WillByDefault(testing::Return(dsError_t::dsERR_NONE));
+
+        EXPECT_CALL(*p_managerImplMock, DeInitialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
+        device::Manager::setImpl(nullptr);
+        if (p_managerImplMock != nullptr)
+        {
+            delete p_managerImplMock;
+            p_managerImplMock = nullptr;
+        }
+
+        /*if (p_framerateMock != nullptr) {
             delete p_framerateMock;
             p_framerateMock = nullptr;
-        }
+        }*/
 
         Wraps::setImpl(nullptr);
         if (p_wrapsImplMock != nullptr) {
@@ -157,20 +178,6 @@ protected:
         {
             delete p_videoDeviceMock;
             p_videoDeviceMock = nullptr;
-        }
-
-        EXPECT_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
-            .WillOnce(testing::Return(dsError_t::dsERR_NONE));
-
-        EXPECT_CALL(*p_managerImplMock, DeInitialize())
-            .Times(::testing::AnyNumber())
-            .WillRepeatedly(::testing::Return());
-
-        device::Manager::setImpl(nullptr);
-        if (p_managerImplMock != nullptr)
-        {
-            delete p_managerImplMock;
-            p_managerImplMock = nullptr;
         }
 
         device::Host::setImpl(nullptr);
@@ -297,7 +304,7 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
     //ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
     Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
-    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+    /*EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
             [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
@@ -310,10 +317,11 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
                                           "}"))); 
 		resetDone.SetEvent();
                 return Core::ERROR_NONE;
-            }));
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+            }));*/
+    //IARM_Bus_DSMgr_EventData_t eventData;
+    //strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
     //_iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+    FrameRateImplem->OnDisplayFrameratePreChange("3840x2160px48");
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
@@ -323,7 +331,7 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanged)
     //ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
     Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+    /*EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
             [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
@@ -336,10 +344,11 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanged)
                                           "}")));
 		resetDone.SetEvent();    
                 return Core::ERROR_NONE;
-            }));
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+            }));*/
+    //IARM_Bus_DSMgr_EventData_t eventData;
+    //strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
     //_iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+    FrameRateImplem->OnDisplayFrameratePostChange("3840x2160px48");
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }

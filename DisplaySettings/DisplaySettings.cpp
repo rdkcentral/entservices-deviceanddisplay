@@ -38,6 +38,7 @@
 #include "host.hpp"
 #include "manager.hpp"
 #include "dsRpc.h"
+#include "UtilsSynchro.hpp"
 
 #include "tr181api.h"
 

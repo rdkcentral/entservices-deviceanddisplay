@@ -72,20 +72,18 @@ if (USE_DEVICESETTINGS)
     target_include_directories(${MODULE_NAME} PRIVATE ${IARMBUS_INCLUDE_DIRS}
         ${DS_INCLUDE_DIRS}
         ../helpers)
+if (RDK_SERVICES_L1_TEST OR DRDK_SERVICES_L2_TEST)
     target_link_libraries(${MODULE_NAME} PRIVATE
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
         ${IARMBUS_LIBRARIES}
         ${DS_LIBRARIES})
+else()   
+    target_link_libraries(${MODULE_NAME} PRIVATE
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+        ${IARMBUS_LIBRARIES}
+        ${DS_LIBRARIES}
+        displayinfo-soc)
 
-    # Try to locate the optional displayinfo-soc library
-    find_library(DISPLAYINFO_SOC_LIBRARY NAMES displayinfo-soc)
-
-    if(DISPLAYINFO_SOC_LIBRARY)
-        target_link_libraries(${MODULE_NAME} PRIVATE displayinfo-soc)
-        message(STATUS "Found displayinfo-soc library: ${DISPLAYINFO_SOC_LIBRARY}")
-    else()
-        message(WARNING "displayinfo-soc library not found - skipping")
-    endif()
     target_sources(${MODULE_NAME}
         PRIVATE
             DeviceSettings/PlatformImplementation.cpp)

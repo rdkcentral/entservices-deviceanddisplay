@@ -24,7 +24,6 @@
 #include "Module.h"
 #include "dsTypes.h"
 #include "tptimer.h"
-#include "libIARM.h"
 #include "rfcapi.h"
 #include <interfaces/ISystemMode.h>
 #include <interfaces/IDeviceOptimizeStateActivator.h>
@@ -32,9 +31,6 @@
 #include <fstream>
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
-#include "host.hpp"
-#include "manager.hpp"
-#include "dsRpc.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
@@ -126,8 +122,6 @@ namespace WPEFramework {
             uint32_t getActiveInput(const JsonObject& parameters, JsonObject& response);
             uint32_t getTvHDRSupport(const JsonObject& parameters, JsonObject& response);
             uint32_t getSettopHDRSupport(const JsonObject& parameters, JsonObject& response);
-            uint32_t setVideoPortStatusInStandby(const JsonObject& parameters, JsonObject& response);
-            uint32_t getVideoPortStatusInStandby(const JsonObject& parameters, JsonObject& response);
             uint32_t getCurrentOutputSettings(const JsonObject& parameters, JsonObject& response);
             uint32_t setForceHDRMode(const JsonObject& parameters, JsonObject& response);
             //End methods

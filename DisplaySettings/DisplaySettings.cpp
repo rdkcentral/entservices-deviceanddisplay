@@ -35,22 +35,22 @@
 #include "dsError.h"
 #include "list.hpp"
 #include "dsDisplay.h"
+#include "host.hpp"
+#include "manager.hpp"
+#include "dsRpc.h"
 
 #include "tr181api.h"
 
 #include "tracing/Logging.h"
 #include <syscall.h>
 #include "UtilsCStr.h"
-#include "UtilsIarm.h"
 #include "UtilsJsonRpc.h"
 #include "UtilsString.h"
 #include "UtilsisValidInt.h"
-#include "UtilsSynchroIarm.hpp"
 
 using namespace std;
 
 #define HDMI_HOT_PLUG_EVENT_CONNECTED 0
-
 
 #define HDMICECSINK_CALLSIGN "org.rdk.HdmiCecSink"
 #define HDMICECSINK_CALLSIGN_VER HDMICECSINK_CALLSIGN".1"
@@ -94,61 +94,6 @@ bool audioPortInitActive = false;
 std::vector<int> sad_list;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
-#ifdef USE_IARM
-namespace
-{
-    /**
-     * @struct Mapping
-     * @brief Structure that defines members for the display setting service.
-     * @ingroup SERVMGR_DISPSETTINGS
-     */
-    struct Mapping
-    {
-        const char *IArmBusName;
-        const char *SvcManagerName;
-    };
-
-    static struct Mapping name_mappings[] = {
-        { "Full", "FULL" },
-        { "None", "NONE" },
-        { "mono", "MONO" },
-        { "stereo", "STEREO" },
-        { "surround", "SURROUND" },
-        { "unknown", "UNKNOWN" },
-        // TODO: add your mappings here
-        // { <IARM_NAME>, <SVC_MANAGER_API_NAME> },
-        { 0,  0 }
-    };
-
-    string svc2iarm(const string &name)
-    {
-        const char *s = name.c_str();
-
-        int i = 0;
-        while (name_mappings[i].SvcManagerName)
-        {
-            if (strcmp(s, name_mappings[i].SvcManagerName) == 0)
-                return name_mappings[i].IArmBusName;
-            i++;
-        }
-        return name;
-    }
-
-    string iarm2svc(const string &name)
-    {
-        const char *s = name.c_str();
-
-        int i = 0;
-        while (name_mappings[i].IArmBusName)
-        {
-            if (strcmp(s, name_mappings[i].IArmBusName) == 0)
-                return name_mappings[i].SvcManagerName;
-            i++;
-        }
-        return name;
-    }
-}
-#endif
 
 // TODO: remove this
 #define registerMethod(...) for (uint8_t i = 1; GetHandler(i); i++) GetHandler(i)->Register<JsonObject, JsonObject>(__VA_ARGS__)
@@ -271,8 +216,6 @@ namespace WPEFramework {
             registerMethodLockedApi("getActiveInput", &DisplaySettings::getActiveInput, this);
             registerMethodLockedApi("getTvHDRSupport", &DisplaySettings::getTvHDRSupport, this);
             registerMethodLockedApi("getSettopHDRSupport", &DisplaySettings::getSettopHDRSupport, this);
-            registerMethodLockedApi("setVideoPortStatusInStandby", &DisplaySettings::setVideoPortStatusInStandby, this);
-            registerMethodLockedApi("getVideoPortStatusInStandby", &DisplaySettings::getVideoPortStatusInStandby, this);
             registerMethodLockedApi("getCurrentOutputSettings", &DisplaySettings::getCurrentOutputSettings, this);
 
             Utils::Synchro::RegisterLockedApi("getVolumeLeveller", &DisplaySettings::getVolumeLeveller, this);
@@ -1028,9 +971,6 @@ namespace WPEFramework {
                 LOG_DEVICE_EXCEPTION0();
                 success = false;
             }
-#ifdef USE_IARM
-            zoomSetting = iarm2svc(zoomSetting);
-#endif
             response["zoomSetting"] = zoomSetting;
             returnResponse(success);
         }
@@ -1045,9 +985,6 @@ namespace WPEFramework {
             bool success = true;
             try
             {
-#ifdef USE_IARM
-                zoomSetting = svc2iarm(zoomSetting);
-#endif
                 if (device::Host::getInstance().getVideoDevices().size() < 1)
                 {
                     LOGINFO("DSMGR_NOT_RUNNING");
@@ -1319,9 +1256,6 @@ namespace WPEFramework {
             }
 
             LOGWARN("audioPort = %s, mode = %s!", audioPort.c_str(), modeString.c_str());
-#ifdef USE_IARM
-            modeString = iarm2svc(modeString);
-#endif
             response["soundMode"] = modeString;
             returnResponse(true);
         }
@@ -1770,69 +1704,6 @@ namespace WPEFramework {
                LOGINFO("capabilities: %s", ms12Capabilities[i].String().c_str());
             }
             returnResponse(true);
-        }
-
-        uint32_t DisplaySettings::setVideoPortStatusInStandby(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            returnIfParamNotFound(parameters, "portName");
-            string portname = parameters["portName"].String();
-
-            bool enabled = parameters["enabled"].Boolean();
-            bool success = true;
-
-            dsMgrStandbyVideoStateParam_t param;
-            param.isEnabled = enabled;
-            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
-            param.port[sizeof(param.port) - 1] = '\0';
-            if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_SetStandbyVideoState, &param, sizeof(param)))
-            {
-                LOGERR("Port: %s. enable: %d", param.port, param.isEnabled);
-                response["error_message"] = "Bus failure";
-                success = false;
-            }
-            else if(0 != param.result)
-            {
-                LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
-                response["error_message"] = "internal error";
-                success = false;
-            }
-            returnResponse(success);
-        }
-
-        uint32_t DisplaySettings::getVideoPortStatusInStandby(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            returnIfParamNotFound(parameters, "portName");
-            string portname = parameters["portName"].String();
-
-            bool success = true;
-
-            dsMgrStandbyVideoStateParam_t param;
-            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
-	    param.port[sizeof(param.port) - 1] = '\0';
-            if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_GetStandbyVideoState, &param, sizeof(param)))
-            {
-                LOGERR("Port: %s. enable:%d", param.port, param.isEnabled);
-                response["error_message"] = "Bus failure";
-                success = false;
-            }
-            else if(0 != param.result)
-            {
-                LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
-                response["error_message"] = "internal error";
-                success = false;
-            }
-            else
-            {
-                bool enabled(0 != param.isEnabled);
-                LOGINFO("video port is %s", enabled ? "enabled" : "disabled");
-                response["videoPortStatusInStandby"] = enabled;
-            }
-
-            returnResponse(success);
         }
 
         uint32_t DisplaySettings::getCurrentOutputSettings(const JsonObject& parameters, JsonObject& response)
@@ -5734,12 +5605,12 @@ void DisplaySettings::sendMsgThread()
             if(!_registeredDsEventHandlers)
             {
                 _registeredDsEventHandlers = true;
-                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayEvents>());
-                device::Host::getInstance().Register(baseInterface<device::Host::IAudioOutputPortEvents>());
-                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayDeviceEvents>());
-                device::Host::getInstance().Register(baseInterface<device::Host::IHdmiInEvents>());
-                device::Host::getInstance().Register(baseInterface<device::Host::IVideoDeviceEvents>());
-                device::Host::getInstance().Register(baseInterface<device::Host::IVideoOutputPortEvents>());
+                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IAudioOutputPortEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayDeviceEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IHdmiInEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IVideoDeviceEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IVideoOutputPortEvents>(), "WPE[DisplaySettings]");
             }
         }
 
@@ -5884,7 +5755,7 @@ void DisplaySettings::sendMsgThread()
                             //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
                             {
                                 DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
-                                LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG  HDMI_ARC Port disconnected. Notify UI !!! ");
+                                LOGINFO("Received OnHdmiInEventHotPlug  HDMI_ARC Port disconnected. Notify UI !!! ");
                             }
                         }
                         DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;

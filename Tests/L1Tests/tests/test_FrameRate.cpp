@@ -32,7 +32,7 @@
 #include "ManagerMock.h"
 #include "ThunderPortability.h"
 #include "FrameRateImplementation.h"
-//#include "FrameRateMock.h"
+#include "FrameRateMock.h"
 #include "WorkerPoolImplementation.h"
 #include "WrapsMock.h"
 
@@ -56,7 +56,7 @@ protected:
     Core::JSONRPC::Message message;
     ServiceMock  *p_serviceMock  = nullptr;
     WrapsImplMock* p_wrapsImplMock = nullptr;
-    //FrameRateMock* p_framerateMock = nullptr;
+    FrameRateMock* p_framerateMock = nullptr;
     HostImplMock      *p_hostImplMock = nullptr;
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
     //IARM_EventHandler_t _iarmDSFramerateEventHandler;
@@ -72,7 +72,7 @@ protected:
     {
 	    p_serviceMock = new NiceMock <ServiceMock>;
 
-        //p_framerateMock  = new NiceMock <FrameRateMock>;
+        p_framerateMock  = new NiceMock <FrameRateMock>;
 
         p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
@@ -96,12 +96,12 @@ protected:
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
         dispatcher->Activate(&service);
 
-        /*ON_CALL(*p_framerateMock, Register(::testing::_))
+        ON_CALL(*p_framerateMock, Register(::testing::_))
             .WillByDefault(::testing::Invoke(
                 [&](Exchange::IFrameRate::INotification* notification) {
                     FrameRateNotification = notification;
                     return Core::ERROR_NONE;
-                }));*/
+                }));
 
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
@@ -141,12 +141,12 @@ protected:
             p_serviceMock = nullptr;
         }
 
-        /*ON_CALL(*p_framerateMock, Unregister(::testing::_))
+        ON_CALL(*p_framerateMock, Unregister(::testing::_))
             .WillByDefault(::testing::Invoke(
                 [&](Exchange::IFrameRate::INotification* notification) {
                     FrameRateNotification = notification;
                     return Core::ERROR_NONE;
-                }));*/
+                }));
 
         ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
             .WillByDefault(testing::Return(dsError_t::dsERR_NONE));
@@ -162,10 +162,10 @@ protected:
             p_managerImplMock = nullptr;
         }
 
-        /*if (p_framerateMock != nullptr) {
+        if (p_framerateMock != nullptr) {
             delete p_framerateMock;
             p_framerateMock = nullptr;
-        }*/
+        }
 
         Wraps::setImpl(nullptr);
         if (p_wrapsImplMock != nullptr) {

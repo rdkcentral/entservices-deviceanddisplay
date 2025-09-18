@@ -718,7 +718,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                             *curTemperature  = 120; // high temperature
                             *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_HIGH;
@@ -730,7 +730,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
                             return PWRMGR_SUCCESS;
@@ -740,25 +740,16 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
                             return DEEPSLEEPMGR_SUCCESS;
                         }));
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_GetLastWakeupReason(::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [](DeepSleep_WakeupReason_t* wakeupReason) {
                             *wakeupReason = DEEPSLEEP_WAKEUPREASON_GPIO;
                             return DEEPSLEEPMGR_SUCCESS;
-                        }));
-
-                EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
-                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
-                            *curTemperature  = 60; // safe temperature
-                            *curState        = (mfrTemperatureState_t)0;
-                            *wifiTemperature = 25;
-                            return mfrERR_NONE;
                         }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
@@ -771,7 +762,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
                             return PWRMGR_SUCCESS;

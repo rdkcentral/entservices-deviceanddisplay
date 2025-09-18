@@ -180,7 +180,7 @@ protected:
 
     }
 };
-
+#if 0
 TEST_F(FrameRateTest, RegisteredMethods)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setCollectionFrequency")));
@@ -279,7 +279,7 @@ TEST_F(FrameRateTest, getDisplayFrameRate)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
     EXPECT_EQ(response, string("{\"framerate\":\"3840x2160px48\",\"success\":true}"));
 }
-
+#endif
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {

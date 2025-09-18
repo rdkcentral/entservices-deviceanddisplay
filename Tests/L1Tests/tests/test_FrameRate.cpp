@@ -94,6 +94,7 @@ protected:
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
                 .WillByDefault(::testing::Invoke(
                     [&](const RPC::Object& object, const uint32_t waitTime, uint32_t& connectionId) {
+                        printf("*** _DEBUG: Instantiate called R4");
                         FrameRateImplem = Core::ProxyType<Plugin::FrameRateImplementation>::Create();
                         return &FrameRateImplem;
                     }));
@@ -283,7 +284,9 @@ TEST_F(FrameRateTest, getDisplayFrameRate)
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
+    printf("*** _DEBUG: TEST_F(FrameRateTest, onDisplayFrameRateChanging): entry");
     ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    printf("*** _DEBUG: TEST_F(FrameRateTest, onDisplayFrameRateChanging): Mark 1");
     Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
     EXPECT_CALL(service, Submit(::testing::_, ::testing::_))

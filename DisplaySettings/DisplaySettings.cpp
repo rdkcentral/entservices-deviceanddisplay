@@ -22,7 +22,6 @@
 
 #include "DisplaySettings.h"
 #include <algorithm>
-#include "dsMgr.h"
 #include "exception.hpp"
 #include "videoOutputPort.hpp"
 #include "videoOutputPortType.hpp"
@@ -31,6 +30,7 @@
 #include "audioOutputPort.hpp"
 #include "audioOutputPortType.hpp"
 #include "audioOutputPortConfig.hpp"
+#include "manager.hpp"
 #include "dsUtl.h"
 #include "dsError.h"
 #include "list.hpp"

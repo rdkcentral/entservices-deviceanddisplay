@@ -856,6 +856,19 @@ namespace WPEFramework {
             }
         }
 
+        int DisplaySettings::getAudioDeviceSADState(void) {
+            //function used to read the current SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            return m_AudioDeviceSADState;
+        }
+
+        void DisplaySettings::setAudioDeviceSADState(int newState) {
+            // function used to set the required SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            LOGINFO("Updating SAD State [%d] -> [%d] ", m_AudioDeviceSADState,newState);
+            m_AudioDeviceSADState = newState;
+        }
+
         void DisplaySettings::dsHdmiEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
             switch (eventId)
@@ -4389,9 +4402,9 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
-					    std::lock_guard<std::mutex> lock(m_SadMutex);
 					    /* Take actions according to SAD udpate state */
-					    switch(m_AudioDeviceSADState)
+					    int currentSADState = getAudioDeviceSADState();
+					    switch(currentSADState)
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
 						{
@@ -4404,7 +4417,7 @@ namespace WPEFramework {
 						case AUDIO_DEVICE_SAD_RECEIVED: 
 						{
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
-							m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+							setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
 							aPort.setSAD(sad_list);
 
 							if(aPort.getStereoAuto() == true) {
@@ -4435,7 +4448,7 @@ namespace WPEFramework {
 											
 						default: 
 						{
-							LOGINFO("Incorrect Audio Deivce SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
+							LOGINFO("Incorrect Audio Deivce SAD state %d\n", currentSADState); // should not hit this case
 						}
 						break;
 					    }
@@ -4936,6 +4949,8 @@ void DisplaySettings::sendMsgThread()
                 LOGERR("Field 'status' could not be found in the event's payload.");
                 return;
             }
+
+        std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
 	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
 	    // AVR power status is not checked here assuming that ARC init request will happen only when AVR is in ON state
             if ((m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
@@ -4943,7 +4958,6 @@ void DisplaySettings::sendMsgThread()
 
 		if( !value.compare("success") ) {
 		    //Update Arc state
-                    std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
                     m_currentArcRoutingState = ARC_STATE_ARC_INITIATED;
 		    //Request SAD
 		    // We will get Arc initiation request only if port is connected and Audio device is detected
@@ -4991,7 +5005,6 @@ void DisplaySettings::sendMsgThread()
 		else{
                     LOGERR("CEC ARC Initiaition Failed !!!");
                     {
-                      std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
                       m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
                     }//Release Mutex m_AudioDeviceStatesUpdateMutex if Arc failure
 		}
@@ -5018,11 +5031,11 @@ void DisplaySettings::sendMsgThread()
 		LOGINFO("SAD already cleared\n");
 	    }
 
+        std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
 	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
 	    if (m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED) {
                 if (parameters.HasLabel("status")) {
                     value = parameters["status"].String();
-                    std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
                     m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
 		    m_requestSadRetrigger = false;
 	            LOGINFO("Current ARC routing state after update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
@@ -5066,11 +5079,11 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("ShortAudioDescriptor")) {
                 shortAudioDescriptorList = parameters["ShortAudioDescriptor"].Array();
-		if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_REQUESTED) {
+		int currentSADState = getAudioDeviceSADState();
+		if (currentSADState == AUDIO_DEVICE_SAD_REQUESTED) {
                     try
                     {
-		        std::lock_guard<std::mutex> lock(m_SadMutex);
-			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_RECEIVED;
+		        setAudioDeviceSADState(AUDIO_DEVICE_SAD_RECEIVED);
 			m_requestSadRetrigger = false;
                         device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
 			LOGINFO("Total Short Audio Descriptors received from connected ARC device: %d\n",shortAudioDescriptorList.Length());
@@ -5097,7 +5110,7 @@ void DisplaySettings::sendMsgThread()
 
 			    if (wasSADTimerActive == true && m_arcEarcAudioEnabled == false ) { /*setEnableAudioPort is called, Timer has started, got SAD before Timer Expiry*/
 			        LOGINFO("%s: Updating SAD \n", __FUNCTION__);
-                                m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+                                setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
                                 aPort.setSAD(sad_list);
                                 if(aPort.getStereoAuto() == true) {
                                     aPort.setStereoAuto(true,true);
@@ -5113,7 +5126,7 @@ void DisplaySettings::sendMsgThread()
                         	m_arcEarcAudioEnabled = true;
 			    } else if (m_arcEarcAudioEnabled == true) { /*setEnableAudioPort is called,Timer started and Expired, arc is routed -- or for both wasSADTimerActive == true/false*/
 				LOGINFO("%s: Updating SAD since audio is already routed and ARC is initiated\n", __FUNCTION__);
-				 m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+				 setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
 				    aPort.setSAD(sad_list);
                         	    if(aPort.getStereoAuto() == true) {
                     	            	aPort.setStereoAuto(true,true);

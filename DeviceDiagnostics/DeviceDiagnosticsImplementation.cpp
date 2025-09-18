@@ -87,7 +87,7 @@ namespace WPEFramework
             m_pollThreadRun = 0;
             m_AVDecoderStatusLock.unlock();
             m_avDecoderStatusCv.notify_one();
-			if (m_AVPollThread && m_AVPollThread.joinable())
+			if (m_AVPollThread.joinable())
 			{
                 m_AVPollThread.join();
 			}

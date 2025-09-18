@@ -285,24 +285,33 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
     ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
     Core::Event resetDone(false, true);
+	DBGINFO("before calling EVENT_SUBSCRIBE");
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
+	DBGINFO("after calling EVENT_SUBSCRIBE");
     EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
             [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
                 string text;
+				DBGINFO("after calling EVENT_SUBSCRIBE");
                 EXPECT_TRUE(json->ToString(text));
+				DBGINFO("after calling EVENT_SUBSCRIBE");
                 EXPECT_EQ(text, string(_T("{"
                                           "\"jsonrpc\":\"2.0\","
                                           "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
                                           "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
                                           "}"))); 
+				DBGINFO("after calling EVENT_SUBSCRIBE");
 		resetDone.SetEvent();
+				DBGINFO("after calling EVENT_SUBSCRIBE");
                 return Core::ERROR_NONE;
             }));
     IARM_Bus_DSMgr_EventData_t eventData;
+	DBGINFO("before setting eventdata calling _iarmDSFramerateEventHandler");
     strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+	 DBGINFO("before calling _iarmDSFramerateEventHandler");
     _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+	 DBGINFO("after calling _iarmDSFramerateEventHandler");
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }

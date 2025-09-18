@@ -35,8 +35,8 @@
 #include "FrameRateMock.h"
 #include "WorkerPoolImplementation.h"
 #include "WrapsMock.h"
-
-#define DBGINFO(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
+#define LOGINFO12(fmt, ...) do { fprintf(stdout, MODULE " [%s:%d] " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__);fflush(stdout); } while (0)
+#define DBGINFO(fmt, ...) LOGINFO12(fmt, ##__VA_ARGS__)
 
 using namespace WPEFramework;
 

@@ -35,9 +35,6 @@
 #include "dsError.h"
 #include "list.hpp"
 #include "dsDisplay.h"
-#include "host.hpp"
-#include "manager.hpp"
-#include "dsRpc.h"
 #include "UtilsSynchro.hpp"
 
 #include "tr181api.h"

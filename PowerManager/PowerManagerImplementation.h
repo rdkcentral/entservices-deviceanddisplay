@@ -142,6 +142,7 @@ namespace Plugin {
         Core::hresult DelayPowerModeChangeBy(const uint32_t clientId, const int transactionId, const int delayPeriod) override;
         Core::hresult AddPowerModePreChangeClient(const string& clientName, uint32_t& clientId) override;
         Core::hresult RemovePowerModePreChangeClient(const uint32_t clientId) override;
+        Core::hresult GetPowerStateIsManagedByDevice(bool &powerStateManagedByDevice, bool &success) override;
 
         static PowerManagerImplementation* _instance;
 

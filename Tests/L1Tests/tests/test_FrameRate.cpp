@@ -36,6 +36,8 @@
 #include "WorkerPoolImplementation.h"
 #include "WrapsMock.h"
 
+#define DBGINFO(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
+
 using namespace WPEFramework;
 
 using ::testing::NiceMock;

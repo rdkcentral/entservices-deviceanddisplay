@@ -140,6 +140,9 @@ touch rdk/ds/videoOutputPort.hpp
 touch rdk/ds/videoOutputPortConfig.hpp
 touch rdk/ds/videoOutputPortType.hpp
 touch rdk/ds/videoResolution.hpp
+touch rdk/ds/audioOutputPortType.hpp
+touch rdk/ds/audioOutputPortConfig.hpp
+touch rdk/ds/pixelResolution.hpp
 touch rdk/iarmbus/libIARM.h
 touch rdk/iarmbus/libIBus.h
 touch rdk/iarmbus/libIBusDaemon.h

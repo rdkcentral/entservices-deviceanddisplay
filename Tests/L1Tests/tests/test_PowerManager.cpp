@@ -409,6 +409,8 @@ TEST_F(TestPowerManager, GetLastWakeupKeyCode)
     EXPECT_EQ(wakeupKeyCode, 1234);
 }
 
+using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>>;
+
 TEST_F(TestPowerManager, SetWakeupSrcConfig)
 {
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
@@ -419,10 +421,10 @@ TEST_F(TestPowerManager, SetWakeupSrcConfig)
                 return PWRMGR_SUCCESS;
             }));
 
-    int powerMode = 0;
-    int config    = WakeupSrcType::WAKEUP_SRC_WIFI;
+    std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_WIFI, true}};
+    auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
 
-    uint32_t status = powerManagerImpl->SetWakeupSrcConfig(powerMode, WakeupSrcType::WAKEUP_SRC_WIFI, config);
+    uint32_t status = powerManagerImpl->SetWakeupSourceConfig(iterator);
 
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
@@ -443,12 +445,22 @@ TEST_F(TestPowerManager, GetWakeupSrcConfig)
                 return PWRMGR_SUCCESS;
             }));
 
-    int powerMode = 0, config = 0;
-    int src         = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_IR;
-    uint32_t status = powerManagerImpl->GetWakeupSrcConfig(powerMode, src, config);
+    WPEFramework::RPC::IIteratorType<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig, WPEFramework::Exchange::IDS::ID_POWER_MANAGER_WAKEUP_SRC_ITERATOR>* _wakeupSources{};
+
+    uint32_t status = powerManagerImpl->GetWakeupSourceConfig(_wakeupSources);
     EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(powerMode, 0);
-    EXPECT_EQ(config, WakeupSrcType::WAKEUP_SRC_WIFI);
+
+    WPEFramework::Exchange::IPowerManager::WakeupSrcConfig config{WakeupSrcType::WAKEUP_SRC_UNKNOWN, false};
+
+    EXPECT_EQ(_wakeupSources->Count(), 10U);
+
+    while (_wakeupSources->Next(config)) {
+        if (WakeupSrcType::WAKEUP_SRC_WIFI == config.wakeupSource) {
+            EXPECT_EQ(config.enabled, true);
+        } else {
+            EXPECT_EQ(config.enabled, false);
+        }
+    }
 }
 
 TEST_F(TestPowerManager, GetPowerStateBeforeReboot)
@@ -1481,7 +1493,7 @@ TEST_F(TestPowerManager, NetworkStandby)
     EXPECT_EQ(status, Core::ERROR_NONE);
 };
 
-TEST_F(TestPowerManager, EnableWakeOnLAN)
+TEST_F(TestPowerManager, DisableWakeOnLAN)
 {
     WaitGroup wg;
     wg.Add(1);
@@ -1502,13 +1514,19 @@ TEST_F(TestPowerManager, EnableWakeOnLAN)
     auto status = powerManagerImpl->Register(&(*nwstandbyModeChangedEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 
+    // Enable WakeOnLAN
     powerManagerImpl->SetNetworkStandbyMode(true);
     wg.Wait();
 
     wg.Add(1);
 
-    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_WIFI, 0);
-    EXPECT_EQ(status, Core::ERROR_NONE);
+    {
+        std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_WIFI, false}};
+        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+
+        powerManagerImpl->SetWakeupSourceConfig(iterator);
+        EXPECT_EQ(status, Core::ERROR_NONE);
+    }
 
     bool standbyMode = false;
 
@@ -1516,9 +1534,15 @@ TEST_F(TestPowerManager, EnableWakeOnLAN)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(standbyMode, true);
 
-    // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets disabled
-    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_LAN, 0);
-    EXPECT_EQ(status, Core::ERROR_NONE);
+    {
+
+        std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_LAN, false}};
+        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+
+        // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets disabled
+        powerManagerImpl->SetWakeupSourceConfig(iterator);
+        EXPECT_EQ(status, Core::ERROR_NONE);
+    }
 
     wg.Wait();
 
@@ -1530,7 +1554,7 @@ TEST_F(TestPowerManager, EnableWakeOnLAN)
     EXPECT_EQ(status, Core::ERROR_NONE);
 };
 
-TEST_F(TestPowerManager, DisableWakeOnLAN)
+TEST_F(TestPowerManager, EnableWakeOnLAN)
 {
     WaitGroup wg;
     wg.Add(1);
@@ -1546,8 +1570,13 @@ TEST_F(TestPowerManager, DisableWakeOnLAN)
     auto status = powerManagerImpl->Register(&(*nwstandbyModeChangedEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_WIFI, WakeupSrcType::WAKEUP_SRC_WIFI);
-    EXPECT_EQ(status, Core::ERROR_NONE);
+    {
+        std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_WIFI, true}};
+        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+
+        powerManagerImpl->SetWakeupSourceConfig(iterator);
+        EXPECT_EQ(status, Core::ERROR_NONE);
+    }
 
     bool standbyMode = false;
 
@@ -1555,9 +1584,14 @@ TEST_F(TestPowerManager, DisableWakeOnLAN)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(standbyMode, false);
 
-    // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets disabled
-    powerManagerImpl->SetWakeupSrcConfig(0, WakeupSrcType::WAKEUP_SRC_LAN, WakeupSrcType::WAKEUP_SRC_LAN);
-    EXPECT_EQ(status, Core::ERROR_NONE);
+    {
+        std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_LAN, true}};
+        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+
+        // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets enabled
+        powerManagerImpl->SetWakeupSourceConfig(iterator);
+        EXPECT_EQ(status, Core::ERROR_NONE);
+    }
 
     wg.Wait();
 
@@ -1568,6 +1602,7 @@ TEST_F(TestPowerManager, DisableWakeOnLAN)
     status = powerManagerImpl->Unregister(&(*nwstandbyModeChangedEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
 };
+
 TEST_F(TestPowerManager, SystemMode)
 {
     // dummy test only for coverage

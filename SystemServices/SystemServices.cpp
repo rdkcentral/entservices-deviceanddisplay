@@ -71,6 +71,12 @@
 #include "UtilsgetFileContent.h"
 #include "UtilsProcess.h"
 
+#ifdef USE_THUNDER_R4
+#include <interfaces/IDeviceInfo.h>
+#else
+#include <interfaces/IDeviceInfo2.h>
+#endif /* USE_THUNDER_R4 */
+
 using namespace std;
 using namespace WPEFramework;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
@@ -2475,7 +2481,7 @@ namespace WPEFramework {
             std::string estbMac = collectDeviceInfo("estb_mac");
             removeCharsFromString(estbMac, "\n\r");
             rConf["eStbMac"] = estbMac;
-            rConf["model"] = getModel();
+            rConf["model"] = retrieveModelNumberThroughCOMRPC();
             rConf["firmwareVersion"] = stbVersion;
             response["xconfParams"] = rConf;
             returnResponse(true);
@@ -4460,6 +4466,29 @@ namespace WPEFramework {
             return "unknown";
 #endif
         }
+
+        string SystemServices::retrieveModelNumberThroughCOMRPC()
+        {
+            LOGINFO("retrieveModelNumberThroughCOMRPC Entry\n");
+            std::string Number;
+            if (m_shellService)
+            {
+
+                auto _remoteDeviceInfoObject = m_shellService->QueryInterfaceByCallsign<Exchange::IDeviceInfo>("DeviceInfo");
+                if (_remoteDeviceInfoObject)
+                {
+                    _remoteDeviceInfoObject->Sku(Number);
+                    _remoteDeviceInfoObject->Release();
+                }
+                else
+                {
+                    LOGERR("Failed to create DeviceInfo object\n");
+                }
+            
+            }
+            return Number;
+        }
+
 	string SystemServices::getStbBranchString()
 	{
 		static string stbBranchStr;

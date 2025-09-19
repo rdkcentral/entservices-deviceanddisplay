@@ -183,6 +183,7 @@ protected:
 
 TEST_F(FrameRateTest, RegisteredMethods)
 {
+    printf("*** _DEBUG: test");
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setCollectionFrequency")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("startFpsCollection")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("stopFpsCollection")));

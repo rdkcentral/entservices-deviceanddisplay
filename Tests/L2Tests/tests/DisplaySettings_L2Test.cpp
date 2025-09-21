@@ -379,5 +379,13 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
         JsonObject result, params;
         status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSinkAtmosCapability", params, result);
     }
+     /****************setPrimaryLanguage***************/
+    {
+        JsonObject params2, result;
+        params2["lang"] = "US-en";
+        params2["audioPort"] = "HDMI0";
+
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "setPrimaryLanguage", params2, result);
+    }
 
 }

@@ -342,7 +342,7 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
                 return Core::ERROR_NONE;
             }));
     std::cout<<"onDisplayFrameRateChanging_4"<<std::endl;
-    FrameRateImplem->OnDisplayFrameratePreChange("3840x2160px48");
+    p_framerateMock->OnDisplayFrameratePreChange("3840x2160px48");
 
     std::cout<<"onDisplayFrameRateChanging_5"<<std::endl;
 	EXPECT_EQ(Core::ERROR_NONE, onDisplayFrameRateChanging.Lock());
@@ -370,7 +370,7 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanged)
                 return Core::ERROR_NONE;
             }));
 
-    FrameRateImplem->OnDisplayFrameratePostChange("3840x2160px48");
+    p_framerateMock->OnDisplayFrameratePostChange("3840x2160px48");
 
 	EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);

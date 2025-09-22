@@ -85,7 +85,7 @@ protected:
         device::Host::setImpl(p_hostImplMock);
 
         p_ivideoDeviceMock  = new NiceMock <IVideoDeviceEventsImplMock>;
-        device::IVideoDeviceEvents::setImpl(p_ivideoDeviceMock);
+        device::Host::IVideoDeviceEvents::setImpl(p_ivideoDeviceMock);
 
         EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())

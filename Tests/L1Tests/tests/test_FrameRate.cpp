@@ -59,6 +59,7 @@ protected:
     FrameRateMock* p_framerateMock = nullptr;
     HostImplMock      *p_hostImplMock = nullptr;
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
+    IVideoDeviceEventsImplMock   *p_ivideoDeviceMock = nullptr;
     IARM_EventHandler_t _iarmDSFramerateEventHandler;
     IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
     ManagerImplMock   *p_managerImplMock = nullptr ;
@@ -82,6 +83,9 @@ protected:
 
         p_hostImplMock  = new NiceMock <HostImplMock>;
         device::Host::setImpl(p_hostImplMock);
+
+        p_ivideoDeviceMock  = new NiceMock <IVideoDeviceEventsImplMock>;
+        device::IVideoDeviceEvents::setImpl(p_ivideoDeviceMock);
 
         EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())
@@ -120,20 +124,6 @@ protected:
 #endif
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
-
-        /*ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE)) 			{
-			//FrameRatePreChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE))			{
-			//FrameRatePostChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    return IARM_RESULT_SUCCESS;
-                }));*/
 
         Core::IWorkerPool::Assign(&(*workerPool));
             workerPool->Run();
@@ -189,6 +179,13 @@ protected:
         {
             delete p_managerImplMock;
             p_managerImplMock = nullptr;
+        }
+
+        device::IVideoDeviceEvents::setImpl(nullptr);
+        if (p_ivideoDeviceMock != nullptr)
+        {
+            delete p_ivideoDeviceMock;
+            p_ivideoDeviceMock = nullptr;
         }
 
         device::Host::setImpl(nullptr);
@@ -342,6 +339,13 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
                 return Core::ERROR_NONE;
             }));
     std::cout<<"onDisplayFrameRateChanging_4"<<std::endl;
+
+    ON_CALL(*p_ivideoDeviceMock, OnDisplayFrameratePreChange(::testing::_))
+            .WillByDefault([](const std::string& frameRate){
+                std::cout<<"OnDisplayFrameratePreChange mock method"<<std::endl;
+			});
+
+    std::cout<<"onDisplayFrameRateChanging_4_1"<<std::endl;
     FrameRateImplem->OnDisplayFrameratePreChange("3840x2160px48");
 
     std::cout<<"onDisplayFrameRateChanging_5"<<std::endl;
@@ -369,6 +373,11 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanged)
 		resetDone.SetEvent();
                 return Core::ERROR_NONE;
             }));
+
+    ON_CALL(*p_ivideoDeviceMock, onDisplayFrameRateChanged("3840x2160px48"))
+            .WillByDefault([](const std::string& frameRate){
+                std::cout<<"onDisplayFrameRateChanged mock method"<<std::endl;
+			});
 
     FrameRateImplem->OnDisplayFrameratePostChange("3840x2160px48");
 

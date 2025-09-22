@@ -93,7 +93,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: entservices-deviceanddisplay
-          ref: ds_manager
 
       - name: Checkout entservices-deviceanddisplay-testframework
         if: ${{ inputs.caller_source == 'testframework' }}

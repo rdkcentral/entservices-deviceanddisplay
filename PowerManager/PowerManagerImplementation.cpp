@@ -33,7 +33,8 @@
 
 using util                      = PowerUtils;
 using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSrcConfig;
-using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>>;
+using IWakeupSrcConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator;
+using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSrcConfigIterator>>;
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;

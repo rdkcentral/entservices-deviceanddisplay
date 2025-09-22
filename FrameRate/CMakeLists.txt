@@ -86,9 +86,6 @@ if (DS_FOUND)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_LIBRARIES})
     target_include_directories(${MODULE_NAME} PRIVATE ${DS_INCLUDE_DIRS})
     target_link_libraries(${MODULE_NAME} PRIVATE ${DS_LIBRARIES})
-    if (RDK_SERVICE_L2_TEST)
-    target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${DS_LIBRARIES})
-    endif(RDK_SERVICE_L2_TEST)
 else ()
     message(FATAL_ERROR "Failed to find required DS package.")
 endif ()
@@ -97,6 +94,8 @@ target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PUBLIC ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${DS_LIBRARIES} )
 
 install(TARGETS ${PLUGIN_IMPLEMENTATION}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)

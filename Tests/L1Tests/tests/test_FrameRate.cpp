@@ -107,10 +107,6 @@ protected:
 		    return Core::ERROR_NONE;
                 }));
 
-        ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
-            .WillByDefault(testing::Return(dsError_t::dsERR_NONE));
-        //p_framerateMock->Register(FrameRateNotification);
-
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
                 .WillByDefault(::testing::Invoke(
@@ -181,7 +177,7 @@ protected:
             p_managerImplMock = nullptr;
         }
 
-        device::IVideoDeviceEvents::setImpl(nullptr);
+        device::Host::IVideoDeviceEvents::setImpl(nullptr);
         if (p_ivideoDeviceMock != nullptr)
         {
             delete p_ivideoDeviceMock;

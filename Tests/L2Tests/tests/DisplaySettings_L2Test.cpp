@@ -59,6 +59,7 @@ protected:
         
     public:
         DisplaySettings_L2test();
+        device::Host::IDisplayEvents* l_listener;
 
 };
  
@@ -134,6 +135,13 @@ DisplaySettings_L2test::DisplaySettings_L2test()
          /* Activate plugin in constructor */
          status = ActivateService("org.rdk.PowerManager");
          EXPECT_EQ(Core::ERROR_NONE, status);
+
+         ON_CALL(*p_hostImplMock, Register(::testing::_))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IDisplayEvents* listener) {
+                         l_listener = listener;
+                     return IARM_RESULT_SUCCESS;
+         }));
 
          status = ActivateService("org.rdk.DisplaySettings");
          EXPECT_EQ(Core::ERROR_NONE, status);
@@ -379,5 +387,16 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
         JsonObject result, params;
         status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSinkAtmosCapability", params, result);
     }
+
+    /****************setPrimaryLanguage***************/
+    {
+        JsonObject params2, result;
+        params2["lang"] = "US-en";
+        params2["audioPort"] = "HDMI0";
+
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "setPrimaryLanguage", params2, result);
+    }
+    dsDisplayEvent_t displayEvent = dsDISPLAY_RXSENSE_ON;
+    l_listener->OnDisplayRxSense(displayEvent);
 
 }

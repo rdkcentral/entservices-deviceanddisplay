@@ -187,12 +187,11 @@ FrameRate_L2test::FrameRate_L2test()
                     _iarmDSFramerateEventHandler = handler;
                 }
                 return IARM_RESULT_SUCCESS;
-            }));
+            }));*/
 
-    p_managerImplMock
     EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())
-            .WillRepeatedly(::testing::Return());*/
+            .WillRepeatedly(::testing::Return());
 
     /* Activate plugin in constructor */
     status = ActivateService("org.rdk.FrameRate");

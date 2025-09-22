@@ -94,20 +94,12 @@ jobs:
         with:
           path: entservices-deviceanddisplay
 
-      - name: Checkout entservices-deviceanddisplay-testframework
-        if: ${{ inputs.caller_source == 'testframework' }}
-        uses: actions/checkout@v3
-        with:
-          repository: rdkcentral/entservices-deviceanddisplay
-          path: entservices-deviceanddisplay
-          ref: develop
-
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: feature/RDKEMW-6167
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout googletest

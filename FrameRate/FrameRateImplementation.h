@@ -44,8 +44,6 @@ namespace WPEFramework {
                 FrameRateImplementation();
                 ~FrameRateImplementation() override;
 
-                static FrameRateImplementation* instance(FrameRateImplementation *FrameRateImpl = nullptr);
-
                 // We do not allow this plugin to be copied !!
                 FrameRateImplementation(const FrameRateImplementation&) = delete;
                 FrameRateImplementation& operator=(const FrameRateImplementation&) = delete;

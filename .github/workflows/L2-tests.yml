@@ -242,6 +242,8 @@ jobs:
           rbus.h
           libudev.h
           libusb.h
+          drm.h
+          drm_mode.h
           essos-resmgr.h
           systemservices/proc/readproc.h
           systemservices/secure_wrapper.h

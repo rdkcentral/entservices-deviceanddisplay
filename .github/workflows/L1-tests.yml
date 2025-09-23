@@ -282,9 +282,12 @@ jobs:
           rdk/iarmmgrs-hal/sysMgr.h
           network/wifiSrvMgrIarmIf.h
           network/netsrvmgrIarm.h
+          edid-parser.hpp
           libudev.h
           rfcapi.h
           rbus.h
+          drm.h
+          drm_mode.h
           motionDetector.h
           telemetry_busmessage_sender.h
           maintenanceMGR.h
@@ -384,7 +387,9 @@ jobs:
           -DHAS_API_SYSTEM
           -DHAS_API_POWERSTATE
           -DHAS_RBUS
+          -D_DRM_MODE_H
           -DENABLE_DEVICE_MANUFACTURER_INFO"
+          -D_DRM_MODE_H=ON
           &&
           cmake --build build/mocks -j8
           &&
@@ -414,9 +419,11 @@ jobs:
           -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I$GITHUB_WORKSPACE/entservices-testframework/Tests
+          -I$GITHUB_WORKSPACE/entservices-deviceanddisplay/helpers
           -I$GITHUB_WORKSPACE/Thunder/Source
           -I$GITHUB_WORKSPACE/Thunder/Source/core
           -I$GITHUB_WORKSPACE/install/usr/include
+          -I ./usr/include/libdrm
           -I$GITHUB_WORKSPACE/install/usr/include/WPEFramework
           -I$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
           -I ./usr/include/libdrm
@@ -437,6 +444,8 @@ jobs:
           -Wl,-wrap,syslog -Wl,-wrap,v_secure_system -Wl,-wrap,v_secure_popen -Wl,-wrap,v_secure_pclose -Wl,-wrap,unlink -Wl,-wrap,v_secure_system -Wl,-wrap,setmntent -Wl,-wrap,getmntent
           -DENABLE_TELEMETRY_LOGGING
           -DUSE_IARMBUS
+          -DUSE_DEVICESETTINGS
+          -DBUILD_RPI
           -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
           -DENABLE_DEEP_SLEEP
           -DENABLE_SET_WAKEUP_SRC_CONFIG
@@ -444,6 +453,7 @@ jobs:
           -DUSE_DRM_SCREENCAPTURE
           -DHAS_API_SYSTEM
           -DHAS_API_POWERSTATE
+          -D_DRM_MODE_H=ON
           -DHAS_RBUS
           -DENABLE_DEVICE_MANUFACTURER_INFO"
           -DCOMCAST_CONFIG=OFF
@@ -454,6 +464,8 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
           -DDS_FOUND=ON
+          -DUSE_DEVICESETTINGS=ON
+          -DBUILD_RPI=ON
           -DHAS_FRONT_PANEL=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
@@ -462,7 +474,7 @@ jobs:
           -DPLUGIN_USERPREFERENCES=ON
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEINFO=ON
-          -DPLUGIN_DISPLAYINFO=OFF
+          -DPLUGIN_DISPLAYINFO=ON
           -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_POWERMANAGER=ON
@@ -520,6 +532,8 @@ jobs:
           -Wl,-wrap,system -Wl,-wrap,popen -Wl,-wrap,syslog -Wl,--no-as-needed
           -DENABLE_TELEMETRY_LOGGING
           -DUSE_IARMBUS
+          -DUSE_DEVICESETTINGS
+          -DBUILD_RPI
           -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
           -DENABLE_DEEP_SLEEP
           -DENABLE_SET_WAKEUP_SRC_CONFIG
@@ -527,6 +541,7 @@ jobs:
           -DUSE_DRM_SCREENCAPTURE
           -DHAS_API_SYSTEM
           -DHAS_API_POWERSTATE
+          -D_DRM_MODE_H=ON
           -DHAS_RBUS
           -DENABLE_DEVICE_MANUFACTURER_INFO"
           -DCOMCAST_CONFIG=OFF
@@ -537,6 +552,8 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
           -DDS_FOUND=ON
+          -DUSE_DEVICESETTINGS=ON
+          -DBUILD_RPI=ON
           -DHAS_FRONT_PANEL=ON
           -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_DEVICEINFO=ON
@@ -545,6 +562,7 @@ jobs:
           -DPLUGIN_USERPREFERENCES=ON
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
+          -DPLUGIN_DISPLAYINFO=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
@@ -690,7 +708,6 @@ jobs:
           filtered_coverage.info
 
       - name: Upload artifacts
-        if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v4
         with:
           name: artifacts-L1-deviceanddisplay

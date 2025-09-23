@@ -107,6 +107,7 @@ protected:
         ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
             .WillByDefault(::testing::Invoke(
                 [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
+                    printf("*** _DEBUG: FrameRateTest::IARM_Bus_RegisterEventHandler: ownerName=%s, eventId=%d, handler=%p\n", ownerName, eventId, handler);
                     if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE)) 			{
 			//FrameRatePreChange = handler;
 			_iarmDSFramerateEventHandler = handler;
@@ -183,7 +184,6 @@ protected:
 
 TEST_F(FrameRateTest, RegisteredMethods)
 {
-    printf("*** _DEBUG: test");
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setCollectionFrequency")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("startFpsCollection")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("stopFpsCollection")));
@@ -284,6 +284,7 @@ TEST_F(FrameRateTest, getDisplayFrameRate)
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
+    printf("*** _DEBUG: TEST_F(FrameRateTest, onDisplayFrameRateChanging): entry: _iarmDSFramerateEventHandler=%p\n", _iarmDSFramerateEventHandler);
     ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
     Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	

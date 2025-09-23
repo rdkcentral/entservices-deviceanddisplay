@@ -191,8 +191,8 @@ uint32_t PowerController::GetWakeupSrcConfig(std::list<WPEFramework::Exchange::I
 {
     bool failed = false;
 
-    for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
-        WakeupSrcType wakeupSrc = static_cast<WakeupSrcType>(mask);
+    for (int src = WakeupSrcType::WAKEUP_SRC_VOICE; src < WakeupSrcType::WAKEUP_SRC_MAX; src++) {
+        WakeupSrcType wakeupSrc = static_cast<WakeupSrcType>(src);
 
         bool supported = false, enabled = false;
 

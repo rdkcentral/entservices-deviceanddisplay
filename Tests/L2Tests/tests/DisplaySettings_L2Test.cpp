@@ -136,11 +136,11 @@ DisplaySettings_L2test::DisplaySettings_L2test()
          status = ActivateService("org.rdk.PowerManager");
          EXPECT_EQ(Core::ERROR_NONE, status);
 
-         ON_CALL(*p_hostImplMock, Register(::testing::_))
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IDisplayEvents*>(::testing::_)))
              .WillByDefault(::testing::Invoke(
                  [&](device::Host::IDisplayEvents* listener) {
                          l_listener = listener;
-                     return IARM_RESULT_SUCCESS;
+                     return dsERR_NONE;
          }));
 
          status = ActivateService("org.rdk.DisplaySettings");

@@ -196,6 +196,48 @@ DisplaySettings_L2test::~DisplaySettings_L2test()
     printf("DISPLAYSETTINGS Destructor\n");
     uint32_t status = Core::ERROR_GENERAL;
 
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IDisplayEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IDisplayEvents* listener) {
+                    de_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IAudioOutputPortEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IAudioOutputPortEvents* listener) {
+                    aope_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IDisplayDeviceEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IDisplayDeviceEvents* listener) {
+                    dde_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IHdmiInEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IHdmiInEvents* listener) {
+                    hie_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IVideoDeviceEvents* listener) {
+                    vde_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoOutputPortEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IVideoOutputPortEvents* listener) {
+                    vope_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
     status = DeactivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 

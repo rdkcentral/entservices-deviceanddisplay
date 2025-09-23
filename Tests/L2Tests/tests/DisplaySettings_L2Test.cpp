@@ -59,7 +59,12 @@ protected:
         
     public:
         DisplaySettings_L2test();
-        device::Host::IDisplayEvents* l_listener;
+        device::Host::IDisplayEvents* de_listener;
+        device::Host::IAudioOutputPortEvents* aope_listener;
+        device::Host::IDisplayDeviceEvents* dde_listener;
+        device::Host::IHdmiInEvents* hie_listener;
+        device::Host::IVideoDeviceEvents* vde_listener;
+        device::Host::IVideoOutputPortEvents* vope_listener;
 
 };
  
@@ -139,7 +144,42 @@ DisplaySettings_L2test::DisplaySettings_L2test()
          ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IDisplayEvents*>(::testing::_)))
              .WillByDefault(::testing::Invoke(
                  [&](device::Host::IDisplayEvents* listener) {
-                         l_listener = listener;
+                         de_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IAudioOutputPortEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IAudioOutputPortEvents* listener) {
+                         aope_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IDisplayDeviceEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IDisplayDeviceEvents* listener) {
+                         dde_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IHdmiInEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IHdmiInEvents* listener) {
+                         hie_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IVideoDeviceEvents* listener) {
+                         vde_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoOutputPortEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IVideoOutputPortEvents* listener) {
+                         vope_listener = listener;
                      return dsERR_NONE;
          }));
 
@@ -396,7 +436,31 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
 
         status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "setPrimaryLanguage", params2, result);
     }
+
     dsDisplayEvent_t displayEvent = dsDISPLAY_RXSENSE_ON;
-    l_listener->OnDisplayRxSense(displayEvent);
+    de_listener->OnDisplayRxSense(displayEvent);
+    /* IAudioOutputPortEvents*/
+    aope_listener->OnAudioOutHotPlug(dsAudioPortType_t::dsAUDIOPORT_TYPE_HDMI, 1, true);
+    aope_listener->OnAudioFormatUpdate(dsAudioFormat_t::dsAUDIO_FORMAT_DOLBY_AC3);
+    aope_listener->OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t::dsAUDIO_ATMOS_DDPLUSSTREAM, true);
+    aope_listener->OnAudioPortStateChanged(dsAudioPortState_t::dsAUDIOPORT_STATE_INITIALIZED);
+    aope_listener->OnAssociatedAudioMixingChanged(true);
+    aope_listener->OnAudioFaderControlChanged(10);
+    aope_listener->OnAudioPrimaryLanguageChanged("US-en");
+    aope_listener->OnAudioSecondaryLanguageChanged("US-en");
+
+    /* IDisplayDeviceEvents */
+    dde_listener->OnDisplayHDMIHotPlug(dsDisplayEvent_t::dsDISPLAY_HDCPPROTOCOL_CHANGE);
+
+    /* IHdmiInEvents*/
+    hie_listener->OnHdmiInEventHotPlug(dsHdmiInPort_t::dsHDMI_IN_PORT_0, true);
+
+    /* IVideoDeviceEvents */
+    vde_listener->OnZoomSettingsChanged(dsVideoZoom_t::dsVIDEO_ZOOM_FULL);
+
+    /* IVideoOutputPortEvents */
+    vope_listener->OnResolutionPreChange(1,1);
+    vope_listener->OnResolutionPostChange(1,1);
+    vope_listener->OnVideoFormatUpdate(dsHDRStandard_t::dsHDRSTANDARD_HDR10);
 
 }

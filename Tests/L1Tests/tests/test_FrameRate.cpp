@@ -59,7 +59,6 @@ protected:
     FrameRateMock* p_framerateMock = nullptr;
     HostImplMock      *p_hostImplMock = nullptr;
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
-    IVideoDeviceEventsImplMock   *p_ivideoDeviceMock = nullptr;
     IARM_EventHandler_t _iarmDSFramerateEventHandler;
     IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
     ManagerImplMock   *p_managerImplMock = nullptr ;
@@ -84,17 +83,11 @@ protected:
         p_hostImplMock  = new NiceMock <HostImplMock>;
         device::Host::setImpl(p_hostImplMock);
 
-        p_ivideoDeviceMock  = new NiceMock <IVideoDeviceEventsImplMock>;
-        device::Host::IVideoDeviceEvents::setImpl(p_ivideoDeviceMock);
-
         EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())
             .WillRepeatedly(::testing::Return());
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
-
-        ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
-            .WillByDefault(testing::Return(dsError_t::dsERR_NONE));
 
         dispatcher = static_cast<PLUGINHOST_DISPATCHER*>(
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
@@ -156,9 +149,6 @@ protected:
             p_wrapsImplMock = nullptr;
         }
 
-        ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
-            .WillByDefault(testing::Return(dsError_t::dsERR_NONE));
-
         device::VideoDevice::setImpl(nullptr);
         if (p_videoDeviceMock != nullptr)
         {
@@ -175,13 +165,6 @@ protected:
         {
             delete p_managerImplMock;
             p_managerImplMock = nullptr;
-        }
-
-        device::Host::IVideoDeviceEvents::setImpl(nullptr);
-        if (p_ivideoDeviceMock != nullptr)
-        {
-            delete p_ivideoDeviceMock;
-            p_ivideoDeviceMock = nullptr;
         }
 
         device::Host::setImpl(nullptr);
@@ -314,17 +297,13 @@ TEST_F(FrameRateTest, getDisplayFrameRate)
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
-    std::cout<<"onDisplayFrameRateChanging_1"<<std::endl;
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    std::cout<<"onDisplayFrameRateChanging_2"<<std::endl;
     Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160px48");
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    std::cout<<"onDisplayFrameRateChanging_3"<<std::endl;
 }
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanged)
 {
-    Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
     Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("3840x2160px48");
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);

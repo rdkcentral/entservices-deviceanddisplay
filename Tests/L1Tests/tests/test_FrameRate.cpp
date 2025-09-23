@@ -188,23 +188,14 @@ protected:
 
 TEST_F(FrameRateTest, RegisteredMethods)
 {
-    std::cout<<"RegisteredMethods_1"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setCollectionFrequency")));
-    std::cout<<"RegisteredMethods_1_1"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("startFpsCollection")));
-    std::cout<<"RegisteredMethods_1_2"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("stopFpsCollection")));
-    std::cout<<"RegisteredMethods_1_3"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("updateFps")));
-    std::cout<<"RegisteredMethods_1_4"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setFrmMode")));
-    std::cout<<"RegisteredMethods_1_5"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getFrmMode")));
-    std::cout<<"RegisteredMethods_1_6"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setDisplayFrameRate")));
-    std::cout<<"RegisteredMethods_1_7"<<std::endl;
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getDisplayFrameRate")));
-    std::cout<<"RegisteredMethods_2"<<std::endl;
 }
 
 

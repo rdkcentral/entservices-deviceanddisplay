@@ -370,9 +370,9 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanged)
                 return Core::ERROR_NONE;
             }));
 
-    ON_CALL(*p_ivideoDeviceMock, onDisplayFrameRateChanged("3840x2160px48"))
+    ON_CALL(*p_ivideoDeviceMock, OnDisplayFrameratePostChange("3840x2160px48"))
             .WillByDefault([](const std::string& frameRate){
-                std::cout<<"onDisplayFrameRateChanged mock method"<<std::endl;
+                std::cout<<"OnDisplayFrameratePostChange mock method"<<std::endl;
 			});
 
     FrameRateImplem->OnDisplayFrameratePostChange("3840x2160px48");

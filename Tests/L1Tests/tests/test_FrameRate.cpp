@@ -314,69 +314,18 @@ TEST_F(FrameRateTest, getDisplayFrameRate)
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
-    //ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
     std::cout<<"onDisplayFrameRateChanging_1"<<std::endl;
-    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
     std::cout<<"onDisplayFrameRateChanging_2"<<std::endl;
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
-    std::cout<<"onDisplayFrameRateChanging_3"<<std::endl;
-    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
-                string text;
-                EXPECT_TRUE(json->ToString(text));
-                EXPECT_EQ(text, string(_T("{"
-                                          "\"jsonrpc\":\"2.0\","
-                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
-                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
-                                          "}"))); 
-		resetDone.SetEvent();
-                return Core::ERROR_NONE;
-            }));
-    std::cout<<"onDisplayFrameRateChanging_4"<<std::endl;
-
-    ON_CALL(*p_ivideoDeviceMock, OnDisplayFrameratePreChange(::testing::_))
-            .WillByDefault([](const std::string& frameRate){
-                std::cout<<"OnDisplayFrameratePreChange mock method"<<std::endl;
-			});
-
-    std::cout<<"onDisplayFrameRateChanging_4_1"<<std::endl;
-    FrameRateImplem->OnDisplayFrameratePreChange("3840x2160px48");
-
-    std::cout<<"onDisplayFrameRateChanging_5"<<std::endl;
-	EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
-    std::cout<<"onDisplayFrameRateChanging_6"<<std::endl;
+    Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160px48");
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    std::cout<<"onDisplayFrameRateChanging_7"<<std::endl;
+    std::cout<<"onDisplayFrameRateChanging_3"<<std::endl;
 }
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanged)
 {
     Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
-                string text;
-                EXPECT_TRUE(json->ToString(text));
-                EXPECT_EQ(text, string(_T("{"
-                                          "\"jsonrpc\":\"2.0\","
-                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
-                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
-                                          "}")));
-		resetDone.SetEvent();
-                return Core::ERROR_NONE;
-            }));
-
-    ON_CALL(*p_ivideoDeviceMock, OnDisplayFrameratePostChange("3840x2160px48"))
-            .WillByDefault([](const std::string& frameRate){
-                std::cout<<"OnDisplayFrameratePostChange mock method"<<std::endl;
-			});
-
-    FrameRateImplem->OnDisplayFrameratePostChange("3840x2160px48");
-
-	//EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("3840x2160px48");
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }

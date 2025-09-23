@@ -755,11 +755,7 @@ namespace Plugin {
             configs.push_back(config);
         }
 
-        _apiLock.Lock();
-
         uint32_t errorCode = setWakeupSourceConfig(configs);
-
-        _apiLock.Unlock();
 
         LOGINFO("<< errorCode: %d", errorCode);
 

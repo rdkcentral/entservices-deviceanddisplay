@@ -185,8 +185,8 @@ FrameRate_L2test::FrameRate_L2test()
     ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
              .WillByDefault(::testing::Invoke(
                  [&](device::Host::IVideoDeviceEvents* listener) {
-                         l_listener = listener;
-                     return dsERR_NONE;
+                    l_listener = listener;
+                    return dsERR_NONE;
          }));
 
     /* Activate plugin in constructor */
@@ -224,7 +224,8 @@ FrameRate_L2test::~FrameRate_L2test() {
     ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
              .WillByDefault(::testing::Invoke(
                  [&](device::Host::IVideoDeviceEvents* listener) {
-                     return dsERR_NONE;
+                    l_listener = nullptr;
+                    return dsERR_NONE;
          }));
 
     if (m_FrameRateplugin) {

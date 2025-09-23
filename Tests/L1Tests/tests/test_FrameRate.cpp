@@ -316,7 +316,7 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
     //ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
     std::cout<<"onDisplayFrameRateChanging_1"<<std::endl;
-    Core::Event onDisplayFrameRateChanging(false, true);
+    Core::Event resetDone(false, true);
     std::cout<<"onDisplayFrameRateChanging_2"<<std::endl;
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
     std::cout<<"onDisplayFrameRateChanging_3"<<std::endl;
@@ -331,7 +331,7 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
                                           "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
                                           "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
                                           "}"))); 
-		onDisplayFrameRateChanging.SetEvent();
+		resetDone.SetEvent();
                 return Core::ERROR_NONE;
             }));
     std::cout<<"onDisplayFrameRateChanging_4"<<std::endl;
@@ -345,7 +345,7 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
     FrameRateImplem->OnDisplayFrameratePreChange("3840x2160px48");
 
     std::cout<<"onDisplayFrameRateChanging_5"<<std::endl;
-	//EXPECT_EQ(Core::ERROR_NONE, onDisplayFrameRateChanging.Lock());
+	EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     std::cout<<"onDisplayFrameRateChanging_6"<<std::endl;
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
     std::cout<<"onDisplayFrameRateChanging_7"<<std::endl;

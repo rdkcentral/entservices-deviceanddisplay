@@ -58,6 +58,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     Module.cpp
     DeviceSettingsManagerImp.cpp
     fpd.cpp
+    HdmiIn.cpp
 )
 
 #add_executable(${PLUGIN_IMPLEMENTATION}
@@ -119,9 +120,9 @@ find_path(DEVICE_HAL_INCLUDE_DIR
   PATH_SUFFIXES rdk/halif/ds-hal
 )
 
-find_library(DEVICE_HAL_LIBRARY
-  NAMES ds-hal
-)
+#find_library(DEVICE_HAL_LIBRARY
+#  NAMES ds-hal
+#)
 
 set(DEVICE_HAL_INCLUDE_DIRS ${DEVICE_HAL_INCLUDE_DIR})
 set(DEVICE_HAL_LIBRARIES ${DEVICE_HAL_LIBRARY})

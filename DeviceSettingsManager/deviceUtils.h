@@ -16,29 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
 
-#include <stdint.h> // for uint32_t
 
+#include <functional>
+#include <interfaces/IDeviceSettingsManager.h>
 
-#include <core/Portability.h>         // for ErrorCodes
-#include <interfaces/IPowerManager.h> // for IPowerManager
-
-
-namespace hal {
-namespace deepsleep {
-
-    class IPlatform {
-        using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
-
-    public:
-        virtual ~IPlatform() {}
-
-        virtual uint32_t SetDeepSleep(uint32_t deepSleepTime, bool& isGPIOWakeup, bool networkStandby) = 0;
-        virtual uint32_t DeepSleepWakeup(void) = 0;
-        virtual uint32_t GetLastWakeupReason(WakeupReason& wakeupReason) const = 0;
-        virtual uint32_t GetLastWakeupKeyCode(int& wakeupKeyCode) const = 0;
-    };
-}
-}
+struct CallbackBundle {
+    std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> OnHDMIInEventHotPlug;
+    // Add other callbacks as needed
+};

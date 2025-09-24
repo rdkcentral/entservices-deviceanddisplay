@@ -27,20 +27,16 @@
 #include "UtilsLogging.h"   // for LOGINFO, LOGERR
 #include "secure_wrapper.h" // for v_secure_system
 #include "fpd.h"
-//#include "dsfpd.h"
-
-/*static  dsFPDBrightness_t _dsPowerBrightness = 100;
-static  dsFPDBrightness_t _dsTextBrightness  = 100;
-static  dsFPDColor_t      _dsPowerLedColor   = dsFPD_COLOR_BLUE;
-static  dsFPDTimeFormat_t _dsTextTimeFormat	 = dsFPD_TIME_12_HOUR;
-static  dsFPDMode_t       _dsFPDMode         = dsFPD_MODE_ANY;*/
 
 extern IARM_Result_t _dsGetFPBrightness(void *arg);
 extern IARM_Result_t _dsSetFPBrightness(void *arg);
 extern IARM_Result_t _dsSetFPState(void *arg);
 extern IARM_Result_t _dsGetFPState(void *arg);
+extern IARM_Result_t _dsSetFPColor(void *arg);
+extern IARM_Result_t _dsGetFPColor(void *arg);
+extern IARM_Result_t _dsSetFPBlink(void *arg);
 
-FPD::FPD() : _workerPool(WPEFramework::Core::WorkerPool::Instance())
+FPD::FPD()
 {
     ENTRY_LOG;
     LOGINFO("FPD Constructor");
@@ -110,20 +106,13 @@ uint32_t FPD::SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) {
 
 uint32_t FPD::SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) {
     ENTRY_LOG;
-    LOGINFO("SetFPDBlink: indicator=%d, blinkDuration=%u, blinkIterations=%u", indicator, blinkDuration, blinkIterations);
-    EXIT_LOG;
-    return WPEFramework::Core::ERROR_NONE;
-}
 
-uint32_t FPD::SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist) {
-    ENTRY_LOG;
-
-    dsFPDBrightParam_t param;
+    dsFPDBlinkParam_t param;
     param.eIndicator = static_cast<dsFPDIndicator_t>(indicator);
-    param.eBrightness = static_cast<dsFPDBrightness_t>(brightNess);
-    param.toPersist = static_cast<bool>(persist);
-    LOGINFO("SetFPDBrightness: indicator=%d, brightNess=%u, persist=%s", indicator, brightNess, persist ? "true" : "false");
-    _dsSetFPBrightness(static_cast<void*>(&param));
+    param.nBlinkDuration = blinkDuration;
+    param.nBlinkIterations = blinkIterations;
+    LOGINFO("SetFPDBlink: indicator=%d, blinkDuration=%u, blinkIterations:%u", indicator, blinkDuration, blinkIterations);
+    _dsSetFPBlink(static_cast<void*>(&param));
 
     EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
@@ -144,14 +133,15 @@ uint32_t FPD::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNes
     return WPEFramework::Core::ERROR_NONE;
 }
 
-uint32_t FPD::SetFPDState(const FPDIndicator indicator, const FPDState state) {
+uint32_t FPD::SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist) {
     ENTRY_LOG;
 
-    dsFPDStateParam_t param;
-    LOGINFO("SetFPDState: indicator=%d, state=%d", indicator, state);
-    param.state = static_cast<dsFPDState_t>(state);
+    dsFPDBrightParam_t param;
     param.eIndicator = static_cast<dsFPDIndicator_t>(indicator);
-    _dsSetFPState(static_cast<void*>(&param));
+    param.eBrightness = static_cast<dsFPDBrightness_t>(brightNess);
+    param.toPersist = static_cast<bool>(persist);
+    LOGINFO("SetFPDBrightness: indicator=%d, brightNess=%u, persist=%s", indicator, brightNess, persist ? "true" : "false");
+    _dsSetFPBrightness(static_cast<void*>(&param));
 
     EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
@@ -162,9 +152,9 @@ uint32_t FPD::GetFPDState(const FPDIndicator indicator, FPDState &state) {
 
     LOGINFO("GetFPDState: indicator=%d", indicator);
     dsFPDStateParam_t param;
-    LOGINFO("GetFPDState: indicator=%d, state=%d", indicator, state);
-    param.state = static_cast<dsFPDState_t>(state);
+    param.state = static_cast<dsFPDState_t>(indicator);
     param.eIndicator = static_cast<dsFPDIndicator_t>(indicator);
+    LOGINFO("GetFPDState: indicator=%d, state=%d", param.eIndicator, param.state);
     _dsGetFPState(static_cast<void*>(&param));
     //state = FPDState::DS_FPD_STATE_ON;
     state = static_cast<FPDState>(param.state);
@@ -174,17 +164,42 @@ uint32_t FPD::GetFPDState(const FPDIndicator indicator, FPDState &state) {
     return WPEFramework::Core::ERROR_NONE;
 }
 
+uint32_t FPD::SetFPDState(const FPDIndicator indicator, const FPDState state) {
+    ENTRY_LOG;
+
+    dsFPDStateParam_t param;
+    LOGINFO("SetFPDState: indicator=%d, state=%d", indicator, state);
+    param.state = static_cast<dsFPDState_t>(indicator);
+    param.eIndicator = static_cast<dsFPDIndicator_t>(indicator);
+    _dsSetFPState(static_cast<void*>(&param));
+
+    EXIT_LOG;
+    return WPEFramework::Core::ERROR_NONE;
+}
+
 uint32_t FPD::GetFPDColor(const FPDIndicator indicator, uint32_t &color) {
     ENTRY_LOG;
-    LOGINFO("GetFPDColor: indicator=%d", indicator);
-    color = 0xFFFFFF; // Example value
+
+    dsFPDColorParam_t param;
+    param.eIndicator = static_cast<dsFPDIndicator_t>(indicator);
+    param.eColor = color;
+    LOGINFO("GetFPDState: indicator=%d, colour=%d", param.eIndicator, param.eColor);
+    _dsGetFPColor(static_cast<void*>(&param));
+    LOGINFO("GetFPDState: indicator=%d, colour=%d", param.eIndicator, param.eColor);
     EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t FPD::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
     ENTRY_LOG;
-    LOGINFO("SetFPDColor: indicator=%d, color=0x%X", indicator, color);
+
+    dsFPDColorParam_t param;
+    param.eIndicator = static_cast<dsFPDIndicator_t>(indicator);
+    param.eColor = color;
+    LOGINFO("GetFPDState: indicator=%d, colour=%d", param.eIndicator, param.eColor);
+    _dsSetFPColor(static_cast<void*>(&param));
+    LOGINFO("GetFPDState: indicator=%d, colour=%d", param.eIndicator, param.eColor);
+
     EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }

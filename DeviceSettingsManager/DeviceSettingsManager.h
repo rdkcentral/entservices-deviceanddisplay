@@ -21,13 +21,7 @@
 
 #include "Module.h"
 
-#include <interfaces/json/JDeviceSettingsManagerCompositeIn.h>
-#include <interfaces/json/JDeviceSettingsManagerFPD.h>
-#include <interfaces/json/JDeviceSettingsManagerVideoDevice.h>
-#include <interfaces/json/JDeviceSettingsManagerDisplay.h>
-#include <interfaces/json/JDeviceSettingsManagerHDMIIn.h>
-#include <interfaces/json/JDeviceSettingsManagerHost.h>
-#include <interfaces/json/JDeviceSettingsManagerVideoPort.h>
+
 #include <interfaces/IDeviceSettingsManager.h>
 
 #include "UtilsLogging.h"
@@ -38,29 +32,30 @@
 #define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
 #define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
 
-/*using AudioPortType         = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType;
-using AudioPortType         = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioFormat;
-using AudioPortType         = WPEFramework::Exchange::IDeviceSettingsManagerAudio::DolbyAtmosCapability;
-using AudioPortType         = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortState;*/
-using FPDTimeFormat         = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDTimeFormat;
-
 namespace WPEFramework {
 namespace Plugin {
 
-    class DeviceSettingsManager : public PluginHost::IPlugin,
-                                  public PluginHost::JSONRPC {
+    class DeviceSettingsManager : public PluginHost::IPlugin
+    {
+        using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
+        using HDMIInSignalStatus       = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus;
+        using HDMIVideoPortResolution  = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution;
+        using HDMIInAviContentType     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType;
+        using HDMIInVRRType            = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType;
+        using FPDTimeFormat            = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTimeFormat;
+
     private:
         class NotificationHandler
             : public RPC::IRemoteConnection::INotification
               , public PluginHost::IShell::ICOMLink::INotification
-           // , public Exchange::IDeviceSettingsManagerCompositeIn::INotification
-           // , public Exchange::IDeviceSettingsManagerAudio::INotification
-            , public Exchange::IDeviceSettingsManagerFPD::INotification
-           // , public Exchange::IDeviceSettingsManagerVideoDevice::INotification
-           // , public Exchange::IDeviceSettingsManagerDisplay::INotification
-           // , public Exchange::IDeviceSettingsManagerHDMIIn::INotification
-           // , public Exchange::IDeviceSettingsManagerHost::INotification
-           // , public Exchange::IDeviceSettingsManagerVideoPort::INotification
+           // , public Exchange::IDeviceSettingsManager::ICompositeIn::INotification
+           // , public Exchange::IDeviceSettingsManager::IAudio::INotification
+            , public Exchange::IDeviceSettingsManager::IFPD::INotification
+           // , public Exchange::IDeviceSettingsManager::IVideoDevice::INotification
+           // , public Exchange::IDeviceSettingsManager::IDisplay::INotification
+              , public Exchange::IDeviceSettingsManager::IHDMIIn::INotification
+           // , public Exchange::IDeviceSettingsManager::IHost::INotification
+           // , public Exchange::IDeviceSettingsManager::IVideoPort::INotification
             {
         private:
             NotificationHandler()                                      = delete;
@@ -86,13 +81,13 @@ namespace Plugin {
             }
 
             BEGIN_INTERFACE_MAP(NotificationHandler)
-            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerCompositeIn::INotification)
-            INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerFPD::INotification)
-            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerVideoDevice::INotification)
-            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerDisplay::INotification)
-            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerHDMIIn::INotification)
-            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerHost::INotification)
-            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerVideoPort::INotification)
+            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::ICompositeIn::INotification)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IFPD::INotification)
+            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IVideoDevice::INotification)
+            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IDisplay::INotification)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn::INotification)
+            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHost::INotification)
+            //INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IVideoPort::INotification)
             INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
             END_INTERFACE_MAP
 
@@ -117,10 +112,50 @@ namespace Plugin {
                 mParent.CallbackRevoked(remote, interfaceId);
             }
 
-            virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override
+            void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override
             {
                 LOGINFO("OnFPDTimeFormatChanged: timeFormat %d", timeFormat);
-                Exchange::JDeviceSettingsManagerFPD::Event::OnFPDTimeFormatChanged(mParent, timeFormat);
+                //Exchange::JDeviceSettingsManagerFPD::Event::OnFPDTimeFormatChanged(mParent, timeFormat);
+            }
+
+            void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) override 
+            {
+                LOGINFO("OnHDMIInEventHotPlug:");
+            }
+
+            void OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override
+            {
+                LOGINFO("OnHDMIInEventSignalStatus");
+            }
+
+            void OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented) override
+            {
+                LOGINFO("OnHDMIInEventStatus");
+            }
+
+            void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) override
+            {
+                LOGINFO("OnHDMIInVideoModeUpdate");
+            }
+
+            void OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus) override
+            {
+                LOGINFO("OnHDMIInAllmStatus");
+            }
+
+            void OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType) override
+            {
+                LOGINFO("OnHDMIInAVIContentType");
+            }
+
+            void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) override
+            {
+                LOGINFO("OnHDMIInAVLatency");
+            }
+
+            void OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType) override
+            {
+                LOGINFO("OnHDMIInVRRStatus");
             }
 
         private:
@@ -138,15 +173,16 @@ namespace Plugin {
         // Build QueryInterface implementation, specifying all possible interfaces to be returned.
         BEGIN_INTERFACE_MAP(DeviceSettingsManager)
             INTERFACE_ENTRY(PluginHost::IPlugin)
-            INTERFACE_ENTRY(PluginHost::IDispatcher)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerCompositeIn, _mDeviceSettingsManagerCompositeIn)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerAudio, _mDeviceSettingsManagerAudio)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerFPD, _mDeviceSettingsManagerFPD)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerVideoDevice, _mDeviceSettingsManagerVideoDevice)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerDisplay, _mDeviceSettingsManagerDisplay)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerHDMIIn, _mDeviceSettingsManagerHDMIIn)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerHost, _mDeviceSettingsManagerHost)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManagerVideoPort, _mDeviceSettingsManagerVideoPort)
+            //INTERFACE_ENTRY(PluginHost::IDispatcher)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager, _mDeviceSettingsManager)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::ICompositeIn, _mDeviceSettingsManagerCompositeIn)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IAudio, _mDeviceSettingsManagerAudio)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IFPD, _mDeviceSettingsManagerFPD)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IVideoDevice, _mDeviceSettingsManagerVideoDevice)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IDisplay, _mDeviceSettingsManagerDisplay)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IHDMIIn, _mDeviceSettingsManagerHDMIIn)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IHost, _mDeviceSettingsManagerHost)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IVideoPort, _mDeviceSettingsManagerVideoPort)
         END_INTERFACE_MAP
 
     public:
@@ -165,14 +201,15 @@ namespace Plugin {
     private:
         uint32_t mConnectionId;
         PluginHost::IShell* mService;
-        Exchange::IDeviceSettingsManagerCompositeIn* _mDeviceSettingsManagerCompositeIn;
-        Exchange::IDeviceSettingsManagerAudio* _mDeviceSettingsManagerAudio;
-        Exchange::IDeviceSettingsManagerFPD* _mDeviceSettingsManagerFPD;
-        Exchange::IDeviceSettingsManagerVideoDevice* _mDeviceSettingsManagerVideoDevice;
-        Exchange::IDeviceSettingsManagerDisplay* _mDeviceSettingsManagerDisplay;
-        Exchange::IDeviceSettingsManagerHDMIIn* _mDeviceSettingsManagerHDMIIn;
-        Exchange::IDeviceSettingsManagerHost* _mDeviceSettingsManagerHost;
-        Exchange::IDeviceSettingsManagerVideoPort* _mDeviceSettingsManagerVideoPort;
+        Exchange::IDeviceSettingsManager* _mDeviceSettingsManager;
+        Exchange::IDeviceSettingsManager::ICompositeIn* _mDeviceSettingsManagerCompositeIn;
+        Exchange::IDeviceSettingsManager::IAudio* _mDeviceSettingsManagerAudio;
+        Exchange::IDeviceSettingsManager::IFPD* _mDeviceSettingsManagerFPD;
+        Exchange::IDeviceSettingsManager::IVideoDevice* _mDeviceSettingsManagerVideoDevice;
+        Exchange::IDeviceSettingsManager::IDisplay* _mDeviceSettingsManagerDisplay;
+        Exchange::IDeviceSettingsManager::IHDMIIn* _mDeviceSettingsManagerHDMIIn;
+        Exchange::IDeviceSettingsManager::IHost* _mDeviceSettingsManagerHost;
+        Exchange::IDeviceSettingsManager::IVideoPort* _mDeviceSettingsManagerVideoPort;
         Core::Sink<NotificationHandler> mNotificationSink;
 
     };

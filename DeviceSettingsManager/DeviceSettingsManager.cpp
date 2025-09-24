@@ -47,6 +47,7 @@ namespace Plugin
         : mConnectionId(0)
         , mService(nullptr)
         , _mDeviceSettingsManagerFPD(nullptr)
+        , _mDeviceSettingsManagerHDMIIn(nullptr)
         , mNotificationSink(this)
 
     {
@@ -64,24 +65,36 @@ namespace Plugin
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
         ASSERT(_mDeviceSettingsManagerFPD == nullptr);
+        ASSERT(_mDeviceSettingsManagerHDMIIn == nullptr);
         mService = service;
         mService->AddRef();
 
-        LOGINFO();
+        LOGINFO("Trace - 1");
         // Register the Process::Notification stuff. The Remote process might die before we get a
         // change to "register" the sink for these events !!! So do it ahead of instantiation.
         //mService->Register(&mNotificationSink);
         mService->Register(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
         mService->Register(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
 
-        _mDeviceSettingsManagerFPD = service->Root<Exchange::IDeviceSettingsManagerFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
+        LOGINFO("Trace - 2");
+        _mDeviceSettingsManager = service->Root<Exchange::IDeviceSettingsManager>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
 
-        if (_mDeviceSettingsManagerFPD != nullptr) {
+        /*if (_mDeviceSettingsManagerFPD != nullptr) {
             LOGINFO("Registering JDeviceSettingsManagerFPD");
-            _mDeviceSettingsManagerFPD->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManagerFPD::INotification>());
-            Exchange::JDeviceSettingsManagerFPD::Register(*this, _mDeviceSettingsManagerFPD);
+            _mDeviceSettingsManagerFPD->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManager::IFPD::INotification>());
+            //Exchange::JDeviceSettingsManagerFPD::Register(*this, _mDeviceSettingsManagerFPD);
+        } else {
+            LOGERR("Failed to get IDeviceSettingsManager::IFPD interface");
         }
 
+        LOGINFO("Trace - 3");
+        _mDeviceSettingsManagerHDMIIn = service->Root<Exchange::IDeviceSettingsManager::IHDMIIn>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
+
+        if (_mDeviceSettingsManagerHDMIIn != nullptr) {
+            LOGINFO("Registering IDeviceSettingsManager::IHDMIIn");
+            _mDeviceSettingsManagerHDMIIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
+        }*/
+        LOGINFO("Trace - 4");
         EXIT_LOG;
 
         // On success return empty, to indicate there is no error text.
@@ -94,11 +107,13 @@ namespace Plugin
         if (mService != nullptr) {
             ASSERT(mService == service);
             //mService->Unregister(&mNotificationSink);
-        mService->Unregister(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
-        mService->Unregister(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
-            /*if (mDeviceSettingsManagerAudio != nullptr) {
-                mDeviceSettingsManagerAudio->Unregister(&mNotificationSink);
-                Exchange::IDeviceSettingsManagerAudio::Unregister(*this);
+            mService->Unregister(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
+            mService->Unregister(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
+            /*if (_mDeviceSettingsManagerFPD != nullptr) {
+                _mDeviceSettingsManagerFPD->Unregister(&mNotificationSink);
+            }*/
+            /*if (_mDeviceSettingsManagerHDMIIn != nullptr) {
+                _mDeviceSettingsManagerHDMIIn->Unregister(&mNotificationSink);
             }*/
 
             mService->Release();

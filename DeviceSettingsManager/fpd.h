@@ -54,12 +54,12 @@ namespace Core {
 }
 
 class FPD {
-    using FPDTimeFormat = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDTimeFormat;
-    using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDIndicator;
-    using FPDState = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDState;
-    using FPDTextDisplay = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDTextDisplay;
-    using FPDMode = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDMode;
-    using FDPLEDState = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FDPLEDState;
+    using FPDTimeFormat = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTimeFormat;
+    using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDIndicator;
+    using FPDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDState;
+    using FPDTextDisplay = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTextDisplay;
+    using FPDMode = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDMode;
+    using FDPLEDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FDPLEDState;
 
     /*inline IPlatform& platform()
     {
@@ -123,5 +123,5 @@ public:
 private:
     //std::unique_ptr<IPlatform> _platform;
     //Settings _settings;
-    WPEFramework::Core::IWorkerPool& _workerPool;
+    //WPEFramework::Core::IWorkerPool& _workerPool;
 };

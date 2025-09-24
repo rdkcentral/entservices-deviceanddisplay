@@ -25,32 +25,33 @@
 #include <unordered_map>
 #include <chrono>
 #include <core/Portability.h>
+#include <cstdint> // Ensure this is present for uint32_t
 
-#include "UtilsIarm.h"
-#include "UtilsLogging.h"
+#include <com/com.h>
+#include <core/core.h>
+#include <plugins/plugins.h>
 
-#include <interfaces/json/JDeviceSettingsManagerFPD.h>
 #include <interfaces/IDeviceSettingsManager.h>
 
 #include "fpd.h"
-#include "dsMgr.h"
-#include "dsUtl.h"
-#include "dsError.h"
-#include "dsDisplay.h"
-#include "dsRpc.h"
+#include "HdmiIn.h"
+
+#include "list.hpp"
 
 #define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
 #define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
 
 namespace WPEFramework {
 namespace Plugin {
-    class DeviceSettingsManagerImp :   public Exchange::IDeviceSettingsManagerFPD
+    class DeviceSettingsManagerImp : public Exchange::IDeviceSettingsManager::IFPD
+                                   , public Exchange::IDeviceSettingsManager::IHDMIIn
+                                   , public HdmiIn::INotification
     {
     public:
 
         // We do not allow this plugin to be copied !!
         DeviceSettingsManagerImp();
-        ~DeviceSettingsManagerImp();
+        ~DeviceSettingsManagerImp() override;
 
         static DeviceSettingsManagerImp* instance(DeviceSettingsManagerImp* DeviceSettingsManagerImpl = nullptr);
 
@@ -59,7 +60,8 @@ namespace Plugin {
         DeviceSettingsManagerImp& operator=(const DeviceSettingsManagerImp&) = delete;
 
         BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
-        INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerFPD)
+        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IFPD)
+        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn)
         END_INTERFACE_MAP
 
     public:
@@ -102,9 +104,11 @@ namespace Plugin {
 
     public:
         void DeviceManager_Init();
+        void InitializeIARM();
 
-        Core::hresult Register(Exchange::IDeviceSettingsManagerFPD::INotification* notification) override;
-        Core::hresult Unregister(Exchange::IDeviceSettingsManagerFPD::INotification* notification) override;
+        // FPD methods
+        Core::hresult Register(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
+        Core::hresult Unregister(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
         Core::hresult SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) override;
         Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) override;
         Core::hresult SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) override;
@@ -121,14 +125,38 @@ namespace Plugin {
         Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) override;
         Core::hresult SetFPDMode(const FPDMode fpdMode) override;
 
+        // HDMIIn methods
+        Core::hresult Register(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
+        Core::hresult Unregister(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
+        Core::hresult GetHDMIInNumbefOfInputs(int32_t &count) override;
+        Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) override;
+        Core::hresult SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) override;
+        Core::hresult ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) override;
+        Core::hresult SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) override;
+        Core::hresult GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) override;
+        Core::hresult GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency) override;
+        Core::hresult GetHDMIInAllmStatus(const HDMIInPort port, bool &allmStatus) override;
+        Core::hresult GetHDMIInEdid2AllmSupport(const HDMIInPort port, bool &allmSupport) override;
+        Core::hresult SetHDMIInEdid2AllmSupport(const HDMIInPort port, bool allmSupport) override;
+        Core::hresult GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) override;
+        Core::hresult GetHDMISPDInformation(const HDMIInPort port, const uint16_t spdBytesLength, uint8_t spdBytes[]) override;
+        Core::hresult GetHDMIEdidVersion(const HDMIInPort port, HDMIInEdidVersion &edidVersion) override;
+        Core::hresult SetHDMIEdidVersion(const HDMIInPort port, const HDMIInEdidVersion edidVersion) override;
+        Core::hresult GetHDMIVideoMode(HDMIVideoPortResolution &videoPortResolution) override;
+        Core::hresult GetHDMIVersion(const HDMIInPort port, HDMIInCapabilityVersion &capabilityVersion) override;
+        Core::hresult SetVRRSupport(const HDMIInPort port, const bool vrrSupport) override;
+        Core::hresult GetVRRSupport(const HDMIInPort port, bool &vrrSupport) override;
+        Core::hresult GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) override;
+
         static DeviceSettingsManagerImp* _instance;
 
     private:
-        std::list<Exchange::IDeviceSettingsManagerFPD::INotification*> _FPDNotifications;
+        std::list<Exchange::IDeviceSettingsManager::IFPD::INotification*> _FPDNotifications;
+        std::list<Exchange::IDeviceSettingsManager::IHDMIIn::INotification*> _HDMIInNotifications;
 
-        // lock to guard all apis of PowerManager
+        // lock to guard all apis of DeviceSettingsManager
         mutable Core::CriticalSection _apiLock;
-        // lock to guard all notification from PowerManager to clients and also their callback register & unregister
+        // lock to guard all notification from DeviceSettingsManager to clients and also their callback register & unregister
         mutable Core::CriticalSection _callbackLock;
 
         template <typename T>
@@ -136,7 +164,9 @@ namespace Plugin {
         template <typename T>
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
+        void dispatchHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected);
         FPD _fpd;
+        HdmiIn _hdmiIn;
     };
 } // namespace Plugin
 } // namespace WPEFramework

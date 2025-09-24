@@ -37,6 +37,7 @@
 #include "secure_wrapper.h"
 #include <core/core.h>
 #include <core/JSON.h>
+#include<interfaces/entservices_errorcodes.h>
 
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
@@ -113,7 +114,6 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 #define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
-#define ERROR_FILE_IO 1005 
 
 /**
  * @struct firmwareUpdate
@@ -1129,7 +1129,26 @@ namespace WPEFramework {
 
             // there is no /tmp/.make from /lib/rdk/getDeviceDetails.sh, but it can be taken from /etc/device.properties
             if (queryParams.empty() || queryParams == "make") {
+                std::string device_name{};
+                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
+				if (device_name == "PLATCO") {
+                    IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+					memset(&param, 0, sizeof(param));
+                    param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
 
+                    IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+                    param.buffer[param.bufLen] = '\0';
+                    LOGINFO("SystemService getDeviceInfo param type %d result %s bufLen = %d", param.type, param.buffer, param.bufLen);
+
+                    if (result == IARM_RESULT_SUCCESS) {
+                        response["make"] = string(param.buffer);
+                        retAPIStatus = true;
+				       } else {
+                        LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
+						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
+                        retAPIStatus = false;
+					}
+				} else {
                 std::string make;
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MFG_NAME", make);
 
@@ -1139,7 +1158,7 @@ namespace WPEFramework {
                 } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
                 }
-
+				}
                 if (!queryParams.empty()) {
 
 
@@ -5297,7 +5316,7 @@ namespace WPEFramework {
             {
                 LOGERR("BootType is not present");
             }
-	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+	    return (status ? static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) : static_cast<uint32_t>(ERROR_FILE_IO));
 	}//end of getBootTypeInfo method
 
         /**
@@ -5389,7 +5408,7 @@ namespace WPEFramework {
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+         return (status ?  static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) :  static_cast<uint32_t>(ERROR_FILE_IO));
         }//end of getMigrationStatus method
        /*
          * @brief This function updates plugin API error text.
@@ -5402,8 +5421,8 @@ namespace WPEFramework {
          * @return: Core::<StatusCode>
          */
         uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
-           if(( method == _T("getMigrationStatus") || method == _T("getBootTypeInfo") || method == _T("setMigrationStatus") ) && (errorcode == ERROR_FILE_IO) )
-               errormessage = "File Read or Write error";
+           if(IS_ENTSERVICES_ERRORCODE(errorcode))
+               errormessage = ERROR_MESSAGE(errorcode);
            return errorcode;
         }
     } /* namespace Plugin */

@@ -226,6 +226,7 @@ namespace WPEFramework {
 #endif
                 pid_t m_uploadLogsPid;
                 std::mutex m_uploadLogsMutex;
+                std::mutex m_territoryMutex;
                 PowerManagerInterfaceRef _powerManagerPlugin;
                 Core::Sink<PowerManagerNotification> _pwrMgrNotification;
                 bool _registeredEventHandlers;

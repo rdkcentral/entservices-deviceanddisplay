@@ -508,8 +508,6 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
                 // Delay power mode change by 10 seconds
                 auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
                 EXPECT_EQ(status, Core::ERROR_NONE);
@@ -651,8 +649,6 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
                 // Delay power mode change by 1 seconds
                 auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 1);

@@ -25,7 +25,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <interfaces/ISystemMode.h>
-#include <interfaces/IDeviceOptimizeStateActivator.h>
 #include <mutex>
 #include <thread>
 
@@ -109,7 +108,7 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
 
     TEST_LOG("Creating SystemMode_Engine Announcements");
 #if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
-    SystemMode_Engine->Announcements(mSystemMode_Client->Announcement());
+    SystemMode_Engine->Announcements(SystemMode_Client->Announcement());
 #endif
     if (!SystemMode_Client.IsValid()) {
         TEST_LOG("Invalid SystemMode_Client");
@@ -180,6 +179,63 @@ bool SystemMode_L2test::WaitForStateJsonRpc(const std::string& modeName,
         std::this_thread::sleep_for(interval);
     }
     return false;
+}
+
+// Separate test fixture for mock-based tests to avoid affecting existing tests
+class SystemMode_L2test_WithMock : public SystemMode_L2test {
+protected:
+    SystemMode_L2test_WithMock();
+    virtual ~SystemMode_L2test_WithMock() override;
+
+    void SetUp() override;
+    void TearDown() override;
+
+public:
+    DeviceOptimizeStateActivatorMock* GetActivatorMock()
+    {
+        return DeviceOptimizeStateActivatorMockHelper::GetMockInstance();
+    }
+
+protected:
+    /** @brief Pointer to the IShell interface */
+    PluginHost::IShell* m_controller_sysmode_mock;
+
+    /** @brief Pointer to the ISystemMode interface */
+    Exchange::ISystemMode* m_sysmodeplugin_mock;
+};
+
+SystemMode_L2test_WithMock::SystemMode_L2test_WithMock()
+    : SystemMode_L2test()
+    , m_controller_sysmode_mock(nullptr)
+    , m_sysmodeplugin_mock(nullptr)
+{
+    // Setup mock expectations
+    DeviceOptimizeStateActivatorMockHelper::SetupMockExpectations();
+}
+
+SystemMode_L2test_WithMock::~SystemMode_L2test_WithMock()
+{
+    // Base class destructor will handle cleanup
+}
+
+void SystemMode_L2test_WithMock::SetUp()
+{
+    // Call base class SetUp which creates the interfaces
+    SystemMode_L2test::SetUp();
+
+    // Use the same member variables as the base class
+    m_controller_sysmode_mock = m_controller_sysmode;
+    m_sysmodeplugin_mock = m_sysmodeplugin;
+}
+
+void SystemMode_L2test_WithMock::TearDown()
+{
+    // Clear local references but don't release - base class will handle
+    m_sysmodeplugin_mock = nullptr;
+    m_controller_sysmode_mock = nullptr;
+
+    // Call base class TearDown
+    SystemMode_L2test::TearDown();
 }
 
 // Request VIDEO state and validate via polling using GetState
@@ -394,4 +450,62 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivation_Idempotent)
     result.Clear();
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientDeactivated", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
+}
+
+// Test ClientActivated with mock to cover uncovered lines
+TEST_F(SystemMode_L2test_WithMock, ClientActivated_CallsActivatorRequest)
+{
+    ASSERT_TRUE(m_sysmodeplugin_mock != nullptr);
+    auto* mock = GetActivatorMock();
+    ASSERT_TRUE(mock != nullptr);
+
+    EXPECT_CALL(*mock, Request(::testing::_))
+        .Times(::testing::AtLeast(1))
+        .WillRepeatedly(::testing::Return(WPEFramework::Core::ERROR_NONE));
+
+    const std::string modeName = "DEVICE_OPTIMIZE";
+    EXPECT_EQ(Core::ERROR_NONE,
+        m_sysmodeplugin_mock->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName));
+
+    EXPECT_EQ(Core::ERROR_NONE,
+        m_sysmodeplugin_mock->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
+            Exchange::ISystemMode::GAME));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    EXPECT_EQ(Core::ERROR_NONE,
+        m_sysmodeplugin_mock->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName));
+}
+
+// Test late activation (stateRequested=true branch)
+TEST_F(SystemMode_L2test_WithMock, ClientActivated_AfterStateRequest_CallsActivatorImmediately)
+{
+    ASSERT_TRUE(m_sysmodeplugin_mock != nullptr);
+    auto* mock = GetActivatorMock();
+    ASSERT_TRUE(mock != nullptr);
+
+    const std::string modeName = "DEVICE_OPTIMIZE";
+
+    // First request a state (sets stateRequested=true)
+    EXPECT_EQ(Core::ERROR_NONE,
+        m_sysmodeplugin_mock->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
+            Exchange::ISystemMode::GAME));
+
+    // Wait for state to be processed
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Now expect Request to be called immediately when we activate
+    EXPECT_CALL(*mock, Request("GAME"))
+        .Times(::testing::AtLeast(1))
+        .WillRepeatedly(::testing::Return(WPEFramework::Core::ERROR_NONE));
+
+    // Activate - should immediately call Request with current state (covers stateRequested branch)
+    EXPECT_EQ(Core::ERROR_NONE,
+        m_sysmodeplugin_mock->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Cleanup
+    EXPECT_EQ(Core::ERROR_NONE,
+        m_sysmodeplugin_mock->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName));
 }

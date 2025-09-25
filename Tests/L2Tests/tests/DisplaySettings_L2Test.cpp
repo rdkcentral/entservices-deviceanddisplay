@@ -169,6 +169,7 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
     string videoPort(_T("HDMI0"));
     string audioPort(_T("HDMI0"));
 
+    device::AudioOutputPort audioOutputPort;
     device::VideoOutputPort videoOutputPort;
     device::VideoDevice videoDevice;
     device::VideoResolution videoResolution;
@@ -379,5 +380,107 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
         JsonObject result, params;
         status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSinkAtmosCapability", params, result);
     }
+
+
+    /************************getSupportedMS12Config***************************/
+    {
+        JsonObject result, params;
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSupportedMS12Config", params, result);
+    }
+
+    /************************getVolumeLeveller***************************/
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    {
+        JsonObject result, params5;
+        params5["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getVolumeLeveller", params5, result);
+    }
+
+    /************************resetBassEnhancer***************************/
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+    {
+        JsonObject result, params6;
+        params6["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "resetBassEnhancer", params6, result);
+    }
+
+    /************************resetVolumeLeveller***************************/
+
+    ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(audioOutputPort));
+    {
+        JsonObject result, params7;
+        params7["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "resetVolumeLeveller", params7, result);
+    }
+    
+    audioPort = _T("SPEAKER0");
+    /************************getBassEnhancer***************************/
+
+    // device::AudioOutputPort audioOutputPort;
+    // ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+    //     .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const std::string& name) -> device::AudioOutputPort& {
+                EXPECT_EQ(name, _T("SPEAKER0"));
+                throw device::Exception("true");
+            }));
+        
+    // ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+    //     .WillByDefault(::testing::Invoke(
+    //         [&](const std::string& name) -> device::AudioOutputPort& {
+    //             EXPECT_EQ(name, _T("SPEAKER0"));
+    //             throw device::Exception("test");
+    //         }));
+    {
+        JsonObject params3, result;
+        params3["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.2", "getBassEnhancer", params3, result);
+        // Optionally, you can add EXPECTs here to check result content
+    }
+
+    /************************getSurroundVirtualizer***************************/
+
+    // ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+    //     .WillByDefault(::testing::ReturnRef(audioOutputPort));
+
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const std::string& name) -> device::AudioOutputPort& {
+                EXPECT_EQ(name, _T("SPEAKER0"));
+                throw device::Exception("test");
+            }));
+
+    {
+        JsonObject result, params4;
+        params4["audioPort"] = "SPEAKER0";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.2", "getSurroundVirtualizer", params4, result);
+    }
+
+    /************************setVolumeLeveller***************************/
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [&](const std::string& name) -> device::AudioOutputPort& {
+                EXPECT_EQ(name, _T("SPEAKER0"));
+                throw device::Exception("test");
+            }));
+    // device::AudioOutputPort audioOutputPort1;
+    // ON_CALL(*p_hostSPEAKER0ImplMock, getAudioOutputPort(::testing::_))
+    //     .WillByDefault(::testing::ReturnRef(audioOutputPort1));
+    {
+        JsonObject result, params8;
+        params8["audioPort"] = "SPEAKER0";
+        params8["mode"] = "1";
+        params8["level"] = "9";
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.2", "setVolumeLeveller", params8, result);
+    }
+
 
 }

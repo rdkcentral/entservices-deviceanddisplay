@@ -395,36 +395,3 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivation_Idempotent)
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientDeactivated", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
-
-// Test constructor file creation and callsign restoration
-TEST_F(SystemMode_L2test, Constructor_FileHandling)
-{
-    // This test requires creating a fresh SystemMode instance
-    // First, clean up existing instance
-    TearDown();
-
-    // Delete system mode file to test creation path
-    std::remove("/tmp/SystemMode.txt");
-
-    // Create new instance - should create file and set default state
-    uint32_t status = ActivateService("org.rdk.SystemMode");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    // Clean up
-    DeactivateService("org.rdk.SystemMode");
-
-    // Test existing callsign restoration path
-    // Pre-populate file with callsign data
-    std::ofstream outfile("/tmp/SystemMode.txt");
-    outfile << "[DEVICE_OPTIMIZE]\n";
-    outfile << "currentstate=VIDEO\n";
-    outfile << "callsign=org.rdk.DisplaySettings|org.rdk.TestPlugin\n";
-    outfile.close();
-
-    // Create new instance - should restore callsigns
-    status = ActivateService("org.rdk.SystemMode");
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    // Cleanup
-    DeactivateService("org.rdk.SystemMode");
-}

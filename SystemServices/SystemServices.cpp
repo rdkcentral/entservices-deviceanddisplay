@@ -475,7 +475,6 @@ namespace WPEFramework {
             registerMethod("getSystemVersions", &SystemServices::getSystemVersions, this);
             registerMethod("setNetworkStandbyMode", &SystemServices::setNetworkStandbyMode, this);
             registerMethod("getNetworkStandbyMode", &SystemServices::getNetworkStandbyMode, this);
-            registerMethod("getPowerStateIsManagedByDevice", &SystemServices::getPowerStateIsManagedByDevice, this);
     	    registerMethod("setTerritory", &SystemServices::setTerritory, this);
 	    registerMethod("getTerritory", &SystemServices::getTerritory, this);
 
@@ -500,13 +499,11 @@ namespace WPEFramework {
 #endif
 	    registerMethod("getFriendlyName", &SystemServices::getFriendlyName, this);
             registerMethod("setFriendlyName", &SystemServices::setFriendlyName, this);
-
             registerMethod("setFSRFlag", &SystemServices::setFSRFlag, this);
             registerMethod("getFSRFlag", &SystemServices::getFSRFlag, this);
             registerMethod("setBlocklistFlag", &SystemServices::setBlocklistFlag, this);
             registerMethod("getBlocklistFlag", &SystemServices::getBlocklistFlag, this);
             registerMethod("getBootTypeInfo", &SystemServices::getBootTypeInfo, this);
-            registerMethod("getBuildType", &SystemServices::getBuildType, this);
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
             registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
             registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
@@ -516,6 +513,8 @@ namespace WPEFramework {
             GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
                 &SystemServices::getPlatformConfiguration, this);
 #if 0
+            registerMethod("getPowerStateIsManagedByDevice", &SystemServices::getPowerStateIsManagedByDevice, this);
+            registerMethod("getBuildType", &SystemServices::getBuildType, this);
             registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
 	        registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
             registerMethod("getPreviousRebootInfo",
@@ -4552,6 +4551,7 @@ namespace WPEFramework {
             returnResponse(status);
         }
 
+#if 0
         /***
          * @brief : To retrieve is power state is managed by device
          * @param1[in] : {"params":{}}
@@ -4575,7 +4575,7 @@ namespace WPEFramework {
             status = true;
             returnResponse(status);
         }
-
+#endif
         /***
          * @brief : To retrieve Device Power State before reboot.
          * @param1[in] : {"params":{}}
@@ -5319,6 +5319,7 @@ namespace WPEFramework {
 	    return (status ? static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) : static_cast<uint32_t>(ERROR_FILE_IO));
 	}//end of getBootTypeInfo method
 
+#if 0
         /**
          * @brief : API to query BuildType details
          *
@@ -5348,6 +5349,7 @@ namespace WPEFramework {
             }
             returnResponse(result);
         }//end of getBuildType method
+#endif
 
 	/*
          * @brief This function tells the Migration Status of the device.

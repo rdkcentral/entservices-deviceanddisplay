@@ -100,14 +100,14 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: usersettings_testcase
 
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: usersersettings_testcase
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout googletest
@@ -378,10 +378,10 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
-          -DPLUGIN_SYSTEMSERVICES=ON
-          -DPLUGIN_POWERMANAGER=ON
+          -DPLUGIN_SYSTEMSERVICES=OFF
+          -DPLUGIN_POWERMANAGER=OFF
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
-          -DPLUGIN_DISPLAYSETTINGS=ON
+          -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_FRAMERATE=ON
           -DUSE_THUNDER_R4=ON
@@ -460,9 +460,9 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
-          -DPLUGIN_SYSTEMSERVICES=ON
-          -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_DISPLAYSETTINGS=ON
+          -DPLUGIN_SYSTEMSERVICES=OFF
+          -DPLUGIN_POWERMANAGER=OFF
+          -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DPLUGIN_WAREHOUSE=ON
           -DPLUGIN_AVINPUT=OFF

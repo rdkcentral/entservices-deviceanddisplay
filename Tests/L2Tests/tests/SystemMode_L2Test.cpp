@@ -35,7 +35,7 @@
 
 #define SYSTEMMODE_CALLSIGN _T("org.rdk.SystemMode.1")
 #define SYSTEMMODEL2TEST_CALLSIGN _T("L2tests.1")
-#define DISPLAYSETTINGS_CALLSIGN _T("org.rdk.DisplaySettings.1")
+#define DISPLAYSETTINGS_CALLSIGN _T("org.rdk.DisplaySettings")
 
 using ::testing::NiceMock;
 using namespace WPEFramework;
@@ -255,11 +255,11 @@ TEST_F(SystemMode_L2test, JSONRPC_RequestState_VIDEO)
     JsonObject params;
     JsonObject result;
     uint32_t status = Core::ERROR_GENERAL;
-    params["systemMode"] = "device_optimize";
+    params["systemMode"] = "DEVICE_OPTIMIZE";
     params["state"] = "video";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(WaitForStateJsonRpc("device_optimize", "video"));
+    EXPECT_TRUE(WaitForStateJsonRpc("DEVICE_OPTIMIZE", "video"));
 }
 
 // JSON-RPC: requestState -> GAME then getState
@@ -269,11 +269,11 @@ TEST_F(SystemMode_L2test, JSONRPC_RequestState_GAME)
     JsonObject params;
     JsonObject result;
     uint32_t status = Core::ERROR_GENERAL;
-    params["systemMode"] = "device_optimize";
+    params["systemMode"] = "DEVICE_OPTIMIZE";
     params["state"] = "game";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(WaitForStateJsonRpc("device_optimize", "game"));
+    EXPECT_TRUE(WaitForStateJsonRpc("DEVICE_OPTIMIZE", "game"));
 }
 
 // JSON-RPC: getState after prior state request (ensure persistence)
@@ -284,15 +284,15 @@ TEST_F(SystemMode_L2test, JSONRPC_GetStateAfterRequest)
     {
         JsonObject params;
         JsonObject result;
-        params["systemMode"] = "device_optimize";
+        params["systemMode"] = "DEVICE_OPTIMIZE";
         params["state"] = "video";
         EXPECT_EQ(Core::ERROR_NONE, InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result));
-        EXPECT_TRUE(WaitForStateJsonRpc("device_optimize", "video"));
+        EXPECT_TRUE(WaitForStateJsonRpc("DEVICE_OPTIMIZE", "video"));
     }
     // Now query
     JsonObject params;
     JsonObject result;
-    params["systemMode"] = "device_optimize";
+    params["systemMode"] = "DEVICE_OPTIMIZE";
     uint32_t status = InvokeServiceMethod("org.rdk.SystemMode.1", "getState", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     ASSERT_TRUE(result.HasLabel("state"));
@@ -307,7 +307,7 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivationLifecycle)
     JsonObject params;
     JsonObject result;
     params["callsign"] = SYSTEMMODEL2TEST_CALLSIGN;
-    params["systemMode"] = "DEVICE_OPTIMIZE";
+    params["systemMode"] = "device_optimize";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientActivated", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     // reuse params for deactivation
@@ -324,23 +324,23 @@ TEST_F(SystemMode_L2test, JSONRPC_StateTransition_VIDEO_GAME_VIDEO)
     JsonObject result;
     uint32_t status;
     // VIDEO
-    params["systemMode"] = "device_optimize";
+    params["systemMode"] = "DEVICE_OPTIMIZE";
     params["state"] = "video";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(WaitForStateJsonRpc("device_optimize", "video"));
+    EXPECT_TRUE(WaitForStateJsonRpc("DEVICE_OPTIMIZE", "video"));
     // GAME
     params["state"] = "game";
     result.Clear();
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(WaitForStateJsonRpc("device_optimize", "game"));
+    EXPECT_TRUE(WaitForStateJsonRpc("DEVICE_OPTIMIZE", "game"));
     // VIDEO
     params["state"] = "video";
     result.Clear();
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(WaitForStateJsonRpc("device_optimize", "video"));
+    EXPECT_TRUE(WaitForStateJsonRpc("DEVICE_OPTIMIZE", "video"));
 }
 
 // ClientActivated idempotency: activate twice, then deactivate once

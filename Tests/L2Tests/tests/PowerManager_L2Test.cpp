@@ -749,6 +749,11 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
                             return PWRMGR_SUCCESS;
+                     }))
+                    .WillOnce(::testing::Invoke(
+                        [](PWRMgr_PowerState_t powerState) {
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
+                            return PWRMGR_SUCCESS;
                      }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
@@ -775,13 +780,6 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 15, POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
-
-                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
-                    .WillOnce(::testing::Invoke(
-                        [](PWRMgr_PowerState_t powerState) {
-                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
-                            return PWRMGR_SUCCESS;
-                     }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);

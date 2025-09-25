@@ -1354,7 +1354,6 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
 
 TEST_F(PowerManager_L2Test, JsonRpcWakeupSourceChange)
 {
-
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
@@ -1372,7 +1371,6 @@ TEST_F(PowerManager_L2Test, JsonRpcWakeupSourceChange)
         source["enabled"] = true;
         configs.Add(source);
     }
-
 
     params["wakeupSources"] = configs;
 

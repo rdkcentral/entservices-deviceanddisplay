@@ -211,7 +211,7 @@ public:
     }
     uint32_t VerticalFreq(uint32_t& value) const override
     {
-        vector<uint8_t> edidVec;
+        std::vector<uint8_t> edidVec;
         uint32_t ret = GetEdidBytes(edidVec);
         if (ret == Core::ERROR_NONE)
         {
@@ -307,7 +307,7 @@ public:
     uint32_t WidthInCentimeters(uint8_t& width /* @out */) const override
     {
         int ret = Core::ERROR_NONE;
-        vector<uint8_t> edidVec;
+        std::vector<uint8_t> edidVec;
         ret = GetEdidBytes(edidVec);
         if (Core::ERROR_NONE == ret)
         {
@@ -358,11 +358,11 @@ public:
 
     uint32_t EDID (uint16_t& length /* @inout */, uint8_t data[] /* @out @length:length */) const override
     {
-        vector<uint8_t> edidVec({'u','n','k','n','o','w','n' });
+        std::vector<uint8_t> edidVec({'u','n','k','n','o','w','n' });
         int ret = Core::ERROR_NONE;
         try
         {
-            vector<uint8_t> edidVec2;
+            std::vector<uint8_t> edidVec2;
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
             device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
             if (vPort.isDisplayConnected())
@@ -382,8 +382,8 @@ public:
             ret = Core::ERROR_GENERAL;
         }
         //convert to base64
-        uint16_t size = min(edidVec.size(), (size_t)numeric_limits<uint16_t>::max());
-        if(edidVec.size() > (size_t)numeric_limits<uint16_t>::max())
+        uint16_t size = std::min(edidVec.size(), (size_t)std::numeric_limits<uint16_t>::max());
+        if(edidVec.size() > (size_t)std::numeric_limits<uint16_t>::max())
             LOGERR("Size too large to use ToString base64 wpe api");
         int i = 0;
         for (; i < length && i < size; i++)
@@ -577,7 +577,7 @@ public:
     uint32_t Colorimetry(IColorimetryIterator*& colorimetry /* @out */) const override
     {
         std::list<Exchange::IDisplayProperties::ColorimetryType> colorimetryCaps;
-        vector<uint8_t> edidVec;
+        std::vector<uint8_t> edidVec;
         uint32_t ret = GetEdidBytes(edidVec);
         if (ret == Core::ERROR_NONE)
         {
@@ -677,6 +677,7 @@ public:
         }
         if(!capabilities) hdrCapabilities.push_back(HDR_OFF);
         if(capabilities & dsHDRSTANDARD_HDR10) hdrCapabilities.push_back(HDR_10);
+        if(capabilities & dsHDRSTANDARD_HDR10PLUS) hdrCapabilities.push_back(HDR_10PLUS);
         if(capabilities & dsHDRSTANDARD_HLG) hdrCapabilities.push_back(HDR_HLG);
         if(capabilities & dsHDRSTANDARD_DolbyVision) hdrCapabilities.push_back(HDR_DOLBYVISION);
         if(capabilities & dsHDRSTANDARD_TechnicolorPrime) hdrCapabilities.push_back(HDR_TECHNICOLOR);
@@ -706,6 +707,7 @@ public:
         }
         if(!capabilities) hdrCapabilities.push_back(HDR_OFF);
         if(capabilities & dsHDRSTANDARD_HDR10) hdrCapabilities.push_back(HDR_10);
+        if(capabilities & dsHDRSTANDARD_HDR10PLUS) hdrCapabilities.push_back(HDR_10PLUS);
         if(capabilities & dsHDRSTANDARD_HLG) hdrCapabilities.push_back(HDR_HLG);
         if(capabilities & dsHDRSTANDARD_DolbyVision) hdrCapabilities.push_back(HDR_DOLBYVISION);
         if(capabilities & dsHDRSTANDARD_TechnicolorPrime) hdrCapabilities.push_back(HDR_TECHNICOLOR);
@@ -757,7 +759,7 @@ private:
     mutable Core::CriticalSection _adminLock;
 
 private:
-    uint32_t GetEdidBytes(vector<uint8_t> &edid) const
+    uint32_t GetEdidBytes(std::vector<uint8_t> &edid) const
     {
         uint32_t ret = Core::ERROR_NONE;
         try

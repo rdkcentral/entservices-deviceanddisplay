@@ -37,6 +37,7 @@
 #include "secure_wrapper.h"
 #include <core/core.h>
 #include <core/JSON.h>
+#include<interfaces/entservices_errorcodes.h>
 
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
@@ -113,7 +114,6 @@ using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTempera
 #define BLOCKLIST "blocklist"
 #define MIGRATIONSTATUS "/opt/secure/persistent/MigrationStatus"
 #define TR181_MIGRATIONSTATUS "Device.DeviceInfo.Migration.MigrationStatus"
-#define ERROR_FILE_IO 1005 
 
 /**
  * @struct firmwareUpdate
@@ -143,6 +143,7 @@ bool getMocaStatus(void)
     return status;
 }
 
+#if 0
 /**
  * @brief Stores the value of enabled in the file /opt/gzenabled.
  *
@@ -164,6 +165,7 @@ bool setGzEnabled(bool enabled)
     }
     return retVal;
 }
+#endif
 
 const char* getWakeupSrcString(uint32_t src)
 {
@@ -194,6 +196,7 @@ const char* getWakeupSrcString(uint32_t src)
     }
 }
 
+#if 0
 /**
  * @brief returns the value of the contents of /opt/gzenabled.
  *
@@ -218,6 +221,7 @@ bool isGzEnabledHelper(bool& enabled)
 
     return retVal;
 }
+#endif
 
 /**
  * @brief returns the value of the contents of requested mac/ip
@@ -436,12 +440,8 @@ namespace WPEFramework {
             registerMethod("getMfgSerialNumber", &SystemServices::getMfgSerialNumber, this);
 #endif
             registerMethod("reboot", &SystemServices::requestSystemReboot, this);
-            registerMethod("enableMoca", &SystemServices::requestEnableMoca, this);
-            registerMethod("queryMocaStatus", &SystemServices::queryMocaStatus,
-                    this);
             registerMethod("requestSystemUptime",
                     &SystemServices::requestSystemUptime, this);
-            registerMethod("getStateInfo", &SystemServices::getStateInfo, this);
 #if defined(HAS_API_SYSTEM) && defined(HAS_API_POWERSTATE)
             registerMethod("getPowerState", &SystemServices::getDevicePowerState,
                     this);
@@ -451,23 +451,15 @@ namespace WPEFramework {
 #ifdef ENABLE_SYSTIMEMGR_SUPPORT
             registerMethod("getTimeStatus", &SystemServices::getSystemTimeStatus,this);
 #endif// ENABLE_SYSTIMEMGR_SUPPORT
-            registerMethod("setGzEnabled", &SystemServices::setGZEnabled, this);
-            registerMethod("isGzEnabled", &SystemServices::isGZEnabled, this);
-            registerMethod("getMode", &SystemServices::getMode, this);
             registerMethod("updateFirmware", &SystemServices::updateFirmware, this);
             registerMethod("setMode", &SystemServices::setMode, this);
-            registerMethod("setBootLoaderPattern", &SystemServices::setBootLoaderPattern, this);
 	    registerMethod("setBootLoaderSplashScreen", &SystemServices::setBootLoaderSplashScreen, this);	    
             registerMethod("getFirmwareUpdateInfo",
                     &SystemServices::getFirmwareUpdateInfo, this);
             registerMethod("setDeepSleepTimer", &SystemServices::setDeepSleepTimer,
                     this);
-            registerMethod("setPreferredStandbyMode",
-                    &SystemServices::setPreferredStandbyMode, this);
             registerMethod("getPreferredStandbyMode",
                     &SystemServices::getPreferredStandbyMode, this);
-            registerMethod("getAvailableStandbyModes",
-                    &SystemServices::getAvailableStandbyModes, this);
             registerMethod("getXconfParams", &SystemServices::getXconfParams, this);
             registerMethod("getSerialNumber", &SystemServices::getSerialNumber,
                     this);
@@ -477,43 +469,15 @@ namespace WPEFramework {
                     &SystemServices::getFirmwareDownloadPercent, this);
             registerMethod("getFirmwareUpdateState",
                     &SystemServices::getFirmwareUpdateState, this);
-            registerMethod("getMacAddresses",&SystemServices::getMacAddresses, this);
             registerMethod("setTimeZoneDST", &SystemServices::setTimeZoneDST, this);
             registerMethod("getTimeZoneDST", &SystemServices::getTimeZoneDST, this);
-            registerMethod("getCoreTemperature", &SystemServices::getCoreTemperature,
-                    this);
-            registerMethod("getPreviousRebootInfo",
-                    &SystemServices::getPreviousRebootInfo, this);
-            registerMethod("getLastDeepSleepReason",
-                    &SystemServices::getLastDeepSleepReason, this);
-            registerMethod("clearLastDeepSleepReason",
-                    &SystemServices::clearLastDeepSleepReason, this);
-#ifdef ENABLE_THERMAL_PROTECTION
-            registerMethod("getTemperatureThresholds",
-                    &SystemServices::getTemperatureThresholds, this);
-            registerMethod("setTemperatureThresholds",
-                    &SystemServices::setTemperatureThresholds, this);
-	    registerMethod("getOvertempGraceInterval",
-                    &SystemServices::getOvertempGraceInterval, this);
-            registerMethod("setOvertempGraceInterval",
-                    &SystemServices::setOvertempGraceInterval, this);
-#endif /* ENABLE_THERMAL_PROTECTION */
-            registerMethod("getPreviousRebootInfo2",
-                    &SystemServices::getPreviousRebootInfo2, this);
-            registerMethod("getPreviousRebootReason",
-                    &SystemServices::getPreviousRebootReason, this);
             registerMethod("getRFCConfig", &SystemServices::getRFCConfig, this);
-            registerMethod("getMilestones", &SystemServices::getMilestones, this);
-            registerMethod("enableXREConnectionRetention",
-                    &SystemServices::enableXREConnectionRetention, this);
             registerMethod("getSystemVersions", &SystemServices::getSystemVersions, this);
             registerMethod("setNetworkStandbyMode", &SystemServices::setNetworkStandbyMode, this);
             registerMethod("getNetworkStandbyMode", &SystemServices::getNetworkStandbyMode, this);
             registerMethod("getPowerStateIsManagedByDevice", &SystemServices::getPowerStateIsManagedByDevice, this);
     	    registerMethod("setTerritory", &SystemServices::setTerritory, this);
 	    registerMethod("getTerritory", &SystemServices::getTerritory, this);
-            registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
-	    registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
 
             // version 2 APIs
             registerMethod(_T("getTimeZones"), &SystemServices::getTimeZones, this);
@@ -530,20 +494,12 @@ namespace WPEFramework {
             registerMethod("getLastFirmwareFailureReason", &SystemServices::getLastFirmwareFailureReason, this);
             registerMethod("setOptOutTelemetry", &SystemServices::setOptOutTelemetry, this);
             registerMethod("isOptOutTelemetry", &SystemServices::isOptOutTelemetry, this);
-            registerMethod("fireFirmwarePendingReboot", &SystemServices::fireFirmwarePendingReboot, this);
-            registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
             registerMethod("setFirmwareAutoReboot", &SystemServices::setFirmwareAutoReboot, this);
 #ifdef ENABLE_SYSTEM_GET_STORE_DEMO_LINK
             registerMethod("getStoreDemoLink", &SystemServices::getStoreDemoLink, this);
 #endif
-            registerMethod("deletePersistentPath", &SystemServices::deletePersistentPath, this);
-            Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
-                &SystemServices::getPlatformConfiguration, this);
-            GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
-                &SystemServices::getPlatformConfiguration, this);
 	    registerMethod("getFriendlyName", &SystemServices::getFriendlyName, this);
             registerMethod("setFriendlyName", &SystemServices::setFriendlyName, this);
-            registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this);
 
             registerMethod("setFSRFlag", &SystemServices::setFSRFlag, this);
             registerMethod("getFSRFlag", &SystemServices::getFSRFlag, this);
@@ -553,6 +509,55 @@ namespace WPEFramework {
             registerMethod("getBuildType", &SystemServices::getBuildType, this);
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
             registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
+            registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
+            registerMethod("getMacAddresses",&SystemServices::getMacAddresses, this);
+            Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
+                &SystemServices::getPlatformConfiguration, this);
+            GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
+                &SystemServices::getPlatformConfiguration, this);
+#if 0
+            registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
+	        registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
+            registerMethod("getPreviousRebootInfo",
+                    &SystemServices::getPreviousRebootInfo, this);
+            registerMethod("getLastDeepSleepReason",
+                    &SystemServices::getLastDeepSleepReason, this);
+            registerMethod("clearLastDeepSleepReason",
+                    &SystemServices::clearLastDeepSleepReason, this);
+            registerMethod("enableMoca", &SystemServices::requestEnableMoca, this);
+            registerMethod("queryMocaStatus", &SystemServices::queryMocaStatus, this);
+            registerMethod("getStateInfo", &SystemServices::getStateInfo, this);
+            registerMethod("setGzEnabled", &SystemServices::setGZEnabled, this);
+            registerMethod("isGzEnabled", &SystemServices::isGZEnabled, this);
+            registerMethod("getMode", &SystemServices::getMode, this);
+            registerMethod("setBootLoaderPattern", &SystemServices::setBootLoaderPattern, this);
+            registerMethod("setPreferredStandbyMode",
+                    &SystemServices::setPreferredStandbyMode, this);
+            registerMethod("getAvailableStandbyModes",
+                    &SystemServices::getAvailableStandbyModes, this);
+            registerMethod("getPreviousRebootInfo2",
+                    &SystemServices::getPreviousRebootInfo2, this);
+            registerMethod("getPreviousRebootReason",
+                    &SystemServices::getPreviousRebootReason, this);
+            registerMethod("getMilestones", &SystemServices::getMilestones, this);
+            registerMethod("enableXREConnectionRetention",
+                    &SystemServices::enableXREConnectionRetention, this);
+            registerMethod("fireFirmwarePendingReboot", &SystemServices::fireFirmwarePendingReboot, this);
+            registerMethod("deletePersistentPath", &SystemServices::deletePersistentPath, this);
+            registerMethod("getThunderStartReason", &SystemServices::getThunderStartReason, this);
+            registerMethod("getCoreTemperature", &SystemServices::getCoreTemperature,
+                    this);
+#ifdef ENABLE_THERMAL_PROTECTION
+            registerMethod("getTemperatureThresholds",
+                    &SystemServices::getTemperatureThresholds, this);
+            registerMethod("setTemperatureThresholds",
+                    &SystemServices::setTemperatureThresholds, this);
+	        registerMethod("getOvertempGraceInterval",
+                    &SystemServices::getOvertempGraceInterval, this);
+            registerMethod("setOvertempGraceInterval",
+                    &SystemServices::setOvertempGraceInterval, this);
+#endif /* ENABLE_THERMAL_PROTECTION */
+#endif
         }
 
         SystemServices::~SystemServices()
@@ -810,6 +815,7 @@ namespace WPEFramework {
             returnResponse(result);
         }//end of requestSystemReboot
 
+#if 0
         /*
          * @brief This function delays the reboot in seconds.
          * This will internally sets the tr181 fwDelayReboot parameter.
@@ -860,6 +866,7 @@ namespace WPEFramework {
             }
             returnResponse(result);
         }
+#endif
 
         /*
          * @brief This function Enable/Disable the AutReboot Feature.
@@ -903,6 +910,7 @@ namespace WPEFramework {
            returnResponse(result);
         }
 
+#if 0
         /*
          * @brief This function notifies about pending Reboot.
          * This will internally set 120 sec and trigger event to application.
@@ -944,6 +952,7 @@ namespace WPEFramework {
 
             returnResponse(result);
         }
+#endif
 
         /*
          * @brief : send event when system is in maintenance window
@@ -1022,6 +1031,7 @@ namespace WPEFramework {
             sendNotify(EVT_ONNETWORKSTANDBYMODECHANGED , params);
         }
 
+#if 0
         /**
          * @breif : to enable Moca Settings
          * @param1[in] : {"params":{"value":true}}
@@ -1059,7 +1069,7 @@ namespace WPEFramework {
             LOGERR("eRetval = %d\n", eRetval);
             returnResponse((E_OK == eRetval)? true: false);
         } //End of requestEnableMoca
-
+#endif
         /**
          * @brief  : To fetch system uptime
          * @param2[out] : {"result":{"systemUptime":"378641.03","success":true}}
@@ -1119,7 +1129,26 @@ namespace WPEFramework {
 
             // there is no /tmp/.make from /lib/rdk/getDeviceDetails.sh, but it can be taken from /etc/device.properties
             if (queryParams.empty() || queryParams == "make") {
+                std::string device_name{};
+                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
+				if (device_name == "PLATCO") {
+                    IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+					memset(&param, 0, sizeof(param));
+                    param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
 
+                    IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+                    param.buffer[param.bufLen] = '\0';
+                    LOGINFO("SystemService getDeviceInfo param type %d result %s bufLen = %d", param.type, param.buffer, param.bufLen);
+
+                    if (result == IARM_RESULT_SUCCESS) {
+                        response["make"] = string(param.buffer);
+                        retAPIStatus = true;
+				       } else {
+                        LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
+						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
+                        retAPIStatus = false;
+					}
+				} else {
                 std::string make;
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MFG_NAME", make);
 
@@ -1129,7 +1158,7 @@ namespace WPEFramework {
                 } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
                 }
-
+				}
                 if (!queryParams.empty()) {
 
 
@@ -1336,6 +1365,7 @@ namespace WPEFramework {
         }
 #endif
 
+#if 0
         /***
          * @brief : Checks if Moca is Enabled or Not.
          *
@@ -1349,7 +1379,7 @@ namespace WPEFramework {
             response["mocaEnabled"] = getMocaStatus();
             returnResponse(true);
         }
-
+#endif
         /***
          * @brief : sends notification when system mode has changed.
          *
@@ -1384,6 +1414,7 @@ namespace WPEFramework {
             returnResponse(true);
         }
 
+#if 0
         /***
          * @brief : Returns mode Information, defines two parameters mode and duration.
          *
@@ -1438,6 +1469,8 @@ namespace WPEFramework {
                 }
                 returnResponse(status);
         }
+#endif
+
         /***
          * @brief : To update bootloader splash screen.
          * @param1[in]  : {"path":"<string>"}
@@ -2214,6 +2247,7 @@ namespace WPEFramework {
             returnResponse(retVal);
         }
 
+#if 0
         /***
          * @brief Sets and persists the preferred standby mode.
          * Invoking this function does not change the power state of the device, but sets only
@@ -2243,6 +2277,7 @@ namespace WPEFramework {
         }
         returnResponse(status);
         }
+#endif
 
         /***
          * @brief Returns the preferred standby mode.
@@ -2390,6 +2425,7 @@ namespace WPEFramework {
         }
 #endif// ENABLE_SYSTIMEMGR_SUPPORT
 
+#if 0
         /***
          * @brief Returns an array of strings containing the supported standby modes.
          * Possible values are "LIGHT_SLEEP" and/or "DEEP_SLEEP".
@@ -2416,6 +2452,7 @@ namespace WPEFramework {
             response["supportedStandbyModes"] = standbyModes;
             returnResponse(status);
         }
+#endif
 
         /***
          * @brief This will return configuration parameters such as firmware version, Mac, Model etc.
@@ -3454,6 +3491,7 @@ namespace WPEFramework {
             returnResponse(resp);
         }
 
+#if 0
         /***
          * @brief : To fetch core temperature
          * @param1[in]	: {"params":{}}
@@ -3864,6 +3902,7 @@ namespace WPEFramework {
             }
             returnResponse(retAPIStatus);
         }
+#endif
 
         /***
          * @brief : To get RFC Configs.
@@ -3926,6 +3965,7 @@ namespace WPEFramework {
             returnResponse(retAPIStatus);
         }
 
+#if 0
         /***
          * @brief : To fetch the list of milestones.
          * @param1[in]  : {params":{}}
@@ -4091,6 +4131,7 @@ namespace WPEFramework {
 	    }
             returnResponse(( E_OK == retVal)? true: false);
         }//end of getStateInfo
+#endif
 
 #ifdef ENABLE_SYSTIMEMGR_SUPPORT
         uint32_t SystemServices::getSystemTimeStatus(const JsonObject& parameters,
@@ -4241,6 +4282,7 @@ namespace WPEFramework {
 
 #endif /* HAS_API_SYSTEM && HAS_API_POWERSTATE */
 
+#if 0
         /***
          * @brief : To set GZ Status.
          *
@@ -4289,6 +4331,7 @@ namespace WPEFramework {
 
             returnResponse(true);
         } //end of isGZEnbaled
+#endif
 
         /***
          * @brief : To retrieve STB Version String
@@ -4578,6 +4621,7 @@ namespace WPEFramework {
 
             returnResponse(retVal);
         }
+
         /***
          * @brief : To set the wakeup source configuration.
          * @param1[in] : {"params":{"powerState":<string>,"wakeupSources":[{<WakeupSrcTrigger string>:<bool>},...]}
@@ -4649,7 +4693,8 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
-        
+
+#if 0
         /***
          * @brief : To get the wakeup source configuration.
          * @param1[out] : {"params":{"powerState":<string>,"wakeupSources":[{<WakeupSrcTrigger string>:<bool>},...]}
@@ -4709,6 +4754,7 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
+#endif
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
         /***
@@ -5057,6 +5103,7 @@ namespace WPEFramework {
             returnResponse(result);
         }
 
+#if 0
         /***
          * @brief : Deletes persistent path associated with a callsign
          *
@@ -5172,6 +5219,14 @@ namespace WPEFramework {
           returnResponse(result);
         }
 
+        uint32_t SystemServices::getThunderStartReason(const JsonObject& parameters, JsonObject& response)
+        {
+            LOGINFOMETHOD();
+
+            response["startReason"] = (Utils::fileExists(SYSTEM_SERVICE_THUNDER_RESTARTED_FILE))?"RESTART":"NORMAL";
+            returnResponse(true);
+        }
+#endif
         uint32_t SystemServices::getPlatformConfiguration(const JsonObject &parameters, PlatformCaps &response)
         {
           LOGINFOMETHOD();
@@ -5181,14 +5236,6 @@ namespace WPEFramework {
           response.Load(m_shellService, query);
 
           return Core::ERROR_NONE;
-        }
-
-        uint32_t SystemServices::getThunderStartReason(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            response["startReason"] = (Utils::fileExists(SYSTEM_SERVICE_THUNDER_RESTARTED_FILE))?"RESTART":"NORMAL";
-            returnResponse(true);
         }
 
         /***
@@ -5222,6 +5269,7 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
+
         /***
          * @brief : To get the fsr flag from emmc
          * @param1[out] : {"params":{"params":{"fsrFlag":<bool>}
@@ -5276,7 +5324,7 @@ namespace WPEFramework {
             {
                 LOGERR("BootType is not present");
             }
-	    return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+	    return (status ? static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) : static_cast<uint32_t>(ERROR_FILE_IO));
 	}//end of getBootTypeInfo method
 
         /**
@@ -5368,7 +5416,7 @@ namespace WPEFramework {
             else {
                 LOGINFO("Failed to get RFC parameter for Migration Status \n");
             }
-         return (status ? WPEFramework::Core::ERROR_NONE : ERROR_FILE_IO);
+         return (status ?  static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) :  static_cast<uint32_t>(ERROR_FILE_IO));
         }//end of getMigrationStatus method
        /*
          * @brief This function updates plugin API error text.
@@ -5381,8 +5429,8 @@ namespace WPEFramework {
          * @return: Core::<StatusCode>
          */
         uint32_t SystemServices::OnJSONRPCError(const Core::JSONRPC::Context&, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage) {
-           if(( method == _T("getMigrationStatus") || method == _T("getBootTypeInfo") || method == _T("setMigrationStatus") ) && (errorcode == ERROR_FILE_IO) )
-               errormessage = "File Read or Write error";
+           if(IS_ENTSERVICES_ERRORCODE(errorcode))
+               errormessage = ERROR_MESSAGE(errorcode);
            return errorcode;
         }
     } /* namespace Plugin */

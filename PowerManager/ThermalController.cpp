@@ -23,6 +23,8 @@
 
 ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
+    ,_therm_mutex(std::make_shared<std::mutex>())
+    ,_grace_interval_mutex(std::make_shared<std::mutex>())
     , m_cur_Thermal_Level(ThermalTemperature::THERMAL_TEMPERATURE_NORMAL)
     , _parent(parent)
     , _stopThread(false)
@@ -49,9 +51,12 @@ ThermalController::~ThermalController()
 
 uint32_t ThermalController::GetThermalState(ThermalTemperature &curLevel, float &curTemperature) const
 {
+    _therm_mutex->lock();
+
     curLevel = m_cur_Thermal_Level;
     curTemperature = m_cur_Thermal_Value;
 
+    _therm_mutex->unlock();
     LOGINFO("curTemperature: %d, curLevel %d", m_cur_Thermal_Value, int(m_cur_Thermal_Level));
 
     return WPEFramework::Core::ERROR_NONE;
@@ -100,8 +105,13 @@ uint32_t ThermalController::SetOvertempGraceInterval(int graceInterval)
     if(graceInterval >= 0 )
     {
         LOGINFO("Setting over temparature grace interval : %d", graceInterval);
+        _grace_interval_mutex->lock();
+
         rebootThreshold.graceInterval = graceInterval;
         deepsleepThreshold.graceInterval = graceInterval;
+
+        _grace_interval_mutex->unlock();
+
         retCode = WPEFramework::Core::ERROR_NONE;
     }
     else
@@ -133,8 +143,6 @@ void ThermalController::initializeThermalProtection()
         if (declockThreshold.graceInterval > 0) {
             LOGINFO("Thermal Monitor [DECLOCK] Thresholds -- Critical:%d Concern:%d Safe:%d Grace Interval:%d",
                 declockThreshold.critical, declockThreshold.concern, declockThreshold.safe, declockThreshold.graceInterval);
-            platform().GetClockSpeed(cur_Cpu_Speed);
-            LOGINFO("Thermal Monitor [DECLOCK] Default Frequency %d", cur_Cpu_Speed);
             /* Discover clock rate for this system. Only discover if the rate is 0 */
             platform().DetemineClockSpeeds( PLAT_CPU_SPEED_NORMAL, PLAT_CPU_SPEED_SCALED, PLAT_CPU_SPEED_MINIMAL);
             LOGINFO("Thermal Monitor [DECLOCK] Frequencies -- Normal:%d Scaled:%d Minimal:%d", PLAT_CPU_SPEED_NORMAL, PLAT_CPU_SPEED_SCALED, PLAT_CPU_SPEED_MINIMAL);
@@ -142,6 +150,8 @@ void ThermalController::initializeThermalProtection()
                 LOGINFO("Thermal Monitor [DECLOCK] **ERROR** At least one clock speed is 0. Disabling declocking!");
                 declockThreshold.graceInterval = 0;
             }
+	    cur_Cpu_Speed = PLAT_CPU_SPEED_NORMAL;
+	    LOGINFO("Thermal Monitor [DECLOCK] Default Frequency during Bootup [%d]", cur_Cpu_Speed);
         }
 #endif
 
@@ -387,6 +397,7 @@ void ThermalController::pollThermalLevels()
 
     while(!_stopThread)
     {
+        _therm_mutex->lock();
         uint32_t result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
         if(WPEFramework::Core::ERROR_NONE == result)
         {
@@ -417,12 +428,19 @@ void ThermalController::pollThermalLevels()
                 LOGINFO("pollThermalLevels thread is signalled to be destroyed");
                 break;
             }
+        }
 
+        _therm_mutex->unlock();
+
+        if(WPEFramework::Core::ERROR_NONE == result)
+        {
+            _grace_interval_mutex->lock();
             /* Check if we should enter deepsleep based on the current temperature */
             deepSleepIfNeeded();
 
             /* Check if we should reboot based on the current temperature */
             rebootIfNeeded();
+            _grace_interval_mutex->unlock();
 
             /* Check if we should declock based on the current temperature */
             declockIfNeeded();

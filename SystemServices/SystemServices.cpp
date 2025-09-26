@@ -1129,7 +1129,26 @@ namespace WPEFramework {
 
             // there is no /tmp/.make from /lib/rdk/getDeviceDetails.sh, but it can be taken from /etc/device.properties
             if (queryParams.empty() || queryParams == "make") {
+                std::string device_name{};
+                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
+				if (device_name == "PLATCO") {
+                    IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+					memset(&param, 0, sizeof(param));
+                    param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
 
+                    IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+                    param.buffer[param.bufLen] = '\0';
+                    LOGINFO("SystemService getDeviceInfo param type %d result %s bufLen = %d", param.type, param.buffer, param.bufLen);
+
+                    if (result == IARM_RESULT_SUCCESS) {
+                        response["make"] = string(param.buffer);
+                        retAPIStatus = true;
+				       } else {
+                        LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
+						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
+                        retAPIStatus = false;
+					}
+				} else {
                 std::string make;
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MFG_NAME", make);
 
@@ -1139,7 +1158,7 @@ namespace WPEFramework {
                 } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
                 }
-
+				}
                 if (!queryParams.empty()) {
 
 
@@ -2124,13 +2143,21 @@ namespace WPEFramework {
         uint32_t SystemServices::setDeepSleepTimer(const JsonObject& parameters,
                 JsonObject& response)
     {
+	LOGINFOMETHOD();
         Core::hresult retStatus = Core::ERROR_GENERAL;
         bool status = false;
 
         if (parameters.HasLabel("seconds")) {
             ASSERT (_powerManagerPlugin);
             if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->SetDeepSleepTimer(static_cast<unsigned int>(parameters["seconds"].Number()));
+		int timeoutValue = static_cast<int>(parameters["seconds"].Number());
+                // if maintenence time is more then 10 days set to 0
+                if (( 0 > timeoutValue ) || ( 864000 < timeoutValue ))
+                {
+                    timeoutValue = 0;
+                    LOGINFO("setDeepSleepTimer updated timeout to :%d",timeoutValue);
+                }
+                retStatus = _powerManagerPlugin->SetDeepSleepTimer(timeoutValue);
             }
 
             if (Core::ERROR_NONE == retStatus) {

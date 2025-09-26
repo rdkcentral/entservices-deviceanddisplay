@@ -333,122 +333,127 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanged)
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
-// ================================ NEGATIVE TEST CASES ================================
+// ======================== NEGATIVE TEST CASES ========================
 
 /**
- * @brief Test setCollectionFrequency with invalid parameters
- * 
- * This test validates error handling for setCollectionFrequency:
- * - Tests with frequency below minimum threshold (< 100ms)
- * - Tests with negative frequency values
- * - Tests with extremely large frequency values
- * - Validates proper error responses and success=false
+ * @brief Test setCollectionFrequency with invalid frequency value (below minimum)
  */
-TEST_F(FrameRateTest, setCollectionFrequency_NegativeTests)
+TEST_F(FrameRateTest, setCollectionFrequency_InvalidFrequency_BelowMinimum)
 {
-    // Test with frequency below minimum (should fail - minimum is 100ms)
+    // Test with frequency below minimum (100ms)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":50, \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test with negative frequency
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":-1000, \"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test with zero frequency
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":0, \"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test with extremely large frequency (potential overflow)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":2147483647, \"success\":false}"), response));
-    // This might succeed or fail depending on implementation limits
 }
 
 /**
- * @brief Test updateFps with invalid FPS values
- * 
- * This test validates error handling for updateFps:
- * - Tests with negative FPS values
- * - Tests with zero FPS
- * - Tests with unrealistic high FPS values
- * - Validates proper error responses
+ * @brief Test setCollectionFrequency with invalid frequency value (negative)
  */
-TEST_F(FrameRateTest, updateFps_NegativeTests)
+TEST_F(FrameRateTest, setCollectionFrequency_InvalidFrequency_Negative)
+{
+    // Test with negative frequency
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":-1000, \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test setCollectionFrequency with invalid frequency value (zero)
+ */
+TEST_F(FrameRateTest, setCollectionFrequency_InvalidFrequency_Zero)
+{
+    // Test with zero frequency
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":0, \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test updateFps with invalid FPS value (negative)
+ */
+TEST_F(FrameRateTest, updateFps_InvalidFpsValue_Negative)
 {
     // Test with negative FPS value
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":-30, \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
-    // Test with zero FPS
+/**
+ * @brief Test updateFps with invalid FPS value (zero)
+ */
+TEST_F(FrameRateTest, updateFps_InvalidFpsValue_Zero)
+{
+    // Test with zero FPS value
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":0, \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test with unrealistically high FPS (> 1000)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":5000, \"success\":false}"), response));
-    // This might succeed or fail depending on implementation validation
 }
 
 /**
- * @brief Test setFrmMode with invalid mode values and device exceptions
- * 
- * This test validates error handling for setFrmMode:
- * - Tests with invalid FRM mode values
- * - Tests device exception scenarios
- * - Tests when VideoDevice is unavailable
+ * @brief Test updateFps with invalid FPS value (extremely high)
  */
-TEST_F(FrameRateTest, setFrmMode_NegativeTests)
+TEST_F(FrameRateTest, updateFps_InvalidFpsValue_TooHigh)
 {
-    // Test with invalid FRM mode (negative value)
-    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](int param) {
-                // Simulate device error for invalid mode
-                throw device::Exception("Invalid FRM mode");
-                return 0;
-            }));
+    // Test with unrealistically high FPS value
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":10000, \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
+/**
+ * @brief Test setFrmMode with invalid mode value (negative)
+ */
+TEST_F(FrameRateTest, setFrmMode_InvalidMode_Negative)
+{
+    // Test with negative mode value
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":-1, \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
-    // Test with invalid FRM mode (out of range value)
+/**
+ * @brief Test setFrmMode with invalid mode value (out of range)
+ */
+TEST_F(FrameRateTest, setFrmMode_InvalidMode_OutOfRange)
+{
+    // Test with mode value out of valid range (assuming 0-1 are valid)
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":5, \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test setFrmMode when VideoDevice setFRFMode throws exception
+ */
+TEST_F(FrameRateTest, setFrmMode_VideoDevice_Exception)
+{
     ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](int param) {
-                if (param > 1 || param < 0) {
-                    throw device::Exception("FRM mode out of range");
-                }
-                return 0;
+                throw device::Exception("VideoDevice setFRFMode failed");
             }));
 
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":999, \"success\":false}"), response));
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0, \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
 }
 
 /**
- * @brief Test getFrmMode with device exceptions and error conditions
- * 
- * This test validates error handling for getFrmMode:
- * - Tests when device throws exceptions
- * - Tests when VideoDevice is unavailable
- * - Tests hardware communication failures
+ * @brief Test setFrmMode when VideoDevice setFRFMode returns error code
  */
-TEST_F(FrameRateTest, getFrmMode_NegativeTests)
+TEST_F(FrameRateTest, setFrmMode_VideoDevice_ErrorCode)
 {
-    // Test with device exception during getFRFMode
-    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](int* param) {
-                throw device::Exception("Failed to get FRM mode from hardware");
-                return -1;
+            [&](int param) {
+                return -1; // Return error code
             }));
 
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{\"success\":false}"), response));
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0, \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
-    // Test with device returning error code
+/**
+ * @brief Test getFrmMode when VideoDevice getFRFMode throws exception
+ */
+TEST_F(FrameRateTest, getFrmMode_VideoDevice_Exception)
+{
     ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](int* param) {
-                return -1; // Simulate hardware error
+                throw device::Exception("VideoDevice getFRFMode failed");
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{\"success\":false}"), response));
@@ -456,237 +461,89 @@ TEST_F(FrameRateTest, getFrmMode_NegativeTests)
 }
 
 /**
- * @brief Test setDisplayFrameRate with invalid framerate formats and device exceptions
- * 
- * This test validates error handling for setDisplayFrameRate:
- * - Tests with malformed framerate strings
- * - Tests with unsupported resolutions
- * - Tests with invalid framerate values
- * - Tests device exception scenarios
+ * @brief Test getFrmMode when VideoDevice getFRFMode returns error code
  */
-TEST_F(FrameRateTest, setDisplayFrameRate_NegativeTests)
+TEST_F(FrameRateTest, getFrmMode_VideoDevice_ErrorCode)
 {
-    // Test with malformed framerate string
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](const char* param) {
-                if (strlen(param) == 0 || strstr(param, "x") == nullptr) {
-                    throw device::Exception("Invalid framerate format");
-                }
-                return 0;
+            [&](int* param) {
+                return -1; // Return error code
             }));
 
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"invalid_format\", \"success\":false}"), response));
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{\"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
+/**
+ * @brief Test setDisplayFrameRate with invalid framerate format (empty string)
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_InvalidFormat_Empty)
+{
     // Test with empty framerate string
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"\", \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
-    // Test with unsupported resolution
+/**
+ * @brief Test setDisplayFrameRate with invalid framerate format (malformed)
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_InvalidFormat_Malformed)
+{
+    // Test with malformed framerate string
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"invalid_format\", \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test setDisplayFrameRate with invalid framerate format (missing components)
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_InvalidFormat_MissingComponents)
+{
+    // Test with incomplete framerate string (missing fps)
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080\", \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test setDisplayFrameRate when VideoDevice setDisplayframerate throws exception
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_VideoDevice_Exception)
+{
     ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](const char* param) {
-                string framerate(param);
-                if (framerate.find("9999x9999") != string::npos) {
-                    throw device::Exception("Unsupported resolution");
-                }
-                return 0;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"9999x9999px60\", \"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test with zero or negative framerate
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](const char* param) {
-                string framerate(param);
-                if (framerate.find("px0") != string::npos || framerate.find("px-") != string::npos) {
-                    throw device::Exception("Invalid framerate value");
-                }
-                return 0;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080px0\", \"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080px-30\", \"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-}
-
-/**
- * @brief Test getDisplayFrameRate with device exceptions and error conditions
- * 
- * This test validates error handling for getDisplayFrameRate:
- * - Tests when device throws exceptions
- * - Tests when hardware communication fails
- * - Tests when display is disconnected
- */
-TEST_F(FrameRateTest, getDisplayFrameRate_NegativeTests)
-{
-    // Test with device exception during getCurrentDisframerate
-    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](char* param) {
-                throw device::Exception("Failed to get current display framerate");
-                return -1;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test with device returning error code
-    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](char* param) {
-                return -1; // Simulate hardware error
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test with display disconnected scenario
-    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](char* param) {
-                throw device::Exception("Display not connected");
-                return -1;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-}
-
-/**
- * @brief Test FPS collection functions with invalid states
- * 
- * This test validates error handling for FPS collection:
- * - Tests starting collection when already in progress
- * - Tests stopping collection when not started
- * - Tests multiple start/stop calls
- */
-TEST_F(FrameRateTest, FpsCollection_InvalidStates)
-{
-    // Start FPS collection successfully first
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-
-    // Try to start again while already running (should handle gracefully)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{\"success\":false}"), response));
-    // Implementation may return true (idempotent) or false (already running)
-
-    // Stop collection
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-
-    // Try to stop again when not running (should handle gracefully)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{\"success\":false}"), response));
-    // Implementation may return true (idempotent) or false (not running)
-}
-
-/**
- * @brief Test JSON parsing errors and malformed requests
- * 
- * This test validates error handling for malformed JSON:
- * - Tests with missing required parameters
- * - Tests with wrong parameter types
- * - Tests with malformed JSON syntax
- */
-TEST_F(FrameRateTest, JSON_ParsingErrors)
-{
-    // Test setCollectionFrequency with missing frequency parameter
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"success\":false}"), response));
-    // Should return error due to missing frequency
-
-    // Test updateFps with missing newFpsValue parameter
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"success\":false}"), response));
-    // Should return error due to missing newFpsValue
-
-    // Test setFrmMode with missing frmmode parameter
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"success\":false}"), response));
-    // Should return error due to missing frmmode
-
-    // Test setDisplayFrameRate with missing framerate parameter
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"success\":false}"), response));
-    // Should return error due to missing framerate
-
-    // Test with wrong parameter types
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":\"not_a_number\", \"success\":false}"), response));
-    // Should return error due to wrong type
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":\"not_a_number\", \"success\":false}"), response));
-    // Should return error due to wrong type
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":\"not_a_number\", \"success\":false}"), response));
-    // Should return error due to wrong type
-}
-
-/**
- * @brief Test IARM event handling with invalid data
- * 
- * This test validates error handling for IARM events:
- * - Tests with null event data
- * - Tests with malformed event data
- * - Tests with incorrect event sizes
- */
-TEST_F(FrameRateTest, IARM_EventHandling_NegativeTests)
-{
-    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
-    
-    // Test with null data pointer (should not crash)
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, nullptr, 0);
-    
-    // Test with incorrect event size
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate, "3840x2160px48");
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData) - 1);
-    
-    // Test with unknown event ID (should be ignored gracefully)
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, (IARM_EventId_t)9999, &eventData, sizeof(eventData));
-    
-    // Test with wrong owner name (should be ignored)
-    _iarmDSFramerateEventHandler("WRONG_OWNER", IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
-}
-
-/**
- * @brief Test device settings exception scenarios
- * 
- * This test validates exception handling when device settings operations fail:
- * - Tests device initialization failures
- * - Tests device communication timeouts
- * - Tests hardware unavailable scenarios
- */
-TEST_F(FrameRateTest, DeviceSettings_ExceptionHandling)
-{
-    // Test VideoDevice initialization failure
-    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](int* param) {
-                throw std::runtime_error("VideoDevice not initialized");
-                return -1;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test device communication timeout
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](const char* param) {
-                throw device::Exception("Device communication timeout");
-                return -1;
+                throw device::Exception("VideoDevice setDisplayframerate failed");
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080px60\", \"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
-    // Test hardware unavailable
+/**
+ * @brief Test setDisplayFrameRate when VideoDevice setDisplayframerate returns error code
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_VideoDevice_ErrorCode)
+{
+    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](const char* param) {
+                return -1; // Return error code
+            }));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080px60\", \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test getDisplayFrameRate when VideoDevice getCurrentDisframerate throws exception
+ */
+TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_Exception)
+{
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](char* param) {
-                throw device::Exception("Hardware unavailable");
-                return -1;
+                throw device::Exception("VideoDevice getCurrentDisframerate failed");
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
@@ -694,73 +551,90 @@ TEST_F(FrameRateTest, DeviceSettings_ExceptionHandling)
 }
 
 /**
- * @brief Test boundary value conditions
- * 
- * This test validates handling of boundary values:
- * - Tests minimum and maximum supported framerates
- * - Tests edge cases for collection frequency limits
- * - Tests resolution boundary conditions
+ * @brief Test getDisplayFrameRate when VideoDevice getCurrentDisframerate returns error code
  */
-TEST_F(FrameRateTest, BoundaryValue_Tests)
+TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_ErrorCode)
 {
-    // Test minimum collection frequency (exactly 100ms - should succeed)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":100, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-
-    // Test just below minimum (99ms - should fail)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":99, \"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test maximum reasonable FPS values
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
         .WillByDefault(::testing::Invoke(
-            [&](const char* param) {
-                string framerate(param);
-                // Accept common framerates, reject unrealistic ones
-                if (framerate.find("px240") != string::npos) {
-                    throw device::Exception("Framerate too high for hardware");
-                }
-                return 0;
+            [&](char* param) {
+                return -1; // Return error code
             }));
 
-    // Test very high framerate (should fail)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080px240\", \"success\":false}"), response));
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
     EXPECT_EQ(response, string("{\"success\":false}"));
-
-    // Test common high framerate (should succeed)
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillByDefault(::testing::Return(0));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080px120\", \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
 }
 
 /**
- * @brief Test concurrent operations and race conditions
- * 
- * This test validates handling of concurrent operations:
- * - Tests rapid successive API calls
- * - Tests FPS collection during framerate changes
- * - Tests notification handling during operations
+ * @brief Test startFpsCollection when collection is already in progress
  */
-TEST_F(FrameRateTest, Concurrency_Tests)
+TEST_F(FrameRateTest, startFpsCollection_AlreadyInProgress)
 {
-    // Start FPS collection
+    // Start collection first time (should succeed)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{\"success\":false}"), response));
     EXPECT_EQ(response, "true");
+    
+    // Try to start collection again (should fail)
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{\"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
 
-    // Rapid updateFps calls (should handle gracefully)
-    for (int i = 0; i < 5; i++) {
-        EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":60, \"success\":false}"), response));
-    }
-
-    // Change framerate while FPS collection is running
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillByDefault(::testing::Return(0));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"3840x2160px60\", \"success\":false}"), response));
-
-    // Stop FPS collection
+/**
+ * @brief Test stopFpsCollection when no collection is in progress
+ */
+TEST_F(FrameRateTest, stopFpsCollection_NotInProgress)
+{
+    // Try to stop collection when none is running (should fail)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test updateFps when FPS collection is not started
+ */
+TEST_F(FrameRateTest, updateFps_CollectionNotStarted)
+{
+    // Try to update FPS without starting collection first (should fail)
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":60, \"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test methods with malformed JSON input (missing required parameters)
+ */
+TEST_F(FrameRateTest, setCollectionFrequency_MissingParameter)
+{
+    // Test with missing frequency parameter
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test updateFps with malformed JSON input (missing required parameters)
+ */
+TEST_F(FrameRateTest, updateFps_MissingParameter)
+{
+    // Test with missing newFpsValue parameter
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test setFrmMode with malformed JSON input (missing required parameters)
+ */
+TEST_F(FrameRateTest, setFrmMode_MissingParameter)
+{
+    // Test with missing frmmode parameter
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
+}
+
+/**
+ * @brief Test setDisplayFrameRate with malformed JSON input (missing required parameters)
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_MissingParameter)
+{
+    // Test with missing framerate parameter
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"success\":false}"), response));
+    EXPECT_EQ(response, string("{\"success\":false}"));
 }

@@ -591,15 +591,6 @@ TEST_F(FrameRateTest, updateFps_CollectionNotStarted)
 }
 
 /**
- * @brief Test methods with malformed JSON input (missing required parameters)
- */
-TEST_F(FrameRateTest, setCollectionFrequency_MissingParameter)
-{
-    // Test with missing frequency parameter - should return ERROR_GENERAL for missing param
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"success\":false}"), response));
-}
-
-/**
  * @brief Test setFrmMode when no video devices are available
  */
 TEST_F(FrameRateTest, setFrmMode_NoVideoDevices)

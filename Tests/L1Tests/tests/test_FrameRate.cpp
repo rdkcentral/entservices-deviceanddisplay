@@ -455,6 +455,7 @@ TEST_F(FrameRateTest, getFrmMode_VideoDevice_Exception)
         .WillByDefault(::testing::Invoke(
             [&](int* param) {
                 throw device::Exception("VideoDevice getFRFMode failed");
+                return 0;
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{\"success\":false}"), response));
@@ -515,6 +516,7 @@ TEST_F(FrameRateTest, setDisplayFrameRate_VideoDevice_Exception)
         .WillByDefault(::testing::Invoke(
             [&](const char* param) {
                 throw device::Exception("VideoDevice setDisplayframerate failed");
+                return 0;
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080px60\", \"success\":false}"), response));
@@ -545,6 +547,7 @@ TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_Exception)
         .WillByDefault(::testing::Invoke(
             [&](char* param) {
                 throw device::Exception("VideoDevice getCurrentDisframerate failed");
+                return 0;
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));

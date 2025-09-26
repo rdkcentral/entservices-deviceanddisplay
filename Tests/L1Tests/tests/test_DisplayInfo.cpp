@@ -34,7 +34,6 @@
 #include "DisplayInfo.h"
 #include "DisplayInfoMock.h"
 
-#include "IarmBusMock.h"
 #include "ManagerMock.h"
 
 #include <fstream>
@@ -52,7 +51,6 @@
 
 #include "FactoriesImplementation.h"
 #include "HostMock.h"
-#include "IarmBusMock.h"
 #include "ServiceMock.h"
 #include "VideoDeviceMock.h"
 #include "devicesettings.h"
@@ -62,6 +60,7 @@
 #include "ThunderPortability.h"
 #include "WorkerPoolImplementation.h"
 #include "WrapsMock.h"
+#include "COMLinkMock.h"
 
 #include "SystemInfo.h"
 
@@ -73,9 +72,9 @@ using namespace WPEFramework;
 
 using ::testing::NiceMock;
 
+#define TEST_LOG(x, ...) fprintf(stderr, "\033[1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); fflush(stderr);
 class DisplayInfoTest : public ::testing::Test {
 protected:
-    IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
     Core::ProxyType<Plugin::DisplayInfo> plugin;
     Core::ProxyType<Plugin::DisplayInfoImplementation> displayInfoImplementation;
     Core::JSONRPC::Handler& handler;
@@ -99,6 +98,7 @@ protected:
     IARM_EventHandler_t _iarmDisplayInfoPreChangeEventHandler = nullptr;
     IARM_EventHandler_t _iarmDisplayInfoPowtChangeEventHandler = nullptr;
     Exchange::IConnectionProperties::INotification *ConnectionProperties = nullptr;
+    NiceMock<COMLinkMock> comLinkMock;
 
     DisplayInfoTest()
     : plugin(Core::ProxyType<Plugin::DisplayInfo>::Create())
@@ -107,8 +107,8 @@ protected:
     , workerPool(Core::ProxyType<WorkerPoolImplementation>::Create(
       2, Core::Thread::DefaultStackSize(), 16))
     {
-        p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
-        IarmBus::setImpl(p_iarmBusImplMock);
+        p_hostImplMock  = new NiceMock <HostImplMock>;
+        device::Host::setImpl(p_hostImplMock);
 
         p_serviceMock = new NiceMock <ServiceMock>;
 
@@ -128,6 +128,26 @@ protected:
         p_edidParserMock  = new NiceMock <EdidParserMock>;
         edid_parser::edidParserImpl::setImpl(p_edidParserMock);
 
+        ON_CALL(service, COMLink())
+        .WillByDefault(::testing::Invoke(
+              [this]() {
+                    TEST_LOG("Pass created comLinkMock: %p ", &comLinkMock);
+                    return &comLinkMock;
+                }));
+
+#ifdef USE_THUNDER_R4
+        ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                    [&](const RPC::Object& object, const uint32_t waitTime, uint32_t& connectionId) {
+                        displayInfoImplementation = Core::ProxyType<Plugin::DisplayInfoImplementation>::Create();
+                        TEST_LOG("Pass created displayInfoImplementation: %p ", &displayInfoImplementation);
+                        return &displayInfoImplementation;
+                }));
+#else
+        ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_, ::testing::_, ::testing::_))
+             .WillByDefault(::testing::Return(displayInfoImplementation));
+#endif /*USE_THUNDER_R4 */
+
         EXPECT_CALL(*p_managerImplMock, Initialize())
             .Times(::testing::AnyNumber())
             .WillRepeatedly(::testing::Return());
@@ -138,9 +158,6 @@ protected:
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
         dispatcher->Activate(&service);
         plugin->Initialize(&service);
-
-        p_hostImplMock  = new NiceMock <HostImplMock>;
-        device::Host::setImpl(p_hostImplMock);
 
         p_drmMock  = new NiceMock <DRMMock>;
         drmImpl::setImpl(p_drmMock);
@@ -156,23 +173,6 @@ protected:
 
         p_videoDeviceMock = new NiceMock <VideoDeviceMock>;
         device::VideoDevice::setImpl(p_videoDeviceMock);
-
-        ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_RES_PRECHANGE)) 			{
-			            //FrameRatePreChange = handler;
-	            		_iarmDisplayInfoPreChangeEventHandler = handler;
-                    }
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE))			{
-			            //FrameRatePostChange = handler;
-			            _iarmDisplayInfoPowtChangeEventHandler = handler;
-                    }
-                    return IARM_RESULT_SUCCESS;
-                }));
-
-
-        //displayInfoImplementation = Core::ProxyType<Plugin::DisplayInfoImplementation>::Create();
 
         ON_CALL(*p_connectionpropertiesMock, Register(::testing::_))
             .WillByDefault(::testing::Invoke(
@@ -268,13 +268,6 @@ protected:
             p_hostImplMock = nullptr;
         }
 
-        IarmBus::setImpl(nullptr);
-        if (p_iarmBusImplMock != nullptr)
-        {
-            delete p_iarmBusImplMock;
-            p_iarmBusImplMock = nullptr;
-        }
-        
     }
 };
 
@@ -1726,19 +1719,9 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
     // Test PRE_RESOLUTION_CHANGE event
     {
         notification.Reset();
-        
-        // Simulate IARM event data for pre-resolution change
-        IARM_Bus_DSMgr_EventData_t eventData;
-        eventData.data.resn.width = 1920;
-        eventData.data.resn.height = 1080;
 
         // Trigger the resolution change event directly using the static function
-        Plugin::DisplayInfoImplementation::ResolutionChange(
-            IARM_BUS_DSMGR_NAME,
-            IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
-            &eventData,
-            sizeof(eventData)
-        );
+        Plugin::DisplayInfoImplementation::_instance->OnResolutionPreChange( 1920, 1080 );
 
         // Wait for notification with timeout
         bool eventReceived = notification.WaitForEvent(1000, Exchange::IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE);
@@ -1749,18 +1732,8 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
     {
         notification.Reset();
         
-        // Simulate IARM event data for post-resolution change
-        IARM_Bus_DSMgr_EventData_t eventData;
-        eventData.data.resn.width = 3840;
-        eventData.data.resn.height = 2160;
-
         // Trigger the resolution change event
-        Plugin::DisplayInfoImplementation::ResolutionChange(
-            IARM_BUS_DSMGR_NAME,
-            IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,
-            &eventData,
-            sizeof(eventData)
-        );
+        Plugin::DisplayInfoImplementation::_instance->OnResolutionPostChange( 3840, 2160 );
 
         // Wait for notification with timeout
         bool eventReceived = notification.WaitForEvent(1000, Exchange::IConnectionProperties::INotification::Source::POST_RESOLUTION_CHANGE);
@@ -1779,13 +1752,7 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
         secondNotification.Reset();
 
         // Trigger event - both should receive it
-        IARM_Bus_DSMgr_EventData_t eventData;
-        Plugin::DisplayInfoImplementation::ResolutionChange(
-            IARM_BUS_DSMGR_NAME,
-            IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
-            &eventData,
-            sizeof(eventData)
-        );
+        Plugin::DisplayInfoImplementation::_instance->OnResolutionPreChange( 3840, 2160 );
 
         // Both notifications should receive the event
         bool firstEventReceived = notification.WaitForEvent(1000, Exchange::IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE);
@@ -1808,13 +1775,7 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
         notification.Reset();
 
         // Trigger event - should not be received
-        IARM_Bus_DSMgr_EventData_t eventData;
-        Plugin::DisplayInfoImplementation::ResolutionChange(
-            IARM_BUS_DSMGR_NAME,
-            IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,
-            &eventData,
-            sizeof(eventData)
-        );
+        Plugin::DisplayInfoImplementation::_instance->OnResolutionPreChange( 3840, 2160 );
 
         // Should timeout since no notification should be received
         bool eventReceived = notification.WaitForEvent(500, Exchange::IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE);
@@ -1822,4 +1783,5 @@ TEST_F(DisplayInfoTestTest, ResolutionChange_NotificationTest)
     }
 
     connectionProperties->Release();
+    //videoOutputPortEvents->Release();
 }

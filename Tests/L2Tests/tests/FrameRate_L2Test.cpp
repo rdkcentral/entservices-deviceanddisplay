@@ -139,6 +139,7 @@ protected:
 
 public:
     FrameRate_L2test();
+    device::Host::IVideoDeviceEvents* l_listener;
     uint32_t CreateFrameRateInterfaceObjectUsingComRPCConnection();
     void OnFpsEvent(int average, int min, int max);
     void OnDisplayFrameRateChanging(const string &displayFrameRate);
@@ -177,17 +178,16 @@ FrameRate_L2test::FrameRate_L2test()
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = FrameRate_StateInvalid;
 
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](const char *ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE)){
-                    _iarmDSFramerateEventHandler = handler;
-                }
-                if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE)){
-                    _iarmDSFramerateEventHandler = handler;
-                }
-                return IARM_RESULT_SUCCESS;
-            }));
+    EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
+    ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IVideoDeviceEvents* listener) {
+                    l_listener = listener;
+                    return dsERR_NONE;
+         }));
 
     /* Activate plugin in constructor */
     status = ActivateService("org.rdk.FrameRate");
@@ -220,6 +220,13 @@ FrameRate_L2test::FrameRate_L2test()
 FrameRate_L2test::~FrameRate_L2test() {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = FrameRate_StateInvalid;
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IVideoDeviceEvents* listener) {
+                    l_listener = nullptr;
+                    return dsERR_NONE;
+         }));
 
     if (m_FrameRateplugin) {
         m_FrameRateplugin->Unregister(&notify);
@@ -613,9 +620,7 @@ TEST_F(FrameRate_L2test, GetFrmModeUsingComrpc) {
 *******************************************************/
 TEST_F(FrameRate_L2test, onDisplayFrameRateChanging)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+    l_listener->OnDisplayFrameratePreChange("3840x2160px48");
 }
 
 /************Test case Details **************************
@@ -623,9 +628,7 @@ TEST_F(FrameRate_L2test, onDisplayFrameRateChanging)
 *******************************************************/
 TEST_F(FrameRate_L2test, onDisplayFrameRateChanged)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+    l_listener->OnDisplayFrameratePostChange("3840x2160px48");
 }
 
 /************Test case Details **************************

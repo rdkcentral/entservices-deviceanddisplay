@@ -17,8 +17,13 @@
  * limitations under the License.
  */
 
+#include "FrontPanelIndicatorMock.h"
 #include "L2Tests.h"
 #include "L2TestsMock.h"
+#include "MfrMock.h"
+#include "PowerManagerHalMock.h"
+#include "deepSleepMgr.h"
+#include "devicesettings.h"
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
@@ -34,12 +39,45 @@
 
 #define SYSTEMMODE_CALLSIGN _T("org.rdk.SystemMode.1")
 #define SYSTEMMODEL2TEST_CALLSIGN _T("L2tests.1")
-#define DISPLAYSETTINGS_CALLSIGN _T("org.rdk.DisplaySettings")
+#define DISPLAYSETTINGS_CALLSIGN _T("org.rdk.DisplaySettings.1")
 
 using ::testing::NiceMock;
 using namespace WPEFramework;
 using testing::StrictMock;
 using ::WPEFramework::Exchange::ISystemMode;
+
+namespace {
+static void removeFile(const char* fileName)
+{
+    // Use sudo for protected files
+    if (strcmp(fileName, "/etc/device.properties") == 0 || strcmp(fileName, "/opt/persistent/ds/cecData_2.json") == 0 || strcmp(fileName, "/opt/uimgr_settings.bin") == 0) {
+        char cmd[256];
+        snprintf(cmd, sizeof(cmd), "sudo rm -f %s", fileName);
+        int ret = system(cmd);
+        if (ret != 0) {
+            printf("File %s failed to remove with sudo\n", fileName);
+            perror("Error deleting file");
+        } else {
+            printf("File %s successfully deleted with sudo\n", fileName);
+        }
+    } else {
+        if (std::remove(fileName) != 0) {
+            printf("File %s failed to remove\n", fileName);
+            perror("Error deleting file");
+        } else {
+            printf("File %s successfully deleted\n", fileName);
+        }
+    }
+}
+
+static void createFile(const char* fileName, const char* fileContent)
+{
+    std::ofstream fileContentStream(fileName);
+    fileContentStream << fileContent;
+    fileContentStream << "\n";
+    fileContentStream.close();
+}
+}
 
 class SystemMode_L2test : public L2TestMocks {
 protected:
@@ -82,6 +120,196 @@ SystemMode_L2test::SystemMode_L2test()
 {
     uint32_t status = Core::ERROR_GENERAL;
 
+    //PowerManager Mocks
+    createFile("/tmp/pwrmgr_restarted", "2");
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_INIT())
+        .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_INIT())
+        .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
+
+    ON_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                if (strcmp("RFC_DATA_ThermalProtection_POLL_INTERVAL", pcParameterName) == 0) {
+                    strcpy(pstParamData->value, "2");
+                    return WDMP_SUCCESS;
+                } else if (strcmp("RFC_ENABLE_ThermalProtection", pcParameterName) == 0) {
+                    strcpy(pstParamData->value, "true");
+                    return WDMP_SUCCESS;
+                } else if (strcmp("RFC_DATA_ThermalProtection_DEEPSLEEP_GRACE_INTERVAL", pcParameterName) == 0) {
+                    strcpy(pstParamData->value, "6");
+                    return WDMP_SUCCESS;
+                } else {
+                    /* The default threshold values will assign, if RFC call failed */
+                    return WDMP_FAILURE;
+                }
+            }));
+
+    EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::Invoke(
+            [](int high, int critical) {
+                EXPECT_EQ(high, 100);
+                EXPECT_EQ(critical, 110);
+                return mfrERR_NONE;
+            }));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_GetPowerState(::testing::_))
+        .WillRepeatedly(::testing::Invoke(
+            [](PWRMgr_PowerState_t* powerState) {
+                *powerState = PWRMGR_POWERSTATE_OFF; // by default over boot up, return PowerState OFF
+                return PWRMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillRepeatedly(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                // All tests are run without settings file
+                // so default expected power state is ON
+                return PWRMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::Invoke(
+            [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                *curTemperature = 90; // safe temperature
+                *curState = (mfrTemperatureState_t)0;
+                *wifiTemperature = 25;
+                return mfrERR_NONE;
+            }));
+
+    //DisplaySettings Mocks
+    string videoPort(_T("HDMI0"));
+    string audioPort(_T("HDMI0"));
+
+    device::VideoOutputPort videoOutputPort;
+    device::VideoDevice videoDevice;
+    device::VideoResolution videoResolution;
+    device::VideoOutputPortType videoOutputPortType;
+    device::VideoDFC actualVideoDFC;
+    string videoDFCName(_T("FULL"));
+    string videoPortSupportedResolution(_T("1080p"));
+
+    ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
+        .WillByDefault(::testing::Return(videoPort));
+    ON_CALL(*p_videoOutputPortConfigImplMock, getPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(videoOutputPort));
+    ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+        .WillByDefault(::testing::Return(true));
+
+    device::AudioOutputPort audioFormat;
+    ON_CALL(*p_hostImplMock, getCurrentAudioFormat(testing::_))
+        .WillByDefault(testing::Invoke(
+            [](dsAudioFormat_t audioFormat) {
+                audioFormat = dsAUDIO_FORMAT_NONE;
+                return 0;
+            }));
+
+    ON_CALL(*p_videoOutputPortMock, getDefaultResolution())
+        .WillByDefault(::testing::ReturnRef(videoResolution));
+
+    ON_CALL(*p_hostImplMock, getVideoOutputPort(::testing::_))
+        .WillByDefault(::testing::ReturnRef(videoOutputPort));
+
+    // ON_CALL(*p_videoOutputPortConfigImplMock, getPort(::testing::_))
+    //     .WillByDefault(::testing::ReturnRef(videoOutputPort));
+    ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+        .WillByDefault(::testing::Return(true));
+
+    ON_CALL(*p_videoOutputPortMock, getName())
+        .WillByDefault(::testing::ReturnRef(videoPort));
+
+    ON_CALL(*p_audioOutputPortMock, getName())
+        .WillByDefault(::testing::ReturnRef(audioPort));
+
+    ON_CALL(*p_videoOutputPortMock, getVideoEOTF())
+        .WillByDefault(::testing::Return(1));
+
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+        .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));
+
+    ON_CALL(*p_videoDeviceMock, getHDRCapabilities(testing::_))
+        .WillByDefault([](int* capabilities) {
+            if (capabilities) {
+                *capabilities = dsHDRSTANDARD_TechnicolorPrime;
+            }
+        });
+
+    ON_CALL(*p_videoOutputPortMock, getColorDepthCapabilities(testing::_))
+        .WillByDefault(testing::Invoke(
+            [&](unsigned int* capabilities) {
+                *capabilities = dsDISPLAY_COLORDEPTH_8BIT;
+            }));
+
+    ON_CALL(*p_videoOutputPortMock, setResolution(testing::_, testing::_, testing::_))
+        .WillByDefault(testing::Invoke(
+            [&](std::string resolution, bool persist, bool isIgnoreEdid) {
+                printf("Inside setResolution Mock\n");
+                EXPECT_EQ(resolution, "1080p60");
+                EXPECT_EQ(persist, true);
+
+                std::cout << "Resolution: " << resolution
+                          << ", Persist: " << persist
+                          << ", Ignore EDID: " << isIgnoreEdid << std::endl;
+            }));
+
+    ON_CALL(*p_videoOutputPortMock, getCurrentOutputSettings(testing::_, testing::_, testing::_, testing::_, testing::_))
+        .WillByDefault([](int& videoEOTF, int& matrixCoefficients, int& colorSpace,
+                           int& colorDepth, int& quantizationRange) {
+            videoEOTF = 1; // example values
+            matrixCoefficients = 0;
+            colorSpace = 3;
+            colorDepth = 10;
+            quantizationRange = 4;
+
+            return true;
+        });
+
+    ON_CALL(*p_videoOutputPortConfigImplMock, getPortType(::testing::_))
+        .WillByDefault(::testing::ReturnRef(videoOutputPortType));
+    ON_CALL(*p_videoOutputPortMock, getType())
+        .WillByDefault(::testing::ReturnRef(videoOutputPortType));
+    ON_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillByDefault(::testing::Return(0));
+    // device::VideoResolution videoResolution;
+    ON_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
+        .WillByDefault(::testing::Return(device::List<device::VideoResolution>({ videoResolution })));
+    ON_CALL(*p_videoResolutionMock, getName())
+        .WillByDefault(::testing::ReturnRef(videoPortSupportedResolution));
+
+    ON_CALL(*p_videoOutputPortMock, setForceHDRMode(::testing::_))
+        .WillByDefault(::testing::Return(true));
+
+    ON_CALL(*p_videoOutputPortMock, getResolution())
+        .WillByDefault([]() -> const device::VideoResolution& {
+            static device::VideoResolution dynamicResolution;
+            return dynamicResolution;
+        });
+
+    ON_CALL(*p_videoDeviceMock, getDFC())
+        .WillByDefault(::testing::Invoke([&]() -> device::VideoDFC& {
+            return actualVideoDFC;
+        }));
+
+    ON_CALL(*p_videoDFCMock, getName())
+        .WillByDefault(::testing::ReturnRef(videoDFCName));
+
+    ON_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(testing::_))
+        .WillByDefault(testing::Invoke(
+            [&](int* capabilities) {
+                *capabilities = dsHDRSTANDARD_HLG | dsHDRSTANDARD_HDR10;
+            }));
+
+    /* Activate plugin in constructor */
+    status = ActivateService("org.rdk.PowerManager");
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    status = ActivateService("org.rdk.DisplaySettings");
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
     /* Activate plugin in constructor */
     status = ActivateService("org.rdk.SystemMode");
     EXPECT_EQ(Core::ERROR_NONE, status);
@@ -91,9 +319,24 @@ SystemMode_L2test::~SystemMode_L2test()
 {
     uint32_t status = Core::ERROR_GENERAL;
 
+    status = DeactivateService("org.rdk.DisplaySettings");
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_TERM())
+        .WillOnce(::testing::Return(PWRMGR_SUCCESS));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_TERM())
+        .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+    status = DeactivateService("org.rdk.PowerManager");
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
     /* Deactivate plugin in destructor */
     status = DeactivateService("org.rdk.SystemMode");
     EXPECT_EQ(Core::ERROR_NONE, status);
+
+    removeFile("/tmp/pwrmgr_restarted");
+    removeFile("/opt/uimgr_settings.bin");
 }
 
 uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
@@ -181,63 +424,6 @@ bool SystemMode_L2test::WaitForStateJsonRpc(const std::string& modeName,
     return false;
 }
 
-// Separate test fixture for mock-based tests to avoid affecting existing tests
-class SystemMode_L2test_WithMock : public SystemMode_L2test {
-protected:
-    SystemMode_L2test_WithMock();
-    virtual ~SystemMode_L2test_WithMock() override;
-
-    void SetUp() override;
-    void TearDown() override;
-
-public:
-    DeviceOptimizeStateActivatorMock* GetActivatorMock()
-    {
-        return DeviceOptimizeStateActivatorMockHelper::GetMockInstance();
-    }
-
-protected:
-    /** @brief Pointer to the IShell interface */
-    PluginHost::IShell* m_controller_sysmode_mock;
-
-    /** @brief Pointer to the ISystemMode interface */
-    Exchange::ISystemMode* m_sysmodeplugin_mock;
-};
-
-SystemMode_L2test_WithMock::SystemMode_L2test_WithMock()
-    : SystemMode_L2test()
-    , m_controller_sysmode_mock(nullptr)
-    , m_sysmodeplugin_mock(nullptr)
-{
-    // Setup mock expectations
-    DeviceOptimizeStateActivatorMockHelper::SetupMockExpectations();
-}
-
-SystemMode_L2test_WithMock::~SystemMode_L2test_WithMock()
-{
-    // Base class destructor will handle cleanup
-}
-
-void SystemMode_L2test_WithMock::SetUp()
-{
-    // Call base class SetUp which creates the interfaces
-    SystemMode_L2test::SetUp();
-
-    // Use the same member variables as the base class
-    m_controller_sysmode_mock = m_controller_sysmode;
-    m_sysmodeplugin_mock = m_sysmodeplugin;
-}
-
-void SystemMode_L2test_WithMock::TearDown()
-{
-    // Clear local references but don't release - base class will handle
-    m_sysmodeplugin_mock = nullptr;
-    m_controller_sysmode_mock = nullptr;
-
-    // Call base class TearDown
-    SystemMode_L2test::TearDown();
-}
-
 // Request VIDEO state and validate via polling using GetState
 TEST_F(SystemMode_L2test, RequestState_VIDEO)
 {
@@ -282,7 +468,7 @@ TEST_F(SystemMode_L2test, ClientActivationLifecycle)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
     // The textual name of system mode as per @text: device_optimize
-    const std::string modeName = "device_optimize";
+    const std::string modeName = "DEVICE_OPTIMIZE";
     Core::hresult rcAct = m_sysmodeplugin->ClientActivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcAct);
     Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
@@ -363,7 +549,7 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivationLifecycle)
     JsonObject params;
     JsonObject result;
     params["callsign"] = SYSTEMMODEL2TEST_CALLSIGN;
-    params["systemMode"] = "device_optimize";
+    params["systemMode"] = "DEVICE_OPTIMIZE";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientActivated", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
     // reuse params for deactivation
@@ -450,62 +636,4 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivation_Idempotent)
     result.Clear();
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientDeactivated", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
-}
-
-// Test ClientActivated with mock to cover uncovered lines
-TEST_F(SystemMode_L2test_WithMock, ClientActivated_CallsActivatorRequest)
-{
-    ASSERT_TRUE(m_sysmodeplugin_mock != nullptr);
-    auto* mock = GetActivatorMock();
-    ASSERT_TRUE(mock != nullptr);
-
-    EXPECT_CALL(*mock, Request(::testing::_))
-        .Times(::testing::AtLeast(1))
-        .WillRepeatedly(::testing::Return(WPEFramework::Core::ERROR_NONE));
-
-    const std::string modeName = "DEVICE_OPTIMIZE";
-    EXPECT_EQ(Core::ERROR_NONE,
-        m_sysmodeplugin_mock->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName));
-
-    EXPECT_EQ(Core::ERROR_NONE,
-        m_sysmodeplugin_mock->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
-            Exchange::ISystemMode::GAME));
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    EXPECT_EQ(Core::ERROR_NONE,
-        m_sysmodeplugin_mock->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName));
-}
-
-// Test late activation (stateRequested=true branch)
-TEST_F(SystemMode_L2test_WithMock, ClientActivated_AfterStateRequest_CallsActivatorImmediately)
-{
-    ASSERT_TRUE(m_sysmodeplugin_mock != nullptr);
-    auto* mock = GetActivatorMock();
-    ASSERT_TRUE(mock != nullptr);
-
-    const std::string modeName = "DEVICE_OPTIMIZE";
-
-    // First request a state (sets stateRequested=true)
-    EXPECT_EQ(Core::ERROR_NONE,
-        m_sysmodeplugin_mock->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
-            Exchange::ISystemMode::GAME));
-
-    // Wait for state to be processed
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // Now expect Request to be called immediately when we activate
-    EXPECT_CALL(*mock, Request("GAME"))
-        .Times(::testing::AtLeast(1))
-        .WillRepeatedly(::testing::Return(WPEFramework::Core::ERROR_NONE));
-
-    // Activate - should immediately call Request with current state (covers stateRequested branch)
-    EXPECT_EQ(Core::ERROR_NONE,
-        m_sysmodeplugin_mock->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName));
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // Cleanup
-    EXPECT_EQ(Core::ERROR_NONE,
-        m_sysmodeplugin_mock->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName));
 }

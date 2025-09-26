@@ -107,7 +107,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: L2SystemMode
+          ref: develop
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout googletest
@@ -382,7 +382,7 @@ jobs:
           -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=OFF
-          -DPLUGIN_DISPLAYSETTINGS=OFF
+          -DPLUGIN_DISPLAYSETTINGS=ON
           -DPLUGIN_WAREHOUSE=OFF
           -DPLUGIN_FRAMERATE=OFF
           -DUSE_THUNDER_R4=ON

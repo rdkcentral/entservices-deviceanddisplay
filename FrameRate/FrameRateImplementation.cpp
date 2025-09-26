@@ -281,13 +281,22 @@ namespace WPEFramework
 
                 char sFramerate[32] = {0};
                 device::VideoDevice& device = videoDevices.at(0);
+                
+                LOGERR("========outside getCurrentDisframerate=======");
+                bool result = device.getCurrentDisframerate(sFramerate);
+                // Print the return value
+                LOGERR("getCurrentDisframerate() returned: %s", result ? "true" : "false");
+                // Print the buffer contents
+                LOGERR("sFramerate : '%s'", sFramerate);
+                
                 if (!device.getCurrentDisframerate(sFramerate) && sFramerate[0] != '\0')
                 {
                     framerate = sFramerate;
                     success = true;
+                    LOGERR("========Inside getCurrentDisframerate=======");
                     return Core::ERROR_NONE;
                 }
-
+                LOGERR("========outside getCurrentDisframerate before error=======");
                 LOGERR("getCurrentDisframerate error, DS::ERROR.");
             }
             catch (const device::Exception& err)

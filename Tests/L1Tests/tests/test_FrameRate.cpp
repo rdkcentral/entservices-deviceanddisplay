@@ -424,6 +424,7 @@ TEST_F(FrameRateTest, setFrmMode_VideoDevice_Exception)
         .WillByDefault(::testing::Invoke(
             [&](int param) {
                 throw device::Exception("VideoDevice setFRFMode failed");
+                return 0;
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0, \"success\":false}"), response));

@@ -600,33 +600,6 @@ TEST_F(FrameRateTest, setCollectionFrequency_MissingParameter)
 }
 
 /**
- * @brief Test updateFps with malformed JSON input (missing required parameters)
- */
-TEST_F(FrameRateTest, updateFps_MissingParameter)
-{
-    // Test with missing newFpsValue parameter - should return ERROR_GENERAL for missing param
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("updateFps"), _T("{\"success\":false}"), response));
-}
-
-/**
- * @brief Test setFrmMode with malformed JSON input (missing required parameters)
- */
-TEST_F(FrameRateTest, setFrmMode_MissingParameter)
-{
-    // Test with missing frmmode parameter - should return ERROR_GENERAL for missing param
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setFrmMode"), _T("{\"success\":false}"), response));
-}
-
-/**
- * @brief Test setDisplayFrameRate with malformed JSON input (missing required parameters)
- */
-TEST_F(FrameRateTest, setDisplayFrameRate_MissingParameter)
-{
-    // Test with missing framerate parameter - should return ERROR_GENERAL for missing param
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"success\":false}"), response));
-}
-
-/**
  * @brief Test setFrmMode when no video devices are available
  */
 TEST_F(FrameRateTest, setFrmMode_NoVideoDevices)

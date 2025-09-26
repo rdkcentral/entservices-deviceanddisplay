@@ -86,6 +86,8 @@ if(PLUGIN_DISPLAYINFO)
     add_subdirectory(DisplayInfo)
 endif()
 
+add_subdirectory(DeviceSettingsManager)
+
 if(PLUGIN_DEVICEDIAGNOSTICS)
     add_subdirectory(DeviceDiagnostics)
 endif()

@@ -30,7 +30,6 @@
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
 #include "UtilsIarm.h"
 #include "sysMgr.h"
-#include "pwrMgr.h"
 #endif
 
 #include "UtilsCStr.h"
@@ -174,29 +173,22 @@ namespace WPEFramework
 
             return status;
         }
-        
+
         void WarehouseImplementation::InitializeIARM()
         {
-            if (Utils::IARM::init()) {
-                IARM_Result_t res;
-                IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED, dsWareHouseOpnStatusChanged) );
-            }
+            Utils::IARM::init();
         }
-        
+
         void WarehouseImplementation::DeinitializeIARM()
         {
-            if (Utils::IARM::isConnected()) {
-                IARM_Result_t res;
-                IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, dsWareHouseOpnStatusChanged) );
-            }
         }
-        
+
         void WarehouseImplementation::ResetDone(bool success, string error)
         {
             JsonObject params;
             params["success"] = success;
             params["error"] = error;
-            dispatchEvent(WAREHOUSE_EVT_RESET_DONE, params);            
+            dispatchEvent(WAREHOUSE_EVT_RESET_DONE, params);
         }
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
@@ -280,7 +272,7 @@ namespace WPEFramework
                 ok = ((err == IARM_RESULT_SUCCESS)|| (ret == Core::ERROR_NONE));
             }
 
-            if (!( true == isWareHouse && true == suppressReboot)) {
+            if (true == isWareHouse && true == suppressReboot) {
                 JsonObject params;
                 success = ok;
                 if (!ok)
@@ -748,32 +740,6 @@ namespace WPEFramework
                     break;
             }
             _adminLock.Unlock();
-        }
-        
-        void WarehouseImplementation::dsWareHouseOpnStatusChanged(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            bool success = false;
-            string error ="";
-            if (NULL == WarehouseImplementation::_instance) {
-                return;
-            }
-            if (IARM_BUS_PWRMGR_EVENT_WAREHOUSEOPS_STATUSCHANGED == eventId)
-            {
-		IARM_BUS_PWRMgr_WareHouseOpn_EventData_t *eventData = (IARM_BUS_PWRMgr_WareHouseOpn_EventData_t *) data;
-		if (NULL == eventData) {
-                    LOGWARN("dsWareHouseOpnStatusChanged eventData is NULL. exiting");
-		    //Unexpected case
-		    return;
-		}
-		JsonObject params;
-		if (IARM_BUS_PWRMGR_WAREHOUSE_COMPLETED == eventData->status) {
-                   success = true;
-		}
-		else {
-                   error = "Reset failed";
-		}
-                WarehouseImplementation::_instance->ResetDone(success, error);
-            }
         }
 
         uint32_t WarehouseImplementation::processColdFactoryReset()

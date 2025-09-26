@@ -63,6 +63,7 @@ patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/Use_Legact_Alt_B
 patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/error_code_R4_4.patch
 patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/1004-Add-support-for-project-dir.patch
 patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/RDKEMW-733-Add-ENTOS-IDS.patch
+patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/Jsonrpc_dynamic_error_handling.patch
 cd -
 
 cmake -G Ninja -S Thunder -B build/Thunder \
@@ -139,12 +140,14 @@ touch rdk/ds/videoOutputPort.hpp
 touch rdk/ds/videoOutputPortConfig.hpp
 touch rdk/ds/videoOutputPortType.hpp
 touch rdk/ds/videoResolution.hpp
+touch rdk/ds/audioOutputPortType.hpp
+touch rdk/ds/audioOutputPortConfig.hpp
+touch rdk/ds/pixelResolution.hpp
 touch rdk/iarmbus/libIARM.h
 touch rdk/iarmbus/libIBus.h
 touch rdk/iarmbus/libIBusDaemon.h
 touch rdk/halif/deepsleep-manager/deepSleepMgr.h
 touch rdk/iarmmgrs-hal/mfrMgr.h
-touch rdk/iarmmgrs-hal/pwrMgr.h
 touch rdk/iarmmgrs-hal/sysMgr.h
 touch network/wifiSrvMgrIarmIf.h
 touch network/netsrvmgrIarm.h
@@ -154,6 +157,7 @@ touch rbus.h
 touch telemetry_busmessage_sender.h
 touch maintenanceMGR.h
 touch pkg.h
+touch edid-parser.hpp
 touch secure_wrapper.h
 touch wpa_ctrl.h
 touch proc/readproc.h

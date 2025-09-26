@@ -856,6 +856,24 @@ namespace WPEFramework {
             }
         }
 
+        int DisplaySettings::getAudioDeviceSADState(void) {
+            //function used to read the current SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            return m_AudioDeviceSADState;
+        }
+
+        void DisplaySettings::setAudioDeviceSADState(int newState) {
+            // function used to set the required SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            LOGINFO("Updating m_AudioDeviceSADState : %d", newState);
+            m_AudioDeviceSADState = newState;
+        }
+
+        int DisplaySettings::getCurrentArcRoutingState(void) {
+            std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+            return m_currentArcRoutingState;
+        }
+
         void DisplaySettings::dsHdmiEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
         {
             switch (eventId)
@@ -2178,7 +2196,7 @@ namespace WPEFramework {
 
             dsMgrStandbyVideoStateParam_t param;
             param.isEnabled = enabled;
-            strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
             param.port[sizeof(param.port) - 1] = '\0';
             if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_SetStandbyVideoState, &param, sizeof(param)))
             {
@@ -2205,7 +2223,7 @@ namespace WPEFramework {
             bool success = true;
 
             dsMgrStandbyVideoStateParam_t param;
-            strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
 	    param.port[sizeof(param.port) - 1] = '\0';
             if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_GetStandbyVideoState, &param, sizeof(param)))
             {
@@ -4389,9 +4407,9 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
-					    std::lock_guard<std::mutex> lock(m_SadMutex);
 					    /* Take actions according to SAD udpate state */
-					    switch(m_AudioDeviceSADState)
+                        int currentSADState = getAudioDeviceSADState();
+					    switch(currentSADState)
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
 						{
@@ -4404,7 +4422,7 @@ namespace WPEFramework {
 						case AUDIO_DEVICE_SAD_RECEIVED: 
 						{
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
-							m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+							setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
 							aPort.setSAD(sad_list);
 
 							if(aPort.getStereoAuto() == true) {
@@ -4435,7 +4453,7 @@ namespace WPEFramework {
 											
 						default: 
 						{
-							LOGINFO("Incorrect Audio Deivce SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
+							LOGINFO("Incorrect Audio Deivce SAD state %d\n", currentSADState); // should not hit this case
 						}
 						break;
 					    }
@@ -4936,9 +4954,10 @@ void DisplaySettings::sendMsgThread()
                 LOGERR("Field 'status' could not be found in the event's payload.");
                 return;
             }
-	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
+            int currentrcRoutingState = getCurrentArcRoutingState();
+	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", currentrcRoutingState);
 	    // AVR power status is not checked here assuming that ARC init request will happen only when AVR is in ON state
-            if ((m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
+            if ((currentrcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
                 value = parameters["status"].String();
 
 		if( !value.compare("success") ) {
@@ -5018,8 +5037,9 @@ void DisplaySettings::sendMsgThread()
 		LOGINFO("SAD already cleared\n");
 	    }
 
-	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
-	    if (m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED) {
+        int currentrcRoutingState = getCurrentArcRoutingState();
+	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", currentrcRoutingState);
+	    if (currentrcRoutingState != ARC_STATE_ARC_TERMINATED) {
                 if (parameters.HasLabel("status")) {
                     value = parameters["status"].String();
                     std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
@@ -5066,11 +5086,11 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("ShortAudioDescriptor")) {
                 shortAudioDescriptorList = parameters["ShortAudioDescriptor"].Array();
-		if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_REQUESTED) {
+                int currentSADState = getAudioDeviceSADState();
+		if (currentSADState == AUDIO_DEVICE_SAD_REQUESTED) {
                     try
                     {
-		        std::lock_guard<std::mutex> lock(m_SadMutex);
-			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_RECEIVED;
+            setAudioDeviceSADState(AUDIO_DEVICE_SAD_RECEIVED);
 			m_requestSadRetrigger = false;
                         device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
 			LOGINFO("Total Short Audio Descriptors received from connected ARC device: %d\n",shortAudioDescriptorList.Length());
@@ -5097,7 +5117,7 @@ void DisplaySettings::sendMsgThread()
 
 			    if (wasSADTimerActive == true && m_arcEarcAudioEnabled == false ) { /*setEnableAudioPort is called, Timer has started, got SAD before Timer Expiry*/
 			        LOGINFO("%s: Updating SAD \n", __FUNCTION__);
-                                m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+                                setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
                                 aPort.setSAD(sad_list);
                                 if(aPort.getStereoAuto() == true) {
                                     aPort.setStereoAuto(true,true);
@@ -5113,7 +5133,7 @@ void DisplaySettings::sendMsgThread()
                         	m_arcEarcAudioEnabled = true;
 			    } else if (m_arcEarcAudioEnabled == true) { /*setEnableAudioPort is called,Timer started and Expired, arc is routed -- or for both wasSADTimerActive == true/false*/
 				LOGINFO("%s: Updating SAD since audio is already routed and ARC is initiated\n", __FUNCTION__);
-				 m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+				setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
 				    aPort.setSAD(sad_list);
                         	    if(aPort.getStereoAuto() == true) {
                     	            	aPort.setStereoAuto(true,true);
@@ -5337,6 +5357,7 @@ void DisplaySettings::sendMsgThread()
 	    static int retryArcCount = 0;
 	    std::lock_guard<std::mutex> lock(m_callMutex);
             int types = dsAUDIOARCSUPPORT_NONE;
+	    try{
             device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
             aPort.getSupportedARCTypes(&types);
 	    if(m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) {
@@ -5376,6 +5397,11 @@ void DisplaySettings::sendMsgThread()
 				    retryArcCount, m_currentArcRoutingState, m_hdmiInAudioDeviceType);
                     m_ArcDetectionTimer.stop();
             }
+	    }
+            catch(const device::Exception& err)
+            {
+                LOG_DEVICE_EXCEPTION1(string(" Exception in checkArcDeviceConnected"));
+	    }
 	}	
 	/* DisplaaySettings gets notified whenever CEC is made Enable or Disable  */
 	void DisplaySettings::onCecEnabledEventHandler(const JsonObject& parameters)
@@ -6089,7 +6115,14 @@ void DisplaySettings::sendMsgThread()
 				if (isDisplayConnected(strVideoPort))
 				{
 					bool enable = (newState == "GAME") ? true : false;
-					vPort.setAllmEnabled(enable);
+					vPort.getDisplay().setAllmEnabled(enable);
+					if(enable){ // Game mode
+					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_GAME);
+					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_UNDERSCAN);
+					}else{ // video mode
+					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_NOT_SIGNALLED);
+					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_NO_DATA);
+					}
 				}
 				else
 				{

@@ -25,7 +25,6 @@
 #include "dsTypes.h"
 #include "tptimer.h"
 #include "libIARM.h"
-#include "pwrMgr.h"
 #include "rfcapi.h"
 #include <interfaces/ISystemMode.h>
 #include <interfaces/IDeviceOptimizeStateActivator.h>
@@ -266,6 +265,9 @@ namespace WPEFramework {
 	    bool sendHdmiCecSinkAudioDevicePowerOn();
 	    bool getHdmiCecSinkCecEnableStatus();
 	    bool getHdmiCecSinkAudioDeviceConnectedStatus();
+        int getAudioDeviceSADState(void);
+        void setAudioDeviceSADState(int newState);
+        int getCurrentArcRoutingState(void);
 
 	    void onTimer();
 	    void stopCecTimeAndUnsubscribeEvent();

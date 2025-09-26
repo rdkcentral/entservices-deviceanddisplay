@@ -42,7 +42,6 @@ using std::ofstream;
 #include "platformcaps/platformcaps.h"
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
 #include "libIARM.h"
-#include "pwrMgr.h"
 #include "host.hpp"
 #include "sleepMode.hpp"
 #endif /* USE_IARMBUS || USE_IARM_BUS */
@@ -115,7 +114,7 @@ namespace WPEFramework {
             int duration;  // duration in seconds
         };
 
-        class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+        class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType> {
             private:
 
                 class PowerManagerNotification : public Exchange::IPowerManager::INetworkStandbyModeChangedNotification,
@@ -246,6 +245,7 @@ namespace WPEFramework {
                 void onNetworkStandbyModeChanged(const bool enabled);
                 void onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature);
                 void onRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor);
+		static uint32_t OnJSONRPCError(const Core::JSONRPC::Context& context, const string& method, const string& parameters, const uint32_t errorcode, string& errormessage);
 
                 BEGIN_INTERFACE_MAP(SystemServices)
                 INTERFACE_ENTRY(PluginHost::IPlugin)
@@ -292,10 +292,7 @@ namespace WPEFramework {
 #endif /* DEBUG */
                 uint32_t requestSystemReboot(const JsonObject& parameters, JsonObject& response);
                 uint32_t requestSystemUptime(const JsonObject& parameters, JsonObject& response);
-                uint32_t requestEnableMoca(const JsonObject& parameters, JsonObject& response);
                 uint32_t getDeviceInfo(const JsonObject& parameters, JsonObject& response);
-                uint32_t queryMocaStatus(const JsonObject& parameters, JsonObject& response);
-                uint32_t getStateInfo(const JsonObject& parameter, JsonObject& resposne);
 #if defined(HAS_API_SYSTEM) && defined(HAS_API_POWERSTATE)
                 uint32_t getDevicePowerState(const JsonObject& parameters,JsonObject& response);
                 uint32_t setDevicePowerState(const JsonObject& parameters,JsonObject& response);
@@ -305,27 +302,20 @@ namespace WPEFramework {
                 uint32_t getSystemTimeStatus(const JsonObject& parameters,JsonObject& response);
 #endif// ENABLE_SYSTIMEMGR_SUPPORT
 
-                uint32_t setGZEnabled(const JsonObject& parameters,JsonObject& response);
-                uint32_t isGZEnabled(const JsonObject& parameters,JsonObject& response);
                 uint32_t getSystemVersions(const JsonObject& parameters, JsonObject& response);
 
                 /* TODO: Stub implementation; Decide whether needed or not since setProperty
                    and getProperty functionalities are XRE/RTRemote dependent. */
                 bool setProperties(const JsonObject& propertyNames);
                 bool getProperties(const JsonObject& params, JsonObject& returnProperties);
-                uint32_t getMode(const JsonObject& parameters, JsonObject& response);
                 uint32_t updateFirmware(const JsonObject& parameters, JsonObject& response);
                 uint32_t setMode(const JsonObject& parameters, JsonObject& response);
-                uint32_t setBootLoaderPattern(const JsonObject& parameters, JsonObject& response);
 		uint32_t setBootLoaderSplashScreen(const JsonObject& parameters, JsonObject& response);		
                 static void firmwareUpdateInfoReceived(void);
                 uint32_t getFirmwareUpdateInfo(const JsonObject& parameters, JsonObject& response);
                 void reportFirmwareUpdateInfoReceived(string firmwareUpdateVersion,
                         int httpStatus, bool success, string firmwareVersion, string responseString);
                 uint32_t setDeepSleepTimer(const JsonObject& parameters, JsonObject& response);
-                uint32_t setPreferredStandbyMode(const JsonObject& parameters, JsonObject& response);
-                uint32_t getPreferredStandbyMode(const JsonObject& parameters, JsonObject& response);
-                uint32_t getAvailableStandbyModes(const JsonObject& parameters, JsonObject& response);
 #ifdef ENABLE_DEEP_SLEEP
 		uint32_t getWakeupReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t getLastWakeupKeyCode(const JsonObject& parameters, JsonObject& response);
@@ -348,27 +338,11 @@ namespace WPEFramework {
                 uint32_t getFirmwareDownloadPercent(const JsonObject& parameters,JsonObject& response);
                 uint32_t getFirmwareUpdateState(const JsonObject& parameters, JsonObject& response);
                 uint32_t getDownloadedFirmwareInfo(const JsonObject& parameters, JsonObject& response);
-                uint32_t getMacAddresses(const JsonObject& parameters, JsonObject& response);
                 uint32_t setTimeZoneDST(const JsonObject& parameters, JsonObject& response);
                 uint32_t getTimeZoneDST(const JsonObject& parameters, JsonObject& response);
                 bool processTimeZones(std::string dir, JsonObject& out);
                 uint32_t getTimeZones(const JsonObject& parameters, JsonObject& response);
-
-                uint32_t getCoreTemperature(const JsonObject& parameters, JsonObject& response);
-                uint32_t getPreviousRebootInfo(const JsonObject& parameters, JsonObject& response);
-                uint32_t getLastDeepSleepReason(const JsonObject& parameters, JsonObject& response);
-                uint32_t clearLastDeepSleepReason(const JsonObject& parameters, JsonObject& response);
-#ifdef ENABLE_THERMAL_PROTECTION
-                uint32_t getTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
-                uint32_t setTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
-		uint32_t getOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
-                uint32_t setOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
-#endif /* ENABLE_THERMAL_PROTECTION */
-                uint32_t getPreviousRebootInfo2(const JsonObject& parameters, JsonObject& response);
-                uint32_t getPreviousRebootReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t getRFCConfig(const JsonObject& parameters, JsonObject& response);
-                uint32_t getMilestones(const JsonObject& parameters, JsonObject& response);
-                uint32_t enableXREConnectionRetention(const JsonObject& parameters, JsonObject& response);
                 uint32_t setNetworkStandbyMode (const JsonObject& parameters, JsonObject& response);
                 uint32_t getNetworkStandbyMode (const JsonObject& parameters, JsonObject& response);
                 uint32_t getPowerStateIsManagedByDevice(const JsonObject& parameters, JsonObject& response);
@@ -376,15 +350,8 @@ namespace WPEFramework {
                 uint32_t getLastFirmwareFailureReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t setOptOutTelemetry(const JsonObject& parameters,JsonObject& response);
                 uint32_t isOptOutTelemetry(const JsonObject& parameters,JsonObject& response);
-                uint32_t fireFirmwarePendingReboot(const JsonObject& parameters, JsonObject& response);
-                uint32_t setFirmwareRebootDelay(const JsonObject& parameters, JsonObject& response);
                 uint32_t setFirmwareAutoReboot(const JsonObject& parameters, JsonObject& response);
                 uint32_t getStoreDemoLink(const JsonObject& parameters, JsonObject& response);
-                uint32_t deletePersistentPath(const JsonObject& parameters, JsonObject& response);
-                uint32_t setWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
-		uint32_t getWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
-                uint32_t getPlatformConfiguration(const JsonObject& parameters, PlatformCaps& response);
-                uint32_t getThunderStartReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t setFSRFlag(const JsonObject& parameters, JsonObject& response);
                 uint32_t getFSRFlag(const JsonObject& parameters, JsonObject& response);
                 uint32_t setBlocklistFlag(const JsonObject& parameters, JsonObject& response);
@@ -393,6 +360,40 @@ namespace WPEFramework {
                 uint32_t getBuildType(const JsonObject& parameters, JsonObject& response);	
 		uint32_t setMigrationStatus(const JsonObject& parameters, JsonObject& response);
                 uint32_t getMigrationStatus(const JsonObject& parameters, JsonObject& response);
+                uint32_t getPreferredStandbyMode(const JsonObject& parameters, JsonObject& response);
+                uint32_t setWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
+                uint32_t getMacAddresses(const JsonObject& parameters, JsonObject& response);
+                uint32_t getPlatformConfiguration(const JsonObject& parameters, PlatformCaps& response);
+#if 0
+                uint32_t clearLastDeepSleepReason(const JsonObject& parameters, JsonObject& response);
+                uint32_t deletePersistentPath(const JsonObject& parameters, JsonObject& response);
+                uint32_t requestEnableMoca(const JsonObject& parameters, JsonObject& response);
+                uint32_t enableXREConnectionRetention(const JsonObject& parameters, JsonObject& response);
+                uint32_t getMilestones(const JsonObject& parameters, JsonObject& response);
+                uint32_t getAvailableStandbyModes(const JsonObject& parameters, JsonObject& response);
+                uint32_t getPreviousRebootInfo(const JsonObject& parameters, JsonObject& response);
+                uint32_t getPreviousRebootInfo2(const JsonObject& parameters, JsonObject& response);
+                uint32_t getPreviousRebootReason(const JsonObject& parameters, JsonObject& response);
+                uint32_t isGZEnabled(const JsonObject& parameters,JsonObject& response);
+                uint32_t queryMocaStatus(const JsonObject& parameters, JsonObject& response);
+                uint32_t setGZEnabled(const JsonObject& parameters,JsonObject& response);
+                uint32_t setPreferredStandbyMode(const JsonObject& parameters, JsonObject& response);
+                uint32_t getThunderStartReason(const JsonObject& parameters, JsonObject& response);
+                uint32_t fireFirmwarePendingReboot(const JsonObject& parameters, JsonObject& response);
+                uint32_t getLastDeepSleepReason(const JsonObject& parameters, JsonObject& response);
+                uint32_t getMode(const JsonObject& parameters, JsonObject& response);
+                uint32_t getStateInfo(const JsonObject& parameter, JsonObject& resposne);
+                uint32_t setBootLoaderPattern(const JsonObject& parameters, JsonObject& response);
+				uint32_t getCoreTemperature(const JsonObject& parameters, JsonObject& response);
+                uint32_t setFirmwareRebootDelay(const JsonObject& parameters, JsonObject& response);
+		        uint32_t getWakeupSrcConfiguration(const JsonObject& parameters, JsonObject& response);
+#ifdef ENABLE_THERMAL_PROTECTION
+                uint32_t getTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
+                uint32_t setTemperatureThresholds(const JsonObject& parameters, JsonObject& response);
+		        uint32_t getOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
+                uint32_t setOvertempGraceInterval(const JsonObject& parameters, JsonObject& response);
+#endif /* ENABLE_THERMAL_PROTECTION */
+#endif
                 	
         }; /* end of system service class */
     } /* end of plugin */

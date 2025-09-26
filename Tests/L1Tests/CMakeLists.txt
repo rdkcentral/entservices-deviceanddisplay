@@ -132,10 +132,20 @@ add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USER
 #set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 #add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
 
+# PLUGIN_POWERMANAGER
+set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerManager ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
+add_plugin_test_ex(PLUGIN_POWERMANAGER "tests/test_PowerManager.cpp;tests/test_PowerManagerSettings.cpp;tests/test_PowerManagerThermalController.cpp" "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
+
 # PLUGIN_DEVICEDIAGNOSTICS
 set (DEVICEDIAGNOSTICS_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceDiagnostics ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 set (DEVICEDIAGNOSTICS_LIBS ${NAMESPACE}DeviceDiagnostics ${NAMESPACE}DeviceDiagnosticsImplementation)
 add_plugin_test_ex(PLUGIN_DEVICEDIAGNOSTICS tests/test_DeviceDiagnostics.cpp "${DEVICEDIAGNOSTICS_INC}" "${DEVICEDIAGNOSTICS_LIBS}")
+
+# PLUGIN_DISPLAYINFO
+set (DISPLAYINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DisplayInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+set (DISPLAYINFO_SRC tests/test_DisplayInfo.cpp)
+add_plugin_test_ex(PLUGIN_DISPLAYINFO "${DISPLAYINFO_SRC}" "${DISPLAYINFO_INC}" "${NAMESPACE}DisplayInfo")
 
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 
@@ -146,15 +156,6 @@ set_source_files_properties(
         tests/test_Warehouse.cpp
         PROPERTIES COMPILE_FLAGS "-fexceptions")
 
-if (RDK_SERVICES_L1_TEST)
-   find_library(TESTMOCKLIB_LIBRARIES NAMES L1TestMocklib)
-   if (TESTMOCKLIB_LIBRARIES)
-       message ("Found mock libraries ${TESTMOCKLIB_LIBRARIES} library")
-       target_link_libraries(${MODULE_NAME} ${TESTMOCKLIB_LIBRARIES})
-   else (TESTMOCKLIB_LIBRARIES)
-       message (" Require ${TESTMOCKLIB_LIBRARIES} library")
-   endif (TESTMOCKLIB_LIBRARIES)
-endif (RDK_SERVICES_L1_TEST)
 
 include_directories(${TEST_INC})
 

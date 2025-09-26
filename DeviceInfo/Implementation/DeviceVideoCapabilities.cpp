@@ -45,7 +45,7 @@ namespace Plugin {
         }
     }
 
-    uint32_t DeviceVideoCapabilities::SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays) const
+    Core::hresult DeviceVideoCapabilities::SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -89,7 +89,7 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceVideoCapabilities::HostEDID(string& edid) const
+    Core::hresult DeviceVideoCapabilities::HostEDID(string& edid) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -123,7 +123,7 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceVideoCapabilities::DefaultResolution(const string& videoDisplay, string& defaultResolution) const
+    Core::hresult DeviceVideoCapabilities::DefaultResolution(const string& videoDisplay, string& defaultResolution) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -144,7 +144,7 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceVideoCapabilities::SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions) const
+    Core::hresult DeviceVideoCapabilities::SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -174,7 +174,7 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceVideoCapabilities::SupportedHdcp(const string& videoDisplay, Exchange::IDeviceVideoCapabilities::CopyProtection& supportedHDCPVersion) const
+    Core::hresult DeviceVideoCapabilities::SupportedHdcp(const string& videoDisplay, Exchange::IDeviceVideoCapabilities::CopyProtection& supportedHDCPVersion) const
     {
         uint32_t result = Core::ERROR_NONE;
 

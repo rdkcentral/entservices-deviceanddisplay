@@ -241,7 +241,6 @@ protected:
     }
 };
 
-#if 0
 TEST_F(SystemServicesTest, TestedAPIsShouldExist)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("requestSystemUptime")));
@@ -3149,6 +3148,7 @@ TEST_F(SystemServicesTest, requestSystemRebootSuccess_withoutReason)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("reboot"), _T("{\"rebootReason\":\"l1Trigger\"}"), response));
     EXPECT_EQ(response, string("{\"IARM_Bus_Call_STATUS\":0,\"success\":true}"));
 }
+#if 0
 /**
  * @brief :requestSystemReboot when reason is passed
  *        Check if (i)reboot reason is passed as input parameter and

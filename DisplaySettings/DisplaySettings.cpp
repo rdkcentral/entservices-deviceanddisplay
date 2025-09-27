@@ -212,6 +212,7 @@ namespace WPEFramework {
                 }
                 return result;
             }
+        }
 
         SERVICE_REGISTRATION(DisplaySettings, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
@@ -5457,7 +5458,9 @@ void DisplaySettings::sendMsgThread()
             // lock to prevent: parallel onTimer runs, destruction during onTimer
             lock_guard<mutex> lck(m_callMutex);
 
+            PluginHost::IShell::state state;
             bool pluginActivated = false;
+
             if ((getServiceState(m_service, HDMICECSINK_CALLSIGN, state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED)) {
                 LOGINFO("%s is active", HDMICECSINK_CALLSIGN);
                 pluginActivated = true;

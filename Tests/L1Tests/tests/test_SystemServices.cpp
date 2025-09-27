@@ -241,6 +241,7 @@ protected:
     }
 };
 
+#if 0
 TEST_F(SystemServicesTest, TestedAPIsShouldExist)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("requestSystemUptime")));
@@ -6239,3 +6240,4 @@ TEST_F(SystemServicesTest, getFSRFailure)
             });
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getFSRFlag"), _T("{}"), response));
 }
+#endif

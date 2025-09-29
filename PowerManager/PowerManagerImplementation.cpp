@@ -31,10 +31,10 @@
 
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 
-using util                      = PowerUtils;
-using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSrcConfig;
-using IWakeupSrcConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator;
-using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSrcConfigIterator>>;
+using util                           = PowerUtils;
+using WakeupSourceConfig             = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
+using IWakeupSourceConfigIterator    = WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSourceConfigIterator>>;
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
@@ -672,10 +672,10 @@ namespace Plugin {
         return errorCode;
     }
 
-    bool PowerManagerImplementation::isWakeupSrcEnabled(const std::list<WakeupSrcConfig>& configs, WakeupSrcType src) const
+    bool PowerManagerImplementation::isWakeupSrcEnabled(const std::list<WakeupSourceConfig>& configs, WakeupSrcType src) const
     {
         auto it = std::find_if(configs.begin(), configs.end(),
-            [&](const WakeupSrcConfig& config) { return config.wakeupSource == src; });
+            [&](const WakeupSourceConfig& config) { return config.wakeupSource == src; });
 
         if (it == configs.end()) {
             // not found
@@ -684,23 +684,23 @@ namespace Plugin {
         return it->enabled;
     }
 
-    Core::hresult PowerManagerImplementation::setWakeupSourceConfig(const std::list<WakeupSrcConfig>& configs)
+    Core::hresult PowerManagerImplementation::setWakeupSourceConfig(const std::list<WakeupSourceConfig>& configs)
     {
         LOGINFO(">>");
 
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.SetWakeupSrcConfig(configs);
+        uint32_t errorCode = _powerController.SetWakeupSourceConfig(configs);
 
         _apiLock.Unlock();
 
         do {
             if (Core::ERROR_NONE != errorCode) {
-                LOGERR("Failed to SetWakeupSrcConfig");
+                LOGERR("Failed to SetWakeupSourceConfig");
                 break;
             }
 
-            std::list<WakeupSrcConfig> currConfigs;
+            std::list<WakeupSourceConfig> currConfigs;
 
             errorCode = getWakeupSourceConfig(currConfigs);
 
@@ -742,31 +742,38 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::SetWakeupSourceConfig(IWakeupSrcConfigIterator* wakeupSources)
+    Core::hresult PowerManagerImplementation::SetWakeupSourceConfig(IWakeupSourceConfigIterator* wakeupSources)
     {
-        WakeupSrcConfig config{ WakeupSrcType::WAKEUP_SRC_UNKNOWN, false };
+        uint32_t errorCode = Core::ERROR_NONE;
+        WakeupSourceConfig config{ WakeupSrcType::WAKEUP_SRC_UNKNOWN, false };
 
-        std::list<WakeupSrcConfig> configs;
+        std::list<WakeupSourceConfig> configs;
 
         LOGINFO(">>");
 
         // create std::list from Thunder iterator
         while (wakeupSources->Next(config)) {
+            if (WakeupSrcType::WAKEUP_SRC_UNKNOWN == config.wakeupSource) {
+                errorCode = Core::ERROR_INVALID_PARAMETER;
+                break;
+            }
             configs.push_back(config);
         }
 
-        uint32_t errorCode = setWakeupSourceConfig(configs);
+        if (Core::ERROR_NONE == errorCode) {
+            errorCode = setWakeupSourceConfig(configs);
+        }
 
         LOGINFO("<< errorCode: %d", errorCode);
 
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::getWakeupSourceConfig(std::list<WakeupSrcConfig>& configs) const
+    Core::hresult PowerManagerImplementation::getWakeupSourceConfig(std::list<WakeupSourceConfig>& configs) const
     {
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.GetWakeupSrcConfig(configs);
+        uint32_t errorCode = _powerController.GetWakeupSourceConfig(configs);
 
         _apiLock.Unlock();
 
@@ -775,16 +782,16 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::GetWakeupSourceConfig(IWakeupSrcConfigIterator*& wakeupSources) const
+    Core::hresult PowerManagerImplementation::GetWakeupSourceConfig(IWakeupSourceConfigIterator*& wakeupSources) const
     {
-        std::list<WakeupSrcConfig> configs;
+        std::list<WakeupSourceConfig> configs;
 
         LOGINFO(">>");
 
         uint32_t errorCode = getWakeupSourceConfig(configs);
 
         if (Core::ERROR_NONE == errorCode) {
-            wakeupSources = WakeSrcConfigIteratorImpl::Create<IWakeupSrcConfigIterator>(configs);
+            wakeupSources = WakeupSourceConfigIteratorImpl::Create<IWakeupSourceConfigIterator>(configs);
         }
 
         LOGINFO("<< errorCode: %d", errorCode);

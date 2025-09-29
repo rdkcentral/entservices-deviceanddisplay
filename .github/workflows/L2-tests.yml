@@ -108,7 +108,7 @@ jobs:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
           ref: feature/RDKEMW-7722
-          token: ${{ secrets.RDKCM_RDKE }}
+          # token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout googletest
         if: steps.cache.outputs.cache-hit != 'true'

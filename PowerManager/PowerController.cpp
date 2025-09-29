@@ -34,7 +34,7 @@
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using WakeupSrcType = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
-using WakeupSrcConfig = WPEFramework::Exchange::IPowerManager::WakeupSrcConfig;
+using WakeupSourceConfig = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
 using IPlatform = hal::power::IPlatform;
 using DefaultImpl = PowerImpl;
 using util = PowerUtils;
@@ -57,12 +57,12 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     // It will either be deserialized from file or initialized to default values
     bool wakeupSrcValue = _settings.nwStandbyMode();
 
-    std::list<WakeupSrcConfig> configs = {
+    std::list<WakeupSourceConfig> configs = {
         { WakeupSrcType::WAKEUP_SRC_WIFI, wakeupSrcValue },
         { WakeupSrcType::WAKEUP_SRC_LAN, wakeupSrcValue }
     };
 
-    SetWakeupSrcConfig(configs);
+    SetWakeupSourceConfig(configs);
 
     init();
 }
@@ -139,12 +139,12 @@ uint32_t PowerController::SetNetworkStandbyMode(const bool standbyMode)
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    std::list<WakeupSrcConfig> configs = {
+    std::list<WakeupSourceConfig> configs = {
         { WakeupSrcType::WAKEUP_SRC_WIFI, standbyMode },
         { WakeupSrcType::WAKEUP_SRC_LAN, standbyMode }
     };
 
-    uint32_t errorCode = SetWakeupSrcConfig(configs);
+    uint32_t errorCode = SetWakeupSourceConfig(configs);
 
     if (WPEFramework::Core::ERROR_NONE == errorCode) {
 
@@ -167,7 +167,7 @@ uint32_t PowerController::GetNetworkStandbyMode(bool& standbyMode) const
     return WPEFramework::Core::ERROR_NONE;
 }
 
-uint32_t PowerController::SetWakeupSrcConfig(const std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig>& configs)
+uint32_t PowerController::SetWakeupSourceConfig(const std::list<WPEFramework::Exchange::IPowerManager::WakeupSourceConfig>& configs)
 {
     bool failed = false;
 
@@ -187,7 +187,7 @@ uint32_t PowerController::SetWakeupSrcConfig(const std::list<WPEFramework::Excha
     return errorCode;
 }
 
-uint32_t PowerController::GetWakeupSrcConfig(std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig>& configs) const
+uint32_t PowerController::GetWakeupSourceConfig(std::list<WPEFramework::Exchange::IPowerManager::WakeupSourceConfig>& configs) const
 {
     bool failed = false;
 

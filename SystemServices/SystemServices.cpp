@@ -167,9 +167,9 @@ bool setGzEnabled(bool enabled)
 }
 #endif
 using WakeupSrcType             = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
-using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSrcConfig;
-using IWakeupSrcConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator;
-using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSrcConfigIterator>>;
+using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
+using IWakeupSourceConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSourceConfigIterator>>;
 
 WakeupSrcType conv(const std::string& wakeupSrc)
 {
@@ -4700,7 +4700,7 @@ namespace WPEFramework {
                 if(!configs.empty()) {
                     ASSERT (_powerManagerPlugin);
                     if (_powerManagerPlugin) {
-                        auto wakeupSrcIter = WakeSrcConfigIteratorImpl::Create<IWakeupSrcConfigIterator>(configs);
+                        auto wakeupSrcIter = WakeupSourceConfigIteratorImpl::Create<IWakeupSourceConfigIterator>(configs);
                         retStatus = _powerManagerPlugin->SetWakeupSourceConfig(wakeupSrcIter);
                     }
 

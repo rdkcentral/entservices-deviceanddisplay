@@ -409,7 +409,7 @@ TEST_F(TestPowerManager, GetLastWakeupKeyCode)
     EXPECT_EQ(wakeupKeyCode, 1234);
 }
 
-using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>>;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>>;
 
 TEST_F(TestPowerManager, SetWakeupSrcConfig)
 {
@@ -422,7 +422,7 @@ TEST_F(TestPowerManager, SetWakeupSrcConfig)
             }));
 
     std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_WIFI, true}};
-    auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+    auto iterator = WakeupSourceConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>(configs);
 
     uint32_t status = powerManagerImpl->SetWakeupSourceConfig(iterator);
 
@@ -1518,7 +1518,7 @@ TEST_F(TestPowerManager, DisableWakeOnLAN)
 
     {
         std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_WIFI, false}};
-        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+        auto iterator = WakeupSourceConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>(configs);
 
         powerManagerImpl->SetWakeupSourceConfig(iterator);
         EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1533,7 +1533,7 @@ TEST_F(TestPowerManager, DisableWakeOnLAN)
     {
 
         std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_LAN, false}};
-        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+        auto iterator = WakeupSourceConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>(configs);
 
         // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets disabled
         powerManagerImpl->SetWakeupSourceConfig(iterator);
@@ -1568,7 +1568,7 @@ TEST_F(TestPowerManager, EnableWakeOnLAN)
 
     {
         std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_WIFI, true}};
-        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+        auto iterator = WakeupSourceConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>(configs);
 
         powerManagerImpl->SetWakeupSourceConfig(iterator);
         EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1582,7 +1582,7 @@ TEST_F(TestPowerManager, EnableWakeOnLAN)
 
     {
         std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_LAN, true}};
-        auto iterator = WakeSrcConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator>(configs);
+        auto iterator = WakeupSourceConfigIteratorImpl::Create<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>(configs);
 
         // only after both WIFI and LAN wakeupSrc is enabled nwStandbyMode gets enabled
         powerManagerImpl->SetWakeupSourceConfig(iterator);

@@ -573,9 +573,9 @@ void PowerManager_L2Test::Test_PowerStateChange( Exchange::IPowerManager* PowerM
     }
 }
 
-using IWakeupSrcConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSrcConfigIterator;
-using WakeSrcConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSrcConfigIterator>>;
-using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSrcConfig;
+using IWakeupSourceConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSourceConfigIterator>>;
+using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
 using WakeupSrcType             = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
 
 /* COM-RPC tests */
@@ -591,8 +591,8 @@ void PowerManager_L2Test::Test_WakeupSrcConfig( Exchange::IPowerManager* PowerMa
                 return PWRMGR_SUCCESS;
             }));
 
-    std::list<WPEFramework::Exchange::IPowerManager::WakeupSrcConfig> configs = {{WakeupSrcType::WAKEUP_SRC_VOICE, true}};
-    auto wakeupsrcsSetIter = WakeSrcConfigIteratorImpl::Create<IWakeupSrcConfigIterator>(configs);
+    std::list<WPEFramework::Exchange::IPowerManager::WakeupSourceConfig> configs = {{WakeupSrcType::WAKEUP_SRC_VOICE, true}};
+    auto wakeupsrcsSetIter = WakeupSourceConfigIteratorImpl::Create<IWakeupSourceConfigIterator>(configs);
 
     status = PowerManagerPlugin->SetWakeupSourceConfig(wakeupsrcsSetIter);
     EXPECT_EQ(status,Core::ERROR_NONE);
@@ -623,7 +623,7 @@ void PowerManager_L2Test::Test_WakeupSrcConfig( Exchange::IPowerManager* PowerMa
 
     bool ok = false;
 
-    WPEFramework::Exchange::IPowerManager::WakeupSrcConfig config{WakeupSrcType::WAKEUP_SRC_UNKNOWN, false};
+    WPEFramework::Exchange::IPowerManager::WakeupSourceConfig config{WakeupSrcType::WAKEUP_SRC_UNKNOWN, false};
     while (wakeupsrcsGetIter->Next(config)) {
         if (WakeupSrcType::WAKEUP_SRC_VOICE == config.wakeupSource) {
             EXPECT_TRUE(config.enabled);
@@ -1393,3 +1393,29 @@ TEST_F(PowerManager_L2Test, JsonRpcWakeupSourceChange)
     EXPECT_EQ(status,Core::ERROR_NONE);
 }
 
+TEST_F(PowerManager_L2Test, JsonRpcWakeupSourceInvalid)
+{
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonArray configs;
+
+    {
+        JsonObject source;
+        source["wakeupSource"] = "UNKNOWN";
+        source["enabled"] = true;
+        configs.Add(source);
+    }
+    {
+        JsonObject source;
+        source["wakeupSource"] = "LAN";
+        source["enabled"] = true;
+        configs.Add(source);
+    }
+
+    params["wakeupSources"] = configs;
+
+    status = InvokeServiceMethod("org.rdk.PowerManager.1.", "setWakeupSourceConfig", params, result);
+
+    EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+}

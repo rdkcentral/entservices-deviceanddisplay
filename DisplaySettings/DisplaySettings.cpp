@@ -524,23 +524,23 @@ namespace WPEFramework {
 
         const string DisplaySettings::Initialize(PluginHost::IShell* service)
         {
-            Exchange::ISystemMode* _remotStoreObject = nullptr;
+	    Exchange::ISystemMode* _remotStoreObject = nullptr;
             ASSERT(service != nullptr);
             ASSERT(m_service == nullptr);
 
             m_service = service;
             m_service->AddRef();
 
-            try {
-                m_sendMsgThread = std::thread(sendMsgThread);
-            } catch (const std::system_error& e) {
-                LOGERR("Failed to start m_sendMsgThread: %s", e.what());
-            }
-            m_timer.connect(std::bind(&DisplaySettings::onTimer, this));
+	    try {
+            m_sendMsgThread = std::thread(sendMsgThread);
+        } catch (const std::system_error& e) {
+            LOGERR("Failed to start m_sendMsgThread: %s", e.what());
+        }
+	    m_timer.connect(std::bind(&DisplaySettings::onTimer, this));
             m_AudioDeviceDetectTimer.connect(std::bind(&DisplaySettings::checkAudioDeviceDetectionTimer, this));
             m_ArcDetectionTimer.connect(std::bind(&DisplaySettings::checkArcDeviceConnected, this));
             m_SADDetectionTimer.connect(std::bind(&DisplaySettings::checkSADUpdate, this));
-            m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
+	    m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
 
             InitializePowerManager();
             try
@@ -566,16 +566,17 @@ namespace WPEFramework {
             LOGWARN ("DisplaySettings::Initialize completes line:%d", __LINE__);
              _remotStoreObject = service->QueryInterfaceByCallsign<Exchange::ISystemMode>("org.rdk.SystemMode");
 
-            ASSERT (nullptr != _remotStoreObject);
+	    ASSERT (nullptr != _remotStoreObject);
 
-            if(_remotStoreObject)
-            {
-                const string& callsign = "org.rdk.DisplaySettings";
-                const string& systemMode = "DEVICE_OPTIMIZE";
-                _remotStoreObject->ClientActivated(callsign,systemMode);
-                _remotStoreObject->Release();
-                _remotStoreObject = nullptr;
-            }
+
+	    if(_remotStoreObject)
+	    {
+               const string& callsign = "org.rdk.DisplaySettings";
+		    const string& systemMode = "DEVICE_OPTIMIZE";
+	            _remotStoreObject->ClientActivated(callsign,systemMode);
+                    _remotStoreObject->Release();
+                    _remotStoreObject = nullptr;		    
+	    }
             else
             {
                     Utils::String::updateSystemModeFile( "DEVICE_OPTIMIZE", "callsign", "org.rdk.DisplaySettings","add") ;
@@ -590,37 +591,40 @@ namespace WPEFramework {
             Exchange::ISystemMode* _remotStoreObject1 = nullptr;
             LOGINFO("Enetering DisplaySettings::Deinitialize");
             if (_powerManagerPlugin) {
-                // Unregister from PowerManagerPlugin Notification
-                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+		// Unregister from PowerManagerPlugin Notification
+		_powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
                 _powerManagerPlugin.Reset();
-             }
+            }
 
             _registeredEventHandlers = false;
             //During DisplaySettings plugin  activation the SystemMode may not be added .But it will be added /tmp/SystemMode.txt . If after 5 min SystemMode got activated then SystemMode fill the client map from /tmp/SystemMode.txt. In this case if we deactivate DisplaySettings then _remotStoreObject will be null here . So we try to QueryInterface the ISystemMode one more time 
-            if(_remotStoreObject1 == nullptr)
-            {
-                _remotStoreObject1 = service->QueryInterfaceByCallsign<Exchange::ISystemMode>("org.rdk.SystemMode");
-            }
-            ASSERT (nullptr != _remotStoreObject1);
+		if(_remotStoreObject1 == nullptr)
+		{
+				_remotStoreObject1 = service->QueryInterfaceByCallsign<Exchange::ISystemMode>("org.rdk.SystemMode");
 
-            if(_remotStoreObject1)
-            {
-                const string& callsign = "org.rdk.DisplaySettings";
-                const string& systemMode = "DEVICE_OPTIMIZE";
-                _remotStoreObject1->ClientDeactivated(callsign,systemMode);
-                _remotStoreObject1->Release();
-                _remotStoreObject1 = nullptr;
-            }
-            else
-            {
-                Utils::String::updateSystemModeFile( "DEVICE_OPTIMIZE", "callsign", "org.rdk.DisplaySettings","delete") ;
-            }
+		}
+
+		ASSERT (nullptr != _remotStoreObject1);
+
+		if(_remotStoreObject1)
+		{
+			const string& callsign = "org.rdk.DisplaySettings";
+			const string& systemMode = "DEVICE_OPTIMIZE";
+			_remotStoreObject1->ClientDeactivated(callsign,systemMode);
+	                _remotStoreObject1->Release();
+	                _remotStoreObject1 = nullptr;		
+		}
+		else
+		{
+			Utils::String::updateSystemModeFile( "DEVICE_OPTIMIZE", "callsign", "org.rdk.DisplaySettings","delete") ;
+		}
 
             {
-                std::unique_lock<std::mutex> lock(DisplaySettings::_instance->m_sendMsgMutex);
-                DisplaySettings::_instance->m_sendMsgThreadExit = true;
-                        DisplaySettings::_instance->m_sendMsgThreadRun = true;
-                        DisplaySettings::_instance->m_sendMsgCV.notify_one();
+
+            std::unique_lock<std::mutex> lock(DisplaySettings::_instance->m_sendMsgMutex);
+            DisplaySettings::_instance->m_sendMsgThreadExit = true;
+                    DisplaySettings::_instance->m_sendMsgThreadRun = true;
+                    DisplaySettings::_instance->m_sendMsgCV.notify_one();
             }
             int count = 0;
             while(audioPortInitActive && count < 20){
@@ -629,17 +633,17 @@ namespace WPEFramework {
             }
             try
             {
-                if (m_sendMsgThread.joinable())
-                    m_sendMsgThread.join();
+            if (m_sendMsgThread.joinable())
+            	m_sendMsgThread.join();
             }
             catch(const std::system_error& e)
-            {
-                LOGERR("system_error exception in thread join %s", e.what());
+               {
+            LOGERR("system_error exception in thread join %s", e.what());
             }
             catch(const std::exception& e)
             {
-                LOGERR("exception in thread join %s", e.what());
-            }
+            LOGERR("exception in thread join %s", e.what());
+        }
 
             stopCecTimeAndUnsubscribeEvent();
 
@@ -672,10 +676,6 @@ namespace WPEFramework {
 
         void DisplaySettings::InitializePowerManager()
         {
-            PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-
             LOGINFO("Connect the COM-RPC socket\n");
             _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
                 .withIShell(m_service)
@@ -685,16 +685,16 @@ namespace WPEFramework {
 
             registerEventHandlers();
 
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetPowerState(pwrStateCur, pwrStatePrev);
+                ASSERT (_powerManagerPlugin);
+                if (_powerManagerPlugin){
+                    retStatus = _powerManagerPlugin->GetPowerState(pwrStateCur, pwrStatePrev);
+                }
+                if (Core::ERROR_NONE == retStatus)
+                {
+                    m_powerState = pwrStateCur;
+                    LOGINFO("DisplaySettings::m_powerState:%d", m_powerState);
+                }
             }
-            if (Core::ERROR_NONE == retStatus)
-            {
-                m_powerState = pwrStateCur;
-                LOGINFO("DisplaySettings::m_powerState:%d", m_powerState);
-            }
-        }
 
         void DisplaySettings::registerEventHandlers()
         {
@@ -3928,9 +3928,9 @@ namespace WPEFramework {
 					if ((mode == device::AudioStereoMode::kPassThru)  || (aPort.getStereoAuto() == true))
 					{
 					  {
-					    std::lock_guard<std::mutex> lock(m_SadMutex);
 					    /* Take actions according to SAD udpate state */
-					    switch(m_AudioDeviceSADState)
+                        int currentSADState = getAudioDeviceSADState();
+					    switch(currentSADState)
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
 						{
@@ -3943,7 +3943,7 @@ namespace WPEFramework {
 						case AUDIO_DEVICE_SAD_RECEIVED: 
 						{
 							LOGINFO("%s: Update Audio device SAD\n", __FUNCTION__);
-							m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+							setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
 							aPort.setSAD(sad_list);
 
 							if(aPort.getStereoAuto() == true) {
@@ -3974,7 +3974,7 @@ namespace WPEFramework {
 											
 						default: 
 						{
-							LOGINFO("Incorrect Audio Deivce SAD state %d\n", m_AudioDeviceSADState); // should not hit this case
+							LOGINFO("Incorrect Audio Deivce SAD state %d\n", currentSADState); // should not hit this case
 						}
 						break;
 					    }
@@ -4475,9 +4475,10 @@ void DisplaySettings::sendMsgThread()
                 LOGERR("Field 'status' could not be found in the event's payload.");
                 return;
             }
-	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
+            int currentrcRoutingState = getCurrentArcRoutingState();
+	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", currentrcRoutingState);
 	    // AVR power status is not checked here assuming that ARC init request will happen only when AVR is in ON state
-            if ((m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
+            if ((currentrcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
                 value = parameters["status"].String();
 
 		if( !value.compare("success") ) {
@@ -4557,8 +4558,9 @@ void DisplaySettings::sendMsgThread()
 		LOGINFO("SAD already cleared\n");
 	    }
 
-	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", m_currentArcRoutingState);
-	    if (m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED) {
+        int currentrcRoutingState = getCurrentArcRoutingState();
+	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", currentrcRoutingState);
+	    if (currentrcRoutingState != ARC_STATE_ARC_TERMINATED) {
                 if (parameters.HasLabel("status")) {
                     value = parameters["status"].String();
                     std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
@@ -4605,11 +4607,11 @@ void DisplaySettings::sendMsgThread()
 
             if (parameters.HasLabel("ShortAudioDescriptor")) {
                 shortAudioDescriptorList = parameters["ShortAudioDescriptor"].Array();
-		if (m_AudioDeviceSADState == AUDIO_DEVICE_SAD_REQUESTED) {
+                int currentSADState = getAudioDeviceSADState();
+		if (currentSADState == AUDIO_DEVICE_SAD_REQUESTED) {
                     try
                     {
-		        std::lock_guard<std::mutex> lock(m_SadMutex);
-			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_RECEIVED;
+            setAudioDeviceSADState(AUDIO_DEVICE_SAD_RECEIVED);
 			m_requestSadRetrigger = false;
                         device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
 			LOGINFO("Total Short Audio Descriptors received from connected ARC device: %d\n",shortAudioDescriptorList.Length());
@@ -4636,7 +4638,7 @@ void DisplaySettings::sendMsgThread()
 
 			    if (wasSADTimerActive == true && m_arcEarcAudioEnabled == false ) { /*setEnableAudioPort is called, Timer has started, got SAD before Timer Expiry*/
 			        LOGINFO("%s: Updating SAD \n", __FUNCTION__);
-                                m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+                                setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
                                 aPort.setSAD(sad_list);
                                 if(aPort.getStereoAuto() == true) {
                                     aPort.setStereoAuto(true,true);
@@ -4652,7 +4654,7 @@ void DisplaySettings::sendMsgThread()
                         	m_arcEarcAudioEnabled = true;
 			    } else if (m_arcEarcAudioEnabled == true) { /*setEnableAudioPort is called,Timer started and Expired, arc is routed -- or for both wasSADTimerActive == true/false*/
 				LOGINFO("%s: Updating SAD since audio is already routed and ARC is initiated\n", __FUNCTION__);
-				 m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UPDATED;
+				setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
 				    aPort.setSAD(sad_list);
                         	    if(aPort.getStereoAuto() == true) {
                     	            	aPort.setStereoAuto(true,true);
@@ -5621,46 +5623,45 @@ void DisplaySettings::sendMsgThread()
 
 	    return mode;
         }
-        Core::hresult DisplaySettings::Request(const string& newState)
-        {
-        	vector<string> connectedDisplays;
-        	getConnectedVideoDisplaysHelper(connectedDisplays);
-        	for (int i = 0; i < (int)connectedDisplays.size(); i++)
-        	{
-        		try
-        		{
-        			std::string strVideoPort = connectedDisplays.at(i);
-        			device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
-        			if (isDisplayConnected(strVideoPort))
-        			{
-        				bool enable = (newState == "GAME") ? true : false;
-        				vPort.getDisplay().setAllmEnabled(enable);
-        				if(enable){ // Game mode
-        				    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_GAME);
-        				    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_UNDERSCAN);
-        				}else{ // video mode
-        				    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_NOT_SIGNALLED);
-        				    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_NO_DATA);
-        				}
-        			}
-        			else
-        			{
-        				LOGWARN("failure: %s is not connected!",strVideoPort.c_str());
-        			}
-        		}
-        		catch (const device::Exception& err)
-        		{
-        			LOG_DEVICE_EXCEPTION0();
-        		}
-        	}
-        	if( 0 == (int)connectedDisplays.size())
-        	{
-        		LOGWARN("No display connected to device (or)device's powerstate is not ON");
-                return Core::ERROR_GENERAL;
-        	}
-            return Core::ERROR_NONE;
-        }
-
+    Core::hresult DisplaySettings::Request(const string& newState)
+	{
+		vector<string> connectedDisplays;
+		getConnectedVideoDisplaysHelper(connectedDisplays);
+		for (int i = 0; i < (int)connectedDisplays.size(); i++)
+		{
+			try
+			{
+				std::string strVideoPort = connectedDisplays.at(i);;
+				device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
+				if (isDisplayConnected(strVideoPort))
+				{
+					bool enable = (newState == "GAME") ? true : false;
+					vPort.getDisplay().setAllmEnabled(enable);
+					if(enable){ // Game mode
+					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_GAME);
+					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_UNDERSCAN);
+					}else{ // video mode
+					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_NOT_SIGNALLED);
+					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_NO_DATA);
+					}
+				}
+				else
+				{
+					LOGWARN("failure: %s is not connected!",strVideoPort.c_str());
+				}
+			}
+			catch (const device::Exception& err)
+			{
+				LOG_DEVICE_EXCEPTION0();
+			}
+		}
+		if( 0 == (int)connectedDisplays.size())
+		{
+			LOGWARN("No display connected to device (or)device's powerstate is not ON");
+            return Core::ERROR_GENERAL;
+		}
+        return Core::ERROR_NONE;
+	}
         void DisplaySettings::registerDsEventHandlers()
         {
             LOGINFO("registerDsEventHandlers");

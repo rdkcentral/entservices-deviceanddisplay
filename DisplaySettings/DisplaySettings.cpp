@@ -92,6 +92,61 @@ bool audioPortInitActive = false;
 std::vector<int> sad_list;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
+#ifdef USE_IARM
+namespace
+{
+    /**
+     * @struct Mapping
+     * @brief Structure that defines members for the display setting service.
+     * @ingroup SERVMGR_DISPSETTINGS
+     */
+    struct Mapping
+    {
+        const char *IArmBusName;
+        const char *SvcManagerName;
+    };
+
+    static struct Mapping name_mappings[] = {
+        { "Full", "FULL" },
+        { "None", "NONE" },
+        { "mono", "MONO" },
+        { "stereo", "STEREO" },
+        { "surround", "SURROUND" },
+        { "unknown", "UNKNOWN" },
+        // TODO: add your mappings here
+        // { <IARM_NAME>, <SVC_MANAGER_API_NAME> },
+        { 0,  0 }
+    };
+
+    string svc2iarm(const string &name)
+    {
+        const char *s = name.c_str();
+
+        int i = 0;
+        while (name_mappings[i].SvcManagerName)
+        {
+            if (strcmp(s, name_mappings[i].SvcManagerName) == 0)
+                return name_mappings[i].IArmBusName;
+            i++;
+        }
+        return name;
+    }
+
+    string iarm2svc(const string &name)
+    {
+        const char *s = name.c_str();
+
+        int i = 0;
+        while (name_mappings[i].IArmBusName)
+        {
+            if (strcmp(s, name_mappings[i].IArmBusName) == 0)
+                return name_mappings[i].SvcManagerName;
+            i++;
+        }
+        return name;
+    }
+}
+#endif
 
 // TODO: remove this
 #define registerMethod(...) for (uint8_t i = 1; GetHandler(i); i++) GetHandler(i)->Register<JsonObject, JsonObject>(__VA_ARGS__)
@@ -969,6 +1024,9 @@ namespace WPEFramework {
                 LOG_DEVICE_EXCEPTION0();
                 success = false;
             }
+#ifdef USE_IARM
+            zoomSetting = iarm2svc(zoomSetting);
+#endif
             response["zoomSetting"] = zoomSetting;
             returnResponse(success);
         }
@@ -983,6 +1041,9 @@ namespace WPEFramework {
             bool success = true;
             try
             {
+#ifdef USE_IARM
+                zoomSetting = svc2iarm(zoomSetting);
+#endif
                 if (device::Host::getInstance().getVideoDevices().size() < 1)
                 {
                     LOGINFO("DSMGR_NOT_RUNNING");
@@ -1254,6 +1315,9 @@ namespace WPEFramework {
             }
 
             LOGWARN("audioPort = %s, mode = %s!", audioPort.c_str(), modeString.c_str());
+#ifdef USE_IARM
+            modeString = iarm2svc(modeString);
+#endif
             response["soundMode"] = modeString;
             returnResponse(true);
         }

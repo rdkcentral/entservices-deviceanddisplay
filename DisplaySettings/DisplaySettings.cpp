@@ -705,6 +705,23 @@ namespace WPEFramework {
                 _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             }
         }
+        int DisplaySettings::getAudioDeviceSADState(void) {
+            //function used to read the current SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            return m_AudioDeviceSADState;
+        }
+
+        void DisplaySettings::setAudioDeviceSADState(int newState) {
+            // function used to set the required SAD state with lock
+            std::lock_guard<std::mutex> lock(m_SadMutex);
+            LOGINFO("Updating m_AudioDeviceSADState : %d", newState);
+            m_AudioDeviceSADState = newState;
+        }
+
+        int DisplaySettings::getCurrentArcRoutingState(void) {
+            std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+            return m_currentArcRoutingState;
+        }
         
 
         bool DisplaySettings::isDisplayConnected (std::string port){

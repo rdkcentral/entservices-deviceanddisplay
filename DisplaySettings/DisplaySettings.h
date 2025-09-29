@@ -105,7 +105,7 @@ namespace WPEFramework {
             //Begin methods
             uint32_t getConnectedVideoDisplays(const JsonObject& parameters, JsonObject& response);
             uint32_t getConnectedAudioPorts(const JsonObject& parameters, JsonObject& response);
-            uint32_t setEnableAudioPort (const JsonObject& parameters, JsonObject& response);
+	    uint32_t setEnableAudioPort (const JsonObject& parameters, JsonObject& response);
             uint32_t getSupportedResolutions(const JsonObject& parameters, JsonObject& response);
             uint32_t getSupportedVideoDisplays(const JsonObject& parameters, JsonObject& response);
             uint32_t getSupportedTvResolutions(const JsonObject& parameters, JsonObject& response);
@@ -243,7 +243,7 @@ namespace WPEFramework {
 
         private:
             void getConnectedVideoDisplaysHelper(std::vector<string>& connectedDisplays);
-            void audioFormatToString(dsAudioFormat_t audioFormat, JsonObject &response);
+	    void audioFormatToString(dsAudioFormat_t audioFormat, JsonObject &response);
             const char *getVideoFormatTypeToString(dsHDRStandard_t format);
             dsHDRStandard_t getVideoFormatTypeFromString(const char *mode);
             JsonArray getSupportedVideoFormats();
@@ -260,6 +260,9 @@ namespace WPEFramework {
 	    bool sendHdmiCecSinkAudioDevicePowerOn();
 	    bool getHdmiCecSinkCecEnableStatus();
 	    bool getHdmiCecSinkAudioDeviceConnectedStatus();
+        int getAudioDeviceSADState(void);
+        void setAudioDeviceSADState(int newState);
+        int getCurrentArcRoutingState(void);
 
 	    void onTimer();
 	    void stopCecTimeAndUnsubscribeEvent();
@@ -291,8 +294,8 @@ namespace WPEFramework {
         Core::Sink<PowerManagerNotification> _pwrMgrNotification;
         bool _registeredEventHandlers;
         void InitializePowerManager();
-        JsonObject getAudioOutputPortConfig() { return m_audioOutputPortConfig; }
-        static PowerState m_powerState;
+            JsonObject getAudioOutputPortConfig() { return m_audioOutputPortConfig; }
+            static PowerState m_powerState;
 
     private:
         bool _registeredDsEventHandlers;

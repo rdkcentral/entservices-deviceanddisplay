@@ -193,7 +193,6 @@ namespace Plugin {
         void Deinitialize(PluginHost::IShell* service) override;
         string Information() const override;
 
-
     private:
         void Deactivated(RPC::IRemoteConnection* connection);
         void CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId);

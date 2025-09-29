@@ -46,12 +46,12 @@
 #define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
 #define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
 
-namespace WPEFramework {
+/*namespace WPEFramework {
 namespace Core {
     struct IDispatch;
     struct IWorkerPool;
 }
-}
+}*/
 
 class FPD {
     using FPDTimeFormat = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTimeFormat;

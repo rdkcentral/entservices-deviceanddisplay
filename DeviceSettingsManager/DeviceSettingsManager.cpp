@@ -46,8 +46,7 @@ namespace Plugin
     DeviceSettingsManager::DeviceSettingsManager()
         : mConnectionId(0)
         , mService(nullptr)
-        , _mDeviceSettingsManagerFPD(nullptr)
-        , _mDeviceSettingsManagerHDMIIn(nullptr)
+        , _mDeviceSettingsManager(nullptr)
         , mNotificationSink(this)
 
     {
@@ -64,8 +63,8 @@ namespace Plugin
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
-        ASSERT(_mDeviceSettingsManagerFPD == nullptr);
-        ASSERT(_mDeviceSettingsManagerHDMIIn == nullptr);
+        ASSERT(_mDeviceSettingsManager == nullptr);
+        //ASSERT(_mDeviceSettingsManagerHDMIIn == nullptr);
         mService = service;
         mService->AddRef();
 
@@ -82,16 +81,16 @@ namespace Plugin
         if (_mDeviceSettingsManager == nullptr) {
             LOGERR("Failed to get IDeviceSettingsManager interface");
         }
-        /*if (_mDeviceSettingsManagerFPD != nullptr) {
+        /*if (_mDeviceSettingsManager != nullptr) {
             LOGINFO("Registering JDeviceSettingsManagerFPD");
-            _mDeviceSettingsManagerFPD->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManager::IFPD::INotification>());
+            _mDeviceSettingsManager->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
             //Exchange::JDeviceSettingsManagerFPD::Register(*this, _mDeviceSettingsManagerFPD);
         } else {
             LOGERR("Failed to get IDeviceSettingsManager::IFPD interface");
-        }
+        }*/
 
         LOGINFO("Trace - 3");
-        _mDeviceSettingsManagerHDMIIn = service->Root<Exchange::IDeviceSettingsManager::IHDMIIn>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
+        /*_mDeviceSettingsManagerHDMIIn = service->Root<Exchange::IDeviceSettingsManager::IHDMIIn>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
 
         if (_mDeviceSettingsManagerHDMIIn != nullptr) {
             LOGINFO("Registering IDeviceSettingsManager::IHDMIIn");
@@ -112,13 +111,13 @@ namespace Plugin
             //mService->Unregister(&mNotificationSink);
             mService->Unregister(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
             mService->Unregister(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
-            /*if (_mDeviceSettingsManagerFPD != nullptr) {
-                _mDeviceSettingsManagerFPD->Unregister(&mNotificationSink);
+            /*if (_mDeviceSettingsManager != nullptr) {
+                _mDeviceSettingsManager->Unregister(&mNotificationSink);
             }*/
             /*if (_mDeviceSettingsManagerHDMIIn != nullptr) {
                 _mDeviceSettingsManagerHDMIIn->Unregister(&mNotificationSink);
             }*/
-
+            _mDeviceSettingsManager = nullptr;
             mService->Release();
             mService = nullptr;
             mConnectionId = 0;

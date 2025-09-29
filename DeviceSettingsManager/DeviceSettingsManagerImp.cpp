@@ -18,7 +18,6 @@
  */
 
 #include "DeviceSettingsManagerImp.h"
-#include <interfaces/IConfiguration.h>
 
 #include "UtilsLogging.h"
 #include <syscall.h>
@@ -29,6 +28,7 @@ namespace WPEFramework {
 namespace Plugin {
 
     SERVICE_REGISTRATION(DeviceSettingsManagerImp, 1, 0);
+    //PLUGIN_REGISTRATION(DeviceSettingsManagerImp)
     DeviceSettingsManagerImp* DeviceSettingsManagerImp::_instance = nullptr;
 
     DeviceSettingsManagerImp::DeviceSettingsManagerImp()
@@ -151,6 +151,54 @@ namespace Plugin {
         LOGINFO("IModeChanged %p, errorcode: %u", notification, errorCode);
         EXIT_LOG;
         return errorCode;
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected)
+    {
+        LOGINFO("OnHDMIInEventHotPlug event Received");
+        dispatchHDMIInHotPlugEvent(port, isConnected);
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
+    {
+        LOGINFO("OnHDMIInEventSignalStatus event Received");
+        //dispatchHDMIInHotPlugEvent(port, isConnected);
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay)
+    {
+        LOGINFO("OnHDMIInAVLatency event Received");
+        //dispatchHDMIInAVLatencyEvent(audioDelay, videoDelay);
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented)
+    {
+        LOGINFO("OnHDMIInEventStatus event Received");
+        //dispatchHDMIInStatusEvent(activePort, isPresented);
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
+    {
+        LOGINFO("OnHDMIInVideoModeUpdate event Received");
+        //dispatchHDMIInVideoModeUpdateEvent(port, videoPortResolution);
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus)
+    {
+        LOGINFO("OnHDMIInAllmStatus event Received");
+        //dispatchHDMIInAllmStatusEvent(port, allmStatus);
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType)
+    {
+        LOGINFO("OnHDMIInAVIContentType event Received");
+        //dispatchHDMIInAVIContentTypeEvent(port, aviContentType);
+    }
+
+    void DeviceSettingsManagerImp::OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType)
+    {
+        LOGINFO("OnHDMIInVRRStatus event Received");
+        //dispatchHDMIInVRRStatusEvent(port, vrrType);
     }
 
     //Depricated

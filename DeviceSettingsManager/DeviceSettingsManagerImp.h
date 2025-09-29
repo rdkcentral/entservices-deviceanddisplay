@@ -24,7 +24,6 @@
 #include <memory>
 #include <unordered_map>
 #include <chrono>
-#include <core/Portability.h>
 #include <cstdint> // Ensure this is present for uint32_t
 
 #include <com/com.h>
@@ -165,10 +164,19 @@ namespace Plugin {
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
         virtual void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) override;
+        virtual void OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override;
+        virtual void OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented) override;
+        virtual void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) override;
+        virtual void OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus) override;
+        virtual void OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType) override;
+        virtual void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) override;
+        virtual void OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType) override;
         void dispatchHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected);
+
 
         FPD _fpd;
         HdmiIn _hdmiIn;
+
     };
 } // namespace Plugin
 } // namespace WPEFramework

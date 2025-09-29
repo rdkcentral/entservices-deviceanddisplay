@@ -74,7 +74,7 @@ uint32_t HdmiIn::GetHDMIInNumbefOfInputs(int32_t &count) {
     return WPEFramework::Core::ERROR_NONE;
 }
 
-/*uint32_t HdmiIn::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) {
+uint32_t HdmiIn::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) {
     ENTRY_LOG;
 
     LOGINFO("GetHDMIInStatus");
@@ -84,7 +84,7 @@ uint32_t HdmiIn::GetHDMIInNumbefOfInputs(int32_t &count) {
     EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
-}*/
+}
 
 uint32_t HdmiIn::SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) {
     ENTRY_LOG;
@@ -114,7 +114,7 @@ uint32_t HdmiIn::SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) {
     return WPEFramework::Core::ERROR_NONE;
 }
 
-/*uint32_t HdmiIn::GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) {
+uint32_t HdmiIn::GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) {
     ENTRY_LOG;
 
     LOGINFO("GetSupportedGameFeaturesList");
@@ -122,7 +122,7 @@ uint32_t HdmiIn::SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) {
 
     EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
-}*/
+}
 
 uint32_t HdmiIn::GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency) {
     ENTRY_LOG;

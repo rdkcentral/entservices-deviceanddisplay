@@ -35,6 +35,9 @@
 
 #include <interfaces/Ids.h>
 #include <interfaces/IDeviceSettingsManager.h>
+
+//#include "IHDMIInPortConnectionStatusIterator.h"
+//#include "IHDMIInGameFeatureListIterator.h"
 //#include "Settings.h"            // for Settings
 
 /*#include "dsMgr.h"
@@ -60,12 +63,12 @@
 #define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
 #define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
 
-namespace WPEFramework {
+/*namespace WPEFramework {
 namespace Core {
     struct IDispatch;
     struct IWorkerPool;
 }
-}
+}*/
 
 class HdmiIn {
     using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
@@ -80,7 +83,8 @@ class HdmiIn {
     using HDMIInEdidVersion        = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInEdidVersion;
     using HDMIInVideoZoom          = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoZoom;
     using HDMIInVideoRectangle     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoRectangle;
-    //using IHDMIInPortConnectionStatusIterator = RPC::IIteratorType<HDMIPortConnectionStatus, ID_DEVICESETTINGS_MANAGER_HDMIIN_PORTCONNECTION_ITERATOR>;
+    using IHDMIInPortConnectionStatusIterator = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInPortConnectionStatusIterator;
+    using IHDMIInGameFeatureListIterator      = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInGameFeatureListIterator;
     using IPlatform = hal::dHdmiIn::IPlatform;
     using DefaultImpl = dHdmiInImpl;
 
@@ -92,20 +96,27 @@ public:
             virtual ~INotification() = default;
 
             virtual void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) = 0;
+            virtual void OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus) = 0;
+            virtual void OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented) = 0;
+            virtual void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) = 0;
+            virtual void OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus) = 0;
+            virtual void OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType) = 0;
+            virtual void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) = 0;
+            virtual void OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType) = 0;
             //virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) = 0;
             //virtual void onDeepSleepForThermalChange() = 0;
     };
     // We do not allow this plugin to be copied !!
-    HdmiIn();
+    //HdmiIn();
 
     void init();
 
     uint32_t GetHDMIInNumbefOfInputs(int32_t &count);
-    //uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);
+    uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);
     uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType);
     uint32_t ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition);
     uint32_t SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode);
-    //uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList);
+    uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList);
     uint32_t GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency);
     uint32_t GetHDMIInAllmStatus(const HDMIInPort port, bool &allmStatus);
     uint32_t GetHDMIInEdid2AllmSupport(const HDMIInPort port, bool &allmSupport);
@@ -134,9 +145,11 @@ public:
     template <typename IMPL = DefaultImpl, typename... Args>
     static HdmiIn Create(INotification& parent, Args&&... args)
     {
+        ENTRY_LOG;
         static_assert(std::is_base_of<IPlatform, IMPL>::value, "Impl must derive from hal::dHdmiIn::IPlatform");
         auto impl = std::shared_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
         ASSERT(impl != nullptr);
+        EXIT_LOG;
         return HdmiIn(parent, std::move(impl));
     }
 

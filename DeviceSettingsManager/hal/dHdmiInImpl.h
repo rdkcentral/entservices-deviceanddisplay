@@ -44,6 +44,9 @@ public:
     dHdmiInImpl()
     {
         LOGINFO("dHdmiInImpl Constructor");
+	LOGINFO("HDMI version: %s\n", HdmiConnectionToStrMapping[0].name);
+	LOGINFO("HDMI version: %s\n", HdmiStatusToStrMapping[0].name);
+	LOGINFO("HDMI version: %s\n", HdmiVerToStrMapping[0].name);
         //InitialiseHAL();
         // Initialize the platform
         /*pmStatus_t result = PLAT_INIT();

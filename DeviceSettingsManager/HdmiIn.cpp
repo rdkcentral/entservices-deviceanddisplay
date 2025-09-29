@@ -39,6 +39,9 @@ HdmiIn::HdmiIn(INotification& parent, std::shared_ptr<IPlatform> platform)
 {
     ENTRY_LOG;
     LOGINFO("HdmiIn Constructor");
+    LOGINFO("HDMI version: %s\n", HdmiConnectionToStrMapping[0].name);
+    LOGINFO("HDMI version: %s\n", HdmiStatusToStrMapping[0].name);
+    LOGINFO("HDMI version: %s\n", HdmiVerToStrMapping[0].name);
     init();
     EXIT_LOG;
 }

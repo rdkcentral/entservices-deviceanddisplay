@@ -622,6 +622,9 @@ namespace WPEFramework {
         void DisplaySettings::InitializePowerManager()
         {
             LOGINFO("Connect the COM-RPC socket\n");
+            PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
+            PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
                 .withIShell(m_service)
                 .withRetryIntervalMS(200)

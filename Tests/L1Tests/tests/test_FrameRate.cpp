@@ -401,8 +401,8 @@ TEST_F(FrameRateTest, setFrmMode_InvalidMode_OutOfRange)
  */
 TEST_F(FrameRateTest, setFrmMode_VideoDevice_Exception)
 {
-    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](int param) -> int {
                 throw device::Exception("Mock device exception");
                 return 0; // Never reached but needed for compilation
@@ -417,8 +417,8 @@ TEST_F(FrameRateTest, setFrmMode_VideoDevice_Exception)
  */
 TEST_F(FrameRateTest, setFrmMode_VideoDevice_ErrorCode)
 {
-    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](int param) -> int {
                 return 1; // Return error code (non-zero)
             }));
@@ -432,8 +432,8 @@ TEST_F(FrameRateTest, setFrmMode_VideoDevice_ErrorCode)
  */
 TEST_F(FrameRateTest, getFrmMode_VideoDevice_Exception)
 {
-    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](int* param) -> int {
                 throw device::Exception("Mock device exception");
                 return 0; // Never reached but needed for compilation
@@ -448,8 +448,8 @@ TEST_F(FrameRateTest, getFrmMode_VideoDevice_Exception)
  */
 TEST_F(FrameRateTest, getFrmMode_VideoDevice_ErrorCode)
 {
-    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](int* param) -> int {
                 return 1; // Return error code (non-zero)
             }));
@@ -485,14 +485,31 @@ TEST_F(FrameRateTest, setDisplayFrameRate_InvalidFormat_MissingComponents)
     EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080\", \"success\":false}"), response));
 }
 
+/**
+ * @brief Test setDisplayFrameRate with invalid framerate format (non-numeric start)
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_InvalidFormat_NonNumericStart)
+{
+    // Test with framerate string not starting with digit - should return ERROR_INVALID_PARAMETER
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"x1920x1080x60\", \"success\":false}"), response));
+}
+
+/**
+ * @brief Test setDisplayFrameRate with invalid framerate format (non-numeric end)
+ */
+TEST_F(FrameRateTest, setDisplayFrameRate_InvalidFormat_NonNumericEnd)
+{
+    // Test with framerate string not ending with digit - should return ERROR_INVALID_PARAMETER
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60x\", \"success\":false}"), response));
+}
 
 /**
  * @brief Test setDisplayFrameRate when VideoDevice setDisplayframerate throws exception
  */
 TEST_F(FrameRateTest, setDisplayFrameRate_VideoDevice_Exception)
 {
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](const char* param) -> int {
                 throw device::Exception("Mock device exception");
                 return 0; // Never reached but needed for compilation
@@ -507,8 +524,8 @@ TEST_F(FrameRateTest, setDisplayFrameRate_VideoDevice_Exception)
  */
 TEST_F(FrameRateTest, setDisplayFrameRate_VideoDevice_ErrorCode)
 {
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](const char* param) -> int {
                 return 1; // Return error code (non-zero)
             }));
@@ -522,8 +539,8 @@ TEST_F(FrameRateTest, setDisplayFrameRate_VideoDevice_ErrorCode)
  */
 TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_Exception)
 {
-    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](char* param) -> int {
                 throw device::Exception("Mock device exception");
                 return 0; // Never reached but needed for compilation
@@ -538,8 +555,8 @@ TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_Exception)
  */
 TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_ErrorCode)
 {
-    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](char* param) -> int {
                 return 1; // Return error code (non-zero)
             }));
@@ -553,8 +570,8 @@ TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_ErrorCode)
  */
 TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_EmptyResult)
 {
-    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
+    EXPECT_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
+        .WillOnce(::testing::Invoke(
             [&](char* param) -> int {
                 param[0] = '\0'; // Set empty string
                 return 0; // Return success but with empty result
@@ -570,8 +587,8 @@ TEST_F(FrameRateTest, getDisplayFrameRate_VideoDevice_EmptyResult)
 TEST_F(FrameRateTest, setFrmMode_NoVideoDevices)
 {
     // Mock Host to return empty device list
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+    EXPECT_CALL(*p_hostImplMock, getVideoDevices())
+        .WillOnce(::testing::Return(device::List<device::VideoDevice>()));
 
     // No video devices available returns ERROR_NOT_SUPPORTED
     EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0, \"success\":false}"), response));
@@ -583,8 +600,8 @@ TEST_F(FrameRateTest, setFrmMode_NoVideoDevices)
 TEST_F(FrameRateTest, getFrmMode_NoVideoDevices)
 {
     // Mock Host to return empty device list
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+    EXPECT_CALL(*p_hostImplMock, getVideoDevices())
+        .WillOnce(::testing::Return(device::List<device::VideoDevice>()));
 
     // No video devices available returns ERROR_NOT_SUPPORTED
     EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("getFrmMode"), _T("{\"success\":false}"), response));
@@ -596,8 +613,8 @@ TEST_F(FrameRateTest, getFrmMode_NoVideoDevices)
 TEST_F(FrameRateTest, setDisplayFrameRate_NoVideoDevices)
 {
     // Mock Host to return empty device list
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+    EXPECT_CALL(*p_hostImplMock, getVideoDevices())
+        .WillOnce(::testing::Return(device::List<device::VideoDevice>()));
 
     // No video devices available returns ERROR_NOT_SUPPORTED
     EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\", \"success\":false}"), response));
@@ -609,11 +626,25 @@ TEST_F(FrameRateTest, setDisplayFrameRate_NoVideoDevices)
 TEST_F(FrameRateTest, getDisplayFrameRate_NoVideoDevices)
 {
     // Mock Host to return empty device list
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+    EXPECT_CALL(*p_hostImplMock, getVideoDevices())
+        .WillOnce(::testing::Return(device::List<device::VideoDevice>()));
 
     // No video devices available returns ERROR_NOT_SUPPORTED
     EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
+}
+
+/**
+ * @brief Test updateFps boundary values (zero should be valid)
+ */
+TEST_F(FrameRateTest, updateFps_BoundaryValues)
+{
+    // Test with zero FPS value - should be valid (minimum valid value)
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":0, \"success\":false}"), response));
+    EXPECT_EQ(response, "true");
+    
+    // Test with very high FPS value - should be valid
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":10000, \"success\":false}"), response));
+    EXPECT_EQ(response, "true");
 }
 
 /**
@@ -645,15 +676,78 @@ TEST_F(FrameRateTest, stopFpsCollection_NotInProgress)
 }
 
 /**
- * @brief Test updateFps with boundary values
+ * @brief Test onReportFpsTimer method directly and validate notification dispatch
  */
-TEST_F(FrameRateTest, updateFps_BoundaryValues)
+TEST_F(FrameRateTest, onReportFpsTimer_DirectCall_NotificationDispatch)
 {
-    // Test with zero FPS value - should be valid (minimum valid value)
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":0, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
+    // Create a notification mock to capture the FPS event
+    NiceMock<FrameRateNotificationMock> notificationMock;
     
-    // Test with very high FPS value - should be valid
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":10000, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
+    // Set up expectations for AddRef/Release calls during registration/unregistration
+    EXPECT_CALL(notificationMock, AddRef())
+        .Times(1);
+    EXPECT_CALL(notificationMock, Release())
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+    
+    // Get the FrameRateImplementation instance
+    ASSERT_TRUE(FrameRateImplem != nullptr);
+    
+    // Register the notification mock
+    EXPECT_EQ(Core::ERROR_NONE, FrameRateImplem->Register(&notificationMock));
+    
+    // Set up some FPS data by calling UpdateFps to initialize internal state
+    bool success = false;
+    EXPECT_EQ(Core::ERROR_NONE, FrameRateImplem->UpdateFps(30, success));
+    EXPECT_TRUE(success);
+    
+    EXPECT_EQ(Core::ERROR_NONE, FrameRateImplem->UpdateFps(60, success));
+    EXPECT_TRUE(success);
+    
+    EXPECT_EQ(Core::ERROR_NONE, FrameRateImplem->UpdateFps(45, success));
+    EXPECT_TRUE(success);
+    
+    // Expect the OnFpsEvent notification to be called with calculated values
+    // Average: (30 + 60 + 45) / 3 = 45, Min: 30, Max: 60
+    EXPECT_CALL(notificationMock, OnFpsEvent(45, 30, 60))
+        .Times(1);
+    
+    // Directly call onReportFpsTimer to trigger the notification
+    FrameRateImplem->onReportFpsTimer();
+    
+    // Unregister the notification
+    EXPECT_EQ(Core::ERROR_NONE, FrameRateImplem->Unregister(&notificationMock));
+}
+
+/**
+ * @brief Test onReportFpsTimer with no FPS updates - should dispatch default values
+ */
+TEST_F(FrameRateTest, onReportFpsTimer_NoUpdates_DefaultValues)
+{
+    // Create a notification mock to capture the FPS event
+    NiceMock<FrameRateNotificationMock> notificationMock;
+    
+    // Set up expectations for AddRef/Release calls during registration/unregistration
+    EXPECT_CALL(notificationMock, AddRef())
+        .Times(1);
+    EXPECT_CALL(notificationMock, Release())
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+    
+    // Get the FrameRateImplementation instance
+    ASSERT_TRUE(FrameRateImplem != nullptr);
+    
+    // Register the notification mock
+    EXPECT_EQ(Core::ERROR_NONE, FrameRateImplem->Register(&notificationMock));
+    
+    // Expect the OnFpsEvent notification to be called with default values
+    // When no updates: average = -1, min = 60 (DEFAULT_MIN_FPS_VALUE), max = -1 (DEFAULT_MAX_FPS_VALUE)
+    EXPECT_CALL(notificationMock, OnFpsEvent(-1, 60, -1))
+        .Times(1);
+    
+    // Directly call onReportFpsTimer without any prior FPS updates
+    FrameRateImplem->onReportFpsTimer();
+    
+    // Unregister the notification
+    EXPECT_EQ(Core::ERROR_NONE, FrameRateImplem->Unregister(&notificationMock));
 }

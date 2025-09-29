@@ -123,8 +123,8 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
           token: ${{ secrets.RDKCM_RDKE }}
+          ref: feature/RDKEMW-7722
 
       - name: Checkout entservices-deviceanddisplay
         if: ${{ inputs.caller_source == 'local' }}
@@ -138,7 +138,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: feature/RDKEMW-TBD
 
       - name: Checkout googletest
         if: steps.cache.outputs.cache-hit != 'true'
@@ -204,7 +204,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: ${{env.INTERFACES_REF}}
+          ref: feature/RDKEMW-7722
           #token : ${{ secrets.RDKCM_RDKE }}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 

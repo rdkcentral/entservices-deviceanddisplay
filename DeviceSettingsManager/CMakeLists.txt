@@ -23,11 +23,23 @@ set(PLUGIN_DEVICESETTINGS_AUTOSTART "true" CACHE STRING "Automatically start Dev
 set(PLUGIN_DEVICESETTINGS_STARTUPORDER "30" CACHE STRING "To configure startup order of DeviceSettingsManager plugin")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../../wpeframework-clientlibraries/4.4.2-r20/build/Source/devicesettings")
 
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
+
+# Set WPEFrameworkDSController library path directly
+set(WPEFRAMEWORK_DSCONTROLLER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../../wpeframework-clientlibraries/4.4.2-r20/build/Source/devicesettings")
+set(WPEFRAMEWORK_DSCONTROLLER_LIB "${WPEFRAMEWORK_DSCONTROLLER_PATH}/libWPEFrameworkDSController.so")
+
+# Check if the library exists
+if(NOT EXISTS ${WPEFRAMEWORK_DSCONTROLLER_LIB})
+    message(FATAL_ERROR "WPEFrameworkDSController library not found at: ${WPEFRAMEWORK_DSCONTROLLER_LIB}")
+else()
+    message(STATUS "Found WPEFrameworkDSController library at: ${WPEFRAMEWORK_DSCONTROLLER_LIB}")
+endif()
 
 #find_package(DeepSleepHal)
 #find_package(MFR)
@@ -159,3 +171,13 @@ install(TARGETS ${PLUGIN_IMPLEMENTATION}
 
 write_config(${PLUGIN_NAME})
 
+add_executable (DSApp main.cpp)
+
+# Find CURL library
+find_package(CURL REQUIRED)
+
+target_link_libraries (DSApp
+    PRIVATE
+        ${WPEFRAMEWORK_DSCONTROLLER_LIB}
+        ${CURL_LIBRARIES}
+        pthread)

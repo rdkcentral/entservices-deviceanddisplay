@@ -181,8 +181,6 @@ protected:
     }
 };
 
-// ...existing code...
-
 TEST_F(FrameRateTest, GetDisplayFrameRate_Success)
 {
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
@@ -221,7 +219,6 @@ TEST_F(FrameRateTest, GetFrmMode_Success)
         }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
     EXPECT_TRUE(response.find("\"autoFRMMode\":1") != string::npos);
 }
@@ -245,14 +242,12 @@ TEST_F(FrameRateTest, GetFrmMode_NoVideoDevices)
 TEST_F(FrameRateTest, SetCollectionFrequency_Success)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":5000}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 TEST_F(FrameRateTest, SetCollectionFrequency_MinimumValue)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":100}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -267,7 +262,6 @@ TEST_F(FrameRateTest, SetDisplayFrameRate_Success)
         .WillByDefault(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\"}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -313,7 +307,6 @@ TEST_F(FrameRateTest, SetFrmMode_Success_Mode0)
         .WillByDefault(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -323,7 +316,6 @@ TEST_F(FrameRateTest, SetFrmMode_Success_Mode1)
         .WillByDefault(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":1}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -356,44 +348,40 @@ TEST_F(FrameRateTest, SetFrmMode_InvalidParameter_ValueTooHigh)
 TEST_F(FrameRateTest, StartFpsCollection_Success)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 TEST_F(FrameRateTest, StartFpsCollection_AlreadyInProgress)
 {
     handler.Invoke(connection, _T("startFpsCollection"), _T("{}"), response);
+    
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 TEST_F(FrameRateTest, StopFpsCollection_Success)
 {
     handler.Invoke(connection, _T("startFpsCollection"), _T("{}"), response);
+    
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 TEST_F(FrameRateTest, StopFpsCollection_NotStarted)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 TEST_F(FrameRateTest, UpdateFps_Success)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":60}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 TEST_F(FrameRateTest, UpdateFps_Success_ZeroValue)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":0}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -405,6 +393,5 @@ TEST_F(FrameRateTest, UpdateFps_InvalidParameter_NegativeValue)
 TEST_F(FrameRateTest, UpdateFps_HighValue)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":120}"), response));
-    std::cout << "Response here: " << response << std::endl;
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }

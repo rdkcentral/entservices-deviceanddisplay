@@ -24,7 +24,6 @@
 #include "dsHdmiInTypes.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-#include "dsInternal.h"
 
 #include "rfcapi.h"
 

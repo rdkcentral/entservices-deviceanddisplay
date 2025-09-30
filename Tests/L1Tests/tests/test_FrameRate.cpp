@@ -35,6 +35,7 @@
 #include "FrameRateMock.h"
 #include "WorkerPoolImplementation.h"
 #include "WrapsMock.h"
+#include "exception.hpp"
 
 using namespace WPEFramework;
 

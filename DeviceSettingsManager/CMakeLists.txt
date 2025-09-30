@@ -49,7 +49,7 @@ endif()
 #    Module.cpp
 #    DeviceSettingsManager.cpp)
 
-add_executable(${MODULE_NAME}
+add_library(${MODULE_NAME}
     Module.cpp
     DeviceSettingsManager.cpp)
 

@@ -525,113 +525,233 @@ TEST_F(FrameRateTest, UpdateFps_HighValue)
     EXPECT_TRUE(response.find("true") != string::npos);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Notification)
+TEST_F(FrameRateTest, OnReportFpsTimer_WithUpdates)
 {
-    FrameRateNotificationHandler notificationHandler;
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+
+    Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
     
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnDisplayFrameRateChanging("3840x2160x48");
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
-        EXPECT_EQ("3840x2160x48", notificationHandler.GetLastFrameRate());
-    }
+    bool success;
+    Plugin::FrameRateImplementation::_instance->UpdateFps(60, success);
+    Plugin::FrameRateImplementation::_instance->UpdateFps(58, success);
+    Plugin::FrameRateImplementation::_instance->UpdateFps(62, success);
+    
+    Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+    
+    EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+    EXPECT_EQ(60, notificationHandler->GetLastAverage());
+    EXPECT_EQ(58, notificationHandler->GetLastMin());
+    EXPECT_EQ(62, notificationHandler->GetLastMax());
+    
+    Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    
+    notificationHandler->Release();
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Notification)
+TEST_F(FrameRateTest, OnReportFpsTimer_NoUpdates)
 {
-    FrameRateNotificationHandler notificationHandler;
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
     
-    if (FrameRateNotification != nullptr)
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
-        FrameRateNotification->OnDisplayFrameRateChanged("1920x1080x60");
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
-        EXPECT_EQ("1920x1080x60", notificationHandler.GetLastFrameRate());
-    }
-}
-
-TEST_F(FrameRateTest, OnFpsEvent_Notification)
-{
-    FrameRateNotificationHandler notificationHandler;
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnFpsEvent(60, 58, 62);
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-        EXPECT_EQ(60, notificationHandler.GetLastAverage());
-        EXPECT_EQ(58, notificationHandler.GetLastMin());
-        EXPECT_EQ(62, notificationHandler.GetLastMax());
-    }
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyString)
-{
-    FrameRateNotificationHandler notificationHandler;
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnDisplayFrameRateChanging("");
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
-        EXPECT_EQ("", notificationHandler.GetLastFrameRate());
-    }
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyString)
-{
-    FrameRateNotificationHandler notificationHandler;
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnDisplayFrameRateChanged("");
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
-        EXPECT_EQ("", notificationHandler.GetLastFrameRate());
-    }
-}
-
-TEST_F(FrameRateTest, OnFpsEvent_ZeroValues)
-{
-    FrameRateNotificationHandler notificationHandler;
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnFpsEvent(0, 0, 0);
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-        EXPECT_EQ(0, notificationHandler.GetLastAverage());
-        EXPECT_EQ(0, notificationHandler.GetLastMin());
-        EXPECT_EQ(0, notificationHandler.GetLastMax());
-    }
-}
-
-TEST_F(FrameRateTest, OnFpsEvent_NegativeValues)
-{
-    FrameRateNotificationHandler notificationHandler;
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnFpsEvent(-1, -5, -2);
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-        EXPECT_EQ(-1, notificationHandler.GetLastAverage());
-        EXPECT_EQ(-5, notificationHandler.GetLastMin());
-        EXPECT_EQ(-2, notificationHandler.GetLastMax());
-    }
-}
-
-TEST_F(FrameRateTest, MultipleNotifications_Sequential)
-{
-    FrameRateNotificationHandler notificationHandler;
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnDisplayFrameRateChanging("3840x2160x48");
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
         
-        notificationHandler.Reset();
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
         
-        FrameRateNotification->OnDisplayFrameRateChanged("3840x2160x48");
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_EQ(-1, notificationHandler->GetLastAverage());
         
-        notificationHandler.Reset();
-        
-        FrameRateNotification->OnFpsEvent(48, 47, 49);
-        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
     }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnReportFpsTimer_SingleUpdate)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        bool success;
+        Plugin::FrameRateImplementation::_instance->UpdateFps(30, success);
+        
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_EQ(30, notificationHandler->GetLastAverage());
+        EXPECT_EQ(30, notificationHandler->GetLastMin());
+        EXPECT_EQ(30, notificationHandler->GetLastMax());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePreChange_ValidFrameRate)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160x48");
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        EXPECT_EQ("3840x2160x48", notificationHandler->GetLastFrameRate());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePreChange_EmptyFrameRate)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("");
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        EXPECT_EQ("", notificationHandler->GetLastFrameRate());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePreChange_StandardResolution)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("1920x1080x60");
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        EXPECT_EQ("1920x1080x60", notificationHandler->GetLastFrameRate());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePostChange_ValidFrameRate)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("3840x2160x48");
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        EXPECT_EQ("3840x2160x48", notificationHandler->GetLastFrameRate());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePostChange_EmptyFrameRate)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("");
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        EXPECT_EQ("", notificationHandler->GetLastFrameRate());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePostChange_StandardResolution)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("1920x1080x60");
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        EXPECT_EQ("1920x1080x60", notificationHandler->GetLastFrameRate());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnReportFpsTimer_MultipleUpdatesAverageCalculation)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        bool success;
+        Plugin::FrameRateImplementation::_instance->UpdateFps(50, success);
+        Plugin::FrameRateImplementation::_instance->UpdateFps(60, success);
+        Plugin::FrameRateImplementation::_instance->UpdateFps(70, success);
+        Plugin::FrameRateImplementation::_instance->UpdateFps(80, success);
+        
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_EQ(65, notificationHandler->GetLastAverage());
+        EXPECT_EQ(50, notificationHandler->GetLastMin());
+        EXPECT_EQ(80, notificationHandler->GetLastMax());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
+}
+
+TEST_F(FrameRateTest, OnReportFpsTimer_ZeroFpsUpdate)
+{
+    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
+        
+        bool success;
+        Plugin::FrameRateImplementation::_instance->UpdateFps(0, success);
+        
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_EQ(0, notificationHandler->GetLastAverage());
+        EXPECT_EQ(0, notificationHandler->GetLastMin());
+        EXPECT_EQ(0, notificationHandler->GetLastMax());
+        
+        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
+    }
+    
+    notificationHandler->Release();
 }

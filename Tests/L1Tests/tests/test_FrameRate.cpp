@@ -378,228 +378,160 @@ TEST_F(FrameRateTest, UpdateFps_BoundaryValue_Zero)
 
 // ...existing code...
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Success)
+TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate, "1920x1080x60");
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
+                                          "\"params\":{\"displayFrameRate\":\"1920x1080x60\"}"
+                                          "}")));
+        resetDone.SetEvent();    
+                return Core::ERROR_NONE;
             }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("1920x1080x60", receivedFrameRate);
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"1920x1080x60");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyFrameRate)
+TEST_F(FrameRateTest, onDisplayFrameRateChanged)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate, "");
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
+                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
+                                          "}")));
+        resetDone.SetEvent();    
+                return Core::ERROR_NONE;
             }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("", receivedFrameRate);
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanging_NullTerminated)
+TEST_F(FrameRateTest, onDisplayFrameRateChanging_EmptyFramerate)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    memset(eventData.data.DisplayFrameRateChange.framerate, 0, sizeof(eventData.data.DisplayFrameRateChange.framerate));
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
+                                          "\"params\":{\"displayFrameRate\":\"\"}"
+                                          "}")));
+        resetDone.SetEvent();    
+                return Core::ERROR_NONE;
             }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("", receivedFrameRate);
+    IARM_Bus_DSMgr_EventData_t eventData;
+    eventData.data.DisplayFrameRateChange.framerate[0] = '\0';
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Success)
+TEST_F(FrameRateTest, onDisplayFrameRateChanged_EmptyFramerate)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate, "1920x1080x30");
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
+                                          "\"params\":{\"displayFrameRate\":\"\"}"
+                                          "}")));
+        resetDone.SetEvent();    
+                return Core::ERROR_NONE;
             }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("1920x1080x30", receivedFrameRate);
+    IARM_Bus_DSMgr_EventData_t eventData;
+    eventData.data.DisplayFrameRateChange.framerate[0] = '\0';
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyFrameRate)
+TEST_F(FrameRateTest, onDisplayFrameRateChanging_DifferentFramerate)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate, "");
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
+                                          "\"params\":{\"displayFrameRate\":\"3840x2160x30\"}"
+                                          "}")));
+        resetDone.SetEvent();    
+                return Core::ERROR_NONE;
             }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("", receivedFrameRate);
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160x30");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanged_NullTerminated)
+TEST_F(FrameRateTest, onDisplayFrameRateChanged_DifferentFramerate)
 {
-    IARM_Bus_DSMgr_EventData_t eventData;
-    memset(eventData.data.DisplayFrameRateChange.framerate, 0, sizeof(eventData.data.DisplayFrameRateChange.framerate));
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
+                                          "\"params\":{\"displayFrameRate\":\"1920x1080x30\"}"
+                                          "}")));
+        resetDone.SetEvent();    
+                return Core::ERROR_NONE;
             }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("", receivedFrameRate);
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameRateChanging_HighFrameRate)
-{
     IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate, "3840x2160x120");
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
-            }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("3840x2160x120", receivedFrameRate);
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameRateChanged_HighFrameRate)
-{
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate, "3840x2160x120");
-    
-    string receivedFrameRate;
-    bool notificationReceived = false;
-
-    if (FrameRateNotification) {
-        NiceMock<FrameRateNotificationMock> mockNotification;
-        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
-            .WillOnce(::testing::Invoke([&](const string& frameRate) {
-                receivedFrameRate = frameRate;
-                notificationReceived = true;
-            }));
-
-        auto originalNotification = FrameRateNotification;
-        FrameRateNotification = &mockNotification;
-
-        _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
-
-        FrameRateNotification = originalNotification;
-    }
-
-    EXPECT_TRUE(notificationReceived);
-    EXPECT_EQ("3840x2160x120", receivedFrameRate);
+    strcpy(eventData.data.DisplayFrameRateChange.framerate,"1920x1080x30");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
 // ...existing code...

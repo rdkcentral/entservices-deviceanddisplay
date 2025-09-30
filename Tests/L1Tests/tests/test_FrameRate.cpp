@@ -186,7 +186,114 @@ protected:
     }
 };
 
-// ...existing code...
+typedef enum : uint32_t {
+    FrameRate_OnDisplayFrameRateChanging = 0x00000001,
+    FrameRate_OnDisplayFrameRateChanged = 0x00000002,
+    FrameRate_OnFpsEvent = 0x00000004,
+} FrameRateEventType_t;
+
+class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification {
+    private:
+        std::mutex m_mutex;
+        std::condition_variable m_condition_variable;
+        uint32_t m_event_signalled;
+        bool m_OnDisplayFrameRateChanging_signalled = false;
+        bool m_OnDisplayFrameRateChanged_signalled = false;
+        bool m_OnFpsEvent_signalled = false;
+        string m_lastFrameRate;
+        int m_lastAverage;
+        int m_lastMin;
+        int m_lastMax;
+
+        BEGIN_INTERFACE_MAP(FrameRateNotificationHandler)
+        INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
+        END_INTERFACE_MAP
+
+    public:
+        FrameRateNotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0) {}
+        ~FrameRateNotificationHandler() {}
+
+        void OnDisplayFrameRateChanging(const string& frameRate) override
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_event_signalled |= FrameRate_OnDisplayFrameRateChanging;
+            m_OnDisplayFrameRateChanging_signalled = true;
+            m_lastFrameRate = frameRate;
+            m_condition_variable.notify_one();
+        }
+
+        void OnDisplayFrameRateChanged(const string& frameRate) override
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_event_signalled |= FrameRate_OnDisplayFrameRateChanged;
+            m_OnDisplayFrameRateChanged_signalled = true;
+            m_lastFrameRate = frameRate;
+            m_condition_variable.notify_one();
+        }
+
+        void OnFpsEvent(const int average, const int min, const int max) override
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_event_signalled |= FrameRate_OnFpsEvent;
+            m_OnFpsEvent_signalled = true;
+            m_lastAverage = average;
+            m_lastMin = min;
+            m_lastMax = max;
+            m_condition_variable.notify_one();
+        }
+
+        bool WaitForRequestStatus(uint32_t timeout_ms, FrameRateEventType_t expected_status)
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            auto now = std::chrono::system_clock::now();
+            std::chrono::milliseconds timeout(timeout_ms);
+            bool signalled = false;
+
+            while (!(expected_status & m_event_signalled))
+            {
+                if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout)
+                {
+                    break;
+                }
+            }
+
+            switch(expected_status)
+            {
+                case FrameRate_OnDisplayFrameRateChanging:
+                    signalled = m_OnDisplayFrameRateChanging_signalled;
+                    break;
+                case FrameRate_OnDisplayFrameRateChanged:
+                    signalled = m_OnDisplayFrameRateChanged_signalled;
+                    break;
+                case FrameRate_OnFpsEvent:
+                    signalled = m_OnFpsEvent_signalled;
+                    break;
+                default:
+                    signalled = false;
+                    break;
+            }
+
+            return signalled;
+        }
+
+        string GetLastFrameRate() const { return m_lastFrameRate; }
+        int GetLastAverage() const { return m_lastAverage; }
+        int GetLastMin() const { return m_lastMin; }
+        int GetLastMax() const { return m_lastMax; }
+
+        void Reset()
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_event_signalled = 0;
+            m_OnDisplayFrameRateChanging_signalled = false;
+            m_OnDisplayFrameRateChanged_signalled = false;
+            m_OnFpsEvent_signalled = false;
+            m_lastFrameRate.clear();
+            m_lastAverage = 0;
+            m_lastMin = 0;
+            m_lastMax = 0;
+        }
+};
 
 TEST_F(FrameRateTest, GetDisplayFrameRate_Success)
 {
@@ -398,110 +505,113 @@ TEST_F(FrameRateTest, UpdateFps_HighValue)
     EXPECT_TRUE(response.find("true") != string::npos);
 }
 
-TEST_F(FrameRateTest, onReportFpsTimer_WithUpdates)
+TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Notification)
 {
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
     {
-        Plugin::FrameRateImplementation::_instance->UpdateFps(60, response);
-        Plugin::FrameRateImplementation::_instance->UpdateFps(58, response);
-        Plugin::FrameRateImplementation::_instance->UpdateFps(62, response);
+        FrameRateNotification->OnDisplayFrameRateChanging("3840x2160x48");
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        EXPECT_EQ("3840x2160x48", notificationHandler.GetLastFrameRate());
+    }
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Notification)
+{
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanged("1920x1080x60");
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        EXPECT_EQ("1920x1080x60", notificationHandler.GetLastFrameRate());
+    }
+}
+
+TEST_F(FrameRateTest, OnFpsEvent_Notification)
+{
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnFpsEvent(60, 58, 62);
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_EQ(60, notificationHandler.GetLastAverage());
+        EXPECT_EQ(58, notificationHandler.GetLastMin());
+        EXPECT_EQ(62, notificationHandler.GetLastMax());
+    }
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyString)
+{
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanging("");
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        EXPECT_EQ("", notificationHandler.GetLastFrameRate());
+    }
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyString)
+{
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanged("");
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        EXPECT_EQ("", notificationHandler.GetLastFrameRate());
+    }
+}
+
+TEST_F(FrameRateTest, OnFpsEvent_ZeroValues)
+{
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnFpsEvent(0, 0, 0);
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_EQ(0, notificationHandler.GetLastAverage());
+        EXPECT_EQ(0, notificationHandler.GetLastMin());
+        EXPECT_EQ(0, notificationHandler.GetLastMax());
+    }
+}
+
+TEST_F(FrameRateTest, OnFpsEvent_NegativeValues)
+{
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnFpsEvent(-1, -5, -2);
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_EQ(-1, notificationHandler.GetLastAverage());
+        EXPECT_EQ(-5, notificationHandler.GetLastMin());
+        EXPECT_EQ(-2, notificationHandler.GetLastMax());
+    }
+}
+
+TEST_F(FrameRateTest, MultipleNotifications_Sequential)
+{
+    FrameRateNotificationHandler notificationHandler;
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanging("3840x2160x48");
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
         
-        EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-        EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-    }
-}
-
-TEST_F(FrameRateTest, onReportFpsTimer_NoUpdates)
-{
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-        EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-    }
-}
-
-TEST_F(FrameRateTest, onReportFpsTimer_SingleUpdate)
-{
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->UpdateFps(30, response);
+        notificationHandler.Reset();
         
-        EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-        EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+        FrameRateNotification->OnDisplayFrameRateChanged("3840x2160x48");
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        
+        notificationHandler.Reset();
+        
+        FrameRateNotification->OnFpsEvent(48, 47, 49);
+        EXPECT_TRUE(notificationHandler.WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
     }
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePreChange_ValidFrameRate)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160x48");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePreChange_EmptyFrameRate)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePreChange_StandardResolution)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("1920x1080x60");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePostChange_ValidFrameRate)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("3840x2160x48");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePostChange_EmptyFrameRate)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePostChange_StandardResolution)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("1920x1080x60");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }

@@ -166,6 +166,41 @@ bool setGzEnabled(bool enabled)
     return retVal;
 }
 #endif
+using WakeupSrcType             = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
+using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
+using IWakeupSourceConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSourceConfigIterator>>;
+
+WakeupSrcType conv(const std::string& wakeupSrc)
+{
+    std::string src = wakeupSrc;
+    std::transform(src.begin(), src.end(), src.begin(), ::toupper);
+
+    if (src == "WAKEUPSRC_VOICE") {
+        return WakeupSrcType::WAKEUP_SRC_VOICE;
+    } else if (src == "WAKEUPSRC_PRESENCE_DETECTION") {
+        return WakeupSrcType::WAKEUP_SRC_PRESENCEDETECTED;
+    } else if (src == "WAKEUPSRC_BLUETOOTH") {
+        return WakeupSrcType::WAKEUP_SRC_BLUETOOTH;
+    } else if (src == "WAKEUPSRC_WIFI") {
+        return WakeupSrcType::WAKEUP_SRC_WIFI;
+    } else if (src == "WAKEUPSRC_IR") {
+        return WakeupSrcType::WAKEUP_SRC_IR;
+    } else if (src == "WAKEUPSRC_POWER_KEY") {
+        return WakeupSrcType::WAKEUP_SRC_POWERKEY;
+    } else if (src == "WAKEUPSRC_TIMER") {
+        return WakeupSrcType::WAKEUP_SRC_TIMER;
+    } else if (src == "WAKEUPSRC_CEC") {
+        return WakeupSrcType::WAKEUP_SRC_CEC;
+    } else if (src == "WAKEUPSRC_LAN") {
+        return WakeupSrcType::WAKEUP_SRC_LAN;
+    } else if (src == "WAKEUPSRC_RF4CE") {
+        return WakeupSrcType::WAKEUP_SRC_RF4CE;
+    } else {
+        LOGERR("Unknown wakeup source string: %s", wakeupSrc.c_str());
+        return WakeupSrcType::WAKEUP_SRC_UNKNOWN;
+    }
+}
 
 const char* getWakeupSrcString(uint32_t src)
 {
@@ -4631,57 +4666,42 @@ namespace WPEFramework {
         uint32_t SystemServices::setWakeupSrcConfiguration(const JsonObject& parameters,
                 JsonObject& response)
         {
-            bool status = false;
-            unsigned int srcType = 0x0;
-            unsigned int config = 0x0;
-            unsigned int powerState = 0x0;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-            LOGWARN(" %s: %d Entry \n",__FUNCTION__,__LINE__);
-            if (parameters.HasLabel("powerState")) 
-            {
-                string state = parameters["powerState"].String();
-                if(!state.compare("LIGHT_SLEEP"))
-                    powerState = 1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP;
-                if(!state.compare("DEEP_SLEEP"))
-                    powerState =  1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP;
-                if(!state.compare("DEFAULT"))
-                    powerState = (1<<WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) | \
-                                             (1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP);
-            }
-            else{
-                    powerState = (1<<WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) | \
-                                             (1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP);
-            }
-            LOGWARN("%s: %d Power State stored:%x \n",__FUNCTION__,__LINE__,powerState);
+            bool status                        = false;
+            Core::hresult retStatus            = Core::ERROR_GENERAL;
+            std::list<WakeupSrcConfig> configs = {};
+
+            LOGINFO(">>");
+
             if (parameters.HasLabel("wakeupSources")) 
             {
                 JsonArray wakeupSrcs = parameters["wakeupSources"].Array();
                 for(uint32_t i =0; i<wakeupSrcs.Length();i++)
                 {
                     JsonObject wakeupSrc = wakeupSrcs.Get(i).Object();
-                    for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src < WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_MAX; src<<=1)
-                    {
-                        if(wakeupSrc.HasLabel(getWakeupSrcString(src)))
-                        {
-                            srcType |= src;
-                            if (wakeupSrc[getWakeupSrcString(src)].Boolean())
-                            {
-                                config |= src;
-                            }
-                            if ((WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_WIFI == src) || (WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_LAN == src))
-                            {
-                                m_networkStandbyModeValid = false;
-                            }
-                            LOGWARN("%s: %d src %d srcType:%x  config :%x \n",__FUNCTION__,__LINE__,src, srcType ,config);
-                            break;
+
+                    auto iterator = wakeupSrc.Variants();
+
+                    while (iterator.Next()) {
+                        const std::string& wakeupSrcStr = iterator.Label();
+                        WakeupSrcType wakeupSrc = conv(wakeupSrcStr);
+
+                        if (WakeupSrcType::WAKEUP_SRC_UNKNOWN == wakeupSrc || iterator.Current().IsNull()) {
+                            continue;
                         }
+
+                        bool enabled = iterator.Current().Boolean();
+
+                        configs.push_back({wakeupSrc, enabled});
                     }
                 }
-                LOGWARN(" %s: %d srcType:%x  config :%x \n",__FUNCTION__,__LINE__,srcType ,config);
-                if(srcType) {
+
+                LOGWARN("configs size :%zu", configs.size());
+
+                if(!configs.empty()) {
                     ASSERT (_powerManagerPlugin);
                     if (_powerManagerPlugin) {
-                        retStatus = _powerManagerPlugin->SetWakeupSrcConfig(powerState, srcType, config);
+                        auto wakeupSrcIter = WakeupSourceConfigIteratorImpl::Create<IWakeupSourceConfigIterator>(configs);
+                        retStatus = _powerManagerPlugin->SetWakeupSourceConfig(wakeupSrcIter);
                     }
 
                     if (Core::ERROR_NONE == retStatus) {

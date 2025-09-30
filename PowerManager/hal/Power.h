@@ -35,8 +35,8 @@ namespace power {
         virtual ~IPlatform() {}
         virtual uint32_t SetPowerState(PowerState newState) = 0;
         virtual uint32_t GetPowerState(PowerState& state) = 0;
-        virtual uint32_t SetWakeupSrcConfig(const int powerMode, const int wakeSrcType, int config) = 0;
-        virtual uint32_t GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const = 0;
+        virtual uint32_t SetWakeupSrc(WakeupSrcType wakeSrcType, bool enabled, bool& supported) = 0;
+        virtual uint32_t GetWakeupSrc(WakeupSrcType wakeSrcType, bool& enabled, bool& supported) const = 0;
     };
 } // namespace power
 } // namespace hal

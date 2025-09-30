@@ -31,7 +31,10 @@
 
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 
-using util = PowerUtils;
+using util                           = PowerUtils;
+using WakeupSourceConfig             = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
+using IWakeupSourceConfigIterator    = WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSourceConfigIterator>>;
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
@@ -338,7 +341,7 @@ namespace Plugin {
     //    - This was introduced because immerse ui was not launching if there is a direct transition from DEEP_SLEEP => ON (see RDKEMW-5633)
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
-        static WPEFramework::Core::BinairySemaphore selfLock { 1, 1 };
+        static WPEFramework::Core::BinairySemaphore selfLock{ 1, 1 };
 
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
@@ -369,7 +372,7 @@ namespace Plugin {
             isSync = isSyncStateChange(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
-                if (_deepSleepController.IsDeepSleepInProgress() 
+                if (_deepSleepController.IsDeepSleepInProgress()
                     && (_deepSleepController.Elapsed() < std::chrono::seconds(kTransientDeepsleepThresholdSec))) {
 
                     LOGINFO("deepsleep in  progress  ignoring %s request, elapsed: %" PRId64 " sec",
@@ -669,34 +672,45 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcMask, int srcConfig)
+    bool PowerManagerImplementation::isWakeupSrcEnabled(const std::list<WakeupSourceConfig>& configs, WakeupSrcType src) const
     {
-        LOGINFO(">> PowerMode: %x, srcType: %x,  config: %x", powerMode, srcMask, srcConfig);
+        auto it = std::find_if(configs.begin(), configs.end(),
+            [&](const WakeupSourceConfig& config) { return config.wakeupSource == src; });
+
+        if (it == configs.end()) {
+            // not found
+            return false;
+        }
+        return it->enabled;
+    }
+
+    Core::hresult PowerManagerImplementation::setWakeupSourceConfig(const std::list<WakeupSourceConfig>& configs)
+    {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcMask, srcConfig);
+        uint32_t errorCode = _powerController.SetWakeupSourceConfig(configs);
 
         _apiLock.Unlock();
 
         do {
-            int powerModeCurr = 0;
-            int srcMaskCurr   = 0;
-            int srcConfigCurr = 0;
-
             if (Core::ERROR_NONE != errorCode) {
-                LOGERR("Failed to SetWakeupSrcConfig");
+                LOGERR("Failed to SetWakeupSourceConfig");
                 break;
             }
 
-            errorCode = GetWakeupSrcConfig(powerModeCurr, srcMaskCurr, srcConfigCurr);
+            std::list<WakeupSourceConfig> currConfigs;
+
+            errorCode = getWakeupSourceConfig(currConfigs);
 
             if (Core::ERROR_NONE != errorCode) {
-                LOGERR("Failed to GetWakeupSrcConfig");
+                LOGERR("Failed to getWakeupSourceConfig");
                 break;
             }
 
-            bool isWiFiEnabled = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_WIFI);
-            bool isLanEnabled  = bool (srcConfigCurr & WakeupSrcType::WAKEUP_SRC_LAN);
+            bool isWiFiEnabled =  isWakeupSrcEnabled(currConfigs, WakeupSrcType::WAKEUP_SRC_WIFI);
+            bool isLanEnabled  =  isWakeupSrcEnabled(currConfigs, WakeupSrcType::WAKEUP_SRC_LAN);
 
             // Update nwStandbyMode only if Wi-Fi and LAN are set to same state (both ON or both OFF).
             if (isWiFiEnabled != isLanEnabled) {
@@ -713,7 +727,6 @@ namespace Plugin {
                 break;
             }
 
-
             bool nwStandbyMode = isWiFiEnabled && isLanEnabled;
 
             if (nwStandbyMode == currNwStandbyMode) {
@@ -729,15 +742,57 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const
+    Core::hresult PowerManagerImplementation::SetWakeupSourceConfig(IWakeupSourceConfigIterator* wakeupSources)
     {
-        LOGINFO(">> Power Mode stored: %x, srcType: %x,  config: %x", powerMode, srcType, config);
+        uint32_t errorCode = Core::ERROR_NONE;
+        WakeupSourceConfig config{ WakeupSrcType::WAKEUP_SRC_UNKNOWN, false };
 
+        std::list<WakeupSourceConfig> configs;
+
+        LOGINFO(">>");
+
+        // create std::list from Thunder iterator
+        while (wakeupSources->Next(config)) {
+            if (WakeupSrcType::WAKEUP_SRC_UNKNOWN == config.wakeupSource) {
+                errorCode = Core::ERROR_INVALID_PARAMETER;
+                break;
+            }
+            configs.push_back(config);
+        }
+
+        if (Core::ERROR_NONE == errorCode) {
+            errorCode = setWakeupSourceConfig(configs);
+        }
+
+        LOGINFO("<< errorCode: %d", errorCode);
+
+        return errorCode;
+    }
+
+    Core::hresult PowerManagerImplementation::getWakeupSourceConfig(std::list<WakeupSourceConfig>& configs) const
+    {
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
+        uint32_t errorCode = _powerController.GetWakeupSourceConfig(configs);
 
         _apiLock.Unlock();
+
+        LOGINFO("<< errorCode: %d", errorCode);
+
+        return errorCode;
+    }
+
+    Core::hresult PowerManagerImplementation::GetWakeupSourceConfig(IWakeupSourceConfigIterator*& wakeupSources) const
+    {
+        std::list<WakeupSourceConfig> configs;
+
+        LOGINFO(">>");
+
+        uint32_t errorCode = getWakeupSourceConfig(configs);
+
+        if (Core::ERROR_NONE == errorCode) {
+            wakeupSources = WakeupSourceConfigIteratorImpl::Create<IWakeupSourceConfigIterator>(configs);
+        }
 
         LOGINFO("<< errorCode: %d", errorCode);
 

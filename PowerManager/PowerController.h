@@ -82,8 +82,9 @@ public:
 
     uint32_t SetNetworkStandbyMode(const bool standbyMode);
     uint32_t GetNetworkStandbyMode(bool& standbyMode) const;
-    uint32_t SetWakeupSrcConfig(const int powerMode, const int srcType, int config);
-    uint32_t GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const;
+    uint32_t SetWakeupSourceConfig(const std::list<WPEFramework::Exchange::IPowerManager::WakeupSourceConfig>& configs);
+    uint32_t GetWakeupSourceConfig(std::list<WPEFramework::Exchange::IPowerManager::WakeupSourceConfig>& configs) const;
+    uint32_t GetWakeupSourceConfig(int& powerMode, int& srcType, int& config) const;
     uint32_t Reboot(const string& requestor, const string& reasonCustom, const string& reasonOther);
     uint32_t SetDeepSleepTimer(const int timeOut);
 

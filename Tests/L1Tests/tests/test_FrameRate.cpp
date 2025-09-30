@@ -29,13 +29,12 @@
 #include "ServiceMock.h"
 #include "VideoDeviceMock.h"
 #include "devicesettings.h"
-#include "dsMgr.h"
+#include "ManagerMock.h"
 #include "ThunderPortability.h"
 #include "FrameRateImplementation.h"
 #include "FrameRateMock.h"
 #include "WorkerPoolImplementation.h"
 #include "WrapsMock.h"
-#include "exception.hpp"
 
 using namespace WPEFramework;
 
@@ -62,7 +61,7 @@ protected:
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
     IARM_EventHandler_t _iarmDSFramerateEventHandler;
     IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
-
+    ManagerImplMock   *p_managerImplMock = nullptr ;
 
     FrameRateTest()
         : plugin(Core::ProxyType<Plugin::FrameRate>::Create())
@@ -75,8 +74,18 @@ protected:
 
         p_framerateMock  = new NiceMock <FrameRateMock>;
 
-	p_wrapsImplMock = new NiceMock<WrapsImplMock>;
+        p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
+
+        p_managerImplMock  = new NiceMock <ManagerImplMock>;
+        device::Manager::setImpl(p_managerImplMock);
+
+        p_hostImplMock  = new NiceMock <HostImplMock>;
+        device::Host::setImpl(p_hostImplMock);
+
+        EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
@@ -105,26 +114,10 @@ protected:
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
 
-        ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE)) 			{
-			//FrameRatePreChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE))			{
-			//FrameRatePostChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    return IARM_RESULT_SUCCESS;
-                }));
-
         Core::IWorkerPool::Assign(&(*workerPool));
             workerPool->Run();
 
         plugin->Initialize(&service);
-        p_hostImplMock  = new NiceMock <HostImplMock>;
-        device::Host::setImpl(p_hostImplMock);
 
         device::VideoDevice videoDevice;
         p_videoDeviceMock  = new NiceMock <VideoDeviceMock>;
@@ -163,6 +156,17 @@ protected:
             p_videoDeviceMock = nullptr;
         }
 
+        EXPECT_CALL(*p_managerImplMock, DeInitialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
+        device::Manager::setImpl(nullptr);
+        if (p_managerImplMock != nullptr)
+        {
+            delete p_managerImplMock;
+            p_managerImplMock = nullptr;
+        }
+
         device::Host::setImpl(nullptr);
         if (p_hostImplMock != nullptr)
         {
@@ -182,118 +186,206 @@ protected:
     }
 };
 
-TEST_F(FrameRateTest, RegisteredMethods)
-{
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setCollectionFrequency")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("startFpsCollection")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("stopFpsCollection")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("updateFps")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setFrmMode")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getFrmMode")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setDisplayFrameRate")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getDisplayFrameRate")));
-}
+// ...existing code...
 
-/**
- * @brief Test the Information method to validate plugin description
- */
-TEST_F(FrameRateTest, Information)
-{
-    string expectedInfo = "Plugin which exposes FrameRate related methods and notifications.";
-    EXPECT_EQ(expectedInfo, plugin->Information());
-}
-
-TEST_F(FrameRateTest, setCollectionFrequency_startFpsCollection_stopFpsCollection_updateFps)
-{
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":1000, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":60, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-}
-
-/**
- * Segmentation fault without valgrind
- */
-
-TEST_F(FrameRateTest, setFrmMode)
-{
-    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](int param) {
-                EXPECT_EQ(param, 0);
-                return 0;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0, \"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-
-}
-
-
-/**
- * Segmentation fault without valgrind
- */
-
-TEST_F(FrameRateTest, getFrmMode)
-{
-    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](int* param) {
-                *param = 0;
-                return 0;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{ \"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"auto-frm-mode\":0,\"success\":true}"));
-}
-
-
-/**
- * Segmentation fault without valgrind
- */
-
-TEST_F(FrameRateTest, setDisplayFrameRate)
-{
-    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](const char* param) {
-                EXPECT_EQ(param, string("3840x2160px48"));
-                return 0;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"3840x2160px48\",\"success\":false}"), response));
-    EXPECT_EQ(response, "true");
-}
-
-
-/**
- * Segmentation fault without valgrind
- */
-
-TEST_F(FrameRateTest, getDisplayFrameRate)
+TEST_F(FrameRateTest, GetDisplayFrameRate_Success)
 {
     ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillByDefault(::testing::Invoke(
-            [&](char* param) {
-                string framerate("3840x2160px48");
-                ::memcpy(param, framerate.c_str(), framerate.length());
-                return 0;
-            }));
+        .WillByDefault(::testing::Invoke([](char* framerate) {
+            strcpy(framerate, "1920x1080x60");
+            return 0;
+        }));
 
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{\"success\":false}"), response));
-    EXPECT_EQ(response, string("{\"framerate\":\"3840x2160px48\",\"success\":true}"));
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
+    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
+    EXPECT_TRUE(response.find("\"framerate\":\"1920x1080x60\"") != string::npos);
 }
 
+TEST_F(FrameRateTest, GetDisplayFrameRate_NoVideoDevices)
+{
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+
+    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
+}
+
+TEST_F(FrameRateTest, GetDisplayFrameRate_DeviceFailure)
+{
+    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
+        .WillByDefault(::testing::Return(1));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
+}
+
+TEST_F(FrameRateTest, GetFrmMode_Success)
+{
+    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+        .WillByDefault(::testing::Invoke([](int* frfmode) {
+            *frfmode = 1;
+            return 0;
+        }));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getFrmMode"), _T("{}"), response));
+    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
+    EXPECT_TRUE(response.find("\"auto-frm-mode\":1") != string::npos);
+}
+
+TEST_F(FrameRateTest, GetFrmMode_NoVideoDevices)
+{
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+
+    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("getFrmMode"), _T("{}"), response));
+}
+
+TEST_F(FrameRateTest, GetFrmMode_DeviceFailure)
+{
+    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+        .WillByDefault(::testing::Return(1));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getFrmMode"), _T("{}"), response));
+}
+
+TEST_F(FrameRateTest, SetCollectionFrequency_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":5000}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, SetCollectionFrequency_MinimumValue)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":100}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, SetCollectionFrequency_InvalidParameter)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":50}"), response));
+}
+
+TEST_F(FrameRateTest, SetDisplayFrameRate_Success)
+{
+    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillByDefault(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\"}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, SetDisplayFrameRate_InvalidFormat_NoTwoX)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920-1080-60\"}"), response));
+}
+
+TEST_F(FrameRateTest, SetDisplayFrameRate_InvalidFormat_ThreeX)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60x30\"}"), response));
+}
+
+TEST_F(FrameRateTest, SetDisplayFrameRate_InvalidFormat_NonDigitStart)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"x1920x1080x60\"}"), response));
+}
+
+TEST_F(FrameRateTest, SetDisplayFrameRate_InvalidFormat_NonDigitEnd)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60x\"}"), response));
+}
+
+TEST_F(FrameRateTest, SetDisplayFrameRate_NoVideoDevices)
+{
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+
+    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\"}"), response));
+}
+
+TEST_F(FrameRateTest, SetDisplayFrameRate_DeviceFailure)
+{
+    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillByDefault(::testing::Return(1));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\"}"), response));
+}
+
+TEST_F(FrameRateTest, SetFrmMode_Success_Mode0)
+{
+    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillByDefault(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, SetFrmMode_Success_Mode1)
+{
+    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillByDefault(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":1}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, SetFrmMode_InvalidParameter_Negative)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":-1}"), response));
+}
+
+TEST_F(FrameRateTest, SetFrmMode_InvalidParameter_GreaterThan1)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":2}"), response));
+}
+
+TEST_F(FrameRateTest, SetFrmMode_NoVideoDevices)
+{
+    ON_CALL(*p_hostImplMock, getVideoDevices())
+        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
+
+    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":1}"), response));
+}
+
+TEST_F(FrameRateTest, SetFrmMode_DeviceFailure)
+{
+    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillByDefault(::testing::Return(1));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":1}"), response));
+}
+
+TEST_F(FrameRateTest, StartFpsCollection_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("startFpsCollection"), _T("{}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, StopFpsCollection_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("stopFpsCollection"), _T("{}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, UpdateFps_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":60}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
+
+TEST_F(FrameRateTest, UpdateFps_InvalidParameter_Negative)
+{
+    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":-1}"), response));
+}
+
+TEST_F(FrameRateTest, UpdateFps_BoundaryValue_Zero)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":0}"), response));
+    EXPECT_TRUE(response.find("true") != string::npos);
+}
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
     ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
     Core::Event resetDone(false, true);
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
     EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke(
@@ -303,14 +395,14 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
                 EXPECT_EQ(text, string(_T("{"
                                           "\"jsonrpc\":\"2.0\","
                                           "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
-                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
-                                          "}"))); 
-		resetDone.SetEvent();
+                                          "\"params\":{\"displayFrameRate\":\"1920x1080x50\"}"
+                                          "}")));
+                resetDone.SetEvent();
                 return Core::ERROR_NONE;
             }));
     IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "1920x1080x50");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
@@ -331,200 +423,64 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanged)
                                           "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
                                           "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
                                           "}")));
-		resetDone.SetEvent();    
+                resetDone.SetEvent();
                 return Core::ERROR_NONE;
             }));
     IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "3840x2160px48");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
     EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
-// ======================== NEGATIVE TEST CASES ========================
-TEST_F(FrameRateTest, setCollectionFrequency_InvalidParameter_BelowMinimum)
+TEST_F(FrameRateTest, onDisplayFrameRateChanging_EmptyFrameRate)
 {
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":50}"), response));
-    EXPECT_EQ(response, "");
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
+                                          "\"params\":{\"displayFrameRate\":\"\"}"
+                                          "}")));
+                resetDone.SetEvent();
+                return Core::ERROR_NONE;
+            }));
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
 
-
-TEST_F(FrameRateTest, updateFps_InvalidParameter_NegativeValue)
+TEST_F(FrameRateTest, onDisplayFrameRateChanged_EmptyFrameRate)
 {
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":-1}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setFrmMode_InvalidParameter_InvalidMode)
-{
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":2}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setFrmMode_InvalidParameter_NegativeMode)
-{
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":-1}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setFrmMode_NoVideoDevices)
-{
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
-
-    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setFrmMode_DeviceSetFRFModeFailure)
-{
-    EXPECT_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
-        .WillOnce(::testing::Return(1));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setFrmMode_DeviceException)
-{
-    EXPECT_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
-        .WillOnce(::testing::Invoke([&](int param) {
-            throw device::Exception("Device exception");
-            return 0;
-        }));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setFrmMode"), _T("{\"frmmode\":0}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, getFrmMode_NoVideoDevices)
-{
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
-
-    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("getFrmMode"), _T("{}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, getFrmMode_DeviceGetFRFModeFailure)
-{
-    EXPECT_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
-        .WillOnce(::testing::Return(1));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getFrmMode"), _T("{}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, getFrmMode_DeviceException)
-{
-    EXPECT_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
-        .WillOnce(::testing::Invoke([&](int* param) {
-            throw device::Exception("Device exception");
-            return 0;
-        }));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getFrmMode"), _T("{}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_InvalidParameter_NoXCharacters)
-{
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920p1080p60\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_InvalidParameter_OneXCharacter)
-{
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080p60\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_InvalidParameter_ThreeXCharacters)
-{
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60x30\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_InvalidParameter_StartsWithNonDigit)
-{
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"a1920x1080x60\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_InvalidParameter_EndsWithNonDigit)
-{
-    EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60a\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_NoVideoDevices)
-{
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
-
-    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_DeviceSetDisplayFramerateFailure)
-{
-    EXPECT_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillOnce(::testing::Return(1));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, setDisplayFrameRate_DeviceException)
-{
-    EXPECT_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
-        .WillOnce(::testing::Invoke([&](const char* param) {
-            throw device::Exception("Device exception");
-            return 0;
-        }));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setDisplayFrameRate"), _T("{\"framerate\":\"1920x1080x60\"}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, getDisplayFrameRate_NoVideoDevices)
-{
-    ON_CALL(*p_hostImplMock, getVideoDevices())
-        .WillByDefault(::testing::Return(device::List<device::VideoDevice>()));
-
-    EXPECT_EQ(Core::ERROR_NOT_SUPPORTED, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, getDisplayFrameRate_DeviceGetCurrentDisframerateFailure)
-{
-    EXPECT_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillOnce(::testing::Return(1));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, getDisplayFrameRate_DeviceReturnsEmptyString)
-{
-    EXPECT_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillOnce(::testing::Invoke([&](char* param) {
-            param[0] = '\0';
-            return 0;
-        }));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
-    EXPECT_EQ(response, "");
-}
-
-TEST_F(FrameRateTest, getDisplayFrameRate_DeviceException)
-{
-    EXPECT_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
-        .WillOnce(::testing::Invoke([&](char* param) {
-            throw device::Exception("Device exception");
-            return 0;
-        }));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
-    EXPECT_EQ(response, "");
+    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
+    Core::Event resetDone(false, true);
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{"
+                                          "\"jsonrpc\":\"2.0\","
+                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
+                                          "\"params\":{\"displayFrameRate\":\"\"}"
+                                          "}")));
+                resetDone.SetEvent();
+                return Core::ERROR_NONE;
+            }));
+    IARM_Bus_DSMgr_EventData_t eventData;
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "");
+    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }

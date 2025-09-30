@@ -208,14 +208,29 @@ class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification 
         int m_lastAverage;
         int m_lastMin;
         int m_lastMax;
+        mutable uint32_t m_refCount;
 
         BEGIN_INTERFACE_MAP(FrameRateNotificationHandler)
         INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
         END_INTERFACE_MAP
 
     public:
-        FrameRateNotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0) {}
+        FrameRateNotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0), m_refCount(1) {}
         ~FrameRateNotificationHandler() {}
+
+        void AddRef() const override
+        {
+            Core::InterlockedIncrement(m_refCount);
+        }
+
+        uint32_t Release() const override
+        {
+            uint32_t result = Core::InterlockedDecrement(m_refCount);
+            if (result == 0) {
+                delete this;
+            }
+            return result;
+        }
 
         void OnDisplayFrameRateChanging(const string& frameRate) override
         {
@@ -298,6 +313,7 @@ class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification 
             m_lastMax = 0;
         }
 };
+
 
 TEST_F(FrameRateTest, GetDisplayFrameRate_Success)
 {

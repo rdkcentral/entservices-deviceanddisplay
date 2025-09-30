@@ -73,7 +73,7 @@ install(TARGETS ${MODULE_NAME}
 #    HdmiIn.cpp
 #)
 
-add_executable(${PLUGIN_IMPLEMENTATION}
+add_library(${PLUGIN_IMPLEMENTATION}
     Module.cpp
     DeviceSettingsManagerImp.cpp
     fpd.cpp

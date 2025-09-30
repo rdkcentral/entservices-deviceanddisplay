@@ -376,24 +376,26 @@ TEST_F(FrameRateTest, UpdateFps_BoundaryValue_Zero)
     EXPECT_TRUE(response.find("true") != string::npos);
 }
 
+// ...existing code...
+
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Success)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = (char*)"1920x1080x60";
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "1920x1080x60");
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanging(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
 
@@ -407,21 +409,21 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Success)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = (char*)"";
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "");
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanging(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
 
@@ -432,24 +434,24 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyFrameRate)
     EXPECT_EQ("", receivedFrameRate);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanging_NullFrameRate)
+TEST_F(FrameRateTest, OnDisplayFrameRateChanging_NullTerminated)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = nullptr;
+    memset(eventData.data.DisplayFrameRateChange.framerate, 0, sizeof(eventData.data.DisplayFrameRateChange.framerate));
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanging(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
 
@@ -463,21 +465,21 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_NullFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Success)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = (char*)"1920x1080x30";
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "1920x1080x30");
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanged(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
 
@@ -491,21 +493,21 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Success)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = (char*)"";
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "");
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanged(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
 
@@ -516,24 +518,24 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyFrameRate)
     EXPECT_EQ("", receivedFrameRate);
 }
 
-TEST_F(FrameRateTest, OnDisplayFrameRateChanged_NullFrameRate)
+TEST_F(FrameRateTest, OnDisplayFrameRateChanged_NullTerminated)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = nullptr;
+    memset(eventData.data.DisplayFrameRateChange.framerate, 0, sizeof(eventData.data.DisplayFrameRateChange.framerate));
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanged(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
 
@@ -547,21 +549,21 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_NullFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_HighFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = (char*)"3840x2160x120";
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "3840x2160x120");
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanging(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanging(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData, sizeof(eventData));
 
@@ -575,21 +577,21 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_HighFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_HighFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.DisplayFrameRateChange.framerate = (char*)"3840x2160x120";
+    strcpy(eventData.data.DisplayFrameRateChange.framerate, "3840x2160x120");
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        auto mockNotification = std::make_shared<FrameRateNotificationMock>();
-        EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanged(::testing::_))
+        NiceMock<FrameRateNotificationMock> mockNotification;
+        EXPECT_CALL(mockNotification, OnDisplayFrameRateChanged(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
                 receivedFrameRate = frameRate;
                 notificationReceived = true;
             }));
 
         auto originalNotification = FrameRateNotification;
-        FrameRateNotification = mockNotification.get();
+        FrameRateNotification = &mockNotification;
 
         _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData, sizeof(eventData));
 
@@ -599,3 +601,5 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_HighFrameRate)
     EXPECT_TRUE(notificationReceived);
     EXPECT_EQ("3840x2160x120", receivedFrameRate);
 }
+
+// ...existing code...

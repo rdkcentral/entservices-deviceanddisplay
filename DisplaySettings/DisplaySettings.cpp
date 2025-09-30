@@ -5818,7 +5818,7 @@ void DisplaySettings::sendMsgThread()
            LOGINFO("Received OnHDMIInEventHotPlug Port:%d, connected:%d", hdmiin_hotplug_port, hdmiin_hotplug_conn);
 
            if(!DisplaySettings::_instance) {
-               LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
+               LOGERR("DisplaySettings::OnHdmiInEventHotPlug DisplaySettings::_instance is NULL\n");
                return;
            }
            if(hdmiin_hotplug_port == hdmiArcPortId) //HDMI ARC/eARC Port Handling

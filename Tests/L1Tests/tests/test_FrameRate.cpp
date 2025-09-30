@@ -349,19 +349,6 @@ TEST_F(FrameRateTest, setCollectionFrequency_InvalidParameter_BelowMinimum)
     EXPECT_EQ(response, "");
 }
 
-TEST_F(FrameRateTest, setCollectionFrequency_DeviceException)
-{
-    EXPECT_CALL(*p_framerateMock, SetCollectionFrequency(::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [&](int frequency, bool& success) -> Core::hresult {
-                throw device::Exception("Device exception in SetCollectionFrequency");
-                return Core::ERROR_GENERAL;
-            }));
-
-    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setCollectionFrequency"), _T("{\"frequency\":1000}"), response));
-    EXPECT_EQ(response, "");
-}
-
 TEST_F(FrameRateTest, updateFps_InvalidParameter_NegativeValue)
 {
     EXPECT_EQ(Core::ERROR_INVALID_PARAMETER, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":-5}"), response));

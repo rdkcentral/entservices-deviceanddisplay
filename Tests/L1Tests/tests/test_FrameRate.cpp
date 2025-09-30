@@ -398,111 +398,109 @@ TEST_F(FrameRateTest, UpdateFps_HighValue)
     EXPECT_TRUE(response.find("true") != string::npos);
 }
 
-// ...existing code...
+TEST_F(FrameRateTest, onReportFpsTimer_WithUpdates)
+{
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->UpdateFps(60, response);
+        Plugin::FrameRateImplementation::_instance->UpdateFps(58, response);
+        Plugin::FrameRateImplementation::_instance->UpdateFps(62, response);
+        
+        EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+    }
+}
 
-TEST_F(FrameRateTest, onDisplayFrameRateChanging)
+TEST_F(FrameRateTest, onReportFpsTimer_NoUpdates)
+{
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+    }
+}
+
+TEST_F(FrameRateTest, onReportFpsTimer_SingleUpdate)
+{
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->UpdateFps(30, response);
+        
+        EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+    }
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePreChange_ValidFrameRate)
 {
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
     
-    if (FrameRateNotification != nullptr)
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
-        FrameRateNotification->OnDisplayFrameRateChanging("3840x2160px48");
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160x48");
     }
     
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, onDisplayFrameRateChanged)
+TEST_F(FrameRateTest, OnDisplayFrameratePreChange_EmptyFrameRate)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePreChange_StandardResolution)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
+    {
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("1920x1080x60");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, OnDisplayFrameratePostChange_ValidFrameRate)
 {
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
     
-    if (FrameRateNotification != nullptr)
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
-        FrameRateNotification->OnDisplayFrameRateChanged("3840x2160px48");
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("3840x2160x48");
     }
     
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, onFpsEvent)
-{
-    EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnFpsEvent(60, 58, 62);
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, onDisplayFrameRateChanging_EmptyFrameRate)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnDisplayFrameRateChanging("");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, onDisplayFrameRateChanged_EmptyFrameRate)
+TEST_F(FrameRateTest, OnDisplayFrameratePostChange_EmptyFrameRate)
 {
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
     
-    if (FrameRateNotification != nullptr)
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
-        FrameRateNotification->OnDisplayFrameRateChanged("");
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("");
     }
     
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }
 
-TEST_F(FrameRateTest, onFpsEvent_ZeroValues)
-{
-    EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnFpsEvent(0, 0, 0);
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, onFpsEvent_NegativeValues)
-{
-    EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnFpsEvent(-1, -5, -2);
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, onDisplayFrameRateChanging_StandardResolution)
-{
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-    
-    if (FrameRateNotification != nullptr)
-    {
-        FrameRateNotification->OnDisplayFrameRateChanging("1920x1080x60");
-    }
-    
-    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
-}
-
-TEST_F(FrameRateTest, onDisplayFrameRateChanged_StandardResolution)
+TEST_F(FrameRateTest, OnDisplayFrameratePostChange_StandardResolution)
 {
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
     
-    if (FrameRateNotification != nullptr)
+    if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
-        FrameRateNotification->OnDisplayFrameRateChanged("1920x1080x60");
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("1920x1080x60");
     }
     
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);

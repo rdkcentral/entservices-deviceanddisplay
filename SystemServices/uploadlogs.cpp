@@ -33,37 +33,15 @@
 #include "UtilsfileExists.h"
 #include "secure_wrapper.h"
 
-#define TR181_MTLS_LOGUPLOAD "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.MTLS.mTlsLogUpload.Enable"
-
 namespace WPEFramework
 {
 namespace Plugin
 {
 namespace UploadLogs
 {
-bool checkXpkiMtlsBasedLogUpload(){
-    if ( Utils::fileExists("/usr/bin/rdkssacli") &&
-            Utils::fileExists("/opt/certs/devicecert_1.pk12") ){
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
 bool checkmTlsLogUploadFlag(){
-    bool ret=false;
-    RFC_ParamData_t param;
-    WDMP_STATUS wdmpStatus = getRFCParameter(const_cast<char *>("SystemServices"),TR181_MTLS_LOGUPLOAD, &param);
-    if (wdmpStatus == WDMP_SUCCESS || wdmpStatus == WDMP_ERR_DEFAULT_VALUE){
-        if( param.type == WDMP_BOOLEAN ){
-            if(strncasecmp(param.value,"true",4) == 0 ){
-                ret=true;
-            }
-        }
-    }
-    LOGINFO(" mTlsLogUpload.Enable = %s , call value %d ", (ret == true)?"true":"false", wdmpStatus);
-    return ret;
+    LOGINFO("MTLS is defaulted");
+    return true;
 }
 
 bool getDCMconfigDetails(string &upload_protocol,string &httplink, string &uploadCheck){
@@ -135,7 +113,7 @@ std::int32_t getUploadLogParameters(string &tftp_server, string &upload_protocol
 
    upload_httplink = httplink;
 
-   if ( mTlsLogUpload || checkXpkiMtlsBasedLogUpload() ){
+   if ( mTlsLogUpload ){
        //some product's endpoint dont use /secure extension
        if( "true" != force_mtls ){
         //append secure with the url

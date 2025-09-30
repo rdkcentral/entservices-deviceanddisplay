@@ -379,13 +379,12 @@ TEST_F(FrameRateTest, UpdateFps_BoundaryValue_Zero)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Success)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePreChange.framerate = (char*)"1920x1080x60";
+    eventData.data.DisplayFrameRateChange.framerate = (char*)"1920x1080x60";
     
     string receivedFrameRate;
     bool notificationReceived = false;
 
     if (FrameRateNotification) {
-        // Create a mock notification to capture the event
         auto mockNotification = std::make_shared<FrameRateNotificationMock>();
         EXPECT_CALL(*mockNotification, OnDisplayFrameRateChanging(::testing::_))
             .WillOnce(::testing::Invoke([&](const string& frameRate) {
@@ -393,7 +392,6 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Success)
                 notificationReceived = true;
             }));
 
-        // Temporarily replace the notification for this test
         auto originalNotification = FrameRateNotification;
         FrameRateNotification = mockNotification.get();
 
@@ -409,7 +407,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Success)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePreChange.framerate = (char*)"";
+    eventData.data.DisplayFrameRateChange.framerate = (char*)"";
     
     string receivedFrameRate;
     bool notificationReceived = false;
@@ -437,7 +435,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_NullFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePreChange.framerate = nullptr;
+    eventData.data.DisplayFrameRateChange.framerate = nullptr;
     
     string receivedFrameRate;
     bool notificationReceived = false;
@@ -465,7 +463,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_NullFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Success)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePostChange.framerate = (char*)"1920x1080x30";
+    eventData.data.DisplayFrameRateChange.framerate = (char*)"1920x1080x30";
     
     string receivedFrameRate;
     bool notificationReceived = false;
@@ -493,7 +491,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Success)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePostChange.framerate = (char*)"";
+    eventData.data.DisplayFrameRateChange.framerate = (char*)"";
     
     string receivedFrameRate;
     bool notificationReceived = false;
@@ -521,7 +519,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_NullFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePostChange.framerate = nullptr;
+    eventData.data.DisplayFrameRateChange.framerate = nullptr;
     
     string receivedFrameRate;
     bool notificationReceived = false;
@@ -549,7 +547,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_NullFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_HighFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePreChange.framerate = (char*)"3840x2160x120";
+    eventData.data.DisplayFrameRateChange.framerate = (char*)"3840x2160x120";
     
     string receivedFrameRate;
     bool notificationReceived = false;
@@ -577,7 +575,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_HighFrameRate)
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_HighFrameRate)
 {
     IARM_Bus_DSMgr_EventData_t eventData;
-    eventData.data.displayFrameratePostChange.framerate = (char*)"3840x2160x120";
+    eventData.data.DisplayFrameRateChange.framerate = (char*)"3840x2160x120";
     
     string receivedFrameRate;
     bool notificationReceived = false;

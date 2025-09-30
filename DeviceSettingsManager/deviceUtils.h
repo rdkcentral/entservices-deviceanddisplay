@@ -24,5 +24,12 @@
 
 struct CallbackBundle {
     std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> OnHDMIInHotPlugEvent;
+    std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus)> OnHDMIInSignalStatusEvent;
+    std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> OnHDMIInStatusEvent;
+    std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution)> OnHDMIInVideoModeUpdateEvent;
+    std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> OnHDMIInAllmStatusEvent;
+    std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType)> OnHDMIInAVIContentTypeEvent;
+    std::function<void(int32_t, int32_t)> OnHDMIInAVLatencyEvent;
+    std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType)> OnHDMIInVRRStatusEvent;
     // Add other callbacks as needed
 };

@@ -19,10 +19,10 @@
 #pragma once
 
 #include <cstdint>     // for uint32_t
-#include <memory>      // for unique_ptr, default_delete
-#include <string>      // for basic_string, string
+//#include <memory>      // for unique_ptr, default_delete
+//#include <string>      // for basic_string, string
 #include <type_traits> // for is_base_of
-#include <utility>     // for forward
+//#include <utility>     // for forward
 
 #include <core/Portability.h>         // for string, ErrorCodes
 #include <core/Proxy.h>               // for ProxyType
@@ -33,7 +33,7 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-#include <interfaces/Ids.h>
+//#include <interfaces/Ids.h>
 #include <interfaces/IDeviceSettingsManager.h>
 
 //#include "IHDMIInPortConnectionStatusIterator.h"
@@ -48,8 +48,8 @@
 #include "dsHdmiIn.h"
 #include "dsError.h"*/
 
-#include "list.hpp"
-#include "host.hpp"
+//#include "list.hpp"
+//#include "host.hpp"
 #include "exception.hpp"
 #include "manager.hpp"
 #include "hostPersistence.hpp"
@@ -95,14 +95,14 @@ public:
         public:
             virtual ~INotification() = default;
 
-            virtual void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) = 0;
-            virtual void OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus) = 0;
-            virtual void OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented) = 0;
-            virtual void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) = 0;
-            virtual void OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus) = 0;
-            virtual void OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType) = 0;
-            virtual void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) = 0;
-            virtual void OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType) = 0;
+            virtual void OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected) = 0;
+            virtual void OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus) = 0;
+            virtual void OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented) = 0;
+            virtual void OnHDMIInVideoModeUpdateNotification(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) = 0;
+            virtual void OnHDMIInAllmStatusNotification(const HDMIInPort port, const bool allmStatus) = 0;
+            virtual void OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType) = 0;
+            virtual void OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay) = 0;
+            virtual void OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType) = 0;
             //virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) = 0;
             //virtual void onDeepSleepForThermalChange() = 0;
     };
@@ -154,5 +154,13 @@ public:
     }
 
     void OnHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected);
+    void OnHDMIInSignalStatusEvent(const HDMIInPort port, const HDMIInSignalStatus signalStatus);
+    void OnHDMIInStatusEvent(const HDMIInPort activePort, const bool isPresented);
+    void OnHDMIInVideoModeUpdateEvent(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution);
+    void OnHDMIInAllmStatusEvent(const HDMIInPort port, const bool allmStatus);
+    void OnHDMIInAVIContentTypeEvent(const HDMIInPort port, const HDMIInAviContentType aviContentType);
+    void OnHDMIInAVLatencyEvent(const int32_t audioDelay, const int32_t videoDelay);
+    void OnHDMIInVRRStatusEvent(const HDMIInPort port, const HDMIInVRRType vrrType);
+    ~HdmiIn() {};
 
 };

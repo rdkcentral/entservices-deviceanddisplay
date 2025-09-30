@@ -47,6 +47,9 @@ namespace Plugin {
                                    , public HdmiIn::INotification
     {
     public:
+    // Minimal implementations to satisfy IReferenceCounted
+    uint32_t AddRef() const override { return 1; }
+    uint32_t Release() const override { return 1; }
 
         // We do not allow this plugin to be copied !!
         DeviceSettingsManagerImp();
@@ -58,10 +61,10 @@ namespace Plugin {
         DeviceSettingsManagerImp(const DeviceSettingsManagerImp&)            = delete;
         DeviceSettingsManagerImp& operator=(const DeviceSettingsManagerImp&) = delete;
 
-        BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
-        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IFPD)
-        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn)
-        END_INTERFACE_MAP
+    BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
+    INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IFPD)
+    INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn)
+    END_INTERFACE_MAP
 
     public:
         class EXTERNAL LambdaJob : public Core::IDispatch {
@@ -70,21 +73,13 @@ namespace Plugin {
                 : _impl(impl)
                 , _lambda(std::move(lambda))
             {
-                if (_impl != nullptr) {
-                    _impl->AddRef();
-                }
             }
 
         public:
             LambdaJob()                            = delete;
             LambdaJob(const LambdaJob&)            = delete;
             LambdaJob& operator=(const LambdaJob&) = delete;
-            ~LambdaJob()
-            {
-                if (_impl != nullptr) {
-                    _impl->Release();
-                }
-            }
+            ~LambdaJob() {}
 
             static Core::ProxyType<Core::IDispatch> Create(DeviceSettingsManagerImp* impl, std::function<void()> lambda)
             {
@@ -106,8 +101,8 @@ namespace Plugin {
         void InitializeIARM();
 
         // FPD methods
-        Core::hresult Register(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
-        Core::hresult Unregister(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
+        virtual Core::hresult Register(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
+        virtual Core::hresult Unregister(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
         Core::hresult SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) override;
         Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) override;
         Core::hresult SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) override;
@@ -125,8 +120,8 @@ namespace Plugin {
         Core::hresult SetFPDMode(const FPDMode fpdMode) override;
 
         // HDMIIn methods
-        Core::hresult Register(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
-        Core::hresult Unregister(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
+        virtual Core::hresult Register(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
+        virtual Core::hresult Unregister(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
         Core::hresult GetHDMIInNumbefOfInputs(int32_t &count) override;
         Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) override;
         Core::hresult SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) override;
@@ -163,20 +158,18 @@ namespace Plugin {
         template <typename T>
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
-        virtual void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) override;
-        virtual void OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override;
-        virtual void OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented) override;
-        virtual void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) override;
-        virtual void OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus) override;
-        virtual void OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType) override;
-        virtual void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) override;
-        virtual void OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType) override;
+        virtual void OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected) override;
+        virtual void OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override;
+        virtual void OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented) override;
+        virtual void OnHDMIInVideoModeUpdateNotification(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) override;
+        virtual void OnHDMIInAllmStatusNotification(const HDMIInPort port, const bool allmStatus) override;
+        virtual void OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType) override;
+        virtual void OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay) override;
+        virtual void OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType) override;
         void dispatchHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected);
-
 
         FPD _fpd;
         HdmiIn _hdmiIn;
-
     };
 } // namespace Plugin
 } // namespace WPEFramework

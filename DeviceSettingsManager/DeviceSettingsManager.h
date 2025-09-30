@@ -175,14 +175,14 @@ namespace Plugin {
             INTERFACE_ENTRY(PluginHost::IPlugin)
             //INTERFACE_ENTRY(PluginHost::IDispatcher)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager, _mDeviceSettingsManager)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::ICompositeIn, _mDeviceSettingsManagerCompositeIn)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IAudio, _mDeviceSettingsManagerAudio)
+            //INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::ICompositeIn, _mDeviceSettingsManagerCompositeIn)
+            //INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IAudio, _mDeviceSettingsManagerAudio)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IFPD, _mDeviceSettingsManagerFPD)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IVideoDevice, _mDeviceSettingsManagerVideoDevice)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IDisplay, _mDeviceSettingsManagerDisplay)
+            //INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IVideoDevice, _mDeviceSettingsManagerVideoDevice)
+            //INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IDisplay, _mDeviceSettingsManagerDisplay)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IHDMIIn, _mDeviceSettingsManagerHDMIIn)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IHost, _mDeviceSettingsManagerHost)
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IVideoPort, _mDeviceSettingsManagerVideoPort)
+            //INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IHost, _mDeviceSettingsManagerHost)
+            //INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager::IVideoPort, _mDeviceSettingsManagerVideoPort)
         END_INTERFACE_MAP
 
     public:

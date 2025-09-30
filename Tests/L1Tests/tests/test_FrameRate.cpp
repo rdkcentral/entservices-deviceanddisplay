@@ -397,3 +397,113 @@ TEST_F(FrameRateTest, UpdateFps_HighValue)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("updateFps"), _T("{\"newFpsValue\":120}"), response));
     EXPECT_TRUE(response.find("true") != string::npos);
 }
+
+// ...existing code...
+
+TEST_F(FrameRateTest, onDisplayFrameRateChanging)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanging("3840x2160px48");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onDisplayFrameRateChanged)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanged("3840x2160px48");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onFpsEvent)
+{
+    EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnFpsEvent(60, 58, 62);
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onDisplayFrameRateChanging_EmptyFrameRate)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanging("");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onDisplayFrameRateChanged_EmptyFrameRate)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanged("");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onFpsEvent_ZeroValues)
+{
+    EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnFpsEvent(0, 0, 0);
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onFpsEvent_NegativeValues)
+{
+    EVENT_SUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnFpsEvent(-1, -5, -2);
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onFpsEvent"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onDisplayFrameRateChanging_StandardResolution)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanging("1920x1080x60");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+}
+
+TEST_F(FrameRateTest, onDisplayFrameRateChanged_StandardResolution)
+{
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+    
+    if (FrameRateNotification != nullptr)
+    {
+        FrameRateNotification->OnDisplayFrameRateChanged("1920x1080x60");
+    }
+    
+    EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
+}

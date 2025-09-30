@@ -196,7 +196,7 @@ typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000004,
 } FrameRateEventType_t;
 
-class NotificationHandler : public Exchange::IFrameRate::INotification {
+class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification {
     private:
         std::mutex m_mutex;
         std::condition_variable m_condition_variable;
@@ -209,13 +209,13 @@ class NotificationHandler : public Exchange::IFrameRate::INotification {
         int m_lastMin;
         int m_lastMax;
 
-        BEGIN_INTERFACE_MAP(NotificationHandler)
+        BEGIN_INTERFACE_MAP(FrameRateNotificationHandler)
         INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
         END_INTERFACE_MAP
 
     public:
-        NotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0) {}
-        ~NotificationHandler() {}
+        FrameRateNotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0) {}
+        ~FrameRateNotificationHandler() {}
 
         void OnDisplayFrameRateChanging(const string& frameRate) override
         {
@@ -511,7 +511,7 @@ TEST_F(FrameRateTest, UpdateFps_HighValue)
 
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Notification)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {
@@ -523,7 +523,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_Notification)
 
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Notification)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {
@@ -535,7 +535,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_Notification)
 
 TEST_F(FrameRateTest, OnFpsEvent_Notification)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {
@@ -549,7 +549,7 @@ TEST_F(FrameRateTest, OnFpsEvent_Notification)
 
 TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyString)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {
@@ -561,7 +561,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanging_EmptyString)
 
 TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyString)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {
@@ -573,7 +573,7 @@ TEST_F(FrameRateTest, OnDisplayFrameRateChanged_EmptyString)
 
 TEST_F(FrameRateTest, OnFpsEvent_ZeroValues)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {
@@ -587,7 +587,7 @@ TEST_F(FrameRateTest, OnFpsEvent_ZeroValues)
 
 TEST_F(FrameRateTest, OnFpsEvent_NegativeValues)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {
@@ -601,7 +601,7 @@ TEST_F(FrameRateTest, OnFpsEvent_NegativeValues)
 
 TEST_F(FrameRateTest, MultipleNotifications_Sequential)
 {
-    NotificationHandler notificationHandler;
+    FrameRateNotificationHandler notificationHandler;
     
     if (FrameRateNotification != nullptr)
     {

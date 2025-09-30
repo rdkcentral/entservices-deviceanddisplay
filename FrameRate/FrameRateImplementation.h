@@ -33,12 +33,14 @@
 #include "tptimer.h"
 #include "libIARM.h"
 
-#include <vector>
-#include <boost/variant.hpp>
+/* Display Events from libds Library */
+#include "dsTypes.h"
+#include "host.hpp"
 
 namespace WPEFramework {
     namespace Plugin {
-        class FrameRateImplementation : public Exchange::IFrameRate {
+        class FrameRateImplementation : public Exchange::IFrameRate, public device::Host::IVideoDeviceEvents {
+
             public:
                 // We do not allow this plugin to be copied !!
                 FrameRateImplementation();
@@ -97,6 +99,7 @@ namespace WPEFramework {
                         const Event _event;
                         JsonValue _params;
                 };
+
             public:
                 virtual Core::hresult Register(Exchange::IFrameRate::INotification *notification) override;
                 virtual Core::hresult Unregister(Exchange::IFrameRate::INotification *notification) override;
@@ -113,8 +116,6 @@ namespace WPEFramework {
                 //End methods
 
                 void onReportFpsTimer();
-                void InitializeIARM();
-                void DeinitializeIARM();
 
                 static FrameRateImplementation* _instance;
 
@@ -144,8 +145,13 @@ namespace WPEFramework {
                 TpTimer m_reportFpsTimer;
                 int m_lastFpsValue;
                 std::mutex m_callMutex;
-
                 friend class Job;
+
+            public:
+
+                /* VideoDeviceEventNotification*/
+                void OnDisplayFrameratePreChange(const std::string& frameRate) override;
+                void OnDisplayFrameratePostChange(const std::string& frameRate) override;
         };
     } // namespace Plugin
 } // namespace WPEFramework

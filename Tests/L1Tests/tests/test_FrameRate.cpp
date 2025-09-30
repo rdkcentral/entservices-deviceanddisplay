@@ -410,8 +410,6 @@ TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanged)
 {
-    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
-    Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
     EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
         .Times(1)

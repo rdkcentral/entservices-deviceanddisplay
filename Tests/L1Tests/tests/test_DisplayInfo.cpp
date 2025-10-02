@@ -1520,6 +1520,8 @@ TEST_F(DisplayInfoTestTest, SetHDCPProtection_ExceptionHandling)
     connectionProperties->Release();
 }
 
+// ...existing code...
+
 TEST_F(DisplayInfoTestTest, TVCapabilities_ExceptionHandling)
 {
     device::VideoOutputPort videoOutputPort;
@@ -1531,32 +1533,112 @@ TEST_F(DisplayInfoTestTest, TVCapabilities_ExceptionHandling)
         .WillByDefault(::testing::ReturnRef(videoOutputPort));
     ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
         .WillByDefault(::testing::Return(true));
-    
-    // Mock to throw exception
-    ON_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(::testing::_))
-        .WillByDefault(::testing::Invoke([](int*) {
-            throw device::Exception("TVCapabilities device exception");
-            return 0;
-        }));
 
     uint32_t _connectionId = 0;
     Exchange::IHDRProperties* hdrProperties = service.Root<Exchange::IHDRProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
     ASSERT_NE(hdrProperties, nullptr);
 
-    Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
-    uint32_t result = hdrProperties->TVCapabilities(iterator);
+    // Test device::Exception handling
+    {
+        ON_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int*) {
+                throw device::Exception("TVCapabilities device exception");
+                return 0;
+            }));
 
-    EXPECT_EQ(result, Core::ERROR_NONE);
-    ASSERT_NE(iterator, nullptr);
-    
-    // Should return HDR_OFF when exception occurs
-    if (iterator->IsValid()) {
-        EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->TVCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when device::Exception occurs
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
     }
-    
-    iterator->Release();
+
+    // Test std::exception handling
+    {
+        ON_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int*) {
+                throw std::runtime_error("Standard exception in TVCapabilities");
+                return 0;
+            }));
+
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->TVCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when std::exception occurs
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
+    }
+
+    // Test unknown exception handling (catch(...))
+    {
+        ON_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int*) {
+                throw "Unknown exception type";
+                return 0;
+            }));
+
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->TVCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when unknown exception occurs
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
+    }
+
+    // Test exception during isDisplayConnected check
+    {
+        ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
+            .WillByDefault(::testing::Invoke([]() {
+                throw device::Exception("Display connection check exception");
+                return false;
+            }));
+
+        // Reset the getTVHDRCapabilities mock to normal behavior
+        ON_CALL(*p_videoOutputPortMock, getTVHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int* caps) {
+                *caps = dsHDRSTANDARD_HDR10;
+                return 0;
+            }));
+
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->TVCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when display connection check fails
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
+    }
+
     hdrProperties->Release();
 }
+
+// ...existing code...
+
+// ...existing code...
 
 TEST_F(DisplayInfoTestTest, STBCapabilities_ExceptionHandling)
 {
@@ -1564,32 +1646,110 @@ TEST_F(DisplayInfoTestTest, STBCapabilities_ExceptionHandling)
 
     ON_CALL(*p_hostImplMock, getVideoDevices())
         .WillByDefault(::testing::Return(std::vector<device::VideoDevice>({videoDevice})));
-    
-    // Mock to throw exception
-    ON_CALL(*p_videoDeviceMock, getHDRCapabilities(::testing::_))
-        .WillByDefault(::testing::Invoke([](int*) {
-            throw device::Exception("STBCapabilities device exception");
-            return 0;
-        }));
 
     uint32_t _connectionId = 0;
     Exchange::IHDRProperties* hdrProperties = service.Root<Exchange::IHDRProperties>(_connectionId, 2000, _T("DisplayInfoImplementation"));
     ASSERT_NE(hdrProperties, nullptr);
 
-    Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
-    uint32_t result = hdrProperties->STBCapabilities(iterator);
+    // Test device::Exception handling
+    {
+        ON_CALL(*p_videoDeviceMock, getHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int*) {
+                throw device::Exception("STBCapabilities device exception");
+                return 0;
+            }));
 
-    EXPECT_EQ(result, Core::ERROR_NONE);
-    ASSERT_NE(iterator, nullptr);
-    
-    // Should return HDR_OFF when exception occurs
-    if (iterator->IsValid()) {
-        EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->STBCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when device::Exception occurs
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
     }
-    
-    iterator->Release();
+
+    // Test std::exception handling
+    {
+        ON_CALL(*p_videoDeviceMock, getHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int*) {
+                throw std::runtime_error("Standard exception in STBCapabilities");
+                return 0;
+            }));
+
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->STBCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when std::exception occurs
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
+    }
+
+    // Test unknown exception handling (catch(...))
+    {
+        ON_CALL(*p_videoDeviceMock, getHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int*) {
+                throw "Unknown exception type";
+                return 0;
+            }));
+
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->STBCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when unknown exception occurs
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
+    }
+
+    // Test exception during getVideoDevices() call
+    {
+        ON_CALL(*p_hostImplMock, getVideoDevices())
+            .WillByDefault(::testing::Invoke([]() {
+                throw device::Exception("getVideoDevices exception");
+                return std::vector<device::VideoDevice>();
+            }));
+
+        // Reset the getHDRCapabilities mock to normal behavior
+        ON_CALL(*p_videoDeviceMock, getHDRCapabilities(::testing::_))
+            .WillByDefault(::testing::Invoke([](int* caps) {
+                *caps = dsHDRSTANDARD_HDR10;
+                return 0;
+            }));
+
+        Exchange::IHDRProperties::IHDRIterator* iterator = nullptr;
+        uint32_t result = hdrProperties->STBCapabilities(iterator);
+
+        EXPECT_EQ(result, Core::ERROR_NONE);
+        ASSERT_NE(iterator, nullptr);
+        
+        // Should return HDR_OFF when video device access fails
+        if (iterator->IsValid()) {
+            EXPECT_EQ(iterator->Current(), Exchange::IHDRProperties::HDR_OFF);
+        }
+        
+        iterator->Release();
+    }
+
     hdrProperties->Release();
 }
+
+// ...existing code...
 
 TEST_F(DisplayInfoTestTest, EDID_ExceptionHandling)
 {

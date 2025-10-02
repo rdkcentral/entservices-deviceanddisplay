@@ -1520,8 +1520,6 @@ TEST_F(DisplayInfoTestTest, SetHDCPProtection_ExceptionHandling)
     connectionProperties->Release();
 }
 
-// ...existing code...
-
 TEST_F(DisplayInfoTestTest, TVCapabilities_ExceptionHandling)
 {
     device::VideoOutputPort videoOutputPort;
@@ -1636,10 +1634,6 @@ TEST_F(DisplayInfoTestTest, TVCapabilities_ExceptionHandling)
     hdrProperties->Release();
 }
 
-// ...existing code...
-
-// ...existing code...
-
 TEST_F(DisplayInfoTestTest, STBCapabilities_ExceptionHandling)
 {
     device::VideoDevice videoDevice;
@@ -1748,8 +1742,6 @@ TEST_F(DisplayInfoTestTest, STBCapabilities_ExceptionHandling)
 
     hdrProperties->Release();
 }
-
-// ...existing code...
 
 TEST_F(DisplayInfoTestTest, EDID_ExceptionHandling)
 {

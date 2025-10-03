@@ -568,7 +568,7 @@ TEST_F(SystemMode_L2test, JSONRPC_GetStateAfterRequest)
 }
 
 // JSON-RPC: getState invalid systemMode
-TEST_F(SystemMode_L2test, JSONRPC_GetStateAfterRequest)
+TEST_F(SystemMode_L2test, JSONRPC_GetStateAfterRequestInvalid)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(SYSTEMMODE_CALLSIGN, SYSTEMMODEL2TEST_CALLSIGN);
     JsonObject params;

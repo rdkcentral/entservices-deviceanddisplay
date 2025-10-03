@@ -504,6 +504,32 @@ TEST_F(SystemMode_L2test, JSONRPC_RequestState_VIDEO)
     EXPECT_TRUE(WaitForStateJsonRpc("DEVICE_OPTIMIZE", "video"));
 }
 
+// JSON-RPC:Invalid pstate requestState -> VIDEO then getState
+TEST_F(SystemMode_L2test, JSONRPC_RequestState_InvalidState)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(SYSTEMMODE_CALLSIGN, SYSTEMMODEL2TEST_CALLSIGN);
+    JsonObject params;
+    JsonObject result;
+    uint32_t status = Core::ERROR_GENERAL;
+    params["systemMode"] = "DEVICE_OPTIMIZE";
+    params["state"] = "VIDEO"; // Invalid state case
+    status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
+    EXPECT_EQ(Core::ERROR_GENERAL, status);
+}
+
+// JSON-RPC: Invalid requestState
+TEST_F(SystemMode_L2test, JSONRPC_RequestState_INVALID)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(SYSTEMMODE_CALLSIGN, SYSTEMMODEL2TEST_CALLSIGN);
+    JsonObject params;
+    JsonObject result;
+    uint32_t status = Core::ERROR_GENERAL;
+    params["systemMode"] = "device_optimize";
+    params["state"] = "video";
+    status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
+    EXPECT_EQ(Core::ERROR_GENERAL, status);
+}
+
 // JSON-RPC: requestState -> GAME then getState
 TEST_F(SystemMode_L2test, JSONRPC_RequestState_GAME)
 {
@@ -539,6 +565,34 @@ TEST_F(SystemMode_L2test, JSONRPC_GetStateAfterRequest)
     EXPECT_EQ(Core::ERROR_NONE, status);
     ASSERT_TRUE(result.HasLabel("state"));
     EXPECT_EQ(result["state"].String(), "video");
+}
+
+// JSON-RPC: getState invalid systemMode
+TEST_F(SystemMode_L2test, JSONRPC_GetStateAfterRequest)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(SYSTEMMODE_CALLSIGN, SYSTEMMODEL2TEST_CALLSIGN);
+    JsonObject params;
+    JsonObject result;
+    params["systemMode"] = "device_optimize"; // invalid systemMode
+    uint32_t status = InvokeServiceMethod("org.rdk.SystemMode.1", "getState", params, result);
+    EXPECT_EQ(Core::ERROR_GENERAL, status);
+}
+
+// JSON-RPC: clientActivated then clientDeactivated invalid systemMode
+TEST_F(SystemMode_L2test, JSONRPC_ClientActivationLifecycle_InvalidSystemMode)
+{
+    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(SYSTEMMODE_CALLSIGN, SYSTEMMODEL2TEST_CALLSIGN);
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    params["callsign"] = SYSTEMMODEL2TEST_CALLSIGN;
+    params["systemMode"] = "device_optimize"; // invalid systemMode
+    status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientActivated", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    // reuse params for deactivation
+    result.Clear();
+    status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientDeactivated", params, result);
+    EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
 // JSON-RPC: clientActivated then clientDeactivated

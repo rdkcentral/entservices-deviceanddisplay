@@ -22,8 +22,6 @@
 
 #include "DisplaySettings.h"
 #include <algorithm>
-#include "dsMgr.h"
-#include "host.hpp"
 #include "exception.hpp"
 #include "videoOutputPort.hpp"
 #include "videoOutputPortType.hpp"
@@ -37,25 +35,20 @@
 #include "dsError.h"
 #include "list.hpp"
 #include "dsDisplay.h"
+#include "UtilsSynchro.hpp"
 
 #include "tr181api.h"
 
 #include "tracing/Logging.h"
 #include <syscall.h>
-
 #include "UtilsCStr.h"
-#include "UtilsIarm.h"
 #include "UtilsJsonRpc.h"
 #include "UtilsString.h"
 #include "UtilsisValidInt.h"
-#include "dsRpc.h"
-
-#include "UtilsSynchroIarm.hpp"
 
 using namespace std;
 
 #define HDMI_HOT_PLUG_EVENT_CONNECTED 0
-
 
 #define HDMICECSINK_CALLSIGN "org.rdk.HdmiCecSink"
 #define HDMICECSINK_CALLSIGN_VER HDMICECSINK_CALLSIGN".1"
@@ -223,6 +216,7 @@ namespace WPEFramework {
             : PluginHost::JSONRPC()
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
+            , _registeredDsEventHandlers(false)
         {
             LOGINFO("constructor");
             DisplaySettings::_instance = this;
@@ -252,8 +246,6 @@ namespace WPEFramework {
             registerMethodLockedApi("getActiveInput", &DisplaySettings::getActiveInput, this);
             registerMethodLockedApi("getTvHDRSupport", &DisplaySettings::getTvHDRSupport, this);
             registerMethodLockedApi("getSettopHDRSupport", &DisplaySettings::getSettopHDRSupport, this);
-            registerMethodLockedApi("setVideoPortStatusInStandby", &DisplaySettings::setVideoPortStatusInStandby, this);
-            registerMethodLockedApi("getVideoPortStatusInStandby", &DisplaySettings::getVideoPortStatusInStandby, this);
             registerMethodLockedApi("getCurrentOutputSettings", &DisplaySettings::getCurrentOutputSettings, this);
 
             Utils::Synchro::RegisterLockedApi("getVolumeLeveller", &DisplaySettings::getVolumeLeveller, this);
@@ -527,8 +519,18 @@ namespace WPEFramework {
             m_SADDetectionTimer.connect(std::bind(&DisplaySettings::checkSADUpdate, this));
 	    m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
 
-            InitializeIARM();
             InitializePowerManager();
+            try
+            {
+                device::Manager::Initialize();
+                LOGINFO("device::Manager::Initialize success");
+                registerDsEventHandlers();
+            }
+            catch(const device::Exception& err)
+            {
+                LOGINFO("device::Manager::Initialize failed");
+                LOG_DEVICE_EXCEPTION0();
+            }
 
             if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == getSystemPowerState())
             {
@@ -622,7 +624,25 @@ namespace WPEFramework {
 
             stopCecTimeAndUnsubscribeEvent();
 
-            DeinitializeIARM();
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IDisplayEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IAudioOutputPortEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IDisplayDeviceEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IHdmiInEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IVideoDeviceEvents>());
+            device::Host::getInstance().UnRegister(baseInterface<device::Host::IVideoOutputPortEvents>());
+            _registeredDsEventHandlers = false;
+
+            try
+            {
+                device::Manager::DeInitialize();
+                LOGINFO("device::Manager::DeInitialize success");
+            }
+            catch(const device::Exception& err)
+            {
+                LOGINFO("device::Manager::DeInitialize failed");
+                LOG_DEVICE_EXCEPTION0();
+            }
+
             DisplaySettings::_instance = nullptr;
 
             ASSERT(service == m_service);
@@ -634,6 +654,9 @@ namespace WPEFramework {
         void DisplaySettings::InitializePowerManager()
         {
             LOGINFO("Connect the COM-RPC socket\n");
+            PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
+            PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
+            Core::hresult retStatus = Core::ERROR_GENERAL;
             _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
                 .withIShell(m_service)
                 .withRetryIntervalMS(200)
@@ -641,34 +664,6 @@ namespace WPEFramework {
                 .createInterface();
 
             registerEventHandlers();
-        }
-
-        void DisplaySettings::InitializeIARM()
-        {
-            PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-            IARM_Result_t res;
-            if (Utils::IARM::init())
-            {
-                // RegisterLockedIarmHandler(UsingClass *mutexOwner, const char *ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler)
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS, DisplResolutionHandler) );
-                //TODO(MROLLINS) localinput.cpp has PreChange guarded with #if !defined(DISABLE_PRE_RES_CHANGE_EVENTS)
-                //Can we set it all the time from inside here and let localinput put guards around listening for our event?
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,ResolutionPreChange) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE, ResolutionPostChange) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG, dsHdmiEventHandler) );
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_AUDIO_OUT_HOTPLUG, dsHdmiEventHandler) );
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE, formatUpdateEventHandler) );
-		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE, formatUpdateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED, checkAtmosCapsEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE, audioPortStateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) ); 
 
                 ASSERT (_powerManagerPlugin);
                 if (_powerManagerPlugin){
@@ -681,55 +676,6 @@ namespace WPEFramework {
                 }
             }
 
-            try
-            {
-                //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
-                device::Manager::Initialize();
-                LOGINFO("device::Manager::Initialize success");
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::Initialize failed");
-            }
-        }
-
-        void DisplaySettings::DeinitializeIARM()
-        {
-            if (Utils::IARM::isConnected())
-            {
-                IARM_Result_t res;
-
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS, DisplResolutionHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE, ResolutionPreChange) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE, ResolutionPostChange) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_AUDIO_OUT_HOTPLUG, dsHdmiEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE, formatUpdateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE, formatUpdateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED, checkAtmosCapsEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE, audioPortStateEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) );
-                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) );
-            }
-
-            try
-            {
-                //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
-                //No need to call device::Manager::DeInitialize for individual plugin. As it is a singleton instance and shared among all wpeframework plugins
-                //Expecting DisplaySettings will be alive for complete run time of wpeframework
-                device::Manager::DeInitialize();
-                LOGINFO("device::Manager::DeInitialize success");
-            }
-            catch(...)
-            {
-                LOGINFO("device::Manager::DeInitialize failed");
-            }
-        }
-
         void DisplaySettings::registerEventHandlers()
         {
             ASSERT (nullptr != _powerManagerPlugin);
@@ -739,100 +685,6 @@ namespace WPEFramework {
                 _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             }
         }
-
-        void DisplaySettings::ResolutionPreChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->resolutionPreChange();
-            }
-            isResCacheUpdated = false;
-        }
-
-        void DisplaySettings::ResolutionPostChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            int dw = 1280;
-            int dh = 720;
-
-            if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0)
-            {
-                switch (eventId) {
-                    case IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE:
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        dw = eventData->data.resn.width;
-                        dh = eventData->data.resn.height;
-                        LOGINFO("width: %d, height: %d", dw, dh);
-                        break;
-                }
-            }
-
-            if(DisplaySettings::_instance)
-            {
-                DisplaySettings::_instance->resolutionChanged(dw, dh);
-            }
-        }
-
-        void DisplaySettings::DisplResolutionHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            //TODO(MROLLINS) Receiver has this whole thing guarded by #ifndef HEADLESS_GW
-            if (strcmp(owner,IARM_BUS_DSMGR_NAME) == 0)
-            {
-                switch (eventId)
-                {
-                case IARM_BUS_DSMGR_EVENT_RES_PRECHANGE:
-                    break;
-                case IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE:
-                    {
-                        int dw = 1280;
-                        int dh = 720;
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        dw = eventData->data.resn.width ;
-                        dh = eventData->data.resn.height ;
-                        if(DisplaySettings::_instance)
-                            DisplaySettings::_instance->resolutionChanged(dw,dh);
-                    }
-                    break;
-                case IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS:
-                    {
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        if(eventData->data.dfc.zoomsettings == dsVIDEO_ZOOM_NONE)
-                        {
-                            LOGINFO("dsVIDEO_ZOOM_NONE Settings");
-                            if(DisplaySettings::_instance)
-                                DisplaySettings::_instance->zoomSettingUpdated("NONE");
-                        }
-                        else if(eventData->data.dfc.zoomsettings == dsVIDEO_ZOOM_FULL)
-                        {
-                            LOGINFO("dsVIDEO_ZOOM_FULL Settings");
-                            if(DisplaySettings::_instance)
-                                DisplaySettings::_instance->zoomSettingUpdated("FULL");
-                        }
-                    }
-                    break;
-                case IARM_BUS_DSMGR_EVENT_RX_SENSE:
-                    {
-
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        if(eventData->data.hdmi_rxsense.status == dsDISPLAY_RXSENSE_ON)
-                        {
-                            LOGINFO("Got dsDISPLAY_RXSENSE_ON -> notifyactiveInputChanged(true)");
-                            if(DisplaySettings::_instance)
-                                DisplaySettings::_instance->activeInputChanged(true);
-                        }
-                        else if(eventData->data.hdmi_rxsense.status == dsDISPLAY_RXSENSE_OFF)
-                        {
-                            LOGINFO("Got dsDISPLAY_RXSENSE_OFF -> notifyactiveInputChanged(false)");
-                            if(DisplaySettings::_instance)
-                                DisplaySettings::_instance->activeInputChanged(false);
-                        }
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-
         int DisplaySettings::getAudioDeviceSADState(void) {
             //function used to read the current SAD state with lock
             std::lock_guard<std::mutex> lock(m_SadMutex);
@@ -850,255 +702,7 @@ namespace WPEFramework {
             std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
             return m_currentArcRoutingState;
         }
-
-        void DisplaySettings::dsHdmiEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            switch (eventId)
-            {
-            case IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG :
-                isResCacheUpdated = false;
-                isDisplayConnectedCacheUpdated = false;
-                isStbHDRcapabilitiesCache = false;
-                //TODO(MROLLINS) note that there are several services listening for the notifyHdmiHotPlugEvent ServiceManagerNotifier broadcast
-                //So if DisplaySettings becomes the owner/originator of this, then those future thunder plugins need to listen to our event
-                //But of course, nothing is stopping any thunder plugin for listening to iarm event directly -- this is getting murky
-                {
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    int hdmi_hotplug_event = eventData->data.hdmi_hpd.event;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG  event data:%d ", hdmi_hotplug_event);
-                    if(DisplaySettings::_instance)
-                        DisplaySettings::_instance->connectedVideoDisplaysUpdated(hdmi_hotplug_event);
-                }
-                break;
-                //TODO(MROLLINS) localinput.cpp was also sending these and they were getting handled by services other then DisplaySettings.  Should DisplaySettings own these as well ?
-                /*
-            case IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG :
-                {
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    int hdmiin_hotplug_port = eventData->data.hdmi_in_connect.port;
-                    int hdmiin_hotplug_conn = eventData->data.hdmi_in_connect.isPortConnected;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG  event data:%d, %d ", hdmiin_hotplug_port);
-                    ServiceManagerNotifier::getInstance()->notifyHdmiInputHotPlugEvent(hdmiin_hotplug_port, hdmiin_hotplug_conn);
-                }
-                break;
-            case IARM_BUS_DSMGR_EVENT_HDCP_STATUS :
-                {
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    int hdcpStatus = eventData->data.hdmi_hdcp.hdcpStatus;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDCP_STATUS  event data:%d ", hdcpStatus);
-                    ServiceManagerNotifier::getInstance()->notifyHdmiOutputHDCPStatus(hdcpStatus);
-                }
-                break;
-                */
-        case IARM_BUS_DSMGR_EVENT_AUDIO_OUT_HOTPLUG: {
-            IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-            int iAudioPortType = eventData->data.audio_out_connect.portType;
-            bool isPortConnected = eventData->data.audio_out_connect.isPortConnected;
-            LOGINFO("Received IARM_BUS_DSMGR_EVENT_AUDIO_OUT_HOTPLUG for audio port %d event data:%d ", iAudioPortType, isPortConnected);
-            if(DisplaySettings::_instance) {
-                DisplaySettings::_instance->connectedAudioPortUpdated(iAudioPortType, isPortConnected);
-            }
-            else {
-                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
-            }
-
-            break;
-        }
-	    case IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG :
-		{
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    int hdmiin_hotplug_port = eventData->data.hdmi_in_connect.port;
-                    bool hdmiin_hotplug_conn = eventData->data.hdmi_in_connect.isPortConnected;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG  Port:%d, connected:%d \n", hdmiin_hotplug_port, hdmiin_hotplug_conn);
-
-		    if(!DisplaySettings::_instance) {
-                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
-	                return;
-            }
-
-		    if(hdmiin_hotplug_port == hdmiArcPortId) { //HDMI ARC/eARC Port Handling
-
-			try
-			{
-                            LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG  HDMI_ARC Port, connected:%d \n",  hdmiin_hotplug_conn);
-                            if(hdmiin_hotplug_conn) {
-                                LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG  HDMI_ARC Port \n");
-			
-			    }
-                            else {
-		    LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
-                                  DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
-				std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
-                                if (DisplaySettings::_instance->m_hdmiInAudioDeviceConnected == true) {
-                            	    DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
-                                    DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
-				 //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
-				    {
-                                        DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
-                                        LOGINFO("Received IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG  HDMI_ARC Port disconnected. Notify UI !!!  \n");
-				    }
-                                }
-
-                                {
-                                   DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
-				                   DisplaySettings::_instance->m_requestSadRetrigger = false;
-                                }
-
-                                if (DisplaySettings::_instance->m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED) {
-				                	DisplaySettings::_instance->m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
-				                	LOGINFO("%s: Clearing Audio device SAD\n", __FUNCTION__);
-				                	sad_list.clear();
-				                } else {
-				                LOGINFO("SAD already cleared\n");
-				                }
-
-                            }// Release Mutex m_AudioDeviceStatesUpdateMutex
-			}
-                        catch (const device::Exception& err)
-                        {
-                            LOG_DEVICE_EXCEPTION1(string("HDMI_ARC0"));
-                        }
-	            }// HDMI_IN_ARC_PORT_ID
-
-		}
-	        break;
-            default:
-                //do nothing
-                break;
-            }
-        }
-
-        void DisplaySettings::formatUpdateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-
-	    LOGINFO("%s \n", __FUNCTION__);
-            switch (eventId) {
-                case IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE:
-                  {
-                    dsAudioFormat_t audioFormat = dsAUDIO_FORMAT_NONE;
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    audioFormat = eventData->data.AudioFormatInfo.audioFormat;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE. Audio format: %d \n", audioFormat);
-                    if(DisplaySettings::_instance) {
-                        DisplaySettings::_instance->notifyAudioFormatChange(audioFormat);
-                    }
-		  }
-                  break;
-                case IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE:
-                  {
-                    dsHDRStandard_t videoFormat = dsHDRSTANDARD_NONE;
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    videoFormat = eventData->data.VideoFormatInfo.videoFormat;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE. Video format: %d \n", videoFormat);
-                    if(DisplaySettings::_instance) {
-                        DisplaySettings::_instance->notifyVideoFormatChange(videoFormat);
-                    }
-		  }
-                  break;
-		default:
-		    LOGERR("Invalid event ID\n");
-		    break;
-           }
-        }
-
-	void DisplaySettings::checkAtmosCapsEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-    {
-
-        dsATMOSCapability_t atmosCaps = dsAUDIO_ATMOS_NOTSUPPORTED;
-        bool atmosCapsChangedstatus;
-        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-        atmosCaps = eventData->data.AtmosCapsChange.caps;
-        atmosCapsChangedstatus = eventData->data.AtmosCapsChange.status;
-        LOGINFO("Received IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED: %d \n", atmosCaps);
-        if(DisplaySettings::_instance && atmosCapsChangedstatus) {
-        DisplaySettings::_instance->notifyAtmosCapabilityChange(atmosCaps);
-        }
-    }        
-        void DisplaySettings::audioPortStateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            dsAudioPortState_t audioPortState = dsAUDIOPORT_STATE_UNINITIALIZED;
-            LOGINFO("%s \n", __FUNCTION__);
-            switch (eventId) {
-                case IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE:
-                {
-                   IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                   audioPortState = eventData->data.AudioPortStateInfo.audioPortState;
-                   LOGINFO("Received IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE. Audio Port Init State: %d \n", audioPortState);
-                   try
-                   {   if( audioPortState == dsAUDIOPORT_STATE_INITIALIZED)
-                       {
-                           DisplaySettings::_instance->AudioPortsReInitialize();
-                           DisplaySettings::_instance->InitAudioPorts();
-                       }
-                  }
-                  catch(const device::Exception& err)
-                  {
-                     LOG_DEVICE_EXCEPTION0();
-                  }
-                }
-                break;
-                default:
-                  LOGERR("Invalid event ID\n");
-                  break;
-           }  
-        }  
-
-        void DisplaySettings::dsSettingsChangeEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-
-            LOGINFO("%s \n", __FUNCTION__);
-            if (data == NULL) {
-                LOGERR("data is NULL, return !!!\n");
-                return;
-            }
-            switch (eventId) {
-                case IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED:
-                  {
-                    bool mixing = false;
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    mixing = eventData->data.AssociatedAudioMixingInfo.mixing;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED. Associated Audio Mixing: %d \n", mixing);
-                    if(DisplaySettings::_instance) {
-                        DisplaySettings::_instance->notifyAssociatedAudioMixingChange(mixing);
-                    }
-                  }
-                  break;
-                case IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED:
-                  {
-                    int mixerbalance = 0;
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    mixerbalance = eventData->data.FaderControlInfo.mixerbalance;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED. Fader Control: %d \n", mixerbalance);
-                    if(DisplaySettings::_instance) {
-                        DisplaySettings::_instance->notifyFaderControlChange(mixerbalance);
-                    }
-                  }
-                  break;
-                case IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED:
-                  {
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    std::string pLang = eventData->data.AudioLanguageInfo.audioLanguage;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED. Primary Language: %s \n", pLang.c_str());
-                    if(DisplaySettings::_instance) {
-                        DisplaySettings::_instance->notifyPrimaryLanguageChange(pLang);
-                    }
-                  }
-                  break;
-                case IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED:
-                  {
-                    IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                    std::string sLang = eventData->data.AudioLanguageInfo.audioLanguage;
-                    LOGINFO("Received IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED. Secondary Language: %s \n", sLang.c_str());
-                    if(DisplaySettings::_instance) {
-                        DisplaySettings::_instance->notifySecondaryLanguageChange(sLang);
-                    }
-                  }
-                  break;
-                default:
-                    LOGERR("Unhandled Event... \n");
-                    break;
-           }
-        }
+        
 
         bool DisplaySettings::isDisplayConnected (std::string port){
             bool isConnected = isHdmiDisplayConnected;
@@ -2159,69 +1763,6 @@ namespace WPEFramework {
                LOGINFO("capabilities: %s", ms12Capabilities[i].String().c_str());
             }
             returnResponse(true);
-        }
-
-        uint32_t DisplaySettings::setVideoPortStatusInStandby(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            returnIfParamNotFound(parameters, "portName");
-            string portname = parameters["portName"].String();
-
-            bool enabled = parameters["enabled"].Boolean();
-            bool success = true;
-
-            dsMgrStandbyVideoStateParam_t param;
-            param.isEnabled = enabled;
-            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
-            param.port[sizeof(param.port) - 1] = '\0';
-            if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_SetStandbyVideoState, &param, sizeof(param)))
-            {
-                LOGERR("Port: %s. enable: %d", param.port, param.isEnabled);
-                response["error_message"] = "Bus failure";
-                success = false;
-            }
-            else if(0 != param.result)
-            {
-                LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
-                response["error_message"] = "internal error";
-                success = false;
-            }
-            returnResponse(success);
-        }
-
-        uint32_t DisplaySettings::getVideoPortStatusInStandby(const JsonObject& parameters, JsonObject& response)
-        {
-            LOGINFOMETHOD();
-
-            returnIfParamNotFound(parameters, "portName");
-            string portname = parameters["portName"].String();
-
-            bool success = true;
-
-            dsMgrStandbyVideoStateParam_t param;
-            strncpy(param.port, portname.c_str(), DSMGR_MAX_VIDEO_PORT_NAME_LENGTH);
-	    param.port[sizeof(param.port) - 1] = '\0';
-            if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_GetStandbyVideoState, &param, sizeof(param)))
-            {
-                LOGERR("Port: %s. enable:%d", param.port, param.isEnabled);
-                response["error_message"] = "Bus failure";
-                success = false;
-            }
-            else if(0 != param.result)
-            {
-                LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
-                response["error_message"] = "internal error";
-                success = false;
-            }
-            else
-            {
-                bool enabled(0 != param.isEnabled);
-                LOGINFO("video port is %s", enabled ? "enabled" : "disabled");
-                response["videoPortStatusInStandby"] = enabled;
-            }
-
-            returnResponse(success);
         }
 
         uint32_t DisplaySettings::getCurrentOutputSettings(const JsonObject& parameters, JsonObject& response)
@@ -6101,5 +5642,230 @@ void DisplaySettings::sendMsgThread()
 		}
         return Core::ERROR_NONE;
 	}
+        void DisplaySettings::registerDsEventHandlers()
+        {
+            LOGINFO("registerDsEventHandlers");
+            if(!_registeredDsEventHandlers)
+            {
+                _registeredDsEventHandlers = true;
+                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IAudioOutputPortEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IDisplayDeviceEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IHdmiInEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IVideoDeviceEvents>(), "WPE[DisplaySettings]");
+                device::Host::getInstance().Register(baseInterface<device::Host::IVideoOutputPortEvents>(), "WPE[DisplaySettings]");
+            }
+        }
+
+        void DisplaySettings::OnDisplayRxSense(dsDisplayEvent_t displayEvent)
+        {
+            LOGINFO("Received OnDisplayRxSense callback");
+
+            if(displayEvent == dsDISPLAY_RXSENSE_ON)
+            {
+                LOGINFO("Got dsDISPLAY_RXSENSE_ON -> notifyactiveInputChanged(true)");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->activeInputChanged(true);
+            }
+            else if(displayEvent == dsDISPLAY_RXSENSE_OFF)
+            {
+                LOGINFO("Got dsDISPLAY_RXSENSE_OFF -> notifyactiveInputChanged(false)");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->activeInputChanged(false);
+            }
+        }
+
+        void DisplaySettings::OnAudioOutHotPlug(dsAudioPortType_t portType, uint32_t uiPortNumber, bool isPortConnected)
+        {
+            LOGINFO("Received OnAudioOutHotPlug callback");
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->connectedAudioPortUpdated((int)portType, isPortConnected);
+            }
+            else
+            {
+                LOGERR("DisplaySettings::dsHdmiEventHandler DisplaySettings::_instance is NULL\n");
+            }
+        }
+
+        void DisplaySettings::OnAudioFormatUpdate(dsAudioFormat_t audioFormat)
+        {
+            LOGINFO("Received OnAudioFormatUpdate callback");
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyAudioFormatChange(audioFormat);
+            }
+        }
+
+        void DisplaySettings::OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t atmosCapability, bool status)
+        {
+            LOGINFO("Received OnDolbyAtmosCapabilitiesChanged callback:atmosCaps[%d]", atmosCapability);
+            if(DisplaySettings::_instance && status)
+            {
+                DisplaySettings::_instance->notifyAtmosCapabilityChange(atmosCapability);
+            }
+        }
+
+        void DisplaySettings::OnAudioPortStateChanged(dsAudioPortState_t audioPortState)
+        {
+            LOGINFO("Received OnAudioPortStateChanged callback. Audio Port Init State: %d", audioPortState);
+            try
+            {   if( audioPortState == dsAUDIOPORT_STATE_INITIALIZED)
+                {
+                    DisplaySettings::_instance->AudioPortsReInitialize();
+                    DisplaySettings::_instance->InitAudioPorts();
+                }
+           }
+           catch(const device::Exception& err)
+           {
+              LOG_DEVICE_EXCEPTION0();
+           }
+        }
+
+        void DisplaySettings::OnAssociatedAudioMixingChanged(bool mixing)
+        {
+            LOGINFO("Received OnAssociatedAudioMixingChanged callback. Associated Audio Mixing: %d", mixing);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyAssociatedAudioMixingChange(mixing);
+            }
+        }
+
+        void DisplaySettings::OnAudioFaderControlChanged(int mixerBalance)
+        {
+            LOGINFO("Received OnAudioFaderControlChanged. Fader Control: %d", mixerBalance);
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyFaderControlChange(mixerBalance);
+            }
+        }
+
+        void DisplaySettings::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
+        {
+            LOGINFO("Received OnAudioPrimaryLanguageChangedcallback. Primary Language: %s", primaryLanguage.c_str());
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifyPrimaryLanguageChange(primaryLanguage);
+            }
+        }
+
+        void DisplaySettings::OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
+        {
+            LOGINFO("Received OnAudioSecondaryLanguageChanged callback. Secondary Language: %s", secondaryLanguage.c_str());
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->notifySecondaryLanguageChange(secondaryLanguage);
+            }
+        }
+
+        void DisplaySettings::OnDisplayHDMIHotPlug(dsDisplayEvent_t displayEvent)
+        {
+            LOGINFO("Received OnDisplayHDMIHotPlug callback. event data:%d ", displayEvent);
+            isResCacheUpdated = false;
+            isDisplayConnectedCacheUpdated = false;
+            isStbHDRcapabilitiesCache = false;
+
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->connectedVideoDisplaysUpdated((int)displayEvent);
+            }
+        }
+
+        void DisplaySettings::OnHdmiInEventHotPlug(dsHdmiInPort_t port, bool isConnected)
+        {
+           int hdmiin_hotplug_port = port;
+           bool hdmiin_hotplug_conn = isConnected;
+           LOGINFO("Received OnHDMIInEventHotPlug Port:%d, connected:%d", hdmiin_hotplug_port, hdmiin_hotplug_conn);
+
+           if(!DisplaySettings::_instance) {
+               LOGERR("DisplaySettings::OnHdmiInEventHotPlug DisplaySettings::_instance is NULL\n");
+               return;
+           }
+           if(hdmiin_hotplug_port == hdmiArcPortId) //HDMI ARC/eARC Port Handling
+           {
+               try
+               {
+                    LOGINFO("Received OnHDMIInEventHotPlug  HDMI_ARC Port, connected status[%d]",  hdmiin_hotplug_conn);
+                    if(!hdmiin_hotplug_conn)
+                    {
+                        LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
+                                     DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
+                        std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
+                        if (DisplaySettings::_instance->m_hdmiInAudioDeviceConnected == true)
+                        {
+                            DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
+                            DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
+                            //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
+                            {
+                                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
+                                LOGINFO("Received OnHdmiInEventHotPlug  HDMI_ARC Port disconnected. Notify UI !!! ");
+                            }
+                        }
+                        DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
+                        DisplaySettings::_instance->m_requestSadRetrigger = false;
+
+                        if (DisplaySettings::_instance->m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED)
+                        {
+                            DisplaySettings::_instance->m_AudioDeviceSADState = AUDIO_DEVICE_SAD_CLEARED;
+                            LOGINFO("%s: Clearing Audio device SAD", __FUNCTION__);
+                            sad_list.clear();
+                        }
+                        else
+                        {
+                            LOGINFO("SAD already cleared");
+                        }
+                    } // Release Mutex m_AudioDeviceStatesUpdateMutex
+                }
+                catch (const device::Exception& err)
+                {
+                     LOG_DEVICE_EXCEPTION1(string("HDMI_ARC0"));
+                }
+            }// HDMI_IN_ARC_PORT_ID
+        }
+
+        void DisplaySettings::OnZoomSettingsChanged(dsVideoZoom_t zoomSetting)
+        {
+            LOGINFO("Received OnZoomSettingsChanged callback");
+            if(zoomSetting == dsVIDEO_ZOOM_NONE)
+            {
+                LOGINFO("dsVIDEO_ZOOM_NONE Settings");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->zoomSettingUpdated("NONE");
+            }
+            else if(zoomSetting == dsVIDEO_ZOOM_FULL)
+            {
+                LOGINFO("dsVIDEO_ZOOM_FULL Settings");
+                if(DisplaySettings::_instance)
+                    DisplaySettings::_instance->zoomSettingUpdated("FULL");
+            }
+        }
+
+        void DisplaySettings::OnResolutionPreChange(const int width, const int height)
+        {
+            LOGINFO("Received OnResolutionPreChange callback");
+            if(DisplaySettings::_instance)
+            {
+                DisplaySettings::_instance->resolutionPreChange();
+            }
+            isResCacheUpdated = false;
+        }
+
+        void DisplaySettings::OnResolutionPostChange(const int width, const int height)
+        {
+            LOGINFO("Received OnResolutionPostChange callback");
+            if(DisplaySettings::_instance) {
+                DisplaySettings::_instance->resolutionChanged(width, height);
+            }
+        }
+
+        void DisplaySettings::OnVideoFormatUpdate(dsHDRStandard_t videoFormatHDR)
+        {
+            LOGINFO("Received OnVideoFormatUpdate callback. Video format: %d", videoFormatHDR);
+            if(DisplaySettings::_instance) {
+                DisplaySettings::_instance->notifyVideoFormatChange(videoFormatHDR);
+            }
+
+        }
+
     } // namespace Plugin
 } // namespace WPEFramework

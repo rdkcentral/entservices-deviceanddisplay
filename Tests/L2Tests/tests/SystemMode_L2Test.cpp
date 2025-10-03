@@ -511,8 +511,8 @@ TEST_F(SystemMode_L2test, JSONRPC_RequestState_InvalidState)
     JsonObject params;
     JsonObject result;
     uint32_t status = Core::ERROR_GENERAL;
-    params["systemMode"] = "DEVICE_OPTIMIZE";
-    params["state"] = "VIDEO"; // Invalid state case
+    params["systemMode"] = "DEVICE_OPT";
+    params["state"] = "Video";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
     EXPECT_EQ(Core::ERROR_GENERAL, status);
 }
@@ -525,7 +525,7 @@ TEST_F(SystemMode_L2test, JSONRPC_RequestState_INVALID)
     JsonObject result;
     uint32_t status = Core::ERROR_GENERAL;
     params["systemMode"] = "device_optimize";
-    params["state"] = "video";
+    params["state"] = "vid";
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "requestState", params, result);
     EXPECT_EQ(Core::ERROR_GENERAL, status);
 }
@@ -573,7 +573,7 @@ TEST_F(SystemMode_L2test, JSONRPC_GetStateAfterRequestInvalid)
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(SYSTEMMODE_CALLSIGN, SYSTEMMODEL2TEST_CALLSIGN);
     JsonObject params;
     JsonObject result;
-    params["systemMode"] = "device_optimize"; // invalid systemMode
+    params["systemMode"] = "device_opt"; // invalid systemMode
     uint32_t status = InvokeServiceMethod("org.rdk.SystemMode.1", "getState", params, result);
     EXPECT_EQ(Core::ERROR_GENERAL, status);
 }

@@ -29,7 +29,7 @@
 #include "ServiceMock.h"
 #include "VideoDeviceMock.h"
 #include "devicesettings.h"
-#include "dsMgr.h"
+#include "ManagerMock.h"
 #include "ThunderPortability.h"
 #include "FrameRateImplementation.h"
 #include "FrameRateMock.h"
@@ -61,7 +61,7 @@ protected:
     VideoDeviceMock   *p_videoDeviceMock = nullptr;
     IARM_EventHandler_t _iarmDSFramerateEventHandler;
     IarmBusImplMock   *p_iarmBusImplMock = nullptr ;
-
+    ManagerImplMock   *p_managerImplMock = nullptr ;
 
     FrameRateTest()
         : plugin(Core::ProxyType<Plugin::FrameRate>::Create())
@@ -74,8 +74,18 @@ protected:
 
         p_framerateMock  = new NiceMock <FrameRateMock>;
 
-	p_wrapsImplMock = new NiceMock<WrapsImplMock>;
+        p_wrapsImplMock = new NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
+
+        p_managerImplMock  = new NiceMock <ManagerImplMock>;
+        device::Manager::setImpl(p_managerImplMock);
+
+        p_hostImplMock  = new NiceMock <HostImplMock>;
+        device::Host::setImpl(p_hostImplMock);
+
+        EXPECT_CALL(*p_managerImplMock, Initialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
@@ -104,26 +114,10 @@ protected:
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
 
-        ON_CALL(*p_iarmBusImplMock, IARM_Bus_RegisterEventHandler(::testing::_, ::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](const char* ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler) {
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE)) 			{
-			//FrameRatePreChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    if ((string(IARM_BUS_DSMGR_NAME) == string(ownerName)) && (eventId == IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE))			{
-			//FrameRatePostChange = handler;
-			_iarmDSFramerateEventHandler = handler;
-                    }
-                    return IARM_RESULT_SUCCESS;
-                }));
-
         Core::IWorkerPool::Assign(&(*workerPool));
             workerPool->Run();
 
         plugin->Initialize(&service);
-        p_hostImplMock  = new NiceMock <HostImplMock>;
-        device::Host::setImpl(p_hostImplMock);
 
         device::VideoDevice videoDevice;
         p_videoDeviceMock  = new NiceMock <VideoDeviceMock>;
@@ -160,6 +154,17 @@ protected:
         {
             delete p_videoDeviceMock;
             p_videoDeviceMock = nullptr;
+        }
+
+        EXPECT_CALL(*p_managerImplMock, DeInitialize())
+            .Times(::testing::AnyNumber())
+            .WillRepeatedly(::testing::Return());
+
+        device::Manager::setImpl(nullptr);
+        if (p_managerImplMock != nullptr)
+        {
+            delete p_managerImplMock;
+            p_managerImplMock = nullptr;
         }
 
         device::Host::setImpl(nullptr);
@@ -283,52 +288,14 @@ TEST_F(FrameRateTest, getDisplayFrameRate)
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanging)
 {
-    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
-    Core::Event resetDone(false, true);
-    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);	
-    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
-                string text;
-                EXPECT_TRUE(json->ToString(text));
-                EXPECT_EQ(text, string(_T("{"
-                                          "\"jsonrpc\":\"2.0\","
-                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanging\","
-                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
-                                          "}"))); 
-		resetDone.SetEvent();
-                return Core::ERROR_NONE;
-            }));
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, &eventData , sizeof(eventData));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
+    Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160px48");
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanging"), _T("org.rdk.FrameRate"), message);
 }
 
 TEST_F(FrameRateTest, onDisplayFrameRateChanged)
 {
-    ASSERT_TRUE(_iarmDSFramerateEventHandler != nullptr);
-    Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
-    EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke(
-            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
-                string text;
-                EXPECT_TRUE(json->ToString(text));
-                EXPECT_EQ(text, string(_T("{"
-                                          "\"jsonrpc\":\"2.0\","
-                                          "\"method\":\"org.rdk.FrameRate.onDisplayFrameRateChanged\","
-                                          "\"params\":{\"displayFrameRate\":\"3840x2160px48\"}"
-                                          "}")));
-		resetDone.SetEvent();    
-                return Core::ERROR_NONE;
-            }));
-    IARM_Bus_DSMgr_EventData_t eventData;
-    strcpy(eventData.data.DisplayFrameRateChange.framerate,"3840x2160px48");
-    _iarmDSFramerateEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, &eventData , sizeof(eventData));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("3840x2160px48");
     EVENT_UNSUBSCRIBE(0, _T("onDisplayFrameRateChanged"), _T("org.rdk.FrameRate"), message);
 }

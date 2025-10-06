@@ -43,6 +43,7 @@ static bool gSignalHandlersSet = false;
 
 // Function declarations (DeviceSettings functions are in device_settings.h)
 void getDSClientInterface();
+void test_getDSClientInterface();
 int setup_signals();
 int breakpad_ExceptionHandler();
 void cleanup_resources();
@@ -115,9 +116,14 @@ int main(int argc, char **argv)
     }
 
     // Initialize Device Settings
-    printf("\nInitializing Device Settings...\n");
+    /* printf("\nInitializing Device Settings...\n");
     DeviceSettings_Init();
     printf("Device Settings initialized successfully!\n");
+    */
+
+    // getDSClientInterface();
+
+    test_getDSClientInterface();
 
     // Set application as initialized
     pthread_mutex_lock(&gDSAppMutex);
@@ -143,6 +149,32 @@ int main(int argc, char **argv)
     printf("\nDevice Settings Application exiting with code %d\n", result);
     closelog();
     return result;
+}
+
+void test_getDSClientInterface()
+{
+    // After your existing initialization
+    DeviceSettings_Init();
+    DeviceSettings_Connect(); // This may return ERROR_NOT_EXIST
+
+/*    // If Operational(true) isn't called after a reasonable time:
+    if (!DeviceSettings_IsOperational()) {
+        printf("Operational callback not triggered, trying manual check...\n");
+        if (DeviceSettings_ForceCheckOperational()) {
+            printf("Successfully acquired interface manually!\n");
+        }
+    }
+*/
+    // Wait a bit for any async operations
+    sleep(2);
+
+    // Check detailed connection state
+    DeviceSettings_DebugConnectionState();
+
+    // Try the API call
+    uint32_t brightness = 0;
+    uint32_t result = DeviceSettings_GetFPDBrightness(FPD_INDICATOR_POWER, &brightness);
+    printf("Final result: %u, brightness: %u\n", result, brightness);
 }
 
 void getDSClientInterface()

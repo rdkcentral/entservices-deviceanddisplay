@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <functional> // for function
-#include <unistd.h>   // for access, F_OK
+//#include <functional> // for function
+//#include <unistd.h>   // for access, F_OK
 
-#include <core/IAction.h>    // for IDispatch
-#include <core/Time.h>       // for Time
-#include <core/WorkerPool.h> // for IWorkerPool, WorkerPool
+//#include <core/IAction.h>    // for IDispatch
+//#include <core/Time.h>       // for Time
+//#include <core/WorkerPool.h> // for IWorkerPool, WorkerPool
 
 #include "UtilsLogging.h"   // for LOGINFO, LOGERR
-#include "secure_wrapper.h" // for v_secure_system
+//#include "secure_wrapper.h" // for v_secure_system
 #include "HdmiIn.h"
 
 using IPlatform = hal::dHdmiIn::IPlatform;
@@ -55,6 +55,27 @@ void HdmiIn::init()
     bundle.OnHDMIInHotPlugEvent = [this](HDMIInPort port, bool isConnected) {
         this->OnHDMIInHotPlugEvent(port, isConnected);
     };
+    bundle.OnHDMIInSignalStatusEvent = [this](HDMIInPort port, HDMIInSignalStatus signalStatus) {
+        this->OnHDMIInSignalStatusEvent(port, signalStatus);
+    };
+    bundle.OnHDMIInStatusEvent = [this](HDMIInPort port, bool isConnected) {
+        this->OnHDMIInStatusEvent(port, isConnected);
+    };
+    bundle.OnHDMIInVideoModeUpdateEvent = [this](HDMIInPort port, HDMIVideoPortResolution videoPortResolution) {
+        this->OnHDMIInVideoModeUpdateEvent(port, videoPortResolution);
+    };
+    bundle.OnHDMIInAllmStatusEvent = [this](HDMIInPort port, bool allmStatus) {
+        this->OnHDMIInAllmStatusEvent(port, allmStatus);
+    };
+    bundle.OnHDMIInAVIContentTypeEvent = [this](HDMIInPort port, HDMIInAviContentType aviContentType) {
+        this->OnHDMIInAVIContentTypeEvent(port, aviContentType);
+    };
+    bundle.OnHDMIInAVLatencyEvent = [this](int32_t audioDelay, int32_t videoDelay) {
+        this->OnHDMIInAVLatencyEvent(audioDelay, videoDelay);
+    };
+    bundle.OnHDMIInVRRStatusEvent = [this](HDMIInPort port, HDMIInVRRType vrrType) {
+        this->OnHDMIInVRRStatusEvent(port, vrrType);
+    };
     if (_platform) {
         _platform->setAllCallbacks(bundle);
     }
@@ -63,7 +84,50 @@ void HdmiIn::init()
 
 void HdmiIn::OnHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected)
 {
-    LOGINFO("OnHDMIInEventHotPlug event Received");
+    _parent.OnHDMIInEventHotPlugNotification(port, isConnected);
+    LOGINFO("OnHDMIInHotPlugEvent event Received");
+}
+
+void HdmiIn::OnHDMIInSignalStatusEvent(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
+{
+    _parent.OnHDMIInEventSignalStatusNotification(port, signalStatus);
+    LOGINFO("OnHDMIInSignalStatusEvent event Received");
+}
+
+void HdmiIn::OnHDMIInStatusEvent(const HDMIInPort port, const bool isPresented)
+{
+    _parent.OnHDMIInEventStatusNotification(port, isPresented);
+    LOGINFO("OnHDMIInStatusEvent event Received");
+}
+
+void HdmiIn::OnHDMIInVideoModeUpdateEvent(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
+{
+    _parent.OnHDMIInVideoModeUpdateNotification(port, videoPortResolution);
+    LOGINFO("OnHDMIInVideoModeUpdateEvent event Received");
+}
+
+void HdmiIn::OnHDMIInAllmStatusEvent(const HDMIInPort port, const bool allmStatus)
+{
+    _parent.OnHDMIInAllmStatusNotification(port, allmStatus);
+    LOGINFO("OnHDMIInAllmStatusEvent event Received");
+}
+
+void HdmiIn::OnHDMIInAVIContentTypeEvent(const HDMIInPort port, const HDMIInAviContentType aviContentType)
+{
+    _parent.OnHDMIInAVIContentTypeNotification(port, aviContentType);
+    LOGINFO("OnHDMIInAVIContentTypeEvent event Received");
+}
+
+void HdmiIn::OnHDMIInAVLatencyEvent(int32_t audioDelay, int32_t videoDelay)
+{
+    _parent.OnHDMIInAVLatencyNotification(audioDelay, videoDelay);
+    LOGINFO("OnHDMIInAVLatencyEvent event Received");
+}
+
+void HdmiIn::OnHDMIInVRRStatusEvent(const HDMIInPort port, const HDMIInVRRType vrrType)
+{
+    _parent.OnHDMIInVRRStatusNotification(port, vrrType);
+    LOGINFO("OnHDMIInVRRStatusEvent event Received");
 }
 
 uint32_t HdmiIn::GetHDMIInNumbefOfInputs(int32_t &count) {
@@ -77,7 +141,7 @@ uint32_t HdmiIn::GetHDMIInNumbefOfInputs(int32_t &count) {
     return WPEFramework::Core::ERROR_NONE;
 }
 
-/*uint32_t HdmiIn::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) {
+uint32_t HdmiIn::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) {
     ENTRY_LOG;
 
     LOGINFO("GetHDMIInStatus");
@@ -87,7 +151,7 @@ uint32_t HdmiIn::GetHDMIInNumbefOfInputs(int32_t &count) {
     EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
-}*/
+}
 
 uint32_t HdmiIn::SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) {
     ENTRY_LOG;
@@ -117,7 +181,7 @@ uint32_t HdmiIn::SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) {
     return WPEFramework::Core::ERROR_NONE;
 }
 
-/*uint32_t HdmiIn::GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) {
+uint32_t HdmiIn::GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) {
     ENTRY_LOG;
 
     LOGINFO("GetSupportedGameFeaturesList");
@@ -125,7 +189,7 @@ uint32_t HdmiIn::SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) {
 
     EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
-}*/
+}
 
 uint32_t HdmiIn::GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency) {
     ENTRY_LOG;

@@ -45,13 +45,13 @@ endif()
 #find_package(MFR)
 #find_package(RFC)
 
-#add_library(${MODULE_NAME} SHARED
-#    Module.cpp
-#    DeviceSettingsManager.cpp)
-
-add_library(${MODULE_NAME}
+add_library(${MODULE_NAME} SHARED
     Module.cpp
     DeviceSettingsManager.cpp)
+
+#add_executable(${MODULE_NAME}
+#    Module.cpp
+#    DeviceSettingsManager.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
@@ -66,19 +66,19 @@ target_link_libraries(${MODULE_NAME}
 install(TARGETS ${MODULE_NAME}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)
 
-#add_library(${PLUGIN_IMPLEMENTATION} SHARED
-#    Module.cpp
-#    DeviceSettingsManagerImp.cpp
-#    fpd.cpp
-#    HdmiIn.cpp
-#)
-
-add_library(${PLUGIN_IMPLEMENTATION}
+add_library(${PLUGIN_IMPLEMENTATION} SHARED
     Module.cpp
     DeviceSettingsManagerImp.cpp
     fpd.cpp
     HdmiIn.cpp
 )
+
+#add_executable(${PLUGIN_IMPLEMENTATION}
+#    Module.cpp
+#    DeviceSettingsManagerImp.cpp
+#    fpd.cpp
+#    HdmiIn.cpp
+#)
 
 find_package(dshal)
 
@@ -181,3 +181,4 @@ target_link_libraries (DSApp
         ${WPEFRAMEWORK_DSCONTROLLER_LIB}
         ${CURL_LIBRARIES}
         pthread)
+

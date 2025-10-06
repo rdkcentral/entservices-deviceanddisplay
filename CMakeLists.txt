@@ -86,16 +86,16 @@ if(PLUGIN_DISPLAYINFO)
     add_subdirectory(DisplayInfo)
 endif()
 
-if(PLUGIN_DEVICESETTINGSMANAGER)
-	add_subdirectory(DeviceSettingsManager)
-endif()
-
 if(PLUGIN_DEVICEDIAGNOSTICS)
     add_subdirectory(DeviceDiagnostics)
 endif()
 
 if(PLUGIN_SYSTEMMODE)
     add_subdirectory(SystemMode)
+endif()
+
+if(PLUGIN_DEVICESETTINGSMANAGER)
+    add_subdirectory(DeviceSettingsManager)
 endif()
 
 if(WPEFRAMEWORK_CREATE_IPKG_TARGETS)

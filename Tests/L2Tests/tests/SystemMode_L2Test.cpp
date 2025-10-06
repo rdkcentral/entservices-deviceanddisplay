@@ -40,6 +40,7 @@
 #define SYSTEMMODE_CALLSIGN _T("org.rdk.SystemMode.1")
 #define SYSTEMMODEL2TEST_CALLSIGN _T("L2tests.1")
 #define DISPLAYSETTINGS_CALLSIGN _T("org.rdk.DisplaySettings.1")
+#define SYSTEM_MODE_FILE "/tmp/SystemMode.txt"
 
 using ::testing::NiceMock;
 using namespace WPEFramework;
@@ -529,6 +530,41 @@ TEST_F(SystemMode_L2test, ClientActivated_AfterStateRequested)
     // Step 4: Immediate cleanup to prevent interface issues during shutdown
     Core::hresult cleanup = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, cleanup);
+}
+
+// Cover case where file exists but no current state is set, should write default state VIDEO
+TEST_F(SystemMode_L2test, FileExistsWithoutCurrentStateSetsDefault)
+{
+    EXPECT_EQ(Core::ERROR_NONE, DeactivateService("org.rdk.SystemMode"));
+
+    if (m_sysmodeplugin) {
+        m_sysmodeplugin->Release();
+        m_sysmodeplugin = nullptr;
+    }
+    if (m_controller_sysmode) {
+        m_controller_sysmode->Release();
+        m_controller_sysmode = nullptr;
+    }
+
+    removeFile(SYSTEM_MODE_FILE);
+    createFile(SYSTEM_MODE_FILE, "DEVICE_OPTIMIZE.callsign=org.rdk.Dummy");
+
+    // Activate the plugin again to run the constructor logic
+    EXPECT_EQ(Core::ERROR_NONE, ActivateService("org.rdk.SystemMode"));
+
+    // Recreate the local interface to the newly activated plugin
+    ASSERT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
+
+    // Verify GetState returns the default VIDEO that constructor should have written
+    Exchange::ISystemMode::GetStateResult result{};
+    EXPECT_EQ(Core::ERROR_NONE, m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result));
+    EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
+
+    // Cleanup: deactivate and reactivate to restore original fixture state (optional)
+    EXPECT_EQ(Core::ERROR_NONE, DeactivateService("org.rdk.SystemMode"));
+    removeFile(SYSTEM_MODE_FILE);
+    EXPECT_EQ(Core::ERROR_NONE, ActivateService("org.rdk.SystemMode"));
+    ASSERT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
 }
 
 // ---------------- JSON-RPC TESTS ----------------

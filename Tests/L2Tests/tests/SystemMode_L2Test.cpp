@@ -488,6 +488,49 @@ TEST_F(SystemMode_L2test, GetStateAfterRequest)
     EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
 }
 
+// COM-RPC: ClientActivated with invalid system mode
+TEST_F(SystemMode_L2test, ClientActivated_InvalidSystemMode)
+{
+    ASSERT_TRUE(m_sysmodeplugin != nullptr);
+
+    // Test with invalid system mode - should return early (lines 260-261)
+    Core::hresult result = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, "INVALID_SYSTEM_MODE");
+    EXPECT_EQ(0, result);
+}
+
+// COM-RPC: ClientActivated with empty callsign
+TEST_F(SystemMode_L2test, ClientActivated_EmptyCallsign)
+{
+    ASSERT_TRUE(m_sysmodeplugin != nullptr);
+    const std::string modeName = "DEVICE_OPTIMIZE";
+
+    Core::hresult result = m_sysmodeplugin->ClientActivated("", modeName);
+    EXPECT_EQ(Core::ERROR_NONE, result);
+}
+
+// COM-RPC: ClientActivated after a state has been requested
+TEST_F(SystemMode_L2test, ClientActivated_AfterStateRequested)
+{
+    ASSERT_TRUE(m_sysmodeplugin != nullptr);
+    const std::string modeName = "DEVICE_OPTIMIZE";
+
+    // Step 1: Request a state to set stateRequested = true (line 185)
+    Core::hresult stateResult = m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
+        Exchange::ISystemMode::GAME);
+    EXPECT_EQ(Core::ERROR_NONE, stateResult);
+
+    // Step 2: Wait for the state to be applied
+    EXPECT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::GAME));
+
+    // The client should immediately receive the current state via Request() call
+    Core::hresult activateResult = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+    EXPECT_EQ(Core::ERROR_NONE, activateResult);
+
+    // Step 4: Immediate cleanup to prevent interface issues during shutdown
+    Core::hresult cleanup = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+    EXPECT_EQ(Core::ERROR_NONE, cleanup);
+}
+
 // ---------------- JSON-RPC TESTS ----------------
 
 // JSON-RPC: requestState -> VIDEO then getState
@@ -690,45 +733,4 @@ TEST_F(SystemMode_L2test, JSONRPC_ClientActivation_Idempotent)
     result.Clear();
     status = InvokeServiceMethod("org.rdk.SystemMode.1", "clientDeactivated", params, result);
     EXPECT_EQ(Core::ERROR_NONE, status);
-}
-
-TEST_F(SystemMode_L2test, ClientActivated_InvalidSystemMode)
-{
-    ASSERT_TRUE(m_sysmodeplugin != nullptr);
-
-    // Test with invalid system mode - should return early (lines 260-261)
-    Core::hresult result = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, "INVALID_SYSTEM_MODE");
-    EXPECT_EQ(0, result);
-}
-
-TEST_F(SystemMode_L2test, ClientActivated_EmptyCallsign)
-{
-    ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    const std::string modeName = "DEVICE_OPTIMIZE";
-
-    // Test with empty callsign - should skip the controller creation logic (line 264)
-    Core::hresult result = m_sysmodeplugin->ClientActivated("", modeName);
-    EXPECT_EQ(Core::ERROR_NONE, result);
-}
-
-TEST_F(SystemMode_L2test, ClientActivated_AfterStateRequested)
-{
-    ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    const std::string modeName = "DEVICE_OPTIMIZE";
-
-    // Step 1: Request a state to set stateRequested = true (line 185)
-    Core::hresult stateResult = m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
-        Exchange::ISystemMode::GAME);
-    EXPECT_EQ(Core::ERROR_NONE, stateResult);
-
-    // Step 2: Wait for the state to be applied
-    EXPECT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::GAME));
-
-    // The client should immediately receive the current state via Request() call
-    Core::hresult activateResult = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-    EXPECT_EQ(Core::ERROR_NONE, activateResult);
-
-    // Step 4: Immediate cleanup to prevent interface issues during shutdown
-    Core::hresult cleanup = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-    EXPECT_EQ(Core::ERROR_NONE, cleanup);
 }

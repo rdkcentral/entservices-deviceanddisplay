@@ -806,7 +806,7 @@ TEST_F(FrameRate_L2test, GetDisplayFrameRateUsingJsonrpc) {
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject params;
     JsonObject result;
-
+    
     device::VideoDevice videoDevice;
     ON_CALL(*p_hostImplMock, getVideoDevices())
             .WillByDefault(::testing::Return(device::List<device::VideoDevice>({ videoDevice })));

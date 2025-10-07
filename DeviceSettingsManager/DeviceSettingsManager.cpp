@@ -80,6 +80,8 @@ namespace Plugin
 
         if (_mDeviceSettingsManager == nullptr) {
             LOGERR("Failed to get IDeviceSettingsManager interface");
+        } else {
+            LOGINFO("Registering IDeviceSettingsManager Successful");
         }
         /*if (_mDeviceSettingsManager != nullptr) {
             LOGINFO("Registering JDeviceSettingsManagerFPD");

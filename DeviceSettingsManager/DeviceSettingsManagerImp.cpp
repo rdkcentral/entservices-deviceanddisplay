@@ -38,6 +38,7 @@ namespace Plugin {
         , _hdmiIn(HdmiIn::Create(*this))
     {
         ENTRY_LOG;
+        DeviceSettingsManagerImp obj;
         DeviceSettingsManagerImp::_instance = this;
         LOGINFO("DeviceSettingsManagerImp Is abstract class: %d", std::is_abstract<DeviceSettingsManagerImp>::value);
         DeviceManager_Init();

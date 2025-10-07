@@ -69,8 +69,6 @@ namespace Core {
     struct IWorkerPool;
 }
 }*/
-
-class HdmiIn {
     using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
     using HDMIInSignalStatus       = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus;
     using HDMIVideoPortResolution  = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution;
@@ -85,6 +83,8 @@ class HdmiIn {
     using HDMIInVideoRectangle     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoRectangle;
     using IHDMIInPortConnectionStatusIterator = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInPortConnectionStatusIterator;
     using IHDMIInGameFeatureListIterator      = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInGameFeatureListIterator;
+
+class HdmiIn {
     using IPlatform = hal::dHdmiIn::IPlatform;
     using DefaultImpl = dHdmiInImpl;
 
@@ -109,7 +109,7 @@ public:
     // We do not allow this plugin to be copied !!
     //HdmiIn();
 
-    void init();
+    void Platform_init();
 
     uint32_t GetHDMIInNumbefOfInputs(int32_t &count);
     uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);

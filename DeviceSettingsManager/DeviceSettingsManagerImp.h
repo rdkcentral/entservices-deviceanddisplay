@@ -42,14 +42,15 @@
 
 namespace WPEFramework {
 namespace Plugin {
-    class DeviceSettingsManagerImp : public Exchange::IDeviceSettingsManager::IFPD
+    class DeviceSettingsManagerImp : public Exchange::IDeviceSettingsManager
+                                   , public Exchange::IDeviceSettingsManager::IFPD
                                    , public Exchange::IDeviceSettingsManager::IHDMIIn
                                    , public HdmiIn::INotification
     {
     public:
-    // Minimal implementations to satisfy IReferenceCounted
-    uint32_t AddRef() const override { return 1; }
-    uint32_t Release() const override { return 1; }
+        // Minimal implementations to satisfy IReferenceCounted
+        uint32_t AddRef() const override { return 1; }
+        uint32_t Release() const override { return 1; }
 
         // We do not allow this plugin to be copied !!
         DeviceSettingsManagerImp();
@@ -61,10 +62,11 @@ namespace Plugin {
         DeviceSettingsManagerImp(const DeviceSettingsManagerImp&)            = delete;
         DeviceSettingsManagerImp& operator=(const DeviceSettingsManagerImp&) = delete;
 
-    BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
-    INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IFPD)
-    INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn)
-    END_INTERFACE_MAP
+        BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
+        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager)
+        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IFPD)
+        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn)
+        END_INTERFACE_MAP
 
     public:
         class EXTERNAL LambdaJob : public Core::IDispatch {

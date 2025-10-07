@@ -33,6 +33,14 @@ using DefaultImpl = dHdmiInImpl;
 
 using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
 
+// Out-of-line destructor for hal::dHdmiIn::IPlatform to ensure typeinfo symbol is generated
+#include "hal/dHdmiIn.h"
+namespace hal {
+namespace dHdmiIn {
+    IPlatform::~IPlatform() {}
+}
+}
+
 HdmiIn::HdmiIn(INotification& parent, std::shared_ptr<IPlatform> platform) 
     : _platform(std::move(platform))
     , _parent(parent)
@@ -42,14 +50,14 @@ HdmiIn::HdmiIn(INotification& parent, std::shared_ptr<IPlatform> platform)
     LOGINFO("HDMI version: %s\n", HdmiConnectionToStrMapping[0].name);
     LOGINFO("HDMI version: %s\n", HdmiStatusToStrMapping[0].name);
     LOGINFO("HDMI version: %s\n", HdmiVerToStrMapping[0].name);
-    init();
+    Platform_init();
     EXIT_LOG;
 }
 
-void HdmiIn::init()
+void HdmiIn::Platform_init()
 {
     ENTRY_LOG;
-    LOGINFO("HdmiIn Init");
+    LOGINFO("HdmiIn::Platform_init");
 
     CallbackBundle bundle;
     bundle.OnHDMIInHotPlugEvent = [this](HDMIInPort port, bool isConnected) {
@@ -78,6 +86,7 @@ void HdmiIn::init()
     };
     if (_platform) {
         _platform->setAllCallbacks(bundle);
+        _platform->getPersistenceValue();
     }
     EXIT_LOG;
 }

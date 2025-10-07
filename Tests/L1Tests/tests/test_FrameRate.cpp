@@ -196,7 +196,7 @@ typedef enum : uint32_t {
     FrameRate_OnFpsEvent = 0x00000004,
 } FrameRateEventType_t;
 
-class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification {
+class L1FrameRateNotificationHandler : public Exchange::IFrameRate::INotification {
     private:
         std::mutex m_mutex;
         std::condition_variable m_condition_variable;
@@ -210,13 +210,13 @@ class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification 
         int m_lastMax;
         mutable uint32_t m_refCount;
 
-        BEGIN_INTERFACE_MAP(FrameRateNotificationHandler)
+        BEGIN_INTERFACE_MAP(L1FrameRateNotificationHandler)
         INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
         END_INTERFACE_MAP
 
     public:
-        FrameRateNotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0), m_refCount(1) {}
-        ~FrameRateNotificationHandler() {}
+        L1FrameRateNotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0), m_refCount(1) {}
+        ~L1FrameRateNotificationHandler() {}
 
         void AddRef() const override
         {
@@ -527,7 +527,7 @@ TEST_F(FrameRateTest, UpdateFps_HighValue)
 
 TEST_F(FrameRateTest, OnReportFpsTimer_WithUpdates)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
 
     Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
     
@@ -550,7 +550,7 @@ TEST_F(FrameRateTest, OnReportFpsTimer_WithUpdates)
 
 TEST_F(FrameRateTest, OnReportFpsTimer_NoUpdates)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -569,7 +569,7 @@ TEST_F(FrameRateTest, OnReportFpsTimer_NoUpdates)
 
 TEST_F(FrameRateTest, OnReportFpsTimer_SingleUpdate)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -593,7 +593,7 @@ TEST_F(FrameRateTest, OnReportFpsTimer_SingleUpdate)
 
 TEST_F(FrameRateTest, OnDisplayFrameratePreChange_ValidFrameRate)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -612,7 +612,7 @@ TEST_F(FrameRateTest, OnDisplayFrameratePreChange_ValidFrameRate)
 
 TEST_F(FrameRateTest, OnDisplayFrameratePreChange_EmptyFrameRate)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -631,7 +631,7 @@ TEST_F(FrameRateTest, OnDisplayFrameratePreChange_EmptyFrameRate)
 
 TEST_F(FrameRateTest, OnDisplayFrameratePreChange_StandardResolution)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -650,7 +650,7 @@ TEST_F(FrameRateTest, OnDisplayFrameratePreChange_StandardResolution)
 
 TEST_F(FrameRateTest, OnDisplayFrameratePostChange_ValidFrameRate)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -669,7 +669,7 @@ TEST_F(FrameRateTest, OnDisplayFrameratePostChange_ValidFrameRate)
 
 TEST_F(FrameRateTest, OnDisplayFrameratePostChange_EmptyFrameRate)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -688,7 +688,7 @@ TEST_F(FrameRateTest, OnDisplayFrameratePostChange_EmptyFrameRate)
 
 TEST_F(FrameRateTest, OnDisplayFrameratePostChange_StandardResolution)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -707,7 +707,7 @@ TEST_F(FrameRateTest, OnDisplayFrameratePostChange_StandardResolution)
 
 TEST_F(FrameRateTest, OnReportFpsTimer_MultipleUpdatesAverageCalculation)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {
@@ -734,7 +734,7 @@ TEST_F(FrameRateTest, OnReportFpsTimer_MultipleUpdatesAverageCalculation)
 
 TEST_F(FrameRateTest, OnReportFpsTimer_ZeroFpsUpdate)
 {
-    FrameRateNotificationHandler* notificationHandler = new FrameRateNotificationHandler();
+    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
     
     if (Plugin::FrameRateImplementation::_instance != nullptr)
     {

@@ -54,6 +54,7 @@ public:
         : _workerPool(WPEFramework::Core::WorkerPool::Instance())
         , _powerState(powerState)
         , _transactionId(++_nextTransactionId)
+        , _timeout(WPEFramework::Core::Time::Now())
         , _handler(nullptr)
         , _running(false)
     {
@@ -200,7 +201,10 @@ public:
             _running                          = true;
             _handler                          = std::move(handler);
 
-            _timeout  = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
+            // If timeout is already set (via Reschedule), use max of offset or timeout
+            auto newTimeout = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
+            _timeout        = std::max(newTimeout, _timeout);
+
             _timerJob = LambdaJob::Create([wPtr]() {
                 std::shared_ptr<AckController> self = wPtr.lock();
 
@@ -239,8 +243,13 @@ public:
         ASSERT(nullptr != _handler);
 
         do {
+            auto newTimeout = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
+
+            // If Reschedule is called even before Schedule, cache the timeout value
+            // use timeout value later when Schedule gets called
             if (!_running) {
-                status = WPEFramework::Core::ERROR_ILLEGAL_STATE;
+                _timeout = std::max(_timeout, newTimeout);
+                status = WPEFramework::Core::ERROR_NONE;
                 break;
             }
 
@@ -256,8 +265,6 @@ public:
                 status = WPEFramework::Core::ERROR_INVALID_PARAMETER;
                 break;
             }
-
-            auto newTimeout = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
 
             // set new timeout only if it's greater than previous timeout, else fail silently
             if (newTimeout > _timeout) {

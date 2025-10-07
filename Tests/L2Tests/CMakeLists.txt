@@ -22,6 +22,10 @@ set(THUNDER_PORT 9998)
 
 find_package(${NAMESPACE}Plugins REQUIRED)
 
+if(PLUGIN_SYSTEMMODE)
+    set(SRC_FILES ${SRC_FILES} tests/SystemMode_L2Test.cpp)
+endif()
+
 if(PLUGIN_WAREHOUSE)
     set(SRC_FILES ${SRC_FILES} tests/Warehouse_L2Test.cpp)
 endif()

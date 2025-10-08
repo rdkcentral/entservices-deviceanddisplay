@@ -221,19 +221,20 @@ TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
 {
     Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(0, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
-
     EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
-            .Times(1)
-            // called by WareHouseResetIARM
-            .WillOnce(::testing::Invoke(
-                [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
-                    string text;
-                    EXPECT_TRUE(json->ToString(text));
-                    // Check for error response for the second call - Negative test case
-                    EXPECT_EQ(text, string(_T("{\"jsonrpc\":\"2.0\",\"method\":\"org.rdk.Warehouse.resetDone\",\"params\":{\"success\":true,\"error\":\"\"}}")));
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{\"jsonrpc\":\"2.0\",\"method\":\"org.rdk.Warehouse.resetDone\",\"params\":{\"success\":true,\"error\":\"\"}}")));
+                // Use detached thread to avoid deadlock
+                std::thread([&resetDone]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     resetDone.SetEvent();
-                    return Core::ERROR_NONE;
-                }));
+                }).detach();
+                return Core::ERROR_NONE;
+            }));
     
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -243,10 +244,9 @@ TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
                 return Core::ERROR_NONE;
             }));
 
-    // reset: suppress reboot: true, type: WAREHOUSE_CLEAR, Expect no response
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true,\"resetType\":\"WAREHOUSE_CLEAR\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(5000)); // Add timeout
     EVENT_UNSUBSCRIBE(0, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 }
 
@@ -270,19 +270,20 @@ TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
 {
     Core::Event resetDone(false, true);
     EVENT_SUBSCRIBE(1, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
-
     EXPECT_CALL(service, Submit(::testing::_, ::testing::_))
-            .Times(1)
-            // called by WareHouseResetIARM
-            .WillOnce(::testing::Invoke(
-                [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
-                    string text;
-                    EXPECT_TRUE(json->ToString(text));
-                    // Check for error response for the second call - Negative test case
-                    EXPECT_EQ(text, string(_T("{\"jsonrpc\":\"2.0\",\"method\":\"org.rdk.Warehouse.resetDone\",\"params\":{\"success\":true,\"error\":\"\"}}")));
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const uint32_t, const Core::ProxyType<Core::JSON::IElement>& json) {
+                string text;
+                EXPECT_TRUE(json->ToString(text));
+                EXPECT_EQ(text, string(_T("{\"jsonrpc\":\"2.0\",\"method\":\"org.rdk.Warehouse.resetDone\",\"params\":{\"success\":true,\"error\":\"\"}}")));
+                // Use detached thread to avoid deadlock
+                std::thread([&resetDone]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     resetDone.SetEvent();
-                    return Core::ERROR_NONE;
-                }));
+                }).detach();
+                return Core::ERROR_NONE;
+            }));
 
     EXPECT_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .Times(1)
@@ -292,10 +293,9 @@ TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
                 return Core::ERROR_NONE;
             }));
 
-    // reset: suppress reboot: true - This doesn't generate any event (Expect no response)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock());
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(5000)); // Add timeout
     EVENT_UNSUBSCRIBE(1, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 }
 

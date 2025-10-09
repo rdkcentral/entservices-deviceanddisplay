@@ -43,6 +43,8 @@
 #include "dsRpc.h"
 #include "dsFPDTypes.h"
 
+#include "hal/dFPDImpl.h"
+
 #define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
 #define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
 
@@ -61,27 +63,29 @@ class FPD {
     using FPDMode = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDMode;
     using FDPLEDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FDPLEDState;
 
-    /*inline IPlatform& platform()
-    {
-        ASSERT(nullptr != _platform);
-        return *_platform;
-    }
+    using IPlatform = hal::dFPD::IPlatform;
+    using DefaultImpl = dFPDImpl;
 
-    inline IPlatform& platform() const
-    {
-        return *_platform;
-    }*/
+    std::shared_ptr<IPlatform> _platform;
+
+public:
+    class INotification {
+
+        public:
+            virtual ~INotification() = default;
+            //virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) = 0;
+    };
 
 public:
 
     // We do not allow this plugin to be copied !!
-    FPD();
+    //FPD();
 
     // Avoid copying this obj
-    FPD(const FPD&) = delete;            // copy constructor
-    FPD& operator=(const FPD&) = delete; // copy assignment operator
+    //FPD(const FPD&) = delete;            // copy constructor
+    //FPD& operator=(const FPD&) = delete; // copy assignment operator
 
-    void init();
+    void Platform_init();
 
     uint32_t SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds);
     uint32_t SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations);
@@ -99,28 +103,27 @@ public:
     uint32_t SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat);
     uint32_t SetFPDMode(const FPDMode fpdMode);
 
-    #define dsFPDColor_Make(R8,G8,B8)  (((R8)<<16) | ((G8)<< 8) | ((B8) ))
-    #define dsFPDColor_R(RGB32)    (((RGB32) >> 16) & 0xFF)                ///< Extract Red value form RGB value
-    #define dsFPDColor_G(RGB32)    (((RGB32) >>  8) & 0xFF)                ///< Extract Green value form RGB value
-    #define dsFPDColor_B(RGB32)    (((RGB32)      ) & 0xFF)                ///< Extract Blue value form RGB value
-
-    #define dsFPD_COLOR_BLUE   dsFPDColor_Make(0, 0, 0xFF)          ///< Blue color LED                 
-    #define dsFPD_COLOR_GREEN  dsFPDColor_Make(0, 0xFF, 0)          ///< Green color LED                
-    #define dsFPD_COLOR_RED    dsFPDColor_Make(0xFF, 0, 0x0)        ///< Red color LED                 
-    #define dsFPD_COLOR_YELLOW dsFPDColor_Make(0xFF, 0xFF, 0xE0)    ///< Yellow color LED               
-    #define dsFPD_COLOR_ORANGE dsFPDColor_Make(0xFF, 0x8C, 0x00)    ///< Orange color LED               
-    #define dsFPD_COLOR_WHITE  dsFPDColor_Make(0xFF, 0xFF, 0xFF)    ///< White color LED               
-    #define dsFPD_COLOR_MAX    6                                    ///< Out of range
-
-    /*template <typename IMPL = DefaultImpl, typename... Args>
-    static PowerController Create(DeepSleepController& deepSleep, Args&&... args)
+    template <typename IMPL = DefaultImpl, typename... Args>
+    static FPD Create(INotification& parent, Args&&... args)
     {
-        static_assert(std::is_base_of<IPlatform, IMPL>::value, "Impl must derive from hal::power::IPlatform");
-        IMPL* api = new IMPL(std::forward<Args>(args)...);
-        return PowerController(deepSleep, std::unique_ptr<IPlatform>(api));
-    }*/
+        ENTRY_LOG;
+        static_assert(std::is_base_of<IPlatform, IMPL>::value, "Impl must derive from hal::dFPD::IPlatform");
+        auto impl = std::shared_ptr<IMPL>(new IMPL(std::forward<Args>(args)...));
+        ASSERT(impl != nullptr);
+        EXIT_LOG;
+        return FPD(parent, std::move(impl));
+    }
+    
+    private:
+    FPD(INotification& parent, std::shared_ptr<IPlatform> platform);
 
-private:
+    inline IPlatform& platform() const
+    {
+        return *_platform;
+    }
+
+    INotification& _parent;
+
     //std::unique_ptr<IPlatform> _platform;
     //Settings _settings;
     //WPEFramework::Core::IWorkerPool& _workerPool;

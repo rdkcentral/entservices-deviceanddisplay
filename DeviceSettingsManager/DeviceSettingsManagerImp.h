@@ -46,6 +46,7 @@ namespace Plugin {
                                    , public Exchange::IDeviceSettingsManager::IFPD
                                    , public Exchange::IDeviceSettingsManager::IHDMIIn
                                    , public HdmiIn::INotification
+                                   , public FPD::INotification
     {
     public:
         // Minimal implementations to satisfy IReferenceCounted
@@ -160,6 +161,9 @@ namespace Plugin {
         template <typename T>
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
+        template<typename Func, typename... Args>
+        void dispatchHDMIInEvent(Func notifyFunc, Args&&... args);
+
         virtual void OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected) override;
         virtual void OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override;
         virtual void OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented) override;
@@ -168,7 +172,6 @@ namespace Plugin {
         virtual void OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType) override;
         virtual void OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay) override;
         virtual void OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType) override;
-        void dispatchHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected);
 
         FPD _fpd;
         HdmiIn _hdmiIn;

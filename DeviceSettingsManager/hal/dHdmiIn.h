@@ -64,6 +64,7 @@ namespace dHdmiIn {
     public:
         virtual ~IPlatform();
         void InitialiseHAL();
+        void DeInitialiseHAL();
         virtual void setAllCallbacks(const CallbackBundle bundle) = 0;
         virtual void getPersistenceValue() = 0;
         //virtual void deinit();

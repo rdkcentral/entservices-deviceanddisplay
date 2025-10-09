@@ -35,8 +35,11 @@
 #define TVSETTINGS_DALS_RFC_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TvSettings.DynamicAutoLatency"
 #define RDK_DSHAL_NAME "libds-hal.so"
 
-static int m_isInitialized = 0;
-static int m_isPlatInitialized = 0;
+#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
+#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
+
+static int m_hdmiInInitialized = 0;
+static int m_hdmiInPlatInitialized = 0;
 static bool isDalsEnabled = 0;
 static dsHdmiInCap_t hdmiInCap_gs;
 static bool m_edidallmsupport[dsHDMI_IN_PORT_MAX];
@@ -77,6 +80,7 @@ public:
     virtual ~dHdmiInImpl()
     {
         LOGERR("dHdmiInImpl Destructor");
+        DeInitialiseHAL();
         // Terminate the platform
         /*pmStatus_t result = PLAT_TERM();
         if (PWRMGR_SUCCESS != result) {
@@ -91,13 +95,34 @@ public:
         if (PROFILE_TV == profileType)
         {
             LOGINFO("InitialiseHAL: its TV Profile");
-            if (!m_isPlatInitialized)
+            if (!m_hdmiInPlatInitialized)
             {
                 /* Nexus init, if any here */
                 dsError_t eError = dsHdmiInInit();
                 LOGINFO("InitialiseHAL: dsHdmiInInit ret:%d", eError);
             }
-            m_isPlatInitialized++;
+            m_hdmiInPlatInitialized++;
+        }
+    }
+
+    void DeInitialiseHAL()
+    {
+        profile_t profileType = searchRdkProfile();
+        getDynamicAutoLatencyConfig();
+
+        LOGINFO("DeInitialiseHAL");
+        if (PROFILE_TV == profileType)
+        {
+            LOGINFO("its TV Profile");
+            if (m_hdmiInPlatInitialized)
+            {
+                m_hdmiInPlatInitialized--;
+                if (!m_hdmiInPlatInitialized)
+                {
+                    dsHdmiInTerm();
+                }
+                m_hdmiInPlatInitialized = 0;
+            }
         }
     }
 
@@ -493,10 +518,16 @@ public:
 
     void setAllCallbacks(const CallbackBundle bundle) override
     {
-        if (!m_isInitialized) {
+        ENTRY_LOG;
+        profile_t profileType = searchRdkProfile();
+        LOGINFO("setAllCallbacks: profileType %d", profileType);
+        if (!m_hdmiInInitialized) {
+            LOGINFO("Trace - First time Initialization");
             if (PROFILE_TV == profileType)
             {
+                LOGINFO("setAllCallbacks: its TV Profile");
                 if (bundle.OnHDMIInHotPlugEvent) {
+                    LOGINFO("HDMI In Hot Plug Event Callback Registered");
                     g_HdmiInHotPlugCallback = bundle.OnHDMIInHotPlugEvent;
                     dsHdmiInRegisterConnectCB(DS_OnHDMIInHotPlugEvent);
                 }
@@ -504,9 +535,10 @@ public:
                 typedef dsError_t (*dsHdmiInRegisterSignalChangeCB_t)(dsHdmiInSignalChangeCB_t CBFunc);
                 static dsHdmiInRegisterSignalChangeCB_t signalChangeCBFunc = 0;
                 if (bundle.OnHDMIInSignalStatusEvent) {
+                    LOGINFO("HDMI In Signal Status Event Callback Registered");
                     g_HdmiInSignalStatusCallback = bundle.OnHDMIInSignalStatusEvent;
                     if (!signalChangeCBFunc) {
-                        signalChangeCBFunc = (dsHdmiInRegisterSignalChangeCB_t)resolve("libds-hal.so", "dsHdmiInRegisterSignalChangeCB");
+                        signalChangeCBFunc = (dsHdmiInRegisterSignalChangeCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterSignalChangeCB");
                     }
                     if (signalChangeCBFunc) {
                         signalChangeCBFunc(DS_OnHDMIInSignalStatusEvent);
@@ -518,9 +550,10 @@ public:
                 typedef dsError_t (*dsHdmiInRegisterStatusChangeCB_t)(dsHdmiInStatusChangeCB_t CBFunc);
                 static dsHdmiInRegisterStatusChangeCB_t StatusCBFunc = 0;
                 if (bundle.OnHDMIInStatusEvent) {
+                    LOGINFO("HDMI In Status Event Callback Registered");
                     g_HdmiInStatusCallback = bundle.OnHDMIInStatusEvent;
                     if (!StatusCBFunc) {
-                        StatusCBFunc = (dsHdmiInRegisterStatusChangeCB_t)resolve("libds-hal.so", "dsHdmiInRegisterStatusChangeCB");
+                        StatusCBFunc = (dsHdmiInRegisterStatusChangeCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterStatusChangeCB");
                     }
                     if (StatusCBFunc) {
                         StatusCBFunc(DS_OnHDMIInStatusEvent);
@@ -532,9 +565,10 @@ public:
                 typedef dsError_t (*dsHdmiInRegisterVideoModeUpdateCB_t)(dsHdmiInVideoModeUpdateCB_t CBFunc);
                 static dsHdmiInRegisterVideoModeUpdateCB_t videoModeUpdateCBFunc = 0;
                 if (bundle.OnHDMIInVideoModeUpdateEvent) {
+                    LOGINFO("HDMI In Video Mode Update Event Callback Registered");
                     g_HdmiInVideoModeUpdateCallback = bundle.OnHDMIInVideoModeUpdateEvent;
                     if (!videoModeUpdateCBFunc) {
-                        videoModeUpdateCBFunc = (dsHdmiInRegisterVideoModeUpdateCB_t)resolve("libds-hal.so", "dsHdmiInRegisterVideoModeUpdateCB");
+                        videoModeUpdateCBFunc = (dsHdmiInRegisterVideoModeUpdateCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterVideoModeUpdateCB");
                     }
                     if (videoModeUpdateCBFunc) {
                         videoModeUpdateCBFunc(DS_OnHDMIInVideoModeUpdateEvent);
@@ -546,9 +580,10 @@ public:
                 typedef dsError_t (*dsHdmiInRegisterAllmChangeCB_t)(dsHdmiInAllmChangeCB_t CBFunc);
                 static dsHdmiInRegisterAllmChangeCB_t allmChangeCBFunc = 0;
                 if (bundle.OnHDMIInAllmStatusEvent) {
+                    LOGINFO("HDMI In ALLM Status Event Callback Registered");
                     g_HdmiInAllmStatusCallback = bundle.OnHDMIInAllmStatusEvent;
                     if (!allmChangeCBFunc) {
-                        allmChangeCBFunc = (dsHdmiInRegisterAllmChangeCB_t)resolve("libds-hal.so", "dsHdmiInRegisterAllmChangeCB");
+                        allmChangeCBFunc = (dsHdmiInRegisterAllmChangeCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterAllmChangeCB");
                     }
                     if (allmChangeCBFunc) {
                         allmChangeCBFunc(DS_OnHDMIInAllmStatusEvent);
@@ -560,9 +595,10 @@ public:
                 typedef dsError_t (*dsHdmiInRegisterVRRChangeCB_t)(dsHdmiInVRRChangeCB_t CBFunc);
                 static dsHdmiInRegisterVRRChangeCB_t vrrChangeCBFunc = 0;
                 if (bundle.OnHDMIInVRRStatusEvent) {
+                    LOGINFO("HDMI In VRR Status Event Callback Registered");
                     g_HdmiInVRRStatusCallback = bundle.OnHDMIInVRRStatusEvent;
                     if (!vrrChangeCBFunc) {
-                        vrrChangeCBFunc = (dsHdmiInRegisterVRRChangeCB_t)resolve("libds-hal.so", "dsHdmiInRegisterVRRChangeCB");
+                        vrrChangeCBFunc = (dsHdmiInRegisterVRRChangeCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterVRRChangeCB");
                     }
                     if (vrrChangeCBFunc) {
                         vrrChangeCBFunc(DS_OnHDMIInVRRStatusEvent);
@@ -574,9 +610,10 @@ public:
                 typedef dsError_t (*dsHdmiInRegisterAviContentTypeChangeCB_t)(dsHdmiInAviContentTypeChangeCB_t CBFunc);
                 static dsHdmiInRegisterAviContentTypeChangeCB_t AviContentTypeChangeCBFunc = 0;
                 if (bundle.OnHDMIInAVIContentTypeEvent) {
+                    LOGINFO("HDMI In AVI Content Type Event Callback Registered");
                     g_HdmiInAviContentTypeCallback = bundle.OnHDMIInAVIContentTypeEvent;
                     if (!AviContentTypeChangeCBFunc) {
-                        AviContentTypeChangeCBFunc = (dsHdmiInRegisterAviContentTypeChangeCB_t)resolve("libds-hal.so", "dsHdmiInRegisterAviContentTypeChangeCB");
+                        AviContentTypeChangeCBFunc = (dsHdmiInRegisterAviContentTypeChangeCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterAviContentTypeChangeCB");
                     }
                     if (AviContentTypeChangeCBFunc) {
                         AviContentTypeChangeCBFunc(DS_OnHDMIInAVIContentTypeEvent);
@@ -588,9 +625,10 @@ public:
                 typedef dsError_t (*dsHdmiInRegisterAVLatencyChangeCB_t)(dsAVLatencyChangeCB_t CBFunc);
                 static dsHdmiInRegisterAVLatencyChangeCB_t AVLatencyChangeCBFunc = 0;
                 if (bundle.OnHDMIInAVLatencyEvent) {
+                    LOGINFO("HDMI In AV Latency Event Callback Registered");
                     g_HdmiInAVLatencyCallback = bundle.OnHDMIInAVLatencyEvent;
                     if (!AVLatencyChangeCBFunc) {
-                        AVLatencyChangeCBFunc = (dsHdmiInRegisterAVLatencyChangeCB_t)resolve("libds-hal.so", "dsHdmiInRegisterAVLatencyChangeCB");
+                        AVLatencyChangeCBFunc = (dsHdmiInRegisterAVLatencyChangeCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterAVLatencyChangeCB");
                     }
                     if (AVLatencyChangeCBFunc) {
                         AVLatencyChangeCBFunc(DS_OnHDMIInAVLatencyEvent);
@@ -600,6 +638,7 @@ public:
                 }
             }
         }
+        EXIT_LOG;
     }
 
     void getPersistenceValue() override
@@ -679,7 +718,7 @@ public:
                 LOGINFO("Port HDMI%d: Initialized EDID Version : %d", itr, m_edidversion[itr]);
             }
         }
-        m_isInitialized = 1;
+        m_hdmiInInitialized = 1;
 
         LOGINFO("Set Callbacks");
     }

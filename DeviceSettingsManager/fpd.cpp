@@ -36,17 +36,28 @@ extern IARM_Result_t _dsSetFPColor(void *arg);
 extern IARM_Result_t _dsGetFPColor(void *arg);
 extern IARM_Result_t _dsSetFPBlink(void *arg);
 
-FPD::FPD()
+FPD::FPD(INotification& parent, std::shared_ptr<IPlatform> platform)
+    : _platform(std::move(platform))
+    , _parent(parent)
 {
     ENTRY_LOG;
     LOGINFO("FPD Constructor");
-    init();
+    LOGINFO("HDMI version: %s\n", HdmiConnectionToStrMapping[0].name);
+    LOGINFO("HDMI version: %s\n", HdmiStatusToStrMapping[0].name);
+    LOGINFO("HDMI version: %s\n", HdmiVerToStrMapping[0].name);
+    Platform_init();
     EXIT_LOG;
 }
 
-void FPD::init()
+void FPD::Platform_init()
 {
     ENTRY_LOG;
+
+    if (_platform) {
+    //this->platform().setAllCallbacks(bundle);
+    //this->platform().getPersistenceValue();
+    }
+
     LOGINFO("FPD Init");
     EXIT_LOG;
 }

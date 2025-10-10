@@ -324,6 +324,7 @@ TEST_F(FrameRateTest, GetDisplayFrameRate_Success)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
+    EXPECT_TRUE(response.find("\"framerate\":\"1920x1080x60\"") != string::npos);
 }
 
 TEST_F(FrameRateTest, GetDisplayFrameRate_NoVideoDevices)

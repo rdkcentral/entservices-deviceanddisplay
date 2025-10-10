@@ -246,7 +246,7 @@ TEST_F(WarehouseInitializedTest, WarehouseClearResetDeviceNoResponse)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true,\"resetType\":\"WAREHOUSE_CLEAR\"}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(5000)); // Add timeout
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(5000));
     EVENT_UNSUBSCRIBE(0, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 }
 
@@ -295,7 +295,7 @@ TEST_F(WarehouseInitializedTest, GenericResetDeviceNoResponse)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("resetDevice"), _T("{\"suppressReboot\":true}"), response));
     EXPECT_EQ(response, _T("{\"success\":true,\"error\":\"\"}"));
-    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(5000)); // Add timeout
+    EXPECT_EQ(Core::ERROR_NONE, resetDone.Lock(5000));
     EVENT_UNSUBSCRIBE(1, _T("resetDone"), _T("org.rdk.Warehouse"), resetDoneMessage);
 }
 

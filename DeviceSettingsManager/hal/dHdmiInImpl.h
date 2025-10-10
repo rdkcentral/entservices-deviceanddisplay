@@ -456,7 +456,7 @@ public:
 
     static dsError_t getAVLatency_hal (int *audio_latency, int *video_latency)
     {
-    dsError_t eRet = dsERR_GENERAL;
+        dsError_t eRet = dsERR_GENERAL;
         typedef dsError_t (*dsGetAVLatency_t)(int *audio_latency, int *video_latency);
         static dsGetAVLatency_t dsGetAVLatencyFunc = 0;
         if (dsGetAVLatencyFunc == 0) {
@@ -643,82 +643,84 @@ public:
 
     void getPersistenceValue() override
     {
-        int itr = 0;
-        bool isARCCapable = false;
-        for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
-            isARCCapable = false;
-            isHdmiARCPort (itr, &isARCCapable);
-            hdmiInCap_gs.isPortArcCapable[itr] = isARCCapable; 
-        }
+        if (!m_hdmiInInitialized) {
+            int itr = 0;
+            bool isARCCapable = false;
+            for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
+                isARCCapable = false;
+                isHdmiARCPort (itr, &isARCCapable);
+                hdmiInCap_gs.isPortArcCapable[itr] = isARCCapable; 
+            }
 
-        std::string _EdidAllmSupport("TRUE");
-        m_edidallmsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.edidallmEnable", dsHDMI_IN_PORT_0);
-        m_edidallmsupport[dsHDMI_IN_PORT_1] = getHdmiInPortPersistValue("HDMI1.edidallmEnable", dsHDMI_IN_PORT_1);
-        m_edidallmsupport[dsHDMI_IN_PORT_2] = getHdmiInPortPersistValue("HDMI2.edidallmEnable", dsHDMI_IN_PORT_2);
+            std::string _EdidAllmSupport("TRUE");
+            m_edidallmsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.edidallmEnable", dsHDMI_IN_PORT_0);
+            m_edidallmsupport[dsHDMI_IN_PORT_1] = getHdmiInPortPersistValue("HDMI1.edidallmEnable", dsHDMI_IN_PORT_1);
+            m_edidallmsupport[dsHDMI_IN_PORT_2] = getHdmiInPortPersistValue("HDMI2.edidallmEnable", dsHDMI_IN_PORT_2);
 
-        std::string _VRRSupport("TRUE");
-        m_vrrsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.vrrEnable", dsHDMI_IN_PORT_0);
-        m_vrrsupport[dsHDMI_IN_PORT_1] = getHdmiInPortPersistValue("HDMI1.vrrEnable", dsHDMI_IN_PORT_1);
-        m_vrrsupport[dsHDMI_IN_PORT_2] = getHdmiInPortPersistValue("HDMI2.vrrEnable", dsHDMI_IN_PORT_2);
-        m_vrrsupport[dsHDMI_IN_PORT_3] = getHdmiInPortPersistValue("HDMI3.vrrEnable", dsHDMI_IN_PORT_3);
+            std::string _VRRSupport("TRUE");
+            m_vrrsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.vrrEnable", dsHDMI_IN_PORT_0);
+            m_vrrsupport[dsHDMI_IN_PORT_1] = getHdmiInPortPersistValue("HDMI1.vrrEnable", dsHDMI_IN_PORT_1);
+            m_vrrsupport[dsHDMI_IN_PORT_2] = getHdmiInPortPersistValue("HDMI2.vrrEnable", dsHDMI_IN_PORT_2);
+            m_vrrsupport[dsHDMI_IN_PORT_3] = getHdmiInPortPersistValue("HDMI3.vrrEnable", dsHDMI_IN_PORT_3);
 
-        std::string _EdidVersion("1");
-        try {
-            _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI0.edidversion");
-            m_edidversion[dsHDMI_IN_PORT_0] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-        } catch(...) {
+            std::string _EdidVersion("1");
             try {
-                LOGINFO("Port %s: Exception in Getting the HDMI0 EDID version from persistence storage. Try system default...", "HDMI0");
-                _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.edidversion");
+                _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI0.edidversion");
                 m_edidversion[dsHDMI_IN_PORT_0] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+            } catch(...) {
+                try {
+                    LOGINFO("Port %s: Exception in Getting the HDMI0 EDID version from persistence storage. Try system default...", "HDMI0");
+                    _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.edidversion");
+                    m_edidversion[dsHDMI_IN_PORT_0] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+                }
+                catch(...) {
+                    LOGINFO("Port %s: Exception in Getting the HDMI0 EDID version from system default.....", "HDMI0");
+                    m_edidversion[dsHDMI_IN_PORT_0] = HDMI_EDID_VER_20;
+                }
             }
-            catch(...) {
-                LOGINFO("Port %s: Exception in Getting the HDMI0 EDID version from system default.....", "HDMI0");
-                m_edidversion[dsHDMI_IN_PORT_0] = HDMI_EDID_VER_20;
-            }
-        }
 
-        try {
-            _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI1.edidversion");
-            m_edidversion[dsHDMI_IN_PORT_1] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-        } catch(...) {
             try {
-                LOGINFO("Port %s: Exception in Getting the HDMI1 EDID version from persistence storage. Try system default...", "HDMI1");
-                _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI1.edidversion");
+                _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI1.edidversion");
                 m_edidversion[dsHDMI_IN_PORT_1] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+            } catch(...) {
+                try {
+                    LOGINFO("Port %s: Exception in Getting the HDMI1 EDID version from persistence storage. Try system default...", "HDMI1");
+                    _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI1.edidversion");
+                    m_edidversion[dsHDMI_IN_PORT_1] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+                }
+                catch(...) {
+                    LOGINFO("Port %s: Exception in Getting the HDMI1 EDID version from system default.....", "HDMI1");
+                    m_edidversion[dsHDMI_IN_PORT_1] = HDMI_EDID_VER_20;
+                }
             }
-            catch(...) {
-                LOGINFO("Port %s: Exception in Getting the HDMI1 EDID version from system default.....", "HDMI1");
-                m_edidversion[dsHDMI_IN_PORT_1] = HDMI_EDID_VER_20;
-            }
-        }
 
-        try {
-            _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI2.edidversion");
-            m_edidversion[dsHDMI_IN_PORT_2] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-        } catch(...) {
             try {
-                LOGINFO("Port %s: Exception in Getting the HDMI2 EDID version from persistence storage. Try system default...", "HDMI2");
-                _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI2.edidversion");
+                _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI2.edidversion");
                 m_edidversion[dsHDMI_IN_PORT_2] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+            } catch(...) {
+                try {
+                    LOGINFO("Port %s: Exception in Getting the HDMI2 EDID version from persistence storage. Try system default...", "HDMI2");
+                    _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI2.edidversion");
+                    m_edidversion[dsHDMI_IN_PORT_2] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+                }
+                catch(...) {
+                    LOGINFO("Port %s: Exception in Getting the HDMI2 EDID version from system default.....", "HDMI2");
+                    m_edidversion[dsHDMI_IN_PORT_2] = HDMI_EDID_VER_20;
+                }
             }
-            catch(...) {
-                LOGINFO("Port %s: Exception in Getting the HDMI2 EDID version from system default.....", "HDMI2");
-                m_edidversion[dsHDMI_IN_PORT_2] = HDMI_EDID_VER_20;
-            }
-        }
 
-        for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
-            if (getVRRSupport(static_cast<dsHdmiInPort_t>(itr), &m_hdmiPortVrrCaps[itr]) >= 0) {
-                LOGINFO("Port HDMI%d: VRR capability : %d", itr, m_hdmiPortVrrCaps[itr]);
+            for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
+                if (getVRRSupport(static_cast<dsHdmiInPort_t>(itr), &m_hdmiPortVrrCaps[itr]) >= 0) {
+                    LOGINFO("Port HDMI%d: VRR capability : %d", itr, m_hdmiPortVrrCaps[itr]);
+                }
             }
-        }
-        for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
-            if (setEdidVersion (static_cast<dsHdmiInPort_t>(itr), m_edidversion[itr]) >= 0) {
-                LOGINFO("Port HDMI%d: Initialized EDID Version : %d", itr, m_edidversion[itr]);
+            for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
+                if (setEdidVersion (static_cast<dsHdmiInPort_t>(itr), m_edidversion[itr]) >= 0) {
+                    LOGINFO("Port HDMI%d: Initialized EDID Version : %d", itr, m_edidversion[itr]);
+                }
             }
+            m_hdmiInInitialized = 1;
         }
-        m_hdmiInInitialized = 1;
 
         LOGINFO("Set Callbacks");
     }
@@ -855,12 +857,25 @@ public:
     virtual uint32_t GetHDMIInNumberOfInputs(int32_t &count) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
+        uint8_t NumberofInputs = 0;
+
+        if (dsHdmiInGetNumberOfInputs(&NumberofInputs) == dsERR_NONE) {
+            count = static_cast<int32_t>(NumberofInputs);
+            retCode = WPEFramework::Core::ERROR_NONE;
+        }
+        LOGINFO("GetHDMIInNumberOfInputs: count=%d, retCode=%d", count, retCode);
         return retCode;
     }
 
     uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
+        dsHdmiInStatus_t status;
+        if (dsHdmiInGetStatus(&status) == dsERR_NONE) {
+            hdmiStatus.activePort = static_cast<HDMIInPort>(status.activePort);
+            hdmiStatus.isPresented = status.isPresented;
+            retCode = WPEFramework::Core::ERROR_NONE;
+        }
         return retCode;
     }
 
@@ -939,6 +954,12 @@ public:
         dsSupportedGameFeatureList_t fList;
         std::vector<WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInGameFeatureList> features;
         if (getSupportedGameFeaturesList(&fList) == dsERR_NONE) {
+            //strncpy(gameFeatureList->gameFeature, fList.gameFeatureList, sizeof(1024));
+            /*gameFeatureList.count = fList.count;
+            LOGINFO("GetSupportedGameFeaturesList: count=%d", fList.count);
+            for (uint32_t i = 0; i < fList.count; i++) {
+                LOGINFO("Feature %d: %s", i, fList.features[i].feature);
+            }*/
             // Assuming fList.features[i].feature is a string or can be converted to string
             /*for (uint32_t i = 0; i < fList.count; i++) {
                 WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInGameFeatureList feature;
@@ -1020,11 +1041,12 @@ public:
         return eRet;
     }
 
-    uint32_t GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, int edidBytes[]) override
+    uint32_t GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         /*dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
-        if (getEDIDBytesInfo(hdmiPort, edidBytes, &edidBytesLength) == dsERR_NONE) {
+        if (getEDIDBytesInfo(hdmiPort, edidBytes, &length) == dsERR_NONE) {
+
             retCode = WPEFramework::Core::ERROR_NONE;
         }*/
         return retCode;
@@ -1067,6 +1089,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
+
         if (getHDMISPDInfo(hdmiPort, spdBytes) == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
         }
@@ -1092,26 +1115,6 @@ public:
         tv_hdmi_edid_version_t edidVer = static_cast<tv_hdmi_edid_version_t>(edidVersion);
         if (setEdidVersion(hdmiPort, edidVer) == dsERR_NONE) {
             m_edidversion[hdmiPort] = edidVer;
-            std::string val = std::to_string(static_cast<int>(edidVer));
-            switch (hdmiPort) {
-                case dsHDMI_IN_PORT_0:
-                    device::HostPersistence::getInstance().persistHostProperty("HDMI0.edidversion", val);
-                    LOGINFO("Port %s: Persist EDID Version: %s", "HDMI0", val.c_str());
-                    break;
-                case dsHDMI_IN_PORT_1:
-                    device::HostPersistence::getInstance().persistHostProperty("HDMI1.edidversion", val);
-                    LOGINFO("Port %s: Persist EDID Version: %s", "HDMI1", val.c_str());
-                    break;
-                case dsHDMI_IN_PORT_2:
-                    device::HostPersistence::getInstance().persistHostProperty("HDMI2.edidversion", val);
-                    LOGINFO("Port %s: Persist EDID Version: %s", "HDMI2", val.c_str());
-                    break;
-                case dsHDMI_IN_PORT_NONE:
-                case dsHDMI_IN_PORT_3:
-                case dsHDMI_IN_PORT_4:
-                case dsHDMI_IN_PORT_MAX:
-                    break;
-            }
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;

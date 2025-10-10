@@ -73,7 +73,7 @@ public:
 
         public:
             virtual ~INotification() = default;
-            //virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) = 0;
+            virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) = 0;
     };
 
 public:

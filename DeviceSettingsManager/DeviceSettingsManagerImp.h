@@ -173,6 +173,9 @@ namespace Plugin {
         virtual void OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay) override;
         virtual void OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType) override;
 
+        // FPD notification method
+        virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override;
+
         FPD _fpd;
         HdmiIn _hdmiIn;
     };

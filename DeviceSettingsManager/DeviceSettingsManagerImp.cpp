@@ -204,6 +204,19 @@ namespace Plugin {
         dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInVRRStatus, port, vrrType);
     }
 
+    // FPD notification implementation
+    void DeviceSettingsManagerImp::OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat)
+    {
+        LOGINFO("OnFPDTimeFormatChanged event Received: timeFormat=%d", timeFormat);
+        
+        // Dispatch to all registered FPD notification clients
+        _callbackLock.Lock();
+        for (auto client : _FPDNotifications) {
+            client->OnFPDTimeFormatChanged(timeFormat);
+        }
+        _callbackLock.Unlock();
+    }
+
     //Depricated
     Core::hresult DeviceSettingsManagerImp::SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) {
         ENTRY_LOG;

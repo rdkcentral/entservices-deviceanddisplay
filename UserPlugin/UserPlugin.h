@@ -30,6 +30,7 @@
 #include <interfaces/IUserPlugin.h>
 #include <interfaces/json/JUserPlugin.h>
 #include <interfaces/IPowerManager.h>
+#include <interfaces/IDeviceSettingsManager.h>
 
 #include "PowerManagerInterface.h"
 using namespace WPEFramework::Exchange;
@@ -94,6 +95,7 @@ namespace WPEFramework
             Core::hresult GetVolumeLevel (const string& port, string& level) const;
             void OnPowerModeChanged(const PowerState currentState, const PowerState newState);
             void onPowerStateChanged(string currentPowerState, string powerState);
+            void TestSpecificHDMIInAPIs();
 
             //  IPlugin methods
             // -------------------------------------------------------------------------------------------------------
@@ -105,6 +107,8 @@ namespace WPEFramework
             PluginHost::IShell* _service{};
             uint32_t _connectionId{};
             Exchange::IPowerManager* _powerManager;
+            // Removed: Exchange::IDeviceSettingsManagerFPD* _fpdManager; // Not needed, use IDeviceSettingsManager only
+            Exchange::IDeviceSettingsManager* _deviceSettingsManager;
             //PowerManagerInterfaceRef _powerManager{};
             Core::Sink<PowerManagerNotification> _pwrMgrNotification;
 

@@ -63,33 +63,20 @@ static _FPDSettings_t srvFPDSettings[dsFPD_INDICATOR_MAX];
 class dFPDImpl : public hal::dFPD::IPlatform {
 
     // delete copy constructor and assignment operator
-    //dHdmiInImpl(const dHdmiInImpl&) = delete;
-    //dHdmiInImpl& operator=(const dHdmiInImpl&) = delete;
+    dFPDImpl(const dFPDImpl&) = delete;
+    dFPDImpl& operator=(const dFPDImpl&) = delete;
 
 public:
     dFPDImpl()
     {
         LOGINFO("dFPDImpl Constructor");
-        /*LOGINFO("HDMI version: %s", HdmiConnectionToStrMapping[0].name);
-        LOGINFO("HDMI version: %s", HdmiStatusToStrMapping[0].name);
-        LOGINFO("HDMI version: %s", HdmiVerToStrMapping[0].name);*/
         InitialiseHAL();
-        // Initialize the platform
-        /*pmStatus_t result = PLAT_INIT();
-        if (PWRMGR_SUCCESS != result) {
-            LOGERR("Failed to initialize power manager: %s", str(result));
-        }*/
     }
 
     virtual ~dFPDImpl()
     {
         LOGINFO("dFPDImpl Destructor");
         DeInitialiseHAL();
-        // Terminate the platform
-        /*pmStatus_t result = PLAT_TERM();
-        if (PWRMGR_SUCCESS != result) {
-            LOGERR("Failed to terminate power manager: %s", str(result));
-        }*/
     }
 
     void InitialiseHAL()
@@ -130,79 +117,31 @@ public:
         fpd_isInitialized = 0;
     }
 
-    /*static void* resolve(const std::string& libName, const std::string& symbolName) {
-        void* handle = dlopen(libName.c_str(), RTLD_LAZY);
-        if (!handle) {
-            std::cerr << "dlopen failed for " << libName << ": " << dlerror() << std::endl;
-            return nullptr;
-        }
-        void* symbol = dlsym(handle, symbolName.c_str());
-        if (!symbol) {
-            std::cerr << "dlsym failed for " << symbolName << ": " << dlerror() << std::endl;
-        }
-        dlclose(handle);
-        return symbol;
-    }*/
-
     // Implementation of all FPD Platform interface methods
     uint32_t SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetFPDTime: timeFormat %d, minutes %d, seconds %d", static_cast<int>(timeFormat), minutes, seconds);
-        
-        // Convert minutes/seconds to hour:minute format for HAL
-        uint32_t hours = minutes / 60;
-        uint32_t mins = minutes % 60;
-        
-        // First set the time format
-        dsError_t eError = dsSetFPTimeFormat(static_cast<dsFPDTimeFormat_t>(timeFormat));
-        if (eError != dsERR_NONE) {
-            LOGERR("SetFPDTime: dsSetFPTimeFormat failed with error %d", eError);
-            return retCode;
-        }
-        
-        // Then set the actual time using hours and minutes
-        eError = dsSetFPTime(static_cast<dsFPDTimeFormat_t>(timeFormat), hours, mins);
-        LOGINFO("SetFPDTime: dsSetFPTime returned %d", eError);
-        if (eError == dsERR_NONE) {
-            retCode = WPEFramework::Core::ERROR_NONE;
-        } else {
-            LOGERR("SetFPDTime: dsSetFPTime failed with error %d", eError);
-        }
+
+        LOGERR("SetFPDTime is DEPRECATED and not IMPLEMENTED");
+
         return retCode;
     }
 
     uint32_t SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetFPDScroll: scrollHoldDuration %d, nHorizontalScrollIterations %d, nVerticalScrollIterations %d", scrollHoldDuration, nHorizontalScrollIterations, nVerticalScrollIterations);
-        
-        dsError_t eError = dsSetFPScroll(scrollHoldDuration, nHorizontalScrollIterations, nVerticalScrollIterations);
-        LOGINFO("SetFPDScroll: dsSetFPScroll returned %d", eError);
-        if (eError == dsERR_NONE) {
-            retCode = WPEFramework::Core::ERROR_NONE;
-        } else {
-            LOGERR("SetFPDScroll: dsSetFPScroll failed with error %d", eError);
-        }
+
+        LOGERR("SetFPDScroll is DEPRECATED and not IMPLEMENTED");
+
         return retCode;
     }
 
     uint32_t SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetFPDBlink: indicator %d, blinkDuration %d, blinkIterations %d", static_cast<int>(indicator), blinkDuration, blinkIterations);
+
+        LOGERR("SetFPDBlink is DEPRECATED and not IMPLEMENTED");
         
-        if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
-            dsError_t eError = dsSetFPBlink(static_cast<dsFPDIndicator_t>(indicator), blinkDuration, blinkIterations);
-            LOGINFO("SetFPDBlink: dsSetFPBlink returned %d", eError);
-            if (eError == dsERR_NONE) {
-                retCode = WPEFramework::Core::ERROR_NONE;
-            } else {
-                LOGERR("SetFPDBlink: dsSetFPBlink failed with error %d", eError);
-            }
-        } else {
-            LOGERR("SetFPDBlink: Invalid indicator %d", static_cast<int>(indicator));
-        }
         return retCode;
     }
 
@@ -344,92 +283,45 @@ public:
     uint32_t SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetFPDTextBrightness: textDisplay %d, brightNess %d", static_cast<int>(textDisplay), brightNess);
-        
-        if (static_cast<int>(textDisplay) < dsFPD_TEXTDISP_MAX && brightNess <= dsFPD_BRIGHTNESS_MAX) {
-            dsError_t eError = dsSetFPTextBrightness(static_cast<dsFPDTextDisplay_t>(textDisplay), static_cast<dsFPDBrightness_t>(brightNess));
-            LOGINFO("SetFPDTextBrightness: dsSetFPTextBrightness returned %d", eError);
-            if (eError == dsERR_NONE) {
-                retCode = WPEFramework::Core::ERROR_NONE;
-            } else {
-                LOGERR("SetFPDTextBrightness: dsSetFPTextBrightness failed with error %d", eError);
-            }
-        } else {
-            LOGERR("SetFPDTextBrightness: Invalid parameters - textDisplay %d, brightness %d", static_cast<int>(textDisplay), brightNess);
-        }
+
+        LOGINFO("SetFPDTextBrightness is DEPRECATED and not IMPLEMENTED");
+
         return retCode;
     }
 
     uint32_t GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetFPDTextBrightness: textDisplay %d", static_cast<int>(textDisplay));
-        
-        if (static_cast<int>(textDisplay) < dsFPD_TEXTDISP_MAX) {
-            dsFPDBrightness_t halBrightness = 0;
-            dsError_t eError = dsGetFPTextBrightness(static_cast<dsFPDTextDisplay_t>(textDisplay), &halBrightness);
-            LOGINFO("GetFPDTextBrightness: dsGetFPTextBrightness returned %d", eError);
-            if (eError == dsERR_NONE) {
-                brightNess = static_cast<uint32_t>(halBrightness);
-                retCode = WPEFramework::Core::ERROR_NONE;
-            } else {
-                LOGERR("GetFPDTextBrightness: dsGetFPTextBrightness failed with error %d", eError);
-                brightNess = 100; // Default fallback value
-                retCode = WPEFramework::Core::ERROR_NONE;
-            }
-        } else {
-            LOGERR("GetFPDTextBrightness: Invalid textDisplay %d", static_cast<int>(textDisplay));
-            brightNess = 100; // Default fallback value
-        }
+
+        LOGINFO("GetFPDTextBrightness is DEPRECATED and not IMPLEMENTED");
+
         return retCode;
     }
 
     uint32_t EnableFPDClockDisplay(const bool enable) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("EnableFPDClockDisplay: enable %d", enable);
-        
-        dsError_t eError = dsFPEnableCLockDisplay(enable);
-        LOGINFO("EnableFPDClockDisplay: dsFPEnableCLockDisplay returned %d", eError);
-        if (eError == dsERR_NONE) {
-            retCode = WPEFramework::Core::ERROR_NONE;
-        } else {
-            LOGERR("EnableFPDClockDisplay: dsFPEnableCLockDisplay failed with error %d", eError);
-        }
+
+        LOGINFO("EnableFPDClockDisplay is DEPRECATED and not IMPLEMENTED");
+
         return retCode;
     }
 
     uint32_t GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetFPDTimeFormat");
-        
-        dsFPDTimeFormat_t halTimeFormat = dsFPD_TIME_12_HOUR;
-        dsError_t eError = dsGetFPTimeFormat(&halTimeFormat);
-        LOGINFO("GetFPDTimeFormat: dsGetFPTimeFormat returned %d", eError);
-        if (eError == dsERR_NONE) {
-            fpdTimeFormat = static_cast<FPDTimeFormat>(halTimeFormat);
-            retCode = WPEFramework::Core::ERROR_NONE;
-        } else {
-            LOGERR("GetFPDTimeFormat: dsGetFPTimeFormat failed with error %d", eError);
-            fpdTimeFormat = static_cast<FPDTimeFormat>(dsFPD_TIME_12_HOUR); // Default fallback
-            retCode = WPEFramework::Core::ERROR_NONE;
-        }
+
+        LOGINFO("GetFPDTimeFormat is DEPRECATED and not IMPLEMENTED");
+
         return retCode;
     }
 
     uint32_t SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetFPDTimeFormat: fpdTimeFormat %d", static_cast<int>(fpdTimeFormat));
-        
-        dsError_t eError = dsSetFPTimeFormat(static_cast<dsFPDTimeFormat_t>(fpdTimeFormat));
-        LOGINFO("SetFPDTimeFormat: dsSetFPTimeFormat returned %d", eError);
-        if (eError == dsERR_NONE) {
-            retCode = WPEFramework::Core::ERROR_NONE;
-        } else {
-            LOGERR("SetFPDTimeFormat: dsSetFPTimeFormat failed with error %d", eError);
-        }
+
+        LOGINFO("SetFPDTimeFormat is DEPRECATED and not IMPLEMENTED");
+
         return retCode;
     }
 

@@ -59,8 +59,8 @@ static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMII
 class dHdmiInImpl : public hal::dHdmiIn::IPlatform {
 
     // delete copy constructor and assignment operator
-    //dHdmiInImpl(const dHdmiInImpl&) = delete;
-    //dHdmiInImpl& operator=(const dHdmiInImpl&) = delete;
+    dHdmiInImpl(const dHdmiInImpl&) = delete;
+    dHdmiInImpl& operator=(const dHdmiInImpl&) = delete;
 
 public:
     dHdmiInImpl()

@@ -164,6 +164,9 @@ namespace Plugin {
         template<typename Func, typename... Args>
         void dispatchHDMIInEvent(Func notifyFunc, Args&&... args);
 
+        template<typename Func, typename... Args>
+        void dispatchFPDEvent(Func notifyFunc, Args&&... args);
+
         virtual void OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected) override;
         virtual void OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override;
         virtual void OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented) override;

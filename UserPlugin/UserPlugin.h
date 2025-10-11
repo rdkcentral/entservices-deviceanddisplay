@@ -96,6 +96,7 @@ namespace WPEFramework
             void OnPowerModeChanged(const PowerState currentState, const PowerState newState);
             void onPowerStateChanged(string currentPowerState, string powerState);
             void TestSpecificHDMIInAPIs();
+            void TestFPDAPIs();
 
             //  IPlugin methods
             // -------------------------------------------------------------------------------------------------------

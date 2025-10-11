@@ -48,23 +48,16 @@ namespace dFPD {
 
     class IPlatform {
 
-    // delete copy constructor and assignment operator
-    //dHdmiInImpl(const dHdmiInImpl&) = delete;
-    //dHdmiInImpl& operator=(const dHdmiInImpl&) = delete;
-
     public:
         virtual ~IPlatform() {}
         void InitialiseHAL();
         void DeInitialiseHAL();
-        //virtual void setAllCallbacks(const CallbackBundle bundle) = 0;
-        //virtual void getPersistenceValue() = 0;
-        //virtual void deinit();
 
         // FPD Platform interface methods - all pure virtual
         virtual uint32_t SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) = 0;
         virtual uint32_t SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) = 0;
         virtual uint32_t SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) = 0;
-        virtual uint32_t SetFPDBrightness(const FPDIndicator indicator /* @in */, const uint32_t brightNess /* @in */, const bool persist /* @in */) = 0;
+        virtual uint32_t SetFPDBrightness(const FPDIndicator indicator , const uint32_t brightNess , const bool persist ) = 0;
         virtual uint32_t GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) = 0;
         virtual uint32_t SetFPDState(const FPDIndicator indicator, const FPDState state) = 0;
         virtual uint32_t GetFPDState(const FPDIndicator indicator, FPDState &state) = 0;

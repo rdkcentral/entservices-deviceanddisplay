@@ -81,6 +81,20 @@ namespace Plugin {
         LOGINFO("<<");
     }
 
+    template<typename Func, typename... Args>
+    void DeviceSettingsManagerImp::dispatchFPDEvent(Func notifyFunc, Args&&... args) {
+        LOGINFO(">>");
+        _callbackLock.Lock();
+        for (auto& notification : _FPDNotifications) {
+            auto start = std::chrono::steady_clock::now();
+            (notification->*notifyFunc)(std::forward<Args>(args)...);
+            auto elapsed = std::chrono::steady_clock::now() - start;
+            LOGINFO("client %p took %" PRId64 "ms to process IFPD event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+        }
+        _callbackLock.Unlock();
+        LOGINFO("<<");
+    }
+
     template <typename T>
     Core::hresult DeviceSettingsManagerImp::Register(std::list<T*>& list, T* notification)
     {
@@ -208,13 +222,7 @@ namespace Plugin {
     void DeviceSettingsManagerImp::OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat)
     {
         LOGINFO("OnFPDTimeFormatChanged event Received: timeFormat=%d", timeFormat);
-        
-        // Dispatch to all registered FPD notification clients
-        _callbackLock.Lock();
-        for (auto client : _FPDNotifications) {
-            client->OnFPDTimeFormatChanged(timeFormat);
-        }
-        _callbackLock.Unlock();
+        dispatchFPDEvent(&Exchange::IDeviceSettingsManager::IFPD::INotification::OnFPDTimeFormatChanged, timeFormat);
     }
 
     //Depricated

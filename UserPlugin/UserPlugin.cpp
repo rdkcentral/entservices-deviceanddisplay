@@ -265,9 +265,191 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
+    void UserPlugin::TestFPDAPIs()
+    {
+        LOGINFO("========== FPD APIs Testing Framework ==========\n");
+        
+        if (!_deviceSettingsManager) {
+            LOGERR("DeviceSettingsManager interface is not available!");
+            return;
+        }
+
+        // Get FPD interface from DeviceSettingsManager
+        Exchange::IDeviceSettingsManager::IFPD* fpd = nullptr;
+        fpd = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IFPD>();
+        if (fpd == nullptr) {
+            LOGERR("Failed to get FPD interface");
+            return;
+        }
+
+        LOGINFO("========== Testing FPD APIs ==========\n");
+
+        // Test all FPD indicators
+        Exchange::IDeviceSettingsManager::IFPD::FPDIndicator testIndicators[] = {
+            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
+            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
+            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_RECORD,
+            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_REMOTE,
+            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_RFBYPASS
+        };
+
+        const char* indicatorNames[] = {
+            "MESSAGE",
+            "POWER",
+            "RECORD",
+            "REMOTE",
+            "RFBYPASS"
+        };
+
+        for (size_t i = 0; i < sizeof(testIndicators)/sizeof(testIndicators[0]); i++) {
+            auto indicator = testIndicators[i];
+            const char* indicatorName = indicatorNames[i];
+            
+            LOGINFO("---------- Testing FPD Indicator: %s ----------", indicatorName);
+
+            // 1. Test GetFPDBrightness
+            uint32_t currentBrightness = 0;
+            Core::hresult result = fpd->GetFPDBrightness(indicator, currentBrightness);
+            LOGINFO("GetFPDBrightness: indicator=%s, result=%u, brightness=%u", indicatorName, result, currentBrightness);
+
+            // 2. Test SetFPDBrightness
+            uint32_t newBrightness = 75;
+            bool persist = true;
+            result = fpd->SetFPDBrightness(indicator, newBrightness, persist);
+            LOGINFO("SetFPDBrightness: indicator=%s, result=%u, brightness=%u, persist=%s", indicatorName, result, newBrightness, persist ? "true" : "false");
+
+            // Verify the brightness was set
+            uint32_t verifyBrightness = 0;
+            result = fpd->GetFPDBrightness(indicator, verifyBrightness);
+            LOGINFO("GetFPDBrightness (verify): indicator=%s, result=%u, brightness=%u", indicatorName, result, verifyBrightness);
+
+            // 3. Test GetFPDState
+            Exchange::IDeviceSettingsManager::IFPD::FPDState currentState;
+            result = fpd->GetFPDState(indicator, currentState);
+            LOGINFO("GetFPDState: indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(currentState));
+
+            // 4. Test SetFPDState
+            Exchange::IDeviceSettingsManager::IFPD::FPDState newState = Exchange::IDeviceSettingsManager::IFPD::FPDState::DS_FPD_STATE_ON;
+            result = fpd->SetFPDState(indicator, newState);
+            LOGINFO("SetFPDState: indicator=%s, result=%u, state=%d (ON)", indicatorName, result, static_cast<int>(newState));
+
+            // Verify the state was set
+            Exchange::IDeviceSettingsManager::IFPD::FPDState verifyState;
+            result = fpd->GetFPDState(indicator, verifyState);
+            LOGINFO("GetFPDState (verify): indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(verifyState));
+
+            // 5. Test GetFPDColor
+            uint32_t currentColor = 0;
+            result = fpd->GetFPDColor(indicator, currentColor);
+            LOGINFO("GetFPDColor: indicator=%s, result=%u, color=0x%08X", indicatorName, result, currentColor);
+
+            // 6. Test SetFPDColor
+            uint32_t newColor = 0xFF0000FF; // Blue color
+            result = fpd->SetFPDColor(indicator, newColor);
+            LOGINFO("SetFPDColor: indicator=%s, result=%u, color=0x%08X (Blue)", indicatorName, result, newColor);
+
+            // Verify the color was set
+            uint32_t verifyColor = 0;
+            result = fpd->GetFPDColor(indicator, verifyColor);
+            LOGINFO("GetFPDColor (verify): indicator=%s, result=%u, color=0x%08X", indicatorName, result, verifyColor);
+
+            // Test with different state - OFF
+            newState = Exchange::IDeviceSettingsManager::IFPD::FPDState::DS_FPD_STATE_OFF;
+            result = fpd->SetFPDState(indicator, newState);
+            LOGINFO("SetFPDState: indicator=%s, result=%u, state=%d (OFF)", indicatorName, result, static_cast<int>(newState));
+
+            LOGINFO("---------- Completed testing FPD Indicator: %s ----------\n", indicatorName);
+        }
+
+        // 7. Test SetFPDMode with different modes
+        LOGINFO("---------- Testing FPD Mode Settings ----------");
+        
+        Exchange::IDeviceSettingsManager::IFPD::FPDMode testModes[] = {
+            Exchange::IDeviceSettingsManager::IFPD::FPDMode::DS_FPD_MODE_ANY,
+            Exchange::IDeviceSettingsManager::IFPD::FPDMode::DS_FPD_MODE_TEXT,
+            Exchange::IDeviceSettingsManager::IFPD::FPDMode::DS_FPD_MODE_CLOCK
+        };
+
+        const char* modeNames[] = {
+            "ANY",
+            "TEXT",
+            "CLOCK"
+        };
+
+        for (size_t i = 0; i < sizeof(testModes)/sizeof(testModes[0]); i++) {
+            auto mode = testModes[i];
+            const char* modeName = modeNames[i];
+            
+            Core::hresult result = fpd->SetFPDMode(mode);
+            LOGINFO("SetFPDMode: mode=%s, result=%u", modeName, result);
+        }
+
+        LOGINFO("---------- Completed FPD Mode Testing ----------\n");
+
+        // Additional comprehensive test with different brightness values
+        LOGINFO("---------- Testing FPD Brightness Range ----------");
+        auto testIndicator = Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
+        uint32_t brightnessValues[] = {0, 25, 50, 75, 100};
+        
+        for (size_t i = 0; i < sizeof(brightnessValues)/sizeof(brightnessValues[0]); i++) {
+            uint32_t brightness = brightnessValues[i];
+            Core::hresult result = fpd->SetFPDBrightness(testIndicator, brightness, true);
+            LOGINFO("SetFPDBrightness: brightness=%u, result=%u", brightness, result);
+            
+            uint32_t verifyBrightness = 0;
+            result = fpd->GetFPDBrightness(testIndicator, verifyBrightness);
+            LOGINFO("GetFPDBrightness (verify): brightness=%u, result=%u", verifyBrightness, result);
+        }
+
+        LOGINFO("---------- Completed FPD Brightness Range Testing ----------\n");
+
+        // Test color variations
+        LOGINFO("---------- Testing FPD Color Variations ----------");
+        uint32_t colorValues[] = {
+            0xFF000000, // Black
+            0xFFFFFFFF, // White
+            0xFFFF0000, // Red
+            0xFF00FF00, // Green
+            0xFF0000FF, // Blue
+            0xFFFFFF00, // Yellow
+            0xFFFF00FF, // Magenta
+            0xFF00FFFF  // Cyan
+        };
+        
+        const char* colorNames[] = {
+            "Black",
+            "White", 
+            "Red",
+            "Green",
+            "Blue",
+            "Yellow",
+            "Magenta",
+            "Cyan"
+        };
+
+        for (size_t i = 0; i < sizeof(colorValues)/sizeof(colorValues[0]); i++) {
+            uint32_t color = colorValues[i];
+            const char* colorName = colorNames[i];
+            
+            Core::hresult result = fpd->SetFPDColor(testIndicator, color);
+            LOGINFO("SetFPDColor: color=%s (0x%08X), result=%u", colorName, color, result);
+            
+            uint32_t verifyColor = 0;
+            result = fpd->GetFPDColor(testIndicator, verifyColor);
+            LOGINFO("GetFPDColor (verify): color=0x%08X, result=%u", verifyColor, result);
+        }
+
+        LOGINFO("---------- Completed FPD Color Variations Testing ----------\n");
+
+        // Release the FPD interface
+        fpd->Release();
+        
+        LOGINFO("========== FPD APIs Testing Completed ==========\n");
+    }
+
     void UserPlugin::TestSpecificHDMIInAPIs()
     {
-        LOGINFO("========== HDMI In APIs Testing Framework ==========");
+        LOGINFO("========== HDMI In APIs Testing Framework ==========\n");
         
         if (!_deviceSettingsManager) {
             LOGERR("DeviceSettingsManager interface is not available!");

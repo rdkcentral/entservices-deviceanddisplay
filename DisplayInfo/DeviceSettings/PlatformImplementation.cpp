@@ -33,11 +33,9 @@
 #include "audioOutputPortConfig.hpp"
 #include "manager.hpp"
 #include "edid-parser.hpp"
-#include "UtilsIarm.h"
 
-#include "libIBus.h"
-#include "libIBusDaemon.h"
-#include "dsMgr.h"
+#include "UtilsLogging.h"
+#include "host.hpp"
 
 #define EDID_MAX_HORIZONTAL_SIZE 21
 #define EDID_MAX_VERTICAL_SIZE   22
@@ -49,20 +47,25 @@ class DisplayInfoImplementation :
     public Exchange::IGraphicsProperties,
     public Exchange::IConnectionProperties,
     public Exchange::IHDRProperties,
-    public Exchange::IDisplayProperties  {
+    public Exchange::IDisplayProperties,
+    public device::Host::IVideoOutputPortEvents {
 private:
     using HdrteratorImplementation = RPC::IteratorType<Exchange::IHDRProperties::IHDRIterator>;
     using ColorimetryIteratorImplementation = RPC::IteratorType<Exchange::IDisplayProperties::IColorimetryIterator>;
 public:
+    template <typename T>
+    T* baseInterface()
+    {
+        static_assert(std::is_base_of<T, DisplayInfoImplementation>(), "base type mismatch");
+        return static_cast<T*>(this);
+    }
+
     DisplayInfoImplementation()
     {
         DisplayInfoImplementation::_instance = this;
         try
         {
-            Utils::IARM::init();
-            IARM_Result_t res;
-            IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,ResolutionChange) );
-            IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE, ResolutionChange) );
+             device::Host::getInstance().Register(baseInterface<device::Host::IVideoOutputPortEvents>(),"WPE::DisplayInfo");
 
             //TODO: this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
             device::Manager::Initialize();
@@ -79,9 +82,7 @@ public:
 
     virtual ~DisplayInfoImplementation()
     {
-        IARM_Result_t res;
-        IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_PRECHANGE,ResolutionChange) );
-        IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,ResolutionChange) );
+        device::Host::getInstance().UnRegister(baseInterface<device::Host::IVideoOutputPortEvents>());
         DisplayInfoImplementation::_instance = nullptr;
     }
 
@@ -132,23 +133,21 @@ public:
         return (Core::ERROR_NONE);
     }
 
-    static void ResolutionChange(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
+    void OnResolutionPreChange(int width, int height) override
     {
-        IConnectionProperties::INotification::Source eventtype = IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE;
-        if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0)
-        {
-            switch (eventId) {
-                case IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE:
-                    eventtype = IConnectionProperties::INotification::Source::POST_RESOLUTION_CHANGE;
-                    break;
-                case IARM_BUS_DSMGR_EVENT_RES_PRECHANGE:
-                    eventtype = IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE;
-            }
-        }
-
+        LOGINFO("OnResolutionPreChange: width %d, height %d",width, height);
         if(DisplayInfoImplementation::_instance)
         {
-           DisplayInfoImplementation::_instance->ResolutionChangeImpl(eventtype);
+           DisplayInfoImplementation::_instance->ResolutionChangeImpl(IConnectionProperties::INotification::Source::PRE_RESOLUTION_CHANGE);
+        }
+    }
+
+    void OnResolutionPostChange(int width, int height) override
+    {
+        LOGINFO("OnResolutionPostChange: width %d, height %d",width, height);
+        if(DisplayInfoImplementation::_instance)
+        {
+           DisplayInfoImplementation::_instance->ResolutionChangeImpl(IConnectionProperties::INotification::Source::POST_RESOLUTION_CHANGE);
         }
     }
 

@@ -38,7 +38,7 @@ namespace Plugin {
         , _hdmiIn(HdmiIn::Create(*this))
     {
         ENTRY_LOG;
-        std::cout << " - IDeviceSettingsManager ID: " << WPEFramework::Exchange::ID_DEVICESETTINGS_MANAGER << std::endl;
+        std::cout << " - IDeviceSettingsManager ID: " << WPEFramework::Exchange::ID_DEVICESETTINGS_MANAGER_FPD << std::endl;
         DeviceSettingsManagerImp::_instance = this;
         LOGINFO("DeviceSettingsManagerImp Is abstract class: %d", std::is_abstract<DeviceSettingsManagerImp>::value);
         DeviceManager_Init();

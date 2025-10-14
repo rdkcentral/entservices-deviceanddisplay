@@ -140,7 +140,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Register(_FPDNotifications, notification);
-        LOGINFO("IFPD %p, errorCode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IFPD %p, errorCode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IFPD %p registered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }
@@ -148,7 +152,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Unregister(_FPDNotifications, notification);
-        LOGINFO("IFPD %p, errorcode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IFPD %p, errorcode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IFPD %p unregistered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }
@@ -157,7 +165,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Register(_HDMIInNotifications, notification);
-        LOGINFO("IHDMIIn %p, errorCode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IHDMIIn %p, errorCode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IHDMIIn %p registered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }
@@ -165,7 +177,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Unregister(_HDMIInNotifications, notification);
-        LOGINFO("IHDMIIn %p, errorcode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IHDMIIn %p, errorcode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IHDMIIn %p unregistered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }

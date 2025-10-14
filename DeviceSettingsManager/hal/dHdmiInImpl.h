@@ -20,6 +20,13 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <cctype>
+#include <functional>
+#include <iostream>
 #include "dHdmiIn.h"
 #include "deviceUtils.h"
 #include "dsHdmiIn.h"
@@ -45,6 +52,7 @@ static dsHdmiInCap_t hdmiInCap_gs;
 static bool m_edidallmsupport[dsHDMI_IN_PORT_MAX];
 static bool m_vrrsupport[dsHDMI_IN_PORT_MAX];
 static bool m_hdmiPortVrrCaps[dsHDMI_IN_PORT_MAX];
+
 static tv_hdmi_edid_version_t m_edidversion[dsHDMI_IN_PORT_MAX];
 
 static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> g_HdmiInHotPlugCallback;
@@ -70,22 +78,12 @@ public:
         LOGINFO("HDMI version: %s", HdmiStatusToStrMapping[0].name);
         LOGINFO("HDMI version: %s", HdmiVerToStrMapping[0].name);
         InitialiseHAL();
-        // Initialize the platform
-        /*pmStatus_t result = PLAT_INIT();
-        if (PWRMGR_SUCCESS != result) {
-            LOGERR("Failed to initialize power manager: %s", str(result));
-        }*/
     }
 
     virtual ~dHdmiInImpl()
     {
         LOGERR("dHdmiInImpl Destructor");
         DeInitialiseHAL();
-        // Terminate the platform
-        /*pmStatus_t result = PLAT_TERM();
-        if (PWRMGR_SUCCESS != result) {
-            LOGERR("Failed to terminate power manager: %s", str(result));
-        }*/
     }
 
     void InitialiseHAL()
@@ -135,8 +133,8 @@ public:
         void* symbol = dlsym(handle, symbolName.c_str());
         if (!symbol) {
             std::cerr << "dlsym failed for " << symbolName << ": " << dlerror() << std::endl;
+            return nullptr;
         }
-        dlclose(handle);
         return symbol;
     }
 
@@ -147,7 +145,7 @@ public:
             LOGINFO("Port %s: _EdidAllmSupport: %s , m_edidallmsupport: %d", portName.c_str(), value.c_str(), support);
             return support;
         } catch(...) {
-            LOGINFO("Port %s: Exception in Getting the %s EDID allm support from persistence storage..... ", portName.c_str(), portName.c_str());
+            LOGERR("Port %s: Exception in Getting the %s EDID allm support from persistence storage..... ", portName.c_str(), portName.c_str());
             return true;
         }
     }
@@ -158,20 +156,12 @@ public:
         static dsHdmiInGetVRRSupport_t dsHdmiInGetVRRSupportFunc = 0;
 
         if (dsHdmiInGetVRRSupportFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsHdmiInGetVRRSupportFunc = (dsHdmiInGetVRRSupport_t) dlsym(dllib, "dsHdmiInGetVRRSupport");
-                if(dsHdmiInGetVRRSupportFunc == 0) {
-                    LOGINFO("dsHdmiInGetVRRSupport (int,bool) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsHdmiInGetVRRSupport loaded");
-                }
-                dlclose(dllib);
+            dsHdmiInGetVRRSupportFunc = (dsHdmiInGetVRRSupport_t)resolve(RDK_DSHAL_NAME, "dsHdmiInGetVRRSupport");
+            if(dsHdmiInGetVRRSupportFunc == 0) {
+                LOGERR("dsHdmiInGetVRRSupport is not defined");
             }
             else {
-                LOGINFO("dsHdmiInGetVRRSupport  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsHdmiInGetVRRSupport loaded");
             }
         }
         if (0 != dsHdmiInGetVRRSupportFunc) {
@@ -193,20 +183,12 @@ public:
         static dsHdmiInSetVRRSupport_t dsHdmiInSetVRRSupportFunc = 0;
 
         if (dsHdmiInSetVRRSupportFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsHdmiInSetVRRSupportFunc = (dsHdmiInSetVRRSupport_t) dlsym(dllib, "dsHdmiInSetVRRSupport");
-                if(dsHdmiInSetVRRSupportFunc == 0) {
-                    LOGINFO("dsHdmiInSetVRRSupport (int,bool) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsHdmiInSetVRRSupport loaded");
-                }
-                dlclose(dllib);
+            dsHdmiInSetVRRSupportFunc = (dsHdmiInSetVRRSupport_t)resolve(RDK_DSHAL_NAME, "dsHdmiInSetVRRSupport");
+            if(dsHdmiInSetVRRSupportFunc == 0) {
+                LOGERR("dsHdmiInSetVRRSupport is not defined");
             }
             else {
-                LOGINFO("dsHdmiInSetVRRSupport  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsHdmiInSetVRRSupport loaded");
             }
         }
         LOGINFO("setVRRSupport to ds-hal:  EDID VRR Bit: %d", vrrSupport);
@@ -234,20 +216,12 @@ public:
         static dsSetEdid2AllmSupport_t dsSetEdid2AllmSupportFunc = 0;
 
         if (dsSetEdid2AllmSupportFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsSetEdid2AllmSupportFunc = (dsSetEdid2AllmSupport_t) dlsym(dllib, "dsSetEdid2AllmSupport");
-                if(dsSetEdid2AllmSupportFunc == 0) {
-                    LOGINFO("dsSetEdid2AllmSupport (int,bool) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsSetEdid2AllmSupport loaded");
-                }
-                dlclose(dllib);
+            dsSetEdid2AllmSupportFunc = (dsSetEdid2AllmSupport_t)resolve(RDK_DSHAL_NAME, "dsSetEdid2AllmSupport");
+            if(dsSetEdid2AllmSupportFunc == 0) {
+                LOGERR("dsSetEdid2AllmSupport is not defined");
             }
             else {
-                LOGINFO("dsSetEdid2AllmSupport  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsSetEdid2AllmSupport loaded");
             }
         }
         LOGINFO("setEdid2AllmSupport to ds-hal:  EDID Allm Bit: %d", allmSupport);
@@ -267,22 +241,13 @@ public:
         typedef bool (*dsIsHdmiARCPort_t)(int iPortArg, bool *boolArg);
         static dsIsHdmiARCPort_t dsIsHdmiARCPortFunc = 0;
         if (dsIsHdmiARCPortFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsIsHdmiARCPortFunc = (dsIsHdmiARCPort_t) dlsym(dllib, "dsIsHdmiARCPort");
-                if(dsIsHdmiARCPortFunc == 0) {
-                    LOGINFO("dsIsHdmiARCPort (int) is not defined %s", dlerror());
-                    eRet = dsERR_GENERAL;
-                }
-                else {
-                    LOGINFO("dsIsHdmiARCPort dsIsHdmiARCPortFunc loaded");
-                }
-                dlclose(dllib);
+            dsIsHdmiARCPortFunc = (dsIsHdmiARCPort_t)resolve(RDK_DSHAL_NAME, "dsIsHdmiARCPort");
+            if(dsIsHdmiARCPortFunc == 0) {
+                LOGERR("dsIsHdmiARCPort is not defined");
+                eRet = dsERR_GENERAL;
             }
             else {
-                LOGINFO("dsIsHdmiARCPort  Opening RDK_DSHAL_NAME[%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());  //CID 168096 - Print Args
-                eRet = dsERR_GENERAL;
+                LOGINFO("dsIsHdmiARCPort loaded");
             }
         }
         if (0 != dsIsHdmiARCPortFunc) { 
@@ -303,20 +268,12 @@ public:
         sprintf(edidVer,"%d",iEdidVersion);
 
         if (dsSetEdidVersionFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsSetEdidVersionFunc = (dsSetEdidVersion_t) dlsym(dllib, "dsSetEdidVersion");
-                if(dsSetEdidVersionFunc == 0) {
-                    LOGINFO("dsSetEdidVersion (int) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsSetEdidVersionFunc loaded");
-                }
-                dlclose(dllib);
+            dsSetEdidVersionFunc = (dsSetEdidVersion_t)resolve(RDK_DSHAL_NAME, "dsSetEdidVersion");
+            if(dsSetEdidVersionFunc == 0) {
+                LOGERR("dsSetEdidVersion is not defined");
             }
             else {
-                LOGINFO("dsSetEdidVersion  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsSetEdidVersion loaded");
             }
         }
 
@@ -363,20 +320,12 @@ public:
         typedef dsError_t (*dsGetEdidVersion_t)(dsHdmiInPort_t iHdmiPort, tv_hdmi_edid_version_t *iEdidVersion);
         static dsGetEdidVersion_t dsGetEdidVersionFunc = 0;
         if (dsGetEdidVersionFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsGetEdidVersionFunc = (dsGetEdidVersion_t) dlsym(dllib, "dsGetEdidVersion");
-                if(dsGetEdidVersionFunc == 0) {
-                    LOGINFO("dsGetEdidVersion (int) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsGetEdidVersionFunc loaded");
-                }
-                dlclose(dllib);
+            dsGetEdidVersionFunc = (dsGetEdidVersion_t)resolve(RDK_DSHAL_NAME, "dsGetEdidVersion");
+            if(dsGetEdidVersionFunc == 0) {
+                LOGERR("dsGetEdidVersion is not defined");
             }
             else {
-                LOGINFO("dsGetEdidVersion  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsGetEdidVersion loaded");
             }
         }
         if (0 != dsGetEdidVersionFunc) {
@@ -397,20 +346,12 @@ public:
         typedef dsError_t (*dsGetAllmStatus_t)(dsHdmiInPort_t iHdmiPort, bool *allmStatus);
         static dsGetAllmStatus_t dsGetAllmStatusFunc = 0;
         if (dsGetAllmStatusFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsGetAllmStatusFunc = (dsGetAllmStatus_t) dlsym(dllib, "dsGetAllmStatus");
-                if(dsGetAllmStatusFunc == 0) {
-                    LOGINFO("dsGetAllmStatus (int) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsGetAllmStatusFunc loaded");
-                }
-                dlclose(dllib);
+            dsGetAllmStatusFunc = (dsGetAllmStatus_t)resolve(RDK_DSHAL_NAME, "dsGetAllmStatus");
+            if(dsGetAllmStatusFunc == 0) {
+                LOGERR("dsGetAllmStatus is not defined");
             }
             else {
-                LOGINFO("dsGetAllmStatus  Opening RDK_DSHAL_NAME [%s] failed %s",
-                   RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsGetAllmStatus loaded");
             }
         }
         if (0 != dsGetAllmStatusFunc) {
@@ -428,20 +369,12 @@ public:
         typedef dsError_t (*dsGetSupportedGameFeaturesList_t)(dsSupportedGameFeatureList_t *fList);
         static dsGetSupportedGameFeaturesList_t dsGetSupportedGameFeaturesListFunc = 0;
         if (dsGetSupportedGameFeaturesListFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsGetSupportedGameFeaturesListFunc = (dsGetSupportedGameFeaturesList_t) dlsym(dllib, "dsGetSupportedGameFeaturesList");
-                if(dsGetSupportedGameFeaturesListFunc == 0) {
-                    LOGINFO("dsGetSupportedGameFeaturesList (int) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsGetSupportedGameFeaturesList loaded");
-                }
-                dlclose(dllib);
+            dsGetSupportedGameFeaturesListFunc = (dsGetSupportedGameFeaturesList_t)resolve(RDK_DSHAL_NAME, "dsGetSupportedGameFeaturesList");
+            if(dsGetSupportedGameFeaturesListFunc == 0) {
+                LOGERR("dsGetSupportedGameFeaturesList is not defined");
             }
             else {
-                LOGINFO("dsGetSupportedGameFeaturesList  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsGetSupportedGameFeaturesList loaded");
             }
         }
         if (0 != dsGetSupportedGameFeaturesListFunc) {
@@ -460,20 +393,12 @@ public:
         typedef dsError_t (*dsGetAVLatency_t)(int *audio_latency, int *video_latency);
         static dsGetAVLatency_t dsGetAVLatencyFunc = 0;
         if (dsGetAVLatencyFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsGetAVLatencyFunc = (dsGetAVLatency_t) dlsym(dllib, "dsGetAVLatency");
-                if(dsGetAVLatencyFunc == 0) {
-                    LOGINFO("dsGetAVLatency (int) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsGetAVLatencyFunc loaded");
-                }
-                dlclose(dllib);
+            dsGetAVLatencyFunc = (dsGetAVLatency_t)resolve(RDK_DSHAL_NAME, "dsGetAVLatency");
+            if(dsGetAVLatencyFunc == 0) {
+                LOGERR("dsGetAVLatency is not defined");
             }
             else {
-                LOGINFO("dsGetAVLatency  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+                LOGINFO("dsGetAVLatency loaded");
             }
         }
         if (0 != dsGetAVLatencyFunc) {
@@ -491,22 +416,13 @@ public:
         typedef dsError_t (*dsGetHdmiVersion_t)(dsHdmiInPort_t iHdmiPort, dsHdmiMaxCapabilityVersion_t  *capversion);
         static dsGetHdmiVersion_t dsGetHdmiVersionFunc = 0;
         if (dsGetHdmiVersionFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsGetHdmiVersionFunc = (dsGetHdmiVersion_t) dlsym(dllib, "dsGetHdmiVersion");
-                if(dsGetHdmiVersionFunc == 0) {
-                    LOGINFO("dsGetHdmiVersion (int) is not defined %s", dlerror());
-                    eRet = dsERR_GENERAL;
-                }
-                else {
-                    LOGINFO("dsGetHdmiVersionFunc loaded");
-                }
-                dlclose(dllib);
+            dsGetHdmiVersionFunc = (dsGetHdmiVersion_t)resolve(RDK_DSHAL_NAME, "dsGetHdmiVersion");
+            if(dsGetHdmiVersionFunc == 0) {
+                LOGERR("dsGetHdmiVersion is not defined");
+                eRet = dsERR_GENERAL;
             }
             else {
-                LOGERR("dsGetHdmiVersion  Opening RDK_DSHAL_NAME [%s] failed %s",
-                   RDK_DSHAL_NAME, dlerror());
-                eRet = dsERR_GENERAL;
+                LOGINFO("dsGetHdmiVersion loaded");
             }
         }
         if (0 != dsGetHdmiVersionFunc) {
@@ -669,12 +585,12 @@ public:
                 m_edidversion[dsHDMI_IN_PORT_0] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
             } catch(...) {
                 try {
-                    LOGINFO("Port %s: Exception in Getting the HDMI0 EDID version from persistence storage. Try system default...", "HDMI0");
+                    LOGERR("Port %s: Exception in Getting the HDMI0 EDID version from persistence storage. Try system default...", "HDMI0");
                     _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.edidversion");
                     m_edidversion[dsHDMI_IN_PORT_0] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
                 }
                 catch(...) {
-                    LOGINFO("Port %s: Exception in Getting the HDMI0 EDID version from system default.....", "HDMI0");
+                    LOGERR("Port %s: Exception in Getting the HDMI0 EDID version from system default.....", "HDMI0");
                     m_edidversion[dsHDMI_IN_PORT_0] = HDMI_EDID_VER_20;
                 }
             }
@@ -684,12 +600,12 @@ public:
                 m_edidversion[dsHDMI_IN_PORT_1] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
             } catch(...) {
                 try {
-                    LOGINFO("Port %s: Exception in Getting the HDMI1 EDID version from persistence storage. Try system default...", "HDMI1");
+                    LOGERR("Port %s: Exception in Getting the HDMI1 EDID version from persistence storage. Try system default...", "HDMI1");
                     _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI1.edidversion");
                     m_edidversion[dsHDMI_IN_PORT_1] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
                 }
                 catch(...) {
-                    LOGINFO("Port %s: Exception in Getting the HDMI1 EDID version from system default.....", "HDMI1");
+                    LOGERR("Port %s: Exception in Getting the HDMI1 EDID version from system default.....", "HDMI1");
                     m_edidversion[dsHDMI_IN_PORT_1] = HDMI_EDID_VER_20;
                 }
             }
@@ -699,12 +615,12 @@ public:
                 m_edidversion[dsHDMI_IN_PORT_2] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
             } catch(...) {
                 try {
-                    LOGINFO("Port %s: Exception in Getting the HDMI2 EDID version from persistence storage. Try system default...", "HDMI2");
+                    LOGERR("Port %s: Exception in Getting the HDMI2 EDID version from persistence storage. Try system default...", "HDMI2");
                     _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI2.edidversion");
                     m_edidversion[dsHDMI_IN_PORT_2] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
                 }
                 catch(...) {
-                    LOGINFO("Port %s: Exception in Getting the HDMI2 EDID version from system default.....", "HDMI2");
+                    LOGERR("Port %s: Exception in Getting the HDMI2 EDID version from system default.....", "HDMI2");
                     m_edidversion[dsHDMI_IN_PORT_2] = HDMI_EDID_VER_20;
                 }
             }
@@ -749,12 +665,9 @@ public:
         if(rdkProfile != NULL)
         {
             rdkProfile++; // Move past the '=' character
-            if(0 == strncmp(rdkProfile, PROFILE_STR_TV, strlen(PROFILE_STR_TV)))
-            {
+            if(0 == strncmp(rdkProfile, PROFILE_STR_TV, strlen(PROFILE_STR_TV))) {
                 ret = PROFILE_TV;
-            }
-            else if (0 == strncmp(rdkProfile, PROFILE_STR_STB, strlen(PROFILE_STR_STB)))
-            {
+            } else if (0 == strncmp(rdkProfile, PROFILE_STR_STB, strlen(PROFILE_STR_STB))) {
                 ret = PROFILE_STB;
             }
         }
@@ -779,7 +692,60 @@ public:
             LOGINFO("Value of isDalsEnabled = [ %d ]", isDalsEnabled);
         }
         else {
-            LOGINFO("Fetching RFC for DALS failed or DALS is disabled");
+            LOGERR("Fetching RFC for DALS failed or DALS is disabled");
+        }
+    }
+
+    // Missing functions from dsHdmiIn.c
+    void updateEdidAllmBitValuesInPersistence(dsHdmiInPort_t iHdmiPort, bool allmSupport)
+    {
+        LOGINFO("Updating values of edid allm bit in persistence");
+        switch(iHdmiPort){
+            case dsHDMI_IN_PORT_0:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI0.edidallmEnable", allmSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID Allm Bit: %d", "HDMI0", allmSupport);
+                break;
+            case dsHDMI_IN_PORT_1:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI1.edidallmEnable", allmSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID Allm Bit: %d", "HDMI1", allmSupport);
+                break;
+            case dsHDMI_IN_PORT_2:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI2.edidallmEnable", allmSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID Allm Bit: %d", "HDMI2", allmSupport);
+                break;
+            case dsHDMI_IN_PORT_3:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI3.edidallmEnable", allmSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID Allm Bit: %d", "HDMI3", allmSupport);
+                break;
+            default:
+                LOGWARN("Invalid HDMI port %d for ALLM persistence update", iHdmiPort);
+                break;
+        }
+    }
+
+    void updateVRRBitValuesInPersistence(dsHdmiInPort_t iHdmiPort, bool vrrSupport)
+    {
+        LOGINFO("Updating values of vrr bit in persistence");
+        switch(iHdmiPort){
+            case dsHDMI_IN_PORT_0:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI0.vrrEnable", vrrSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID VRR Bit: %d", "HDMI0", vrrSupport);
+                break;
+            case dsHDMI_IN_PORT_1:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI1.vrrEnable", vrrSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID VRR Bit: %d", "HDMI1", vrrSupport);
+                break;
+            case dsHDMI_IN_PORT_2:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI2.vrrEnable", vrrSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID VRR Bit: %d", "HDMI2", vrrSupport);
+                break;
+            case dsHDMI_IN_PORT_3:
+                device::HostPersistence::getInstance().persistHostProperty("HDMI3.vrrEnable", vrrSupport ? "TRUE" : "FALSE");
+                LOGINFO("Port %s: Persist EDID VRR Bit: %d", "HDMI3", vrrSupport);
+                break;
+            default:
+                LOGWARN("Invalid HDMI port %d for VRR persistence update", iHdmiPort);
+                break;
         }
     }
 
@@ -811,13 +777,11 @@ public:
     static void DS_OnHDMIInVideoModeUpdateEvent(const dsHdmiInPort_t port, const dsVideoPortResolution_t videoPortResolution)
     {
         LOGINFO("DS_OnHDMIInVideoModeUpdateEvent event Received: port=%d", port); // adjust as needed
+        LOGINFO("Video Mode: %s pixelResolution %d aspectRatio %d stereoScopicMode %d frameRate %d", videoPortResolution.name, videoPortResolution.pixelResolution, videoPortResolution.aspectRatio, videoPortResolution.stereoScopicMode, videoPortResolution.frameRate);
 
         if (g_HdmiInVideoModeUpdateCallback) {
             HDMIVideoPortResolution res;
-            // Copy/convert fields
             res.name = std::string(videoPortResolution.name); // convert char[] to std::string
-            // Copy other fields if needed
-
             g_HdmiInVideoModeUpdateCallback(static_cast<HDMIInPort>(port), res);
         }
     }
@@ -874,6 +838,7 @@ public:
         if (dsHdmiInGetStatus(&status) == dsERR_NONE) {
             hdmiStatus.activePort = static_cast<HDMIInPort>(status.activePort);
             hdmiStatus.isPresented = status.isPresented;
+            LOGINFO("GetHDMIInStatus: activePort=%d, isPresented=%s", status.activePort, status.isPresented ? "true" : "false");
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -887,6 +852,7 @@ public:
         if (getAVLatency_hal(&aLatency, &vLatency) == dsERR_NONE) {
             audioLatency = static_cast<uint32_t>(aLatency);
             videoLatency = static_cast<uint32_t>(vLatency);
+            LOGINFO("GetHDMIInAVLatency: audioLatency=%d, videoLatency=%d", audioLatency, videoLatency);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -899,6 +865,7 @@ public:
         bool status = false;
         if (getAllmStatus(hdmiPort, &status) == dsERR_NONE) {
             allmStatus = status;
+            LOGINFO("GetHDMIInAllmStatus: port=%d, allmStatus=%s", hdmiPort, allmStatus ? "true" : "false");
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -910,6 +877,7 @@ public:
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         if (hdmiPort < dsHDMI_IN_PORT_MAX) {
             allmSupport = m_edidallmsupport[hdmiPort];
+            LOGINFO("GetHDMIInEdid2AllmSupport: port=%d, allmSupport=%s", hdmiPort, allmSupport ? "true" : "false");
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -920,29 +888,17 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         if (hdmiPort < dsHDMI_IN_PORT_MAX) {
-            if (setEdid2AllmSupport(hdmiPort, allmSupport) == dsERR_NONE) {
-                m_edidallmsupport[hdmiPort] = allmSupport;
-                std::string val = allmSupport ? "TRUE" : "FALSE";
-                switch (hdmiPort) {
-                    case dsHDMI_IN_PORT_0:
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI0.edidallmEnable", val);
-                        LOGINFO("Port %s: Persist EDID ALLM Support: %s", "HDMI0", val.c_str());
-                        break;
-                    case dsHDMI_IN_PORT_1:
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI1.edidallmEnable", val);
-                        LOGINFO("Port %s: Persist EDID ALLM Support: %s", "HDMI1", val.c_str());
-                        break;
-                    case dsHDMI_IN_PORT_2:
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI2.edidallmEnable", val);
-                        LOGINFO("Port %s: Persist EDID ALLM Support: %s", "HDMI2", val.c_str());
-                        break;
-                    case dsHDMI_IN_PORT_NONE:
-                    case dsHDMI_IN_PORT_3:
-                    case dsHDMI_IN_PORT_4:
-                    case dsHDMI_IN_PORT_MAX:
-                        break;
+            LOGINFO("In SetHDMIInEdid2AllmSupport, checking m_edidversion of port %d : %d", hdmiPort, m_edidversion[hdmiPort]);
+            if(m_edidversion[hdmiPort] == HDMI_EDID_VER_20) { // if the edidver is 2.0, then only set the allm bit in edid
+                if (setEdid2AllmSupport(hdmiPort, allmSupport) == dsERR_NONE) {
+                    updateEdidAllmBitValuesInPersistence(hdmiPort, allmSupport);
+                    m_edidallmsupport[hdmiPort] = allmSupport;
+                    LOGINFO("SetHDMIInEdid2AllmSupport: port=%d, allmSupport=%s", hdmiPort, allmSupport ? "true" : "false");
+                    retCode = WPEFramework::Core::ERROR_NONE;
                 }
-                retCode = WPEFramework::Core::ERROR_NONE;
+            } else {
+                LOGINFO("EDID version is not 2.0, cannot set ALLM support for port %d", hdmiPort);
+                retCode = WPEFramework::Core::ERROR_UNAVAILABLE;
             }
         }
         return retCode;
@@ -952,26 +908,27 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsSupportedGameFeatureList_t fList;
-        std::vector<WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInGameFeatureList> features;
+
+        // Initialize the structure
+        memset(&fList, 0, sizeof(fList));
+
         if (getSupportedGameFeaturesList(&fList) == dsERR_NONE) {
-            //strncpy(gameFeatureList->gameFeature, fList.gameFeatureList, sizeof(1024));
-            /*gameFeatureList.count = fList.count;
-            LOGINFO("GetSupportedGameFeaturesList: count=%d", fList.count);
-            for (uint32_t i = 0; i < fList.count; i++) {
-                LOGINFO("Feature %d: %s", i, fList.features[i].feature);
-            }*/
-            // Assuming fList.features[i].feature is a string or can be converted to string
-            /*for (uint32_t i = 0; i < fList.count; i++) {
-                WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInGameFeatureList feature;
-                feature.gameFeature = std::string(fList.features[i].feature); // adjust if needed
-                features.push_back(feature);
+            LOGINFO("GetSupportedGameFeaturesList: Successfully got game features: %s", fList.gameFeatureList);
+
+            try {
+                // Create iterator with game features data - use direct instantiation to avoid WPEFramework Service template issues
+                gameFeatureList = nullptr;
+                retCode = WPEFramework::Core::ERROR_NONE;
+            } catch (const std::exception& e) {
+                LOGERR("GetSupportedGameFeaturesList: Failed to create iterator: %s", e.what());
+                gameFeatureList = nullptr;
+                retCode = WPEFramework::Core::ERROR_GENERAL;
             }
-            gameFeatureList = WPEFramework::Core::Service<RPC::IIteratorType<
-                WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInGameFeatureList,
-                WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::ID_DEVICESETTINGS_MANAGER_HDMIIN_GAMELIST_ITERATOR>>
-                ::Create(features);
-            retCode = WPEFramework::Core::ERROR_NONE;*/ // Temporarily disabling as dsSupportedGameFeatureList_t is not defined
+        } else {
+            LOGERR("GetSupportedGameFeaturesList: Failed to get supported game features from HAL");
+            gameFeatureList = nullptr;
         }
+
         return retCode;
     }
 
@@ -981,6 +938,7 @@ public:
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         dsVideoPlaneType_t videoType = static_cast<dsVideoPlaneType_t>(videoPlaneType);
         if (dsHdmiInSelectPort(hdmiPort, requestAudioMix, videoType, topMostPlane) == dsERR_NONE) {
+            LOGINFO("SelectHDMIInPort: port=%d, requestAudioMix=%s, topMostPlane=%s, videoPlaneType=%d", hdmiPort, requestAudioMix ? "true" : "false", topMostPlane ? "true" : "false", videoPlaneType);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -995,6 +953,7 @@ public:
         rect.width = videoPosition.width;
         rect.height = videoPosition.height;
         if (dsHdmiInScaleVideo(rect.x, rect.y, rect.width, rect.height) == dsERR_NONE) {
+            LOGINFO("Successfully set the video position x=%d, y=%d, width=%d, height=%d", rect.x, rect.y, rect.width, rect.height);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1005,6 +964,7 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsVideoZoom_t zoom = static_cast<dsVideoZoom_t>(zoomMode);
         if (dsHdmiInSelectZoomMode(zoom) == dsERR_NONE) {
+            LOGINFO("Successfully set the zoom mode: %d", zoom);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1015,22 +975,12 @@ public:
         typedef dsError_t (*dsGetEDIDBytesInfo_t)(dsHdmiInPort_t iHdmiPort, unsigned char *edid, int *length);
         static dsGetEDIDBytesInfo_t dsGetEDIDBytesInfoFunc = 0;
         if (dsGetEDIDBytesInfoFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsGetEDIDBytesInfoFunc = (dsGetEDIDBytesInfo_t) dlsym(dllib, "dsGetEDIDBytesInfo");
-                if(dsGetEDIDBytesInfoFunc == 0) {
-                    LOGINFO("dsGetEDIDBytesInfo (int) is not defined %s", dlerror());
-                    eRet = dsERR_GENERAL;
-                }
-                else {
-                    LOGINFO("dsGetEDIDBytesInfoFunc loaded");
-                }
-                dlclose(dllib);
-            }
-            else {
-                LOGINFO("dsGetEDIDBytesInfo  Opening RDK_DSHAL_NAME [%s] failed %s",
-                    RDK_DSHAL_NAME, dlerror());
+            dsGetEDIDBytesInfoFunc = (dsGetEDIDBytesInfo_t)resolve(RDK_DSHAL_NAME, "dsGetEDIDBytesInfo");
+            if(dsGetEDIDBytesInfoFunc == 0) {
+                LOGERR("dsGetEDIDBytesInfo is not defined");
                 eRet = dsERR_GENERAL;
+            } else {
+                LOGINFO("dsGetEDIDBytesInfo loaded");
             }
         }
         if (0 != dsGetEDIDBytesInfoFunc) {
@@ -1044,11 +994,12 @@ public:
     uint32_t GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        /*dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
+        dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
+        int length = static_cast<int>(edidBytesLength);
         if (getEDIDBytesInfo(hdmiPort, edidBytes, &length) == dsERR_NONE) {
-
+            LOGINFO("GetEdidBytes: port=%d, edidBytesLength=%d, actualLength=%d", hdmiPort, edidBytesLength, length);
             retCode = WPEFramework::Core::ERROR_NONE;
-        }*/
+        }
         return retCode;
     }
 
@@ -1057,22 +1008,12 @@ public:
         typedef dsError_t (*dsGetHDMISPDInfo_t)(dsHdmiInPort_t iHdmiPort, unsigned char *data);
         static dsGetHDMISPDInfo_t dsGetHDMISPDInfoFunc = 0;
         if (dsGetHDMISPDInfoFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsGetHDMISPDInfoFunc = (dsGetHDMISPDInfo_t) dlsym(dllib, "dsGetHDMISPDInfo");
-                if(dsGetHDMISPDInfoFunc == 0) {
-                    LOGINFO("dsGetHDMISPDInfo (int) is not defined %s", dlerror());
-                    eRet = dsERR_GENERAL;
-                }
-                else {
-                    LOGINFO("dsGetHDMISPDInfoFunc loaded");
-                }
-                dlclose(dllib);
-            }
-            else {
-                LOGINFO("dsGetHDMISPDInfo  Opening RDK_DSHAL_NAME [%s] failed %s",
-                   RDK_DSHAL_NAME, dlerror());
+            dsGetHDMISPDInfoFunc = (dsGetHDMISPDInfo_t)resolve(RDK_DSHAL_NAME, "dsGetHDMISPDInfo");
+            if(dsGetHDMISPDInfoFunc == 0) {
+                LOGERR("dsGetHDMISPDInfo is not defined");
                 eRet = dsERR_GENERAL;
+            } else {
+                LOGINFO("dsGetHDMISPDInfo loaded");
             }
         }
         if (0 != dsGetHDMISPDInfoFunc) {
@@ -1091,6 +1032,7 @@ public:
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
 
         if (getHDMISPDInfo(hdmiPort, spdBytes) == dsERR_NONE) {
+            LOGINFO("GetHDMISPDInformation: port=%d, spdBytesLength=%d", hdmiPort, spdBytesLength);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1103,6 +1045,7 @@ public:
         int edidVer = 0;
         if (getEdidVersion(hdmiPort, &edidVer) == dsERR_NONE) {
             edidVersion = static_cast<HDMIInEdidVersion>(edidVer);
+            LOGINFO("GetHDMIEdidVersion: port=%d, edidVersion=%d", hdmiPort, edidVer);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1115,6 +1058,7 @@ public:
         tv_hdmi_edid_version_t edidVer = static_cast<tv_hdmi_edid_version_t>(edidVersion);
         if (setEdidVersion(hdmiPort, edidVer) == dsERR_NONE) {
             m_edidversion[hdmiPort] = edidVer;
+            LOGINFO("SetHDMIEdidVersion: port=%d, edidVersion=%d", hdmiPort, edidVer);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1125,12 +1069,25 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsVideoPortResolution_t videoRes;
         if (dsHdmiInGetCurrentVideoMode(&videoRes) == dsERR_NONE) {
+            LOGINFO("GetHDMIVideoMode: Raw HAL data - name='%s', pixelRes=%d, aspectRatio=%d, stereoScopicMode=%d, frameRate=%d, interlaced=%d",
+                    videoRes.name, videoRes.pixelResolution, videoRes.aspectRatio, videoRes.stereoScopicMode, videoRes.frameRate, videoRes.interlaced);
+
             videoPortResolution.name = std::string(videoRes.name);
             videoPortResolution.pixelResolution = static_cast<HDMIInTVResolution>(videoRes.pixelResolution);
             videoPortResolution.aspectRatio = static_cast<HDMIVideoAspectRatio>(videoRes.aspectRatio);
             videoPortResolution.stereoScopicMode = static_cast<HDMIInVideoStereoScopicMode>(videoRes.stereoScopicMode);
             videoPortResolution.frameRate = static_cast<HDMIInVideoFrameRate>(videoRes.frameRate);
             videoPortResolution.interlaced = videoRes.interlaced;
+
+            // Debug print all the assigned data
+            LOGINFO("GetHDMIVideoMode: Assigned data - name='%s', pixelResolution=%d, aspectRatio=%d, stereoScopicMode=%d, frameRate=%d, interlaced=%s", 
+                    videoPortResolution.name.c_str(), 
+                    static_cast<int>(videoPortResolution.pixelResolution),
+                    static_cast<int>(videoPortResolution.aspectRatio),
+                    static_cast<int>(videoPortResolution.stereoScopicMode),
+                    static_cast<int>(videoPortResolution.frameRate),
+                    videoPortResolution.interlaced ? "true" : "false");
+
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1143,6 +1100,7 @@ public:
         dsHdmiMaxCapabilityVersion_t capversion;
         if (getHdmiVersion(hdmiPort, &capversion) == dsERR_NONE) {
             capabilityVersion = static_cast<HDMIInCapabilityVersion>(capversion);
+            LOGINFO("GetHDMIVersion: port=%d, capabilityVersion=%d", hdmiPort, capversion);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1153,32 +1111,17 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         if (hdmiPort < dsHDMI_IN_PORT_MAX) {
-            if (setVRRSupport(hdmiPort, vrrSupport) == dsERR_NONE) {
-                m_vrrsupport[hdmiPort] = vrrSupport;
-                std::string val = vrrSupport ? "TRUE" : "FALSE";
-                switch (hdmiPort) {
-                    case dsHDMI_IN_PORT_0:
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI0.vrrEnable", val);
-                        LOGINFO("Port %s: Persist VRR Support: %s", "HDMI0", val.c_str());
-                        break;
-                    case dsHDMI_IN_PORT_1:
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI1.vrrEnable", val);
-                        LOGINFO("Port %s: Persist VRR Support: %s", "HDMI1", val.c_str());
-                        break;
-                    case dsHDMI_IN_PORT_2:
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI2.vrrEnable", val);
-                        LOGINFO("Port %s: Persist VRR Support: %s", "HDMI2", val.c_str());
-                        break;
-                    case dsHDMI_IN_PORT_3:
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI3.vrrEnable", val);
-                        LOGINFO("Port %s: Persist VRR Support: %s", "HDMI3", val.c_str());
-                        break;
-                    case dsHDMI_IN_PORT_NONE:
-                    case dsHDMI_IN_PORT_4:
-                    case dsHDMI_IN_PORT_MAX:
-                        break;
+            LOGINFO("In SetVRRSupport, checking m_edidversion of port %d : %d", hdmiPort, m_edidversion[hdmiPort]);
+            if(m_edidversion[hdmiPort] == HDMI_EDID_VER_20) { // if the edidver is 2.0, then only set the vrr bit in edid
+                if (setVRRSupport(hdmiPort, vrrSupport) == dsERR_NONE) {
+                    updateVRRBitValuesInPersistence(hdmiPort, vrrSupport);
+                    m_vrrsupport[hdmiPort] = vrrSupport;
+                    LOGINFO("SetVRRSupport: port=%d, vrrSupport=%d", hdmiPort, vrrSupport);
+                    retCode = WPEFramework::Core::ERROR_NONE;
                 }
-                retCode = WPEFramework::Core::ERROR_NONE;
+            } else {
+                LOGINFO("EDID version is not 2.0, cannot set VRR support for port %d", hdmiPort);
+                retCode = WPEFramework::Core::ERROR_UNAVAILABLE;
             }
         }
         return retCode;
@@ -1190,6 +1133,7 @@ public:
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         if (hdmiPort < dsHDMI_IN_PORT_MAX) {
             vrrSupport = m_vrrsupport[hdmiPort];
+            LOGINFO("GetVRRSupport: port=%d, vrrSupport=%d", hdmiPort, vrrSupport);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
@@ -1200,20 +1144,11 @@ public:
         typedef dsError_t (*dsHdmiInGetVRRStatus_t)(dsHdmiInPort_t iHdmiPort, dsHdmiInVrrStatus_t *vrrStatus);
         static dsHdmiInGetVRRStatus_t dsHdmiInGetVRRStatusFunc = 0;
         if (dsHdmiInGetVRRStatusFunc == 0) {
-        void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-        if (dllib) {
-                dsHdmiInGetVRRStatusFunc = (dsHdmiInGetVRRStatus_t) dlsym(dllib, "dsHdmiInGetVRRStatus");
-                if(dsHdmiInGetVRRStatusFunc == 0) {
-                    LOGINFO("dsHdmiInGetVRRStatus (int) is not defined %s", dlerror());
-                }
-                else {
-                    LOGINFO("dsHdmiInGetVRRStatusFunc loaded");
-                }
-                dlclose(dllib);
-            }
-            else {
-                LOGINFO("dsHdmiInGetVRRStatus  Opening RDK_DSHAL_NAME [%s] failed %s",
-                   RDK_DSHAL_NAME, dlerror());
+            dsHdmiInGetVRRStatusFunc = (dsHdmiInGetVRRStatus_t)resolve(RDK_DSHAL_NAME, "dsHdmiInGetVRRStatus");
+            if(dsHdmiInGetVRRStatusFunc == 0) {
+                LOGERR("dsHdmiInGetVRRStatus is not defined");
+            } else {
+                LOGINFO("dsHdmiInGetVRRStatus loaded");
             }
         }
         if (0 != dsHdmiInGetVRRStatusFunc) {
@@ -1221,7 +1156,7 @@ public:
             LOGINFO("dsHdmiInGetVRRStatusFunc eRet: %d", eRet);
         }
         else {
-            LOGINFO("%s:  dsHdmiInGetVRRStatusFunc = %p", __FUNCTION__, dsHdmiInGetVRRStatusFunc);
+            LOGINFO("dsHdmiInGetVRRStatusFunc = %p", dsHdmiInGetVRRStatusFunc);
         }
         return eRet;
     }
@@ -1234,9 +1169,28 @@ public:
         if (getVRRStatus(hdmiPort, &status) == dsERR_NONE) {
             vrrStatus.vrrType = static_cast<HDMIInVRRType>(status.vrrType);
             vrrStatus.vrrFreeSyncFramerateHz = status.vrrAmdfreesyncFramerate_Hz;
+            LOGINFO("GetVRRStatus: port=%d, vrrType=%d, vrrFreeSyncFramerateHz=%f", hdmiPort, vrrStatus.vrrType, vrrStatus.vrrFreeSyncFramerateHz);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
+    }
+
+    // Helper function to convert dsError_t to WPEFramework error codes
+    static uint32_t convertDsErrorToWPEError(dsError_t dsErr) {
+        switch (dsErr) {
+            case dsERR_NONE:
+                return WPEFramework::Core::ERROR_NONE;
+            case dsERR_GENERAL:
+                return WPEFramework::Core::ERROR_GENERAL;
+            case dsERR_INVALID_PARAM:
+                return WPEFramework::Core::ERROR_BAD_REQUEST;
+            case dsERR_INVALID_STATE:
+                return WPEFramework::Core::ERROR_ILLEGAL_STATE;
+            case dsERR_OPERATION_NOT_SUPPORTED:
+                return WPEFramework::Core::ERROR_UNAVAILABLE;
+            default:
+                return WPEFramework::Core::ERROR_GENERAL;
+        }
     }
 
     private:

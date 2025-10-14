@@ -143,7 +143,7 @@ uint32_t HdmiIn::GetHDMIInNumberOfInputs(int32_t &count) {
     ENTRY_LOG;
 
     LOGINFO("GetHDMIInNumbefOfInputs");
-    count = 2; // Example value
+    this->platform().GetHDMIInNumberOfInputs(count);
 
     EXIT_LOG;
 

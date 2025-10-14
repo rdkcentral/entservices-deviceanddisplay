@@ -105,6 +105,7 @@ namespace Plugin {
         _deviceSettingsManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManager>("org.rdk.DeviceSettingsManager");
         ASSERT(_deviceSettingsManager != nullptr);
 
+        TestFPDAPIs();
         // Test HDMI In methods with sample values
         TestSpecificHDMIInAPIs();
 
@@ -344,7 +345,7 @@ namespace Plugin {
             LOGINFO("GetFPDColor: indicator=%s, result=%u, color=0x%08X", indicatorName, result, currentColor);
 
             // 6. Test SetFPDColor
-            uint32_t newColor = 0xFF0000FF; // Blue color
+            uint32_t newColor = 0x0000FF; // Blue color
             result = fpd->SetFPDColor(indicator, newColor);
             LOGINFO("SetFPDColor: indicator=%s, result=%u, color=0x%08X (Blue)", indicatorName, result, newColor);
 

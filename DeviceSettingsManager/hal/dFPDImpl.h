@@ -177,6 +177,7 @@ public:
             if (eError == dsERR_NONE) {
                 brightNess = static_cast<uint32_t>(halBrightness);
                 srvFPDSettings[static_cast<int>(indicator)].brightness = brightNess;
+                LOGINFO("GetFPDBrightness: indicator %d brightness %d", static_cast<int>(indicator), brightNess);
                 retCode = WPEFramework::Core::ERROR_NONE;
             } else {
                 LOGERR("GetFPDBrightness: dsGetFPBrightness failed with error %d", eError);
@@ -222,6 +223,7 @@ public:
             if (eError == dsERR_NONE) {
                 state = static_cast<FPDState>(halState);
                 srvFPDSettings[static_cast<int>(indicator)].state = halState;
+                LOGINFO("GetFPDState: indicator %d state %d", static_cast<int>(indicator), static_cast<int>(state));
                 retCode = WPEFramework::Core::ERROR_NONE;
             } else {
                 LOGERR("GetFPDState: dsGetFPState failed with error %d", eError);
@@ -247,11 +249,13 @@ public:
             if (eError == dsERR_NONE) {
                 color = static_cast<uint32_t>(halColor);
                 srvFPDSettings[static_cast<int>(indicator)].color = halColor;
+                LOGINFO("GetFPDColor: indicator %d color %d", static_cast<int>(indicator), color);
                 retCode = WPEFramework::Core::ERROR_NONE;
             } else {
                 LOGERR("GetFPDColor: dsGetFPColor failed with error %d", eError);
                 // Fallback to cached value
                 color = srvFPDSettings[static_cast<int>(indicator)].color;
+                LOGINFO("GetFPDColor: indicator %d color %d (cached)", static_cast<int>(indicator), color);
                 retCode = WPEFramework::Core::ERROR_NONE;
             }
         } else {
@@ -284,7 +288,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
 
-        LOGINFO("SetFPDTextBrightness is DEPRECATED and not IMPLEMENTED");
+        LOGERR("SetFPDTextBrightness is DEPRECATED and not IMPLEMENTED");
 
         return retCode;
     }
@@ -293,7 +297,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
 
-        LOGINFO("GetFPDTextBrightness is DEPRECATED and not IMPLEMENTED");
+        LOGERR("GetFPDTextBrightness is DEPRECATED and not IMPLEMENTED");
 
         return retCode;
     }
@@ -302,7 +306,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
 
-        LOGINFO("EnableFPDClockDisplay is DEPRECATED and not IMPLEMENTED");
+        LOGERR("EnableFPDClockDisplay is DEPRECATED and not IMPLEMENTED");
 
         return retCode;
     }
@@ -311,7 +315,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
 
-        LOGINFO("GetFPDTimeFormat is DEPRECATED and not IMPLEMENTED");
+        LOGERR("GetFPDTimeFormat is DEPRECATED and not IMPLEMENTED");
 
         return retCode;
     }
@@ -320,7 +324,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
 
-        LOGINFO("SetFPDTimeFormat is DEPRECATED and not IMPLEMENTED");
+        LOGERR("SetFPDTimeFormat is DEPRECATED and not IMPLEMENTED");
 
         return retCode;
     }

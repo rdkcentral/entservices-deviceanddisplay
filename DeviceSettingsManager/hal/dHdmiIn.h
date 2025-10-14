@@ -54,7 +54,7 @@
     using HDMIInVideoFrameRate     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoFrameRate;
     using IHDMIInPortConnectionStatusIterator = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInPortConnectionStatusIterator;
     using IHDMIInGameFeatureListIterator      = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInGameFeatureListIterator;
-
+    using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>;
 namespace hal {
 namespace dHdmiIn {
 
@@ -82,12 +82,12 @@ namespace dHdmiIn {
         virtual uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) = 0;
         virtual uint32_t ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) = 0;
         virtual uint32_t SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) = 0;
-/*Need to change */        virtual uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) = 0;
+        virtual uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) = 0;
         virtual uint32_t GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency) = 0;
         virtual uint32_t GetHDMIInAllmStatus(const HDMIInPort port, bool &allmStatus) = 0;
         virtual uint32_t GetHDMIInEdid2AllmSupport(const HDMIInPort port, bool &allmSupport) = 0;
         virtual uint32_t SetHDMIInEdid2AllmSupport(const HDMIInPort port, bool allmSupport) = 0;
-/*Need to change */        virtual uint32_t GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) = 0;
+        virtual uint32_t GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) = 0;
         virtual uint32_t GetHDMISPDInformation(const HDMIInPort port, const uint16_t spdBytesLength, uint8_t spdBytes[]) = 0;
         virtual uint32_t GetHDMIEdidVersion(const HDMIInPort port, HDMIInEdidVersion &edidVersion) = 0;
         virtual uint32_t SetHDMIEdidVersion(const HDMIInPort port, const HDMIInEdidVersion edidVersion) = 0;

@@ -56,7 +56,7 @@ namespace Plugin {
     void DeviceSettingsManagerImp::DeviceManager_Init()
     {
         ENTRY_LOG;
-        //dsMgr_init();
+        dsMgr_init();
         //_dsFPInit(nullptr);
         EXIT_LOG;
     }

@@ -45,11 +45,12 @@ namespace Plugin {
     class DeviceSettingsManagerImp : public Exchange::IDeviceSettingsManagerFPD
                                    , public Exchange::IDeviceSettingsManagerHDMIIn
                                    , public HdmiIn::INotification
+                                   , public FPD::INotification
     {
     public:
-    // Minimal implementations to satisfy IReferenceCounted
-    uint32_t AddRef() const override { return 1; }
-    uint32_t Release() const override { return 1; }
+        // Minimal implementations to satisfy IReferenceCounted
+        uint32_t AddRef() const override { return 1; }
+        uint32_t Release() const override { return 1; }
 
         // We do not allow this plugin to be copied !!
         DeviceSettingsManagerImp();
@@ -61,10 +62,11 @@ namespace Plugin {
         DeviceSettingsManagerImp(const DeviceSettingsManagerImp&)            = delete;
         DeviceSettingsManagerImp& operator=(const DeviceSettingsManagerImp&) = delete;
 
-    BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
-    INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerFPD)
-    INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerHDMIIn)
-    END_INTERFACE_MAP
+        BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
+        //INTERFACE_ENTRY(Exchange::IDeviceSettingsManager)
+        INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerFPD)
+        INTERFACE_ENTRY(Exchange::IDeviceSettingsManagerHDMIIn)
+        END_INTERFACE_MAP
 
     public:
         class EXTERNAL LambdaJob : public Core::IDispatch {
@@ -158,6 +160,12 @@ namespace Plugin {
         template <typename T>
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
+        template<typename Func, typename... Args>
+        void dispatchHDMIInEvent(Func notifyFunc, Args&&... args);
+
+        template<typename Func, typename... Args>
+        void dispatchFPDEvent(Func notifyFunc, Args&&... args);
+
         virtual void OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected) override;
         virtual void OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override;
         virtual void OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented) override;
@@ -166,7 +174,9 @@ namespace Plugin {
         virtual void OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType) override;
         virtual void OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay) override;
         virtual void OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType) override;
-        void dispatchHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected);
+
+        // FPD notification method
+        virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override;
 
         FPD _fpd;
         HdmiIn _hdmiIn;

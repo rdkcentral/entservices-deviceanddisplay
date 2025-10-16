@@ -496,7 +496,7 @@ void handleFPDModule() {
                 printf("\nEnter brightness level (0-100): ");
                 if (scanf("%d", &brightness) == 1) {
                     printf("Calling DeviceSettings_SetFPDBrightness(%d)...\n", brightness);
-                    // TODO: Add actual function call
+                    DeviceSettings_SetFPDBrightness(FPD_INDICATOR_POWER, brightness);
                     printf("Function called successfully!\n");
                 } else {
                     printf("Invalid input!\n");

@@ -28,44 +28,61 @@
 #include "rfcapi.h"
 
 #include <core/Portability.h>
-#include <interfaces/IDeviceSettingsManager.h>
+#include <WPEFramework/interfaces/IDeviceSettingsManager.h>
 
-//#include "dHdmiIn.h"
 #include "deviceUtils.h"
 #include "UtilsLogging.h"
 #include <cstdint>
 
 #include <core/Portability.h>
 
+    using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInPort;
+    using HDMIInSignalStatus       = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInSignalStatus;
+    using HDMIVideoPortResolution  = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIVideoPortResolution;
+    using HDMIInAviContentType     = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInAviContentType;
+    using HDMIInVRRType            = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVRRType;
+    using HDMIInStatus             = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInStatus;
+    using HDMIVideoPlaneType       = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIVideoPlaneType;
+    using HDMIInVRRStatus          = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVRRStatus;
+    using HDMIInCapabilityVersion  = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInCapabilityVersion;
+    using HDMIInEdidVersion        = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInEdidVersion;
+    using HDMIInVideoZoom          = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVideoZoom;
+    using HDMIInVideoRectangle     = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVideoRectangle;
+    using HDMIVideoAspectRatio     = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIVideoAspectRatio;
+    using HDMIInTVResolution       = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInTVResolution;
+    using HDMIInVideoStereoScopicMode = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVideoStereoScopicMode;
+    using HDMIInVideoFrameRate     = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVideoFrameRate;
+    using IHDMIInPortConnectionStatusIterator = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::IHDMIInPortConnectionStatusIterator;
+    using IHDMIInGameFeatureListIterator      = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator;
+    using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>;
 namespace hal {
 namespace dHdmiIn {
 
     class IPlatform {
-        using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInPort;
-        using HDMIInSignalStatus       = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInSignalStatus;
-        using HDMIVideoPortResolution  = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIVideoPortResolution;
-        using HDMIInAviContentType     = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInAviContentType;
-        using HDMIInVRRType            = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVRRType;
-        using HDMIInStatus             = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInStatus;
-        using HDMIVideoPlaneType       = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIVideoPlaneType;
-        using HDMIInVRRStatus          = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVRRStatus;
-        using HDMIInCapabilityVersion  = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInCapabilityVersion;
-        using HDMIInEdidVersion        = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInEdidVersion;
-        using HDMIInVideoZoom          = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVideoZoom;
-        using HDMIInVideoRectangle     = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVideoRectangle;
 
     public:
-        virtual ~IPlatform() {}
+        virtual ~IPlatform();
         void InitialiseHAL();
+        void DeInitialiseHAL();
         virtual void setAllCallbacks(const CallbackBundle bundle) = 0;
-        virtual uint32_t GetHDMIInNumbefOfInputs(int32_t &count) = 0;
+        virtual void getPersistenceValue() = 0;
+        //virtual void deinit();
 
         static void DS_OnHDMIInHotPlugEvent(const dsHdmiInPort_t port, const bool isConnected);
-        //virtual uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) = 0;
-        /*virtual uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) = 0;
+        static void DS_OnHDMIInSignalStatusEvent(const dsHdmiInPort_t port, const dsHdmiInSignalStatus_t signalStatus);
+        static void DS_OnHDMIInStatusEvent(const dsHdmiInStatus_t status);
+        static void DS_OnHDMIInVideoModeUpdateEvent(const dsHdmiInPort_t port, const dsVideoPortResolution_t videoPortResolution);
+        static void DS_OnHDMIInAllmStatusEvent(const dsHdmiInPort_t port, const bool allmStatus);
+        static void DS_OnHDMIInAVIContentTypeEvent(const dsHdmiInPort_t port, const dsAviContentType_t aviContentType);
+        static void DS_OnHDMIInAVLatencyEvent(const int32_t audioDelay, const int32_t videoDelay);
+        static void DS_OnHDMIInVRRStatusEvent(const dsHdmiInPort_t port, const dsVRRType_t vrrType);
+
+        virtual uint32_t GetHDMIInNumberOfInputs(int32_t &count) = 0;
+        virtual uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) = 0;
+        virtual uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) = 0;
         virtual uint32_t ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) = 0;
         virtual uint32_t SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) = 0;
-        //virtual uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) = 0;
+        virtual uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) = 0;
         virtual uint32_t GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency) = 0;
         virtual uint32_t GetHDMIInAllmStatus(const HDMIInPort port, bool &allmStatus) = 0;
         virtual uint32_t GetHDMIInEdid2AllmSupport(const HDMIInPort port, bool &allmSupport) = 0;
@@ -78,7 +95,7 @@ namespace dHdmiIn {
         virtual uint32_t GetHDMIVersion(const HDMIInPort port, HDMIInCapabilityVersion &capabilityVersion) = 0;
         virtual uint32_t SetVRRSupport(const HDMIInPort port, const bool vrrSupport) = 0;
         virtual uint32_t GetVRRSupport(const HDMIInPort port, bool &vrrSupport) = 0;
-        virtual uint32_t GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) = 0;*/
+        virtual uint32_t GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) = 0;
     };
 } // namespace power
 } // namespace hal

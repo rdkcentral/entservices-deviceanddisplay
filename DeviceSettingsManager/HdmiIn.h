@@ -69,8 +69,6 @@ namespace Core {
     struct IWorkerPool;
 }
 }*/
-
-class HdmiIn {
     using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInPort;
     using HDMIInSignalStatus       = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInSignalStatus;
     using HDMIVideoPortResolution  = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIVideoPortResolution;
@@ -85,6 +83,8 @@ class HdmiIn {
     using HDMIInVideoRectangle     = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::HDMIInVideoRectangle;
     using IHDMIInPortConnectionStatusIterator = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::IHDMIInPortConnectionStatusIterator;
     using IHDMIInGameFeatureListIterator      = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator;
+
+class HdmiIn {
     using IPlatform = hal::dHdmiIn::IPlatform;
     using DefaultImpl = dHdmiInImpl;
 
@@ -109,9 +109,9 @@ public:
     // We do not allow this plugin to be copied !!
     //HdmiIn();
 
-    void init();
+    void Platform_init();
 
-    uint32_t GetHDMIInNumbefOfInputs(int32_t &count);
+    uint32_t GetHDMIInNumberOfInputs(int32_t &count);
     uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);
     uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType);
     uint32_t ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition);

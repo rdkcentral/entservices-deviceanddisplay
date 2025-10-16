@@ -34,11 +34,10 @@ namespace Plugin {
     DeviceSettingsManagerImp* DeviceSettingsManagerImp::_instance = nullptr;
 
     DeviceSettingsManagerImp::DeviceSettingsManagerImp()
-        : _fpd()
+        : _fpd(FPD::Create(*this))
         , _hdmiIn(HdmiIn::Create(*this))
     {
         ENTRY_LOG;
-        std::cout << " - IDeviceSettingsManager ID: " << WPEFramework::Exchange::ID_DEVICESETTINGS_MANAGER_FPD << std::endl;
         DeviceSettingsManagerImp::_instance = this;
         LOGINFO("DeviceSettingsManagerImp Is abstract class: %d", std::is_abstract<DeviceSettingsManagerImp>::value);
         DeviceManager_Init();
@@ -56,7 +55,7 @@ namespace Plugin {
     void DeviceSettingsManagerImp::DeviceManager_Init()
     {
         ENTRY_LOG;
-        dsMgr_init();
+        //dsMgr_init();
         //_dsFPInit(nullptr);
         EXIT_LOG;
     }
@@ -68,15 +67,29 @@ namespace Plugin {
         EXIT_LOG;
     }
 
-    void DeviceSettingsManagerImp::dispatchHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected)
-    {
+    template<typename Func, typename... Args>
+    void DeviceSettingsManagerImp::dispatchHDMIInEvent(Func notifyFunc, Args&&... args) {
         LOGINFO(">>");
         _callbackLock.Lock();
         for (auto& notification : _HDMIInNotifications) {
             auto start = std::chrono::steady_clock::now();
-            notification->OnHDMIInEventHotPlug(port, isConnected);
+            (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %" PRId64 "ms to process IModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IHDMIIn event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+        }
+        _callbackLock.Unlock();
+        LOGINFO("<<");
+    }
+
+    template<typename Func, typename... Args>
+    void DeviceSettingsManagerImp::dispatchFPDEvent(Func notifyFunc, Args&&... args) {
+        LOGINFO(">>");
+        _callbackLock.Lock();
+        for (auto& notification : _FPDNotifications) {
+            auto start = std::chrono::steady_clock::now();
+            (notification->*notifyFunc)(std::forward<Args>(args)...);
+            auto elapsed = std::chrono::steady_clock::now() - start;
+            LOGINFO("client %p took %" PRId64 "ms to process IFPD event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -127,7 +140,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Register(_FPDNotifications, notification);
-        LOGINFO("IDeviceSettingsManagerAudio %p, errorCode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IFPD %p, errorCode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IFPD %p registered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }
@@ -135,7 +152,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Unregister(_FPDNotifications, notification);
-        LOGINFO("IModeChanged %p, errorcode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IFPD %p, errorcode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IFPD %p unregistered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }
@@ -144,7 +165,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Register(_HDMIInNotifications, notification);
-        LOGINFO("IDeviceSettingsManagerAudio %p, errorCode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IHDMIIn %p, errorCode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IHDMIIn %p registered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }
@@ -152,7 +177,11 @@ namespace Plugin {
     {
         ENTRY_LOG;
         Core::hresult errorCode = Unregister(_HDMIInNotifications, notification);
-        LOGINFO("IModeChanged %p, errorcode: %u", notification, errorCode);
+        if (errorCode != Core::ERROR_NONE) {
+            LOGERR("IHDMIIn %p, errorcode: %u", notification, errorCode);
+        } else {
+            LOGINFO("IHDMIIn %p unregistered successfully", notification);
+        }
         EXIT_LOG;
         return errorCode;
     }
@@ -160,49 +189,56 @@ namespace Plugin {
     void DeviceSettingsManagerImp::OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected)
     {
         LOGINFO("OnHDMIInEventHotPlug event Received");
-        dispatchHDMIInHotPlugEvent(port, isConnected);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInEventHotPlug, port, isConnected);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
     {
         LOGINFO("OnHDMIInEventSignalStatus event Received");
-        //dispatchHDMIInSignalStatusEvent(port, signalStatus);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInEventSignalStatus, port, signalStatus);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay)
     {
         LOGINFO("OnHDMIInAVLatency event Received");
-        //dispatchHDMIInAVLatencyEvent(audioDelay, videoDelay);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInAVLatency, audioDelay, videoDelay);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented)
     {
         LOGINFO("OnHDMIInEventStatus event Received");
-        //dispatchHDMIInStatusEvent(activePort, isPresented);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInEventStatus, activePort, isPresented);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInVideoModeUpdateNotification(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
     {
         LOGINFO("OnHDMIInVideoModeUpdate event Received");
-        //dispatchHDMIInVideoModeUpdateEvent(port, videoPortResolution);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInVideoModeUpdate, port, videoPortResolution);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInAllmStatusNotification(const HDMIInPort port, const bool allmStatus)
     {
         LOGINFO("OnHDMIInAllmStatus event Received");
-        //dispatchHDMIInAllmStatusEvent(port, allmStatus);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInAllmStatus, port, allmStatus);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType)
     {
         LOGINFO("OnHDMIInAVIContentType event Received");
-        //dispatchHDMIInAVIContentTypeEvent(port, aviContentType);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInAVIContentType, port, aviContentType);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType)
     {
         LOGINFO("OnHDMIInVRRStatus event Received");
-        //dispatchHDMIInVRRStatusEvent(port, vrrType);
+        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManagerHDMIIn::INotification::OnHDMIInVRRStatus, port, vrrType);
+    }
+
+    // FPD notification implementation
+    void DeviceSettingsManagerImp::OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat)
+    {
+        LOGINFO("OnFPDTimeFormatChanged event Received: timeFormat=%d", timeFormat);
+        dispatchFPDEvent(&Exchange::IDeviceSettingsManagerFPD::INotification::OnFPDTimeFormatChanged, timeFormat);
     }
 
     //Depricated
@@ -346,9 +382,11 @@ namespace Plugin {
     Core::hresult DeviceSettingsManagerImp::GetHDMIInNumbefOfInputs(int32_t &count) {
         ENTRY_LOG;
 
-        LOGINFO("GetHDMIInNumbefOfInputs");
-        count = 2; // Example value
-
+        LOGINFO("GetHDMIInNumberOfInputs");
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIInNumberOfInputs(count);
+        _apiLock.Unlock();
+        LOGINFO("GetHDMIInNumberOfInputs: count=%d", count);
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -358,9 +396,12 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetHDMIInStatus");
-        hdmiStatus.activePort = HDMIInPort::DS_HDMI_IN_PORT_0; // Example value
-        hdmiStatus.isPresented = true; // Example value
-        portConnectionStatus = nullptr; // Example value
+
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIInStatus(hdmiStatus, portConnectionStatus);
+        _apiLock.Unlock();
+        LOGINFO("GetHDMIInStatus: activePort=%d, isPresented=%s", hdmiStatus.activePort, hdmiStatus.isPresented ? "true" : "false");
+
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -371,6 +412,10 @@ namespace Plugin {
 
         LOGINFO("SelectHDMIInPort: port=%d, requestAudioMix=%s, topMostPlane=%s, videoPlaneType=%d",
             port, requestAudioMix ? "true" : "false", topMostPlane ? "true" : "false", videoPlaneType);
+        _apiLock.Lock();
+        _hdmiIn.SelectHDMIInPort(port, requestAudioMix, topMostPlane, videoPlaneType);
+        _apiLock.Unlock();
+
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -380,6 +425,10 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("ScaleHDMIInVideo: x=%d, y=%d, w=%d, h=%d", videoPosition.x, videoPosition.y, videoPosition.width, videoPosition.height);
+        _apiLock.Lock();
+        _hdmiIn.ScaleHDMIInVideo(videoPosition);
+        _apiLock.Unlock();
+
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -389,6 +438,9 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("SelectHDMIZoomMode: zoomMode=%d", zoomMode);
+        _apiLock.Lock();
+        _hdmiIn.SelectHDMIZoomMode(zoomMode);
+        _apiLock.Unlock();
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -398,7 +450,9 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetSupportedGameFeaturesList");
-        gameFeatureList = nullptr; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetSupportedGameFeaturesList(gameFeatureList);
+        _apiLock.Unlock();
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -408,8 +462,10 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetHDMIInAVLatency");
-        videoLatency = 10; // Example value
-        audioLatency = 5; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIInAVLatency(videoLatency, audioLatency);
+        _apiLock.Unlock();
+        LOGINFO("GetHDMIInAVLatency: videoLatency=%u, audioLatency=%u", videoLatency, audioLatency);
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -419,7 +475,9 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetHDMIInAllmStatus: port=%d", port);
-        allmStatus = true; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIInAllmStatus(port, allmStatus);
+        _apiLock.Unlock();
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -429,7 +487,9 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetHDMIInEdid2AllmSupport: port=%d", port);
-        allmSupport = true; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIInEdid2AllmSupport(port, allmSupport);
+        _apiLock.Unlock();
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -439,6 +499,9 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("SetHDMIInEdid2AllmSupport: port=%d, allmSupport=%s", port, allmSupport ? "true" : "false");
+        _apiLock.Lock();
+        _hdmiIn.SetHDMIInEdid2AllmSupport(port, allmSupport);
+        _apiLock.Unlock();
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -448,9 +511,11 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetEdidBytes: port=%d, edidBytesLength=%u", port, edidBytesLength);
-        if (edidBytes && edidBytesLength > 0) {
-            edidBytes[0] = 0x00; // Example value
-        }
+        _apiLock.Lock();
+        _hdmiIn.GetEdidBytes(port, edidBytesLength, edidBytes);
+        _apiLock.Unlock();
+        LOGINFO("GetEdidBytes: port=%d, edidBytes[0]=0x%X", port, edidBytes[0]);
+
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -463,6 +528,11 @@ namespace Plugin {
         if (spdBytes && spdBytesLength > 0) {
             spdBytes[0] = 0x00; // Example value
         }
+        _apiLock.Lock();
+        _hdmiIn.GetHDMISPDInformation(port, spdBytesLength, spdBytes);
+        _apiLock.Unlock();
+        LOGINFO("GetHDMISPDInformation: port=%d, spdBytes[0]=0x%X", port, spdBytes[0]);
+
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -472,7 +542,11 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetHDMIEdidVersion: port=%d", port);
-        edidVersion = HDMIInEdidVersion::HDMI_EDID_VER_14; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIEdidVersion(port, edidVersion);
+        _apiLock.Unlock();
+        LOGINFO("GetHDMIEdidVersion: port=%d, edidVersion=%d", port, edidVersion);
+
         EXIT_LOG;
         return Core::ERROR_NONE;
     }
@@ -481,6 +555,10 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("SetHDMIEdidVersion: port=%d, edidVersion=%d", port, edidVersion);
+        _apiLock.Lock();
+        _hdmiIn.SetHDMIEdidVersion(port, edidVersion);
+        _apiLock.Unlock();
+
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -490,7 +568,11 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetHDMIVideoMode");
-        videoPortResolution.name = "1920x1080"; // Example value
+
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIVideoMode(videoPortResolution);
+        _apiLock.Unlock();
+        LOGINFO("GetHDMIVideoMode: resolution=%s", videoPortResolution.name.c_str());
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -500,7 +582,11 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetHDMIVersion: port=%d", port);
-        capabilityVersion = HDMIInCapabilityVersion::HDMI_COMPATIBILITY_VERSION_20; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetHDMIVersion(port, capabilityVersion);
+        _apiLock.Unlock();
+
+        LOGINFO("GetHDMIVersion: port=%d, capabilityVersion=%d", port, capabilityVersion);
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -510,7 +596,10 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetVRRSupport: port=%d", port);
-        vrrSupport = true; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetVRRSupport(port, vrrSupport);
+        _apiLock.Unlock();
+        LOGINFO("GetVRRSupport: port=%d, vrrSupport=%s", port, vrrSupport ? "true" : "false");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -520,6 +609,9 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("SetVRRSupport: port=%d, vrrSupport=%s", port, vrrSupport ? "true" : "false");
+        _apiLock.Lock();
+        _hdmiIn.SetVRRSupport(port, vrrSupport);
+        _apiLock.Unlock();
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -529,7 +621,10 @@ namespace Plugin {
         ENTRY_LOG;
 
         LOGINFO("GetVRRStatus: port=%d", port);
-        vrrStatus.vrrType = DS_HDMIIN_HDMI_VRR; // Example value
+        _apiLock.Lock();
+        _hdmiIn.GetVRRStatus(port, vrrStatus);
+        _apiLock.Unlock();
+        LOGINFO("GetVRRStatus: port=%d, vrrStatus.vrrType=%d", port, vrrStatus.vrrType);
 
         EXIT_LOG;
         return Core::ERROR_NONE;

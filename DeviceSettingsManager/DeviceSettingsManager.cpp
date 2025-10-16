@@ -60,11 +60,10 @@ namespace Plugin
     const string DeviceSettingsManager::Initialize(PluginHost::IShell * service)
     {
         ENTRY_LOG;
-        string message="";
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
-        //ASSERT(_mDeviceSettingsManager == nullptr);
+        ASSERT(_mDeviceSettingsManager == nullptr);
         //ASSERT(_mDeviceSettingsManagerHDMIIn == nullptr);
         mService = service;
         mService->AddRef();
@@ -77,34 +76,19 @@ namespace Plugin
         mService->Register(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
 
         LOGINFO("Trace - 2");
-        _mDeviceSettingsManagerFPD = service->Root<Exchange::IDeviceSettingsManagerFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
-        if (_mDeviceSettingsManagerFPD != nullptr) {
-            LOGINFO("Registering IDeviceSettingsManager::IFPD interface Success %p", _mDeviceSettingsManagerFPD);
+            _mDeviceSettingsManagerFPD = service->Root<Exchange::IDeviceSettingsManagerFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
+
+        if (_mDeviceSettingsManagerFPD == nullptr) {
+            LOGERR("Failed to get IDeviceSettingsManagerFPD interface");
         } else {
-            LOGERR("Failed to get IDeviceSettingsManager::IFPD interface");
+            LOGINFO("Registering IDeviceSettingsManagerFPD Successful");
         }
-
-        /*_mDeviceSettingsManager = service->Root<Exchange::IDeviceSettingsManager>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
-
-        if (_mDeviceSettingsManager == nullptr) {
-            LOGERR("Failed to get IDeviceSettingsManager interface");
-            message = _T("DeviceSettingsManager plugin could not be initialised");
-        }
-
-        if (_mDeviceSettingsManager != nullptr){
-            _mDeviceSettingsManagerFPD = _mDeviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IFPD>();
-            if (_mDeviceSettingsManagerFPD != nullptr) {
-                LOGINFO("Registering IDeviceSettingsManager::IFPD interface Success %p", _mDeviceSettingsManagerFPD);
-            } else {
-                LOGERR("Failed to get IDeviceSettingsManager::IFPD interface");
-            }
-        }*/
-        /*if (_mDeviceSettingsManager != nullptr) {
+        /*if (_mDeviceSettingsManagerFPD != nullptr) {
             LOGINFO("Registering JDeviceSettingsManagerFPD");
-            _mDeviceSettingsManager->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
+            _mDeviceSettingsManagerFPD->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManagerFPD::INotification>());
             //Exchange::JDeviceSettingsManagerFPD::Register(*this, _mDeviceSettingsManagerFPD);
         } else {
-            LOGERR("Failed to get IDeviceSettingsManager::IFPD interface");
+            LOGERR("Failed to get IDeviceSettingsManagerFPD interface");
         }*/
 
         LOGINFO("Trace - 3");
@@ -117,13 +101,8 @@ namespace Plugin
         LOGINFO("Trace - 4");
         EXIT_LOG;
 
-        if (0 != message.length())
-        {
-           Deinitialize(service);
-        }
-
         // On success return empty, to indicate there is no error text.
-        return (message);
+        return (string());
     }
 
     void DeviceSettingsManager::Deinitialize(PluginHost::IShell* service VARIABLE_IS_NOT_USED)

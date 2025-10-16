@@ -63,8 +63,9 @@ namespace Plugin {
             return result;
         }
         void sample() {
+               string pdri;
               auto i= GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri);
-            TRACE_GLOBAL(Trace::Information, (_T("%d"), i));
+            TRACE_GLOBAL(Trace::Information, (_T("%d %s"), i, pdri));
         }    
 
     }

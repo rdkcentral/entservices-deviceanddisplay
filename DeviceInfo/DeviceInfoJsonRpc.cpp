@@ -61,7 +61,7 @@ namespace Plugin {
         Unregister(_T("socketinfo"));
         Unregister(_T("addresses"));
         Unregister(_T("systeminfo"));
-        Unregister(_T("version"));
+        Unregister(_T("firmwareversion"));
         Unregister(_T("serialnumber"));
         Unregister(_T("modelid"));
         Unregister(_T("make"));

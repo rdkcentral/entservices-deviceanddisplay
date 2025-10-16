@@ -62,24 +62,17 @@ namespace Plugin {
 
             return result;
         }
-        void sample() {
-               string pdri;
-              auto i= GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri);
-            TRACE_GLOBAL(Trace::Information, (_T("%d %s"), i, pdri));
-        }    
-
+        
     }
 
     SERVICE_REGISTRATION(FirmwareVersion, 1, 0);
 
     Core::hresult FirmwareVersion::Imagename(string& imagename) const
-    {
-     
-         sample();   
+    { 
         return GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename);
     }
 
-    #if 0
+    #if 1
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
         return (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri));

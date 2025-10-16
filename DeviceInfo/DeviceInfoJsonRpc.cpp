@@ -123,11 +123,11 @@ namespace Plugin {
 
         // imagename is required
         string value;
-		TRACE(Trace::Fatal, (_T("preeja2 in")));
+		TRACE(Trace::Error, (_T("preeja2 in")));
         if (_firmwareVersion->Imagename(value) == Core::ERROR_NONE) {
             response.Imagename = value;
             result = Core::ERROR_NONE;
-			#if 0
+			#if 1
              if (_firmwareVersion->Pdri(value) == Core::ERROR_NONE) {
 			    response.Pdri = value;
 			} else {

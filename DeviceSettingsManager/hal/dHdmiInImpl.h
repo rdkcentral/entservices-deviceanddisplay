@@ -27,8 +27,8 @@
 #include <cctype>
 #include <functional>
 #include <iostream>
+#include <cstring>
 #include "dHdmiIn.h"
-#include "deviceUtils.h"
 #include "dsHdmiIn.h"
 #include "dsError.h"
 #include "dsHdmiInTypes.h"
@@ -38,12 +38,7 @@
 #include "dsRpc.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsManager.h>
-
-#define TVSETTINGS_DALS_RFC_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TvSettings.DynamicAutoLatency"
-#define RDK_DSHAL_NAME "libds-hal.so"
-
-#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
-#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
+#include "DeviceSettingsManagerTypes.h"
 
 static int m_hdmiInInitialized = 0;
 static int m_hdmiInPlatInitialized = 0;
@@ -55,14 +50,14 @@ static bool m_hdmiPortVrrCaps[dsHDMI_IN_PORT_MAX];
 
 static tv_hdmi_edid_version_t m_edidversion[dsHDMI_IN_PORT_MAX];
 
-static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> g_HdmiInHotPlugCallback;
-static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus)> g_HdmiInSignalStatusCallback;
-static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution)> g_HdmiInVideoModeUpdateCallback;
-static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> g_HdmiInAllmStatusCallback;
-static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType)> g_HdmiInAviContentTypeCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, bool)> g_HdmiInHotPlugCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIInSignalStatus)> g_HdmiInSignalStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution)> g_HdmiInVideoModeUpdateCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, bool)> g_HdmiInAllmStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIInAviContentType)> g_HdmiInAviContentTypeCallback;
 static std::function<void(int32_t, int32_t)> g_HdmiInAVLatencyCallback;
-static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType)> g_HdmiInVRRStatusCallback;
-static std::function<void(WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort, bool)> g_HdmiInStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIInVRRType)> g_HdmiInVRRStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, bool)> g_HdmiInStatusCallback;
 
 class dHdmiInImpl : public hal::dHdmiIn::IPlatform {
 
@@ -92,12 +87,12 @@ public:
         getDynamicAutoLatencyConfig();
         if (PROFILE_TV == profileType)
         {
-            LOGINFO("InitialiseHAL: its TV Profile");
             if (!m_hdmiInPlatInitialized)
             {
-                /* Nexus init, if any here */
                 dsError_t eError = dsHdmiInInit();
-                LOGINFO("InitialiseHAL: dsHdmiInInit ret:%d", eError);
+                if (eError != dsERR_NONE) {
+                    LOGERR("dsHdmiInInit failed: %d", eError);
+                }
             }
             m_hdmiInPlatInitialized++;
         }
@@ -108,10 +103,8 @@ public:
         profile_t profileType = searchRdkProfile();
         getDynamicAutoLatencyConfig();
 
-        LOGINFO("DeInitialiseHAL");
         if (PROFILE_TV == profileType)
         {
-            LOGINFO("its TV Profile");
             if (m_hdmiInPlatInitialized)
             {
                 m_hdmiInPlatInitialized--;
@@ -753,7 +746,7 @@ public:
     {
         LOGINFO("DS_OnHDMIInHotPlugEvent event Received: port=%d, isConnected=%s", port, isConnected ? "true" : "false");
         if (g_HdmiInHotPlugCallback) {
-            g_HdmiInHotPlugCallback(static_cast<WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort>(port), isConnected);
+            g_HdmiInHotPlugCallback(static_cast<DeviceSettingsManagerHDMIIn::HDMIInPort>(port), isConnected);
         }
     }
 
@@ -912,20 +905,63 @@ public:
         // Initialize the structure
         memset(&fList, 0, sizeof(fList));
 
-        if (getSupportedGameFeaturesList(&fList) == dsERR_NONE) {
-            LOGINFO("GetSupportedGameFeaturesList: Successfully got game features: %s", fList.gameFeatureList);
+        dsError_t dsResult = getSupportedGameFeaturesList(&fList);
+        LOGINFO("GetSupportedGameFeaturesList: dsGetSupportedGameFeaturesList returned: %d", dsResult);
+
+        if (dsResult == dsERR_NONE) {
+            LOGINFO("GetSupportedGameFeaturesList: Raw HAL data - gameFeatureList='%s', count=%d", 
+                    fList.gameFeatureList, fList.gameFeatureCount);
 
             try {
-                // Create iterator with game features data - use direct instantiation to avoid WPEFramework Service template issues
-                gameFeatureList = nullptr;
-                retCode = WPEFramework::Core::ERROR_NONE;
+                // Parse the comma-separated game features string
+                std::vector<DeviceSettingsManagerHDMIIn::HDMIInGameFeatureList> features;
+
+                if (strlen(fList.gameFeatureList) > 0) {
+                    std::string featureStr(fList.gameFeatureList);
+                    std::stringstream ss(featureStr);
+                    std::string feature;
+
+                    // Split by comma and create feature entries
+                    while (std::getline(ss, feature, ',')) {
+                        // Remove quotes and whitespace
+                        feature.erase(std::remove(feature.begin(), feature.end(), '"'), feature.end());
+                        feature.erase(std::remove(feature.begin(), feature.end(), ' '), feature.end());
+
+                        if (!feature.empty()) {
+                            DeviceSettingsManagerHDMIIn::HDMIInGameFeatureList gameFeature;
+                            gameFeature.gameFeature = feature;
+                            features.push_back(gameFeature);
+                            LOGINFO("GetSupportedGameFeaturesList: Added feature: '%s'", feature.c_str());
+                        }
+                    }
+                }
+
+                LOGINFO("GetSupportedGameFeaturesList: Parsed %zu features from HAL data", features.size());
+
+                // Create iterator using the GameFeatureListIteratorImpl type already defined in dHdmiIn.h
+                // This uses WPEFramework's standard iterator pattern with explicit interface template parameter
+                gameFeatureList = GameFeatureListIteratorImpl::Create<IHDMIInGameFeatureListIterator>(features);
+
+                if (gameFeatureList != nullptr) {
+                    LOGINFO("GetSupportedGameFeaturesList: Successfully created iterator with %zu features", features.size());
+                    retCode = WPEFramework::Core::ERROR_NONE;
+
+                    // Log all parsed features for debugging
+                    LOGINFO("GetSupportedGameFeaturesList: Feature summary:");
+                    for (size_t i = 0; i < features.size(); i++) {
+                        LOGINFO("  Feature[%zu]: '%s'", i, features[i].gameFeature.c_str());
+                    }
+                } else {
+                    LOGERR("GetSupportedGameFeaturesList: Failed to create iterator - GameFeatureListIteratorImpl::Create returned nullptr");
+                    retCode = WPEFramework::Core::ERROR_GENERAL;
+                }
             } catch (const std::exception& e) {
-                LOGERR("GetSupportedGameFeaturesList: Failed to create iterator: %s", e.what());
+                LOGERR("GetSupportedGameFeaturesList: Exception while parsing features: %s", e.what());
                 gameFeatureList = nullptr;
                 retCode = WPEFramework::Core::ERROR_GENERAL;
             }
         } else {
-            LOGERR("GetSupportedGameFeaturesList: Failed to get supported game features from HAL");
+            LOGERR("GetSupportedGameFeaturesList: dsGetSupportedGameFeaturesList failed with error: %d", dsResult);
             gameFeatureList = nullptr;
         }
 
@@ -963,9 +999,11 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsVideoZoom_t zoom = static_cast<dsVideoZoom_t>(zoomMode);
-        if (dsHdmiInSelectZoomMode(zoom) == dsERR_NONE) {
+        if ((retCode = dsHdmiInSelectZoomMode(zoom)) == dsERR_NONE) {
             LOGINFO("Successfully set the zoom mode: %d", zoom);
             retCode = WPEFramework::Core::ERROR_NONE;
+        } else {
+            LOGINFO("Failed to select zoom %d and return errorcode %d", zoom, retCode);
         }
         return retCode;
     }
@@ -996,6 +1034,7 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         int length = static_cast<int>(edidBytesLength);
+        LOGINFO("GetEdidBytes");
         if (getEDIDBytesInfo(hdmiPort, edidBytes, &length) == dsERR_NONE) {
             LOGINFO("GetEdidBytes: port=%d, edidBytesLength=%d, actualLength=%d", hdmiPort, edidBytesLength, length);
             retCode = WPEFramework::Core::ERROR_NONE;
@@ -1068,11 +1107,21 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsVideoPortResolution_t videoRes;
-        if (dsHdmiInGetCurrentVideoMode(&videoRes) == dsERR_NONE) {
-            LOGINFO("GetHDMIVideoMode: Raw HAL data - name='%s', pixelRes=%d, aspectRatio=%d, stereoScopicMode=%d, frameRate=%d, interlaced=%d",
-                    videoRes.name, videoRes.pixelResolution, videoRes.aspectRatio, videoRes.stereoScopicMode, videoRes.frameRate, videoRes.interlaced);
 
-            videoPortResolution.name = std::string(videoRes.name);
+        memset(&videoRes, 0, sizeof(videoRes));
+
+        if (dsHdmiInGetCurrentVideoMode(&videoRes) == dsERR_NONE) {
+            // Validate that we have reasonable data before logging
+                LOGINFO("GetHDMIVideoMode: Raw HAL data - name=<invalid>, pixelRes=%u, aspectRatio=%u, stereoScopicMode=%u, frameRate=%u, interlaced=%d",
+                        videoRes.pixelResolution, videoRes.aspectRatio, videoRes.stereoScopicMode, videoRes.frameRate, videoRes.interlaced);
+
+            if (videoRes.name[0] != '\0' && strlen(videoRes.name) < sizeof(videoRes.name)) {
+                videoPortResolution.name = std::string(videoRes.name);
+            } else {
+                videoPortResolution.name = "UNKNOWN";
+                LOGWARN("GetHDMIVideoMode: Invalid video mode name, using 'UNKNOWN'");
+            }
+
             videoPortResolution.pixelResolution = static_cast<HDMIInTVResolution>(videoRes.pixelResolution);
             videoPortResolution.aspectRatio = static_cast<HDMIVideoAspectRatio>(videoRes.aspectRatio);
             videoPortResolution.stereoScopicMode = static_cast<HDMIInVideoStereoScopicMode>(videoRes.stereoScopicMode);
@@ -1080,15 +1129,24 @@ public:
             videoPortResolution.interlaced = videoRes.interlaced;
 
             // Debug print all the assigned data
-            LOGINFO("GetHDMIVideoMode: Assigned data - name='%s', pixelResolution=%d, aspectRatio=%d, stereoScopicMode=%d, frameRate=%d, interlaced=%s", 
+            LOGINFO("GetHDMIVideoMode: Assigned data - name='%s', pixelResolution=%u, aspectRatio=%u, stereoScopicMode=%u, frameRate=%u, interlaced=%d", 
                     videoPortResolution.name.c_str(), 
-                    static_cast<int>(videoPortResolution.pixelResolution),
-                    static_cast<int>(videoPortResolution.aspectRatio),
-                    static_cast<int>(videoPortResolution.stereoScopicMode),
-                    static_cast<int>(videoPortResolution.frameRate),
-                    videoPortResolution.interlaced ? "true" : "false");
+                    videoPortResolution.pixelResolution,
+                    videoPortResolution.aspectRatio,
+                    videoPortResolution.stereoScopicMode,
+                    videoPortResolution.frameRate,
+                    videoPortResolution.interlaced);
 
             retCode = WPEFramework::Core::ERROR_NONE;
+        } else {
+            LOGERR("GetHDMIVideoMode: dsHdmiInGetCurrentVideoMode failed");
+            // Initialize output with safe defaults
+            videoPortResolution.name = "ERROR";
+            videoPortResolution.pixelResolution = static_cast<HDMIInTVResolution>(0);
+            videoPortResolution.aspectRatio = static_cast<HDMIVideoAspectRatio>(0);
+            videoPortResolution.stereoScopicMode = static_cast<HDMIInVideoStereoScopicMode>(0);
+            videoPortResolution.frameRate = static_cast<HDMIInVideoFrameRate>(0);
+            videoPortResolution.interlaced = false;
         }
         return retCode;
     }

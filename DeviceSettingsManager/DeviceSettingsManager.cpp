@@ -20,20 +20,16 @@
 #include "DeviceSettingsManager.h"
 #include <interfaces/IConfiguration.h>
 
-#define API_VERSION_NUMBER_MAJOR 1
-#define API_VERSION_NUMBER_MINOR 0
-#define API_VERSION_NUMBER_PATCH 0
-
 namespace WPEFramework {
 
 namespace Plugin
 {
-    SERVICE_REGISTRATION(DeviceSettingsManager, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
+    SERVICE_REGISTRATION(DeviceSettingsManager, API_VERSION_MAJOR, API_VERSION_MINOR, API_VERSION_PATCH);
 
     namespace {
         static Metadata<DeviceSettingsManager> metadata(
             // Version
-            API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
+            API_VERSION_MAJOR, API_VERSION_MINOR, API_VERSION_PATCH,
             // Preconditions
             {},
             // Terminations
@@ -46,7 +42,9 @@ namespace Plugin
     DeviceSettingsManager::DeviceSettingsManager()
         : mConnectionId(0)
         , mService(nullptr)
+#ifndef USE_LEGACY_INTERFACE
         , _mDeviceSettingsManager(nullptr)
+#endif
         , mNotificationSink(this)
 
     {
@@ -54,55 +52,53 @@ namespace Plugin
 
     DeviceSettingsManager::~DeviceSettingsManager()
     {
-        ENTRY_LOG;
-        EXIT_LOG;
     }
     const string DeviceSettingsManager::Initialize(PluginHost::IShell * service)
     {
+        string message = "";
         ENTRY_LOG;
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
+#ifdef USE_LEGACY_INTERFACE
+        ASSERT(_mDeviceSettingsManagerFPD == nullptr);
+#else
         ASSERT(_mDeviceSettingsManager == nullptr);
-        //ASSERT(_mDeviceSettingsManagerHDMIIn == nullptr);
+#endif
         mService = service;
         mService->AddRef();
 
-        LOGINFO("Trace - 1");
-        // Register the Process::Notification stuff. The Remote process might die before we get a
-        // change to "register" the sink for these events !!! So do it ahead of instantiation.
-        //mService->Register(&mNotificationSink);
         mService->Register(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
         mService->Register(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
 
-        LOGINFO("Trace - 2");
+#ifdef USE_LEGACY_INTERFACE
+        _mDeviceSettingsManagerFPD = service->Root<Exchange::IDeviceSettingsManagerFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
+
+        if (_mDeviceSettingsManagerFPD == nullptr) {
+            SYSLOG(Logging::Startup, (_T("DeviceSettingsManager::Initialize: Failed to initialise DeviceSettingsManager plugin")));
+            message = _T("DeviceSettingsManager plugin could not be initialised");
+            LOGERR("Failed to get IDeviceSettingsManager interface");
+        } else {
+            LOGINFO("DeviceSettingsManagerImp initialized successfully");
+        }
+#else
         _mDeviceSettingsManager = service->Root<Exchange::IDeviceSettingsManager>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
 
         if (_mDeviceSettingsManager == nullptr) {
+            SYSLOG(Logging::Startup, (_T("DeviceSettingsManager::Initialize: Failed to initialise DeviceSettingsManager plugin")));
+            message = _T("DeviceSettingsManager plugin could not be initialised");
             LOGERR("Failed to get IDeviceSettingsManager interface");
         } else {
-            LOGINFO("Registering IDeviceSettingsManager Successful");
+            LOGINFO("DeviceSettingsManagerImp initialized successfully");
         }
-        /*if (_mDeviceSettingsManager != nullptr) {
-            LOGINFO("Registering JDeviceSettingsManagerFPD");
-            _mDeviceSettingsManager->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
-            //Exchange::JDeviceSettingsManagerFPD::Register(*this, _mDeviceSettingsManagerFPD);
-        } else {
-            LOGERR("Failed to get IDeviceSettingsManager::IFPD interface");
-        }*/
-
-        LOGINFO("Trace - 3");
-        /*_mDeviceSettingsManagerHDMIIn = service->Root<Exchange::IDeviceSettingsManager::IHDMIIn>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
-
-        if (_mDeviceSettingsManagerHDMIIn != nullptr) {
-            LOGINFO("Registering IDeviceSettingsManager::IHDMIIn");
-            _mDeviceSettingsManagerHDMIIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
-        }*/
-        LOGINFO("Trace - 4");
+#endif
+        if (0 != message.length()) {
+            Deinitialize(service);
+        }
         EXIT_LOG;
 
         // On success return empty, to indicate there is no error text.
-        return (string());
+        return (message);
     }
 
     void DeviceSettingsManager::Deinitialize(PluginHost::IShell* service VARIABLE_IS_NOT_USED)
@@ -119,7 +115,11 @@ namespace Plugin
             /*if (_mDeviceSettingsManagerHDMIIn != nullptr) {
                 _mDeviceSettingsManagerHDMIIn->Unregister(&mNotificationSink);
             }*/
+#ifdef USE_LEGACY_INTERFACE
+            _mDeviceSettingsManagerFPD = nullptr;
+#else
             _mDeviceSettingsManager = nullptr;
+#endif
             mService->Release();
             mService = nullptr;
             mConnectionId = 0;
@@ -136,12 +136,11 @@ namespace Plugin
         return (string());
     }
 
-
     void DeviceSettingsManager::Deactivated(RPC::IRemoteConnection* connection)
     {
-        ENTRY_LOG
-        // This can potentially be called on a socket thread, so the deactivation (wich in turn kills this object) must be done
-        // on a seperate thread. Also make sure this call-stack can be unwound before we are totally destructed.
+        ENTRY_LOG;
+        // This can potentially be called on a socket thread, so the deactivation (which in turn kills this object) must be done
+        // on a separate thread. Also make sure this call-stack can be unwound before we are totally destructed.
         if (mConnectionId == connection->Id()) {
             ASSERT(mService != nullptr);
             Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(mService, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));

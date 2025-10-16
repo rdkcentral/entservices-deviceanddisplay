@@ -27,11 +27,10 @@
 #include "UtilsLogging.h"   // for LOGINFO, LOGERR
 //#include "secure_wrapper.h" // for v_secure_system
 #include "HdmiIn.h"
+#include "DeviceSettingsManagerTypes.h"
 
 using IPlatform = hal::dHdmiIn::IPlatform;
 using DefaultImpl = dHdmiInImpl;
-
-using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
 
 // Out-of-line destructor for hal::dHdmiIn::IPlatform to ensure typeinfo symbol is generated
 #include "hal/dHdmiIn.h"
@@ -45,19 +44,13 @@ HdmiIn::HdmiIn(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
-    LOGINFO("HdmiIn Constructor");
-    LOGINFO("HDMI version: %s\n", HdmiConnectionToStrMapping[0].name);
-    LOGINFO("HDMI version: %s\n", HdmiStatusToStrMapping[0].name);
-    LOGINFO("HDMI version: %s\n", HdmiVerToStrMapping[0].name);
+    // HDMI In service initialized
     Platform_init();
-    EXIT_LOG;
 }
 
 void HdmiIn::Platform_init()
 {
-    ENTRY_LOG;
-    LOGINFO("HdmiIn::Platform_init");
+    // Initialize HDMI In platform
 
     CallbackBundle bundle;
     bundle.OnHDMIInHotPlugEvent = [this](HDMIInPort port, bool isConnected) {
@@ -88,54 +81,45 @@ void HdmiIn::Platform_init()
         this->platform().setAllCallbacks(bundle);
         this->platform().getPersistenceValue();
     }
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected)
 {
-    LOGINFO("OnHDMIInHotPlugEvent event Received");
     _parent.OnHDMIInEventHotPlugNotification(port, isConnected);
 }
 
 void HdmiIn::OnHDMIInSignalStatusEvent(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
 {
-    LOGINFO("OnHDMIInSignalStatusEvent event Received");
     _parent.OnHDMIInEventSignalStatusNotification(port, signalStatus);
 }
 
-void HdmiIn::OnHDMIInStatusEvent(const HDMIInPort port, const bool isPresented)
+void HdmiIn::OnHDMIInStatusEvent(const HDMIInPort activePort, const bool isPresented)
 {
-    LOGINFO("OnHDMIInStatusEvent event Received");
-    _parent.OnHDMIInEventStatusNotification(port, isPresented);
+    _parent.OnHDMIInEventStatusNotification(activePort, isPresented);
 }
 
 void HdmiIn::OnHDMIInVideoModeUpdateEvent(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
 {
-    LOGINFO("OnHDMIInVideoModeUpdateEvent event Received");
     _parent.OnHDMIInVideoModeUpdateNotification(port, videoPortResolution);
 }
 
 void HdmiIn::OnHDMIInAllmStatusEvent(const HDMIInPort port, const bool allmStatus)
 {
-    LOGINFO("OnHDMIInAllmStatusEvent event Received");
     _parent.OnHDMIInAllmStatusNotification(port, allmStatus);
 }
 
 void HdmiIn::OnHDMIInAVIContentTypeEvent(const HDMIInPort port, const HDMIInAviContentType aviContentType)
 {
-    LOGINFO("OnHDMIInAVIContentTypeEvent event Received");
     _parent.OnHDMIInAVIContentTypeNotification(port, aviContentType);
 }
 
-void HdmiIn::OnHDMIInAVLatencyEvent(int32_t audioDelay, int32_t videoDelay)
+void HdmiIn::OnHDMIInAVLatencyEvent(const int32_t audioDelay, const int32_t videoDelay)
 {
-    LOGINFO("OnHDMIInAVLatencyEvent event Received");
     _parent.OnHDMIInAVLatencyNotification(audioDelay, videoDelay);
 }
 
 void HdmiIn::OnHDMIInVRRStatusEvent(const HDMIInPort port, const HDMIInVRRType vrrType)
 {
-    LOGINFO("OnHDMIInVRRStatusEvent event Received");
     _parent.OnHDMIInVRRStatusNotification(port, vrrType);
 }
 
@@ -246,7 +230,7 @@ uint32_t HdmiIn::GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLen
     ENTRY_LOG;
 
     LOGINFO("GetEdidBytes: port=%d, edidBytesLength=%u", port, edidBytesLength);
-    //this->platform().GetEdidBytes(port, edidBytesLength, edidBytes);
+    this->platform().GetEdidBytes(port, edidBytesLength, edidBytes);
     EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;

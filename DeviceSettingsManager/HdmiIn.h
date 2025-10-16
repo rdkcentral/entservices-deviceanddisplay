@@ -18,71 +18,25 @@
  */
 #pragma once
 
-#include <cstdint>     // for uint32_t
-//#include <memory>      // for unique_ptr, default_delete
-//#include <string>      // for basic_string, string
-#include <type_traits> // for is_base_of
-//#include <utility>     // for forward
+#include <cstdint>
+#include <type_traits>
 
-#include <core/Portability.h>         // for string, ErrorCodes
-#include <core/Proxy.h>               // for ProxyType
-#include <core/Trace.h>               // for ASSERT
+#include <core/Portability.h>
+#include <core/Proxy.h>
+#include <core/Trace.h>
 
 #include "UtilsLogging.h"
 #include <com/com.h>
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-//#include <interfaces/Ids.h>
 #include <interfaces/IDeviceSettingsManager.h>
+#include "DeviceSettingsManagerTypes.h"
 
-//#include "IHDMIInPortConnectionStatusIterator.h"
-//#include "IHDMIInGameFeatureListIterator.h"
-//#include "Settings.h"            // for Settings
-
-/*#include "dsMgr.h"
-#include "dsUtl.h"
-#include "dsError.h"
-#include "dsDisplay.h"
-#include "dsRpc.h"
-#include "dsHdmiIn.h"
-#include "dsError.h"*/
-
-//#include "list.hpp"
-//#include "host.hpp"
 #include "exception.hpp"
 #include "manager.hpp"
-#include "hostPersistence.hpp"
 
 #include "hal/dHdmiInImpl.h"
-#include "deviceUtils.h"
-
-// Ensure dHdmiInImpl is defined and accessible
-// If dHdmiInImpl is in the hal namespace, use hal::dHdmiInImpl
-
-#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
-#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
-
-/*namespace WPEFramework {
-namespace Core {
-    struct IDispatch;
-    struct IWorkerPool;
-}
-}*/
-    using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
-    using HDMIInSignalStatus       = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus;
-    using HDMIVideoPortResolution  = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution;
-    using HDMIInAviContentType     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType;
-    using HDMIInVRRType            = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType;
-    using HDMIInStatus             = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInStatus;
-    using HDMIVideoPlaneType       = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPlaneType;
-    using HDMIInVRRStatus          = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRStatus;
-    using HDMIInCapabilityVersion  = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInCapabilityVersion;
-    using HDMIInEdidVersion        = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInEdidVersion;
-    using HDMIInVideoZoom          = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoZoom;
-    using HDMIInVideoRectangle     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoRectangle;
-    using IHDMIInPortConnectionStatusIterator = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInPortConnectionStatusIterator;
-    using IHDMIInGameFeatureListIterator      = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInGameFeatureListIterator;
 
 class HdmiIn {
     using IPlatform = hal::dHdmiIn::IPlatform;

@@ -18,7 +18,6 @@
  */
 #pragma once
 
-#include "deviceUtils.h"
 #include "dsHdmiIn.h"
 #include "dsError.h"
 #include "dsHdmiInTypes.h"
@@ -29,19 +28,10 @@
 
 #include <core/Portability.h>
 #include <WPEFramework/interfaces/IDeviceSettingsManager.h>
+#include "DeviceSettingsManagerTypes.h"
 
-#include "deviceUtils.h"
 #include "UtilsLogging.h"
 #include <cstdint>
-
-#include <core/Portability.h>
-
-using FPDTimeFormat = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTimeFormat;
-using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDIndicator;
-using FPDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDState;
-using FPDTextDisplay = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTextDisplay;
-using FPDMode = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDMode;
-using FDPLEDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FDPLEDState;
 
 namespace hal {
 namespace dFPD {

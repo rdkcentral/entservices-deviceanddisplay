@@ -34,7 +34,6 @@
 #include <plugins/plugins.h>
 
 #include <interfaces/IDeviceSettingsManager.h>
-//#include "Settings.h"            // for Settings
 
 #include "dsMgr.h"
 #include "dsUtl.h"
@@ -43,26 +42,11 @@
 #include "dsRpc.h"
 #include "dsFPDTypes.h"
 
+#include "hal/dFPD.h"
 #include "hal/dFPDImpl.h"
-
-#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
-#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
-
-/*namespace WPEFramework {
-namespace Core {
-    struct IDispatch;
-    struct IWorkerPool;
-}
-}*/
+#include "DeviceSettingsManagerTypes.h"
 
 class FPD {
-    using FPDTimeFormat = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTimeFormat;
-    using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDIndicator;
-    using FPDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDState;
-    using FPDTextDisplay = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTextDisplay;
-    using FPDMode = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDMode;
-    using FDPLEDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FDPLEDState;
-
     using IPlatform = hal::dFPD::IPlatform;
     using DefaultImpl = dFPDImpl;
 

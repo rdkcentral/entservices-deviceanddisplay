@@ -44,7 +44,6 @@ add_library(${MODULE_NAME} SHARED
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
-
 target_link_libraries(${MODULE_NAME}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
@@ -73,6 +72,12 @@ find_package(dshal)
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/../helpers
+)
+
+# Add current directory to target include directories for proper header resolution
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/../helpers  
 )
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
@@ -116,28 +121,11 @@ else (DS_FOUND)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 endif(DS_FOUND)
 
-find_path(DEVICE_HAL_INCLUDE_DIR
-  NAMES dsFPD.h
-  PATH_SUFFIXES rdk/halif/ds-hal
-)
-
-find_library(DEVICE_RFC_LIBRARY
-  NAMES ds-hal
-)
-
-set(DEVICE_HAL_INCLUDE_DIRS ${DEVICE_HAL_INCLUDE_DIR})
-set(DEVICE_RFC_LIBRARIES ${DEVICE_RFC_LIBRARY})
-
-
-#find_library(DSHAL_LIBRARIES NAMES dshalsrv)
-#set(DS_LIBRARIES ${DS_LIBRARIES} ${DSHAL_LIBRARIES})
-
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_HAL_INCLUDE_DIRS})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_HAL_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DSHALSRV_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${OEMHAL_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_RFC_LIBRARIES})
 
 #if(DEEPSLEEP_HAL_FOUND)
 #    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEEPSLEEP_HAL_INCLUDE_DIRS})

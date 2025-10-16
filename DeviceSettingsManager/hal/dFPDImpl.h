@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <cstdio>
 #include "dFPD.h"
-#include "deviceUtils.h"
+#include "DeviceSettingsManagerTypes.h"
 #include "dsHdmiIn.h"
 #include "dsError.h"
 #include "dsHdmiInTypes.h"
@@ -36,16 +36,7 @@
 
 #include <WPEFramework/interfaces/IDeviceSettingsManager.h>
 
-using FPDTimeFormat = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTimeFormat;
-using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDIndicator;
-using FPDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDState;
-using FPDTextDisplay = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDTextDisplay;
-using FPDMode = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDMode;
-
 #define RDK_DSHAL_NAME "libds-hal.so"
-
-#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
-#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
 
 static int fpd_isInitialized = 0;
 static int fpd_isPlatInitialized = 0;

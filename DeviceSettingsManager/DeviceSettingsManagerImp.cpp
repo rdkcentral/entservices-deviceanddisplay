@@ -136,7 +136,7 @@ namespace Plugin {
         return status;
     }
 
-    Core::hresult DeviceSettingsManagerImp::Register(Exchange::IDeviceSettingsManager::IFPD::INotification* notification)
+    Core::hresult DeviceSettingsManagerImp::Register(DeviceSettingsManagerFPD::INotification* notification)
     {
         ENTRY_LOG;
         Core::hresult errorCode = Register(_FPDNotifications, notification);
@@ -148,7 +148,7 @@ namespace Plugin {
         EXIT_LOG;
         return errorCode;
     }
-    Core::hresult DeviceSettingsManagerImp::Unregister(Exchange::IDeviceSettingsManager::IFPD::INotification* notification)
+    Core::hresult DeviceSettingsManagerImp::Unregister(DeviceSettingsManagerFPD::INotification* notification)
     {
         ENTRY_LOG;
         Core::hresult errorCode = Unregister(_FPDNotifications, notification);
@@ -161,7 +161,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult DeviceSettingsManagerImp::Register(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification)
+    Core::hresult DeviceSettingsManagerImp::Register(DeviceSettingsManagerHDMIIn::INotification* notification)
     {
         ENTRY_LOG;
         Core::hresult errorCode = Register(_HDMIInNotifications, notification);
@@ -173,7 +173,7 @@ namespace Plugin {
         EXIT_LOG;
         return errorCode;
     }
-    Core::hresult DeviceSettingsManagerImp::Unregister(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification)
+    Core::hresult DeviceSettingsManagerImp::Unregister(DeviceSettingsManagerHDMIIn::INotification* notification)
     {
         ENTRY_LOG;
         Core::hresult errorCode = Unregister(_HDMIInNotifications, notification);
@@ -189,56 +189,56 @@ namespace Plugin {
     void DeviceSettingsManagerImp::OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected)
     {
         LOGINFO("OnHDMIInEventHotPlug event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInEventHotPlug, port, isConnected);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInEventHotPlug, port, isConnected);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
     {
         LOGINFO("OnHDMIInEventSignalStatus event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInEventSignalStatus, port, signalStatus);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInEventSignalStatus, port, signalStatus);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay)
     {
         LOGINFO("OnHDMIInAVLatency event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInAVLatency, audioDelay, videoDelay);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInAVLatency, audioDelay, videoDelay);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented)
     {
         LOGINFO("OnHDMIInEventStatus event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInEventStatus, activePort, isPresented);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInEventStatus, activePort, isPresented);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInVideoModeUpdateNotification(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
     {
         LOGINFO("OnHDMIInVideoModeUpdate event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInVideoModeUpdate, port, videoPortResolution);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInVideoModeUpdate, port, videoPortResolution);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInAllmStatusNotification(const HDMIInPort port, const bool allmStatus)
     {
         LOGINFO("OnHDMIInAllmStatus event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInAllmStatus, port, allmStatus);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInAllmStatus, port, allmStatus);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType)
     {
         LOGINFO("OnHDMIInAVIContentType event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInAVIContentType, port, aviContentType);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInAVIContentType, port, aviContentType);
     }
 
     void DeviceSettingsManagerImp::OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType)
     {
         LOGINFO("OnHDMIInVRRStatus event Received");
-        dispatchHDMIInEvent(&Exchange::IDeviceSettingsManager::IHDMIIn::INotification::OnHDMIInVRRStatus, port, vrrType);
+        dispatchHDMIInEvent(&DeviceSettingsManagerHDMIIn::INotification::OnHDMIInVRRStatus, port, vrrType);
     }
 
     // FPD notification implementation
     void DeviceSettingsManagerImp::OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat)
     {
         LOGINFO("OnFPDTimeFormatChanged event Received: timeFormat=%d", timeFormat);
-        dispatchFPDEvent(&Exchange::IDeviceSettingsManager::IFPD::INotification::OnFPDTimeFormatChanged, timeFormat);
+        dispatchFPDEvent(&DeviceSettingsManagerFPD::INotification::OnFPDTimeFormatChanged, timeFormat);
     }
 
     //Depricated

@@ -36,15 +36,16 @@
 #include "HdmiIn.h"
 
 #include "list.hpp"
-
-#define ENTRY_LOG LOGINFO("%d: Enter %s \n", __LINE__, __func__);
-#define EXIT_LOG LOGINFO("%d: EXIT %s \n", __LINE__, __func__);
+#include "DeviceSettingsManagerTypes.h"
 
 namespace WPEFramework {
 namespace Plugin {
-    class DeviceSettingsManagerImp : public Exchange::IDeviceSettingsManager
-                                   , public Exchange::IDeviceSettingsManager::IFPD
-                                   , public Exchange::IDeviceSettingsManager::IHDMIIn
+    class DeviceSettingsManagerImp :
+                                     public DeviceSettingsManagerFPD
+#ifndef USE_LEGACY_INTERFACE
+                                     , public Exchange::IDeviceSettingsManager
+#endif
+                                   , public DeviceSettingsManagerHDMIIn
                                    , public HdmiIn::INotification
                                    , public FPD::INotification
     {
@@ -64,9 +65,11 @@ namespace Plugin {
         DeviceSettingsManagerImp& operator=(const DeviceSettingsManagerImp&) = delete;
 
         BEGIN_INTERFACE_MAP(DeviceSettingsManagerImp)
+#ifndef USE_LEGACY_INTERFACE
         INTERFACE_ENTRY(Exchange::IDeviceSettingsManager)
-        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IFPD)
-        INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn)
+#endif
+        INTERFACE_ENTRY(DeviceSettingsManagerFPD)
+        INTERFACE_ENTRY(DeviceSettingsManagerHDMIIn)
         END_INTERFACE_MAP
 
     public:
@@ -104,8 +107,8 @@ namespace Plugin {
         void InitializeIARM();
 
         // FPD methods
-        virtual Core::hresult Register(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IDeviceSettingsManager::IFPD::INotification* notification) override;
+        virtual Core::hresult Register(DeviceSettingsManagerFPD::INotification* notification) override;
+        virtual Core::hresult Unregister(DeviceSettingsManagerFPD::INotification* notification) override;
         Core::hresult SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) override;
         Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) override;
         Core::hresult SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) override;
@@ -123,8 +126,8 @@ namespace Plugin {
         Core::hresult SetFPDMode(const FPDMode fpdMode) override;
 
         // HDMIIn methods
-        virtual Core::hresult Register(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
-        virtual Core::hresult Unregister(Exchange::IDeviceSettingsManager::IHDMIIn::INotification* notification) override;
+        virtual Core::hresult Register(DeviceSettingsManagerHDMIIn::INotification* notification) override;
+        virtual Core::hresult Unregister(DeviceSettingsManagerHDMIIn::INotification* notification) override;
         Core::hresult GetHDMIInNumbefOfInputs(int32_t &count) override;
         Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) override;
         Core::hresult SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) override;
@@ -148,8 +151,8 @@ namespace Plugin {
         static DeviceSettingsManagerImp* _instance;
 
     private:
-        std::list<Exchange::IDeviceSettingsManager::IFPD::INotification*> _FPDNotifications;
-        std::list<Exchange::IDeviceSettingsManager::IHDMIIn::INotification*> _HDMIInNotifications;
+        std::list<DeviceSettingsManagerFPD::INotification*> _FPDNotifications;
+        std::list<DeviceSettingsManagerHDMIIn::INotification*> _HDMIInNotifications;
 
         // lock to guard all apis of DeviceSettingsManager
         mutable Core::CriticalSection _apiLock;

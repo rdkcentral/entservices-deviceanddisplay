@@ -60,7 +60,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _deviceSettingsManager(nullptr), _pwrMgrNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _deviceSettingsManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -105,6 +105,18 @@ namespace Plugin {
         _deviceSettingsManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManager>("org.rdk.DeviceSettingsManager");
         ASSERT(_deviceSettingsManager != nullptr);
 
+        // Register for HDMI In notifications
+        if (_deviceSettingsManager) {
+            Exchange::IDeviceSettingsManager::IHDMIIn* hdmiIn = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IHDMIIn>();
+            if (hdmiIn) {
+                hdmiIn->Register(_hdmiInNotification.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
+                LOGINFO("Successfully registered for HDMI In notifications");
+                hdmiIn->Release();
+            } else {
+                LOGERR("Failed to get HDMI In interface for notification registration");
+            }
+        }
+
         TestFPDAPIs();
         // Test HDMI In methods with sample values
         TestSpecificHDMIInAPIs();
@@ -144,7 +156,15 @@ namespace Plugin {
 
         _powerManager->Release();
         // Removed: _fpdManager->Release(); // No longer needed
+        
+        // Unregister HDMI In notifications
         if (_deviceSettingsManager) {
+            Exchange::IDeviceSettingsManager::IHDMIIn* hdmiIn = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IHDMIIn>();
+            if (hdmiIn) {
+                hdmiIn->Unregister(_hdmiInNotification.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
+                LOGINFO("Successfully unregistered HDMI In notifications");
+                hdmiIn->Release();
+            }
             _deviceSettingsManager->Release();
         }
         Exchange::JUserPlugin::Unregister(*this);
@@ -407,14 +427,14 @@ namespace Plugin {
         // Test color variations
         LOGINFO("---------- Testing FPD Color Variations ----------");
         uint32_t colorValues[] = {
-            0xFF000000, // Black
-            0xFFFFFFFF, // White
-            0xFFFF0000, // Red
-            0xFF00FF00, // Green
-            0xFF0000FF, // Blue
-            0xFFFFFF00, // Yellow
-            0xFFFF00FF, // Magenta
-            0xFF00FFFF  // Cyan
+            0x000000, // Black
+            0xFFFFFF, // White
+            0xFF0000, // Red
+            0x00FF00, // Green
+            0x0000FF, // Blue
+            0xFFFF00, // Yellow
+            0xFF00FF, // Magenta
+            0x00FFFF  // Cyan
         };
         
         const char* colorNames[] = {
@@ -537,7 +557,31 @@ namespace Plugin {
             Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
             result = hdmiIn->GetSupportedGameFeaturesList(gameFeatureList);
             LOGINFO("GetSupportedGameFeaturesList: result=%u", result);
-            if (gameFeatureList) gameFeatureList->Release();
+
+            // Print all game features from the iterator
+            if (gameFeatureList && result == Core::ERROR_NONE) {
+                LOGINFO("Printing game features from iterator:");
+                Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInGameFeatureList currentFeature;
+                uint32_t featureIndex = 0;
+
+                // Iterate through all features (iterator starts at beginning by default)
+                bool hasMore = true;
+                while (hasMore) {
+                    hasMore = gameFeatureList->Next(currentFeature);
+                    if (hasMore) {
+                        LOGINFO("  GameFeature[%u]: '%s'", featureIndex, currentFeature.gameFeature.c_str());
+                        featureIndex++;
+                    }
+                }
+
+                LOGINFO("Total game features found: %u", featureIndex);
+                gameFeatureList->Release();
+            } else if (gameFeatureList) {
+                LOGERR("GetSupportedGameFeaturesList failed with result=%u", result);
+                gameFeatureList->Release();
+            } else {
+                LOGERR("GetSupportedGameFeaturesList returned null iterator");
+            }
 
             // 6. Test GetHDMIInAVLatency
             uint32_t videoLatency = 0, audioLatency = 0;
@@ -623,5 +667,139 @@ namespace Plugin {
         
         LOGINFO("========== HDMI In Methods Testing Completed ==========");
     }
+
+    // HDMI In Event Handler Implementations
+    void UserPlugin::OnHDMIInEventHotPlug(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool isConnected)
+    {
+        LOGINFO("========== HDMI In Event: Hot Plug ==========");
+        LOGINFO("OnHDMIInEventHotPlug: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
+        
+        // Add your custom logic here
+        if (isConnected) {
+            LOGINFO("HDMI device connected on port %d", static_cast<int>(port));
+        } else {
+            LOGINFO("HDMI device disconnected from port %d", static_cast<int>(port));
+        }
+    }
+
+    void UserPlugin::OnHDMIInEventSignalStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus signalStatus)
+    {
+        LOGINFO("========== HDMI In Event: Signal Status ==========");
+        LOGINFO("OnHDMIInEventSignalStatus: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
+        
+        // Add your custom logic here - using generic logging since exact enum values may vary
+        LOGINFO("Signal status changed to %d on port %d", static_cast<int>(signalStatus), static_cast<int>(port));
+        
+        // Add specific handling based on your interface definition
+        if (static_cast<int>(signalStatus) == 0) {
+            LOGINFO("No signal detected on port %d", static_cast<int>(port));
+        } else if (static_cast<int>(signalStatus) == 1) {
+            LOGINFO("Stable signal detected on port %d", static_cast<int>(port));
+        } else if (static_cast<int>(signalStatus) == 2) {
+            LOGINFO("Unstable signal detected on port %d", static_cast<int>(port));
+        } else {
+            LOGINFO("Unknown signal status %d on port %d", static_cast<int>(signalStatus), static_cast<int>(port));
+        }
+    }
+
+    void UserPlugin::OnHDMIInEventStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort activePort, const bool isPresented)
+    {
+        LOGINFO("========== HDMI In Event: Status ==========");
+        LOGINFO("OnHDMIInEventStatus: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
+        
+        // Add your custom logic here
+        if (isPresented) {
+            LOGINFO("HDMI input is being presented on port %d", static_cast<int>(activePort));
+        } else {
+            LOGINFO("HDMI input is not being presented on port %d", static_cast<int>(activePort));
+        }
+    }
+
+    void UserPlugin::OnHDMIInVideoModeUpdate(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution videoPortResolution)
+    {
+        LOGINFO("========== HDMI In Event: Video Mode Update ==========");
+        LOGINFO("OnHDMIInVideoModeUpdate: port=%d", static_cast<int>(port));
+        LOGINFO("Video resolution: name='%s', pixelResolution=%d, aspectRatio=%d, stereoScopicMode=%d, frameRate=%d, interlaced=%s", 
+                videoPortResolution.name.c_str(),
+                static_cast<int>(videoPortResolution.pixelResolution),
+                static_cast<int>(videoPortResolution.aspectRatio),
+                static_cast<int>(videoPortResolution.stereoScopicMode),
+                static_cast<int>(videoPortResolution.frameRate),
+                videoPortResolution.interlaced ? "true" : "false");
+        
+        // Add your custom logic here
+        LOGINFO("Video mode changed on port %d to %s", static_cast<int>(port), videoPortResolution.name.c_str());
+    }
+
+    void UserPlugin::OnHDMIInAllmStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool allmStatus)
+    {
+        LOGINFO("========== HDMI In Event: ALLM Status ==========");
+        LOGINFO("OnHDMIInAllmStatus: port=%d, allmStatus=%s", static_cast<int>(port), allmStatus ? "enabled" : "disabled");
+        
+        // Add your custom logic here
+        if (allmStatus) {
+            LOGINFO("Auto Low Latency Mode (ALLM) enabled on port %d", static_cast<int>(port));
+        } else {
+            LOGINFO("Auto Low Latency Mode (ALLM) disabled on port %d", static_cast<int>(port));
+        }
+    }
+
+    void UserPlugin::OnHDMIInAVIContentType(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType aviContentType)
+    {
+        LOGINFO("========== HDMI In Event: AVI Content Type ==========");
+        LOGINFO("OnHDMIInAVIContentType: port=%d, aviContentType=%d", static_cast<int>(port), static_cast<int>(aviContentType));
+        
+        // Add your custom logic here - using generic logging since exact enum values may vary
+        LOGINFO("AVI Content Type changed to %d on port %d", static_cast<int>(aviContentType), static_cast<int>(port));
+        
+        // Add specific handling based on your interface definition
+        if (static_cast<int>(aviContentType) == 0) {
+            LOGINFO("AVI Content Type: Graphics on port %d", static_cast<int>(port));
+        } else if (static_cast<int>(aviContentType) == 1) {
+            LOGINFO("AVI Content Type: Photo on port %d", static_cast<int>(port));
+        } else if (static_cast<int>(aviContentType) == 2) {
+            LOGINFO("AVI Content Type: Cinema on port %d", static_cast<int>(port));
+        } else if (static_cast<int>(aviContentType) == 3) {
+            LOGINFO("AVI Content Type: Game on port %d", static_cast<int>(port));
+        } else {
+            LOGINFO("AVI Content Type: Unknown (%d) on port %d", static_cast<int>(aviContentType), static_cast<int>(port));
+        }
+    }
+
+    void UserPlugin::OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay)
+    {
+        LOGINFO("========== HDMI In Event: AV Latency ==========");
+        LOGINFO("OnHDMIInAVLatency: audioDelay=%d ms, videoDelay=%d ms", audioDelay, videoDelay);
+        
+        // Add your custom logic here
+        LOGINFO("Audio/Video latency updated - Audio: %d ms, Video: %d ms", audioDelay, videoDelay);
+        
+        if (audioDelay != videoDelay) {
+            LOGINFO("Audio/Video sync required - difference: %d ms", abs(audioDelay - videoDelay));
+        } else {
+            LOGINFO("Audio/Video are in sync");
+        }
+    }
+
+    void UserPlugin::OnHDMIInVRRStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType vrrType)
+    {
+        LOGINFO("========== HDMI In Event: VRR Status ==========");
+        LOGINFO("OnHDMIInVRRStatus: port=%d, vrrType=%d", static_cast<int>(port), static_cast<int>(vrrType));
+        
+        // Add your custom logic here - using generic logging since exact enum values may vary
+        LOGINFO("VRR Type changed to %d on port %d", static_cast<int>(vrrType), static_cast<int>(port));
+        
+        // Add specific handling based on your interface definition
+        if (static_cast<int>(vrrType) == 0) {
+            LOGINFO("VRR Type: None on port %d", static_cast<int>(port));
+        } else if (static_cast<int>(vrrType) == 1) {
+            LOGINFO("VRR Type: FreeSync on port %d", static_cast<int>(port));
+        } else if (static_cast<int>(vrrType) == 2) {
+            LOGINFO("VRR Type: VRR on port %d", static_cast<int>(port));
+        } else {
+            LOGINFO("VRR Type: Unknown (%d) on port %d", static_cast<int>(vrrType), static_cast<int>(port));
+        }
+    }
+
 } // namespace Plugin
 } // namespace WPEFramework

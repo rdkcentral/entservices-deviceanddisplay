@@ -76,6 +76,73 @@ namespace WPEFramework
                 UserPlugin& _parent;
             };
 
+            class HDMIInNotification : public virtual Exchange::IDeviceSettingsManager::IHDMIIn::INotification {
+            private:
+                HDMIInNotification(const HDMIInNotification&) = delete;
+                HDMIInNotification& operator=(const HDMIInNotification&) = delete;
+            
+            public:
+                explicit HDMIInNotification(UserPlugin& parent)
+                    : _parent(parent)
+                {
+                }
+
+            public:
+                void OnHDMIInEventHotPlug(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool isConnected) override
+                {
+                    _parent.OnHDMIInEventHotPlug(port, isConnected);
+                }
+
+                void OnHDMIInEventSignalStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus signalStatus) override
+                {
+                    _parent.OnHDMIInEventSignalStatus(port, signalStatus);
+                }
+
+                void OnHDMIInEventStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort activePort, const bool isPresented) override
+                {
+                    _parent.OnHDMIInEventStatus(activePort, isPresented);
+                }
+
+                void OnHDMIInVideoModeUpdate(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution videoPortResolution) override
+                {
+                    _parent.OnHDMIInVideoModeUpdate(port, videoPortResolution);
+                }
+
+                void OnHDMIInAllmStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool allmStatus) override
+                {
+                    _parent.OnHDMIInAllmStatus(port, allmStatus);
+                }
+
+                void OnHDMIInAVIContentType(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType aviContentType) override
+                {
+                    _parent.OnHDMIInAVIContentType(port, aviContentType);
+                }
+
+                void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) override
+                {
+                    _parent.OnHDMIInAVLatency(audioDelay, videoDelay);
+                }
+
+                void OnHDMIInVRRStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType vrrType) override
+                {
+                    _parent.OnHDMIInVRRStatus(port, vrrType);
+                }
+
+                template <typename T>
+                T* baseInterface()
+                {
+                    static_assert(std::is_base_of<T, HDMIInNotification>(), "base type mismatch");
+                    return static_cast<T*>(this);
+                }
+
+                BEGIN_INTERFACE_MAP(HDMIInNotification)
+                INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn::INotification)
+                END_INTERFACE_MAP
+            
+            private:
+                UserPlugin& _parent;
+            };
+
         public:
             static UserPlugin* _instance;
             // We do not allow this plugin to be copied !!
@@ -97,6 +164,16 @@ namespace WPEFramework
             void onPowerStateChanged(string currentPowerState, string powerState);
             void TestSpecificHDMIInAPIs();
             void TestFPDAPIs();
+            
+            // HDMI In Event Handlers
+            void OnHDMIInEventHotPlug(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool isConnected);
+            void OnHDMIInEventSignalStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus signalStatus);
+            void OnHDMIInEventStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort activePort, const bool isPresented);
+            void OnHDMIInVideoModeUpdate(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution videoPortResolution);
+            void OnHDMIInAllmStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool allmStatus);
+            void OnHDMIInAVIContentType(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType aviContentType);
+            void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay);
+            void OnHDMIInVRRStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType vrrType);
 
             //  IPlugin methods
             // -------------------------------------------------------------------------------------------------------
@@ -112,6 +189,7 @@ namespace WPEFramework
             Exchange::IDeviceSettingsManager* _deviceSettingsManager;
             //PowerManagerInterfaceRef _powerManager{};
             Core::Sink<PowerManagerNotification> _pwrMgrNotification;
+            Core::Sink<HDMIInNotification> _hdmiInNotification;
 
 	    void Deactivated(RPC::IRemoteConnection *connection);
         };

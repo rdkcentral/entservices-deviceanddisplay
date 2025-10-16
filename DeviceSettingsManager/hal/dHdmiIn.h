@@ -18,7 +18,6 @@
  */
 #pragma once
 
-#include "deviceUtils.h"
 #include "dsHdmiIn.h"
 #include "dsError.h"
 #include "dsHdmiInTypes.h"
@@ -29,32 +28,11 @@
 
 #include <core/Portability.h>
 #include <WPEFramework/interfaces/IDeviceSettingsManager.h>
+#include "DeviceSettingsManagerTypes.h"
 
-#include "deviceUtils.h"
 #include "UtilsLogging.h"
 #include <cstdint>
 
-#include <core/Portability.h>
-
-    using HDMIInPort               = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
-    using HDMIInSignalStatus       = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus;
-    using HDMIVideoPortResolution  = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution;
-    using HDMIInAviContentType     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType;
-    using HDMIInVRRType            = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType;
-    using HDMIInStatus             = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInStatus;
-    using HDMIVideoPlaneType       = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPlaneType;
-    using HDMIInVRRStatus          = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRStatus;
-    using HDMIInCapabilityVersion  = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInCapabilityVersion;
-    using HDMIInEdidVersion        = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInEdidVersion;
-    using HDMIInVideoZoom          = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoZoom;
-    using HDMIInVideoRectangle     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoRectangle;
-    using HDMIVideoAspectRatio     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoAspectRatio;
-    using HDMIInTVResolution       = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInTVResolution;
-    using HDMIInVideoStereoScopicMode = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoStereoScopicMode;
-    using HDMIInVideoFrameRate     = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoFrameRate;
-    using IHDMIInPortConnectionStatusIterator = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInPortConnectionStatusIterator;
-    using IHDMIInGameFeatureListIterator      = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInGameFeatureListIterator;
-    using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>;
 namespace hal {
 namespace dHdmiIn {
 

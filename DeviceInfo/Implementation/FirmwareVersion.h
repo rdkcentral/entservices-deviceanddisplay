@@ -42,7 +42,7 @@ namespace Plugin {
         Core::hresult Sdk(string& sdk) const override;
         Core::hresult Mediarite(string& mediarite) const override;
         Core::hresult Yocto(string& yocto) const override;
-        Core::hresult Pdri(string& pdri) const override;
+       // Core::hresult Pdri(string& pdri) const override;
     };
 }
 }

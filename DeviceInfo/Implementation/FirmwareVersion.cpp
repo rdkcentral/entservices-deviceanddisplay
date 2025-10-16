@@ -19,6 +19,7 @@
 
 #include "FirmwareVersion.h"
 #include "UtilsIarm.h"
+#include "mfrMgr.h"
 #include <fstream>
 #include <regex>
 

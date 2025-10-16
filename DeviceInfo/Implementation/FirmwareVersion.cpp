@@ -18,7 +18,7 @@
 **/
 
 #include "FirmwareVersion.h"
-
+#include "mfrMgr.h"
 #include <fstream>
 #include <regex>
 
@@ -42,41 +42,27 @@ namespace Plugin {
                     }
                 }
             }
-
             return result;
         }
- 
-      uint32_t GetStringRegex(const string& input, const std::regex& regex) {
+
+        uint32_t GetMFRData(mfrSerializedType_t type, string& response)
+        {
             uint32_t result = Core::ERROR_GENERAL;
-            std::smatch sm;
 
-            if ((std::regex_match(input, sm, regex)) && (sm.size() > 1)) {
+            IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+            param.bufLen = 0;
+            param.type = type;
+            auto status = IARM_Bus_Call(
+                IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+            if ((status == IARM_RESULT_SUCCESS) && param.bufLen) {
+                response.assign(param.buffer, param.bufLen);
                 result = Core::ERROR_NONE;
+            } else {
+                TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
             }
+
             return result;
         }
-
-       static bool RunCommand(const std::string& command, std::string& result) {
-           FILE* fp = popen(command.c_str(), "r");
-           if (!fp) {
-              return false;
-           }
-
-           std::ostringstream oss;
-           char buffer[64];
-           while (fgets(buffer, sizeof(buffer), fp) != nullptr) {
-              oss << buffer;
-           }
-
-           pclose(fp);
-           result = oss.str();
-
-           if (result.empty()) {
-             return false;
-           }
-
-           return true;
-       }
 
     }
 
@@ -87,13 +73,10 @@ namespace Plugin {
         return GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename);
     }
 
+    
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
-         if (RunCommand("/usr/bin/mfr_util --PDRIVersion", pdri)) {
-             return GetStringRegex(pdri, std::regex("failed"));
-         }
-        
-        return Core::ERROR_NONE;
+        return (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri));
     }
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const

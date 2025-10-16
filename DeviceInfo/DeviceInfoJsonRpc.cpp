@@ -123,10 +123,18 @@ namespace Plugin {
 
         // imagename is required
         string value;
+		TRACE(Trace::Fatal, (_T("preeja2 in")));
         if (_firmwareVersion->Imagename(value) == Core::ERROR_NONE) {
             response.Imagename = value;
             result = Core::ERROR_NONE;
-             TRACE(Trace::Fatal, (_T("preeja in")));
+			
+             if (_firmwareVersion->Pdri(value) == Core::ERROR_NONE) {
+			    response.Pdri = value;
+			} else {
+				//TRACE(Trace::Fatal, (_T("Unknown value %s"), value.c_str()));
+				result = Core::ERROR_GENERAL;
+			}
+			
             if (_firmwareVersion->Sdk(value) == Core::ERROR_NONE)
                 response.Sdk = value;
             if (_firmwareVersion->Mediarite(value) == Core::ERROR_NONE)
@@ -141,13 +149,8 @@ namespace Plugin {
                     result = Core::ERROR_GENERAL;
                 }
             }
-			TRACE(Trace::Fatal, (_T("calling pdri")));
-            if (_firmwareVersion->Pdri(value) == Core::ERROR_NONE) {
-			    response.Pdri = value;
-			} else {
-				TRACE(Trace::Fatal, (_T("Unknown value %s"), value.c_str()));
-				result = Core::ERROR_GENERAL;
-			}
+			
+           
         }
 
         return result;

@@ -69,6 +69,8 @@ namespace Plugin {
 
     Core::hresult FirmwareVersion::Imagename(string& imagename) const
     {
+       auto i= GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri);
+        
         return GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename);
     }
 

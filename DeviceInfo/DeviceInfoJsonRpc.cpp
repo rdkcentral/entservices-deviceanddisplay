@@ -61,7 +61,7 @@ namespace Plugin {
         Unregister(_T("socketinfo"));
         Unregister(_T("addresses"));
         Unregister(_T("systeminfo"));
-        Unregister(_T("firmwareversion"));
+        Unregister(_T("version"));
         Unregister(_T("serialnumber"));
         Unregister(_T("modelid"));
         Unregister(_T("make"));
@@ -141,6 +141,12 @@ namespace Plugin {
                     result = Core::ERROR_GENERAL;
                 }
             }
+            if (_firmwareVersion->Pdri(value) == Core::ERROR_NONE) {
+			    response.Pdri = value;
+			} else {
+				//TRACE(Trace::Fatal, (_T("Unknown value %s"), value.c_str()));
+				result = Core::ERROR_GENERAL;
+			}
         }
 
         return result;

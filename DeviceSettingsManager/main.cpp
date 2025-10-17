@@ -718,13 +718,16 @@ void handleHDMIInModule() {
                 printf("Press Enter to continue...");
                 getchar(); getchar();
                 break;
-            case 5:
+            case 5: {
                 printf("\nCalling DeviceSettings_GetHDMIVersion()...\n");
-                // TODO: Add actual function call
+		DeviceSettings_HDMIInCapabilityVersion_t version = HDMI_COMPATIBILITY_VERSION_14;
+                uint32_t result = DeviceSettings_GetHDMIVersion(DS_HDMI_IN_PORT_1, version);
+                printf("Result: %u, HDMI Version: %u\n", result, version);
                 printf("Function called successfully!\n");
                 printf("Press Enter to continue...");
                 getchar(); getchar();
                 break;
+		    }
             case 0:
                 printf("\nReturning to main menu...\n");
                 break;

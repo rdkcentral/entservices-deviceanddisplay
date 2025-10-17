@@ -123,18 +123,18 @@ namespace Plugin {
 
         // imagename is required
         string value;
-		TRACE(Trace::Error, (_T("preeja2 in")));
+		
         if (_firmwareVersion->Imagename(value) == Core::ERROR_NONE) {
             response.Imagename = value;
             result = Core::ERROR_NONE;
-			#if 1
-             if (_firmwareVersion->Pdri(value) == Core::ERROR_NONE) {
+			
+            if (_firmwareVersion->Pdri(value) == Core::ERROR_NONE) {
 			    response.Pdri = value;
 			} else {
-				//TRACE(Trace::Fatal, (_T("Unknown value %s"), value.c_str()));
+				TRACE(Trace::Fatal, (_T("Unknown value %s"), value.c_str()));
 				result = Core::ERROR_GENERAL;
 			}
-			#endif
+			
             if (_firmwareVersion->Sdk(value) == Core::ERROR_NONE)
                 response.Sdk = value;
             if (_firmwareVersion->Mediarite(value) == Core::ERROR_NONE)
@@ -149,11 +149,9 @@ namespace Plugin {
                     result = Core::ERROR_GENERAL;
                 }
             }
-			
-           
-        }
+	   }
 
-        return result;
+		return result;
     }
 
     // Property: serialnumber - Serial number set by manufacturer

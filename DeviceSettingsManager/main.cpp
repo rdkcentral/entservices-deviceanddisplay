@@ -683,6 +683,7 @@ void handleHDMIInModule() {
         printf("2. DeviceSettings_SetHDMIInput\n");
         printf("3. DeviceSettings_GetHDMIInputStatus\n");
         printf("4. DeviceSettings_GetHDMIInputSignalStatus\n");
+        printf("5. DeviceSettings_GetHDMIVersion\n");
         printf("0. Back to Main Menu\n");
         printf("==========================\n");
 
@@ -696,7 +697,34 @@ void handleHDMIInModule() {
                 printf("Press Enter to continue...");
                 getchar(); getchar();
                 break;
-            // Add more cases as needed
+            case 2:
+                printf("\nCalling DeviceSettings_SetHDMIInput()...\n");
+                // TODO: Add actual function call
+                printf("Function called successfully!\n");
+                printf("Press Enter to continue...");
+                getchar(); getchar();
+                break;
+            case 3:
+                printf("\nCalling DeviceSettings_GetHDMIInputStatus()...\n");
+                // TODO: Add actual function call
+                printf("Function called successfully!\n");
+                printf("Press Enter to continue...");
+                getchar(); getchar();
+                break;
+            case 4:
+                printf("\nCalling DeviceSettings_GetHDMIInputSignalStatus()...\n");
+                // TODO: Add actual function call
+                printf("Function called successfully!\n");
+                printf("Press Enter to continue...");
+                getchar(); getchar();
+                break;
+            case 5:
+                printf("\nCalling DeviceSettings_GetHDMIVersion()...\n");
+                // TODO: Add actual function call
+                printf("Function called successfully!\n");
+                printf("Press Enter to continue...");
+                getchar(); getchar();
+                break;
             case 0:
                 printf("\nReturning to main menu...\n");
                 break;

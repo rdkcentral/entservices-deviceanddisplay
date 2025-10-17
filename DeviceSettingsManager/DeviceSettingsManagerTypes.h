@@ -82,6 +82,30 @@ using FPDTextDisplay = DeviceSettingsManagerFPD::FPDTextDisplay;
 using FPDMode = DeviceSettingsManagerFPD::FPDMode;
 using FDPLEDState = DeviceSettingsManagerFPD::FDPLEDState;
 
+// Common constants
+#define API_VERSION_MAJOR 1
+#define API_VERSION_MINOR 0
+#define API_VERSION_PATCH 0
+
+#define TVSETTINGS_DALS_RFC_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TvSettings.DynamicAutoLatency"
+#define RDK_DSHAL_NAME "libds-hal.so"
+
+// Common logging macros - use sparingly for debug only
+#ifdef DEBUG_LOGGING
+#define ENTRY_LOG do { LOGINFO("%d: Enter %s", __LINE__, __func__); } while(0);
+#define EXIT_LOG do { LOGINFO("%d: Exit %s", __LINE__, __func__); } while(0);
+#else
+#define ENTRY_LOG do { } while(0)
+#define EXIT_LOG do { } while(0)
+#endif
+
+// Debug logging helpers - only active in DEBUG_LOGGING mode
+#ifdef DEBUG_LOGGING
+#define DEBUG_LOG(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
+#else
+#define DEBUG_LOG(fmt, ...) do { } while(0)
+#endif
+
 // Exact replica of original HostPersistence implementation to avoid DS_LIBRARIES dependency
 namespace device {
     class HostPersistence {
@@ -90,12 +114,20 @@ namespace device {
         std::map<std::string, std::string> _defaultProperties;
         std::string filePath;
         std::string defaultFilePath;
+        bool _isInitialized = false;
+
+        void ensureInitialized() {
+            if (!_isInitialized) {
+                load();
+                _isInitialized = true;
+            }
+        }
 
         void loadFromFile(const std::string &fileName, std::map<std::string, std::string> &map) {
             char keyValue[1024] = "";
             char key[1024] = "";
             FILE *filePtr = NULL;
-            
+
             filePtr = fopen(fileName.c_str(), "r");
             if (filePtr != NULL) {
                 while (!feof(filePtr)) {
@@ -159,11 +191,13 @@ namespace device {
                 /*Default case*/
             #endif
             defaultFilePath = "/etc/hostDataDefault";
+            _isInitialized = true;
         }
 
         HostPersistence(const std::string &storeFileName) {
             filePath = storeFileName;
             defaultFilePath = "/etc/hostDataDefault";
+            _isInitialized = true;
         }
 
         virtual ~HostPersistence() {
@@ -195,6 +229,9 @@ namespace device {
         }
 
         std::string getProperty(const std::string &key) {
+            /* Ensure data is loaded before accessing properties */
+            ensureInitialized();
+
             /* Check the validness of the key */
             if (key.empty()) {
                 throw std::invalid_argument("The KEY is empty");
@@ -209,6 +246,9 @@ namespace device {
         }
 
         std::string getProperty(const std::string &key, const std::string &defValue) {
+            /* Ensure data is loaded before accessing properties */
+            ensureInitialized();
+
             /* Check the validness of the key */
             if (key.empty()) {
                 throw std::invalid_argument("The KEY is empty");
@@ -223,6 +263,9 @@ namespace device {
         }
 
         std::string getDefaultProperty(const std::string &key) {
+            /* Ensure data is loaded before accessing properties */
+            ensureInitialized();
+
             /* Check the validness of the key */
             if (key.empty()) {
                 throw std::invalid_argument("The KEY is empty");
@@ -237,6 +280,9 @@ namespace device {
         }
 
         void persistHostProperty(const std::string &key, const std::string &value) {
+            /* Ensure data is loaded before accessing properties */
+            ensureInitialized();
+
             if (key.empty() || value.empty()) {
                 throw std::invalid_argument("Given KEY or VALUE is empty");
             }
@@ -279,27 +325,3 @@ struct CallbackBundle {
     std::function<void(HDMIInPort, HDMIInVRRType)> OnHDMIInVRRStatusEvent;
     // Add other callbacks as needed
 };
-
-// Common constants
-#define API_VERSION_MAJOR 1
-#define API_VERSION_MINOR 0
-#define API_VERSION_PATCH 0
-
-#define TVSETTINGS_DALS_RFC_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TvSettings.DynamicAutoLatency"
-#define RDK_DSHAL_NAME "libds-hal.so"
-
-// Common logging macros - use sparingly for debug only
-#ifdef DEBUG_LOGGING
-#define ENTRY_LOG do { LOGINFO("%d: Enter %s", __LINE__, __func__); } while(0);
-#define EXIT_LOG do { LOGINFO("%d: Exit %s", __LINE__, __func__); } while(0);
-#else
-#define ENTRY_LOG do { } while(0)
-#define EXIT_LOG do { } while(0)
-#endif
-
-// Debug logging helpers - only active in DEBUG_LOGGING mode
-#ifdef DEBUG_LOGGING
-#define DEBUG_LOG(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
-#else
-#define DEBUG_LOG(fmt, ...) do { } while(0)
-#endif

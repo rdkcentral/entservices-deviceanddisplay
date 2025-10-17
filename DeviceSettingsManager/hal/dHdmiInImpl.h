@@ -131,14 +131,15 @@ public:
         return symbol;
     }
 
-    bool getHdmiInPortPersistValue(const std::string& portName, int portIndex) {
+    bool getHdmiInPortPersistValue(const std::string& propertyName, int portIndex) {
         try {
-            std::string value = device::HostPersistence::getInstance().getProperty(portName + ".edidallmEnable");
+            // Use HostPersistence from DeviceSettingsManagerTypes.h with default value support
+            std::string value = device::HostPersistence::getInstance().getProperty(propertyName, "TRUE");
             bool support = (value == "TRUE");
-            LOGINFO("Port %s: _EdidAllmSupport: %s , m_edidallmsupport: %d", portName.c_str(), value.c_str(), support);
+            LOGINFO("Port property %s: Value: %s, Parsed: %d", propertyName.c_str(), value.c_str(), support);
             return support;
         } catch(...) {
-            LOGERR("Port %s: Exception in Getting the %s EDID allm support from persistence storage..... ", portName.c_str(), portName.c_str());
+            LOGERR("Port property %s: Exception in getting property from persistence storage, using default TRUE", propertyName.c_str());
             return true;
         }
     }

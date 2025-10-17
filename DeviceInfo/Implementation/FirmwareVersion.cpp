@@ -51,9 +51,9 @@ namespace Plugin {
             uint32_t result = Core::ERROR_GENERAL;
 
             IARM_Bus_MFRLib_GetSerializedData_Param_t param;
-           // param.bufLen = 0;
-           // param.type = type;
-            auto status = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+            param.bufLen = 0;
+            param.type = type;
+            auto status = IARM_RESULT_INVALID_STATE ;//IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
             if ((status == IARM_RESULT_SUCCESS) && param.bufLen) {
                 response.assign(param.buffer, param.bufLen);
                 result = Core::ERROR_NONE;

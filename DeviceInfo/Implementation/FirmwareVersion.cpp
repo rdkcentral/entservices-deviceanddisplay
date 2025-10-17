@@ -45,6 +45,25 @@ namespace Plugin {
 
             return result;
         }
+
+        uint32_t GetMFRData(mfrSerializedType_t type, string& response)
+        {
+            uint32_t result = Core::ERROR_GENERAL;
+
+            IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+            param.bufLen = 0;
+            param.type = type;
+            
+            auto status = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+            if ((status == IARM_RESULT_SUCCESS) && param.bufLen) {
+                response.assign(param.buffer, param.bufLen);
+                result = Core::ERROR_NONE;
+            } else {
+                TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
+            }
+
+            return result;
+        }
     }
 
     SERVICE_REGISTRATION(FirmwareVersion, 1, 0);
@@ -52,6 +71,11 @@ namespace Plugin {
     Core::hresult FirmwareVersion::Imagename(string& imagename) const
     {
         return GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename);
+    }
+
+    Core::hresult FirmwareVersion::Pdri(string& pdri) const
+    {
+        return (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri));
     }
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const

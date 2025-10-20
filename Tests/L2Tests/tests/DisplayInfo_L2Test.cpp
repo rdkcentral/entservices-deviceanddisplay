@@ -545,8 +545,8 @@ TEST_F(DisplayInfo_L2test, ComRpc_SetHDCPProtection_Success)
         return;
     }
 
-    EXPECT_CALL(*p_videoOutputPortMock, setHdcpProfile(::testing::_))
-        .WillOnce(::testing::Return(dsERR_NONE));
+    EXPECT_CALL(*p_videoOutputPortMock, SetHdmiPreference(::testing::_))
+        .WillOnce(::testing::Return(true));
 
     Exchange::IConnectionProperties::HDCPProtectionType hdcpType = Exchange::IConnectionProperties::HDCPProtectionType::HDCP_1X;
     status = m_connectionProperties->HDCPProtection(hdcpType);
@@ -617,8 +617,8 @@ TEST_F(DisplayInfo_L2test, ComRpc_HDCPProtectionChange_Notification)
     uint32_t status = Core::ERROR_GENERAL;
     uint32_t signalled = DISPLAYINFOL2TEST_STATE_INVALID;
 
-    EXPECT_CALL(*p_videoOutputPortMock, setHdcpProfile(::testing::_))
-        .WillOnce(::testing::Return(dsERR_NONE));
+    EXPECT_CALL(*p_videoOutputPortMock, SetHdmiPreference(::testing::_))
+        .WillOnce(::testing::Return(true));
 
     Exchange::IConnectionProperties::HDCPProtectionType hdcpType = Exchange::IConnectionProperties::HDCPProtectionType::HDCP_1X;
     status = m_connectionProperties->HDCPProtection(hdcpType);
@@ -710,8 +710,11 @@ TEST_F(DisplayInfo_L2test, ComRpc_GetSupportedResolutions_Success)
     resolutions.push_back(resolution1080p);
     resolutions.push_back(resolution720p);
 
-    ON_CALL(*p_videoOutputPortMock, getSupportedResolutions())
-        .WillByDefault(::testing::Return(resolutions));
+    ON_CALL(*p_videoOutputPortMock, getSupportedTvResolutions(::testing::_))
+        .WillByDefault(::testing::Invoke([&](int* tvResolutions) {
+            // Set supported resolutions as bit flags
+            *tvResolutions = (1 << dsVIDEO_PIXELRES_1920x1080) | (1 << dsVIDEO_PIXELRES_1280x720);
+        }));
 
     status = m_connectionProperties->Width(width);
     EXPECT_EQ(Core::ERROR_NONE, status);

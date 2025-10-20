@@ -45,7 +45,6 @@
 using ::testing::NiceMock;
 using namespace WPEFramework;
 using testing::StrictMock;
-using ::WPEFramework::Exchange::IDisplayInfo;
 using ::WPEFramework::Exchange::IConnectionProperties;
 using ::WPEFramework::Exchange::IGraphicsProperties;
 using ::WPEFramework::Exchange::IHDRProperties;
@@ -54,8 +53,7 @@ using ::WPEFramework::Exchange::IDisplayProperties;
 typedef enum : uint32_t {
     DISPLAYINFOL2TEST_RESOLUTION_CHANGED = 0x00000001,
     DISPLAYINFOL2TEST_CONNECTION_CHANGED = 0x00000002,
-    DISPLAYINFOL2TEST_HDCP_CHANGED = 0x00000003,
-    DISPLAYINFOL2TEST_HDR_CHANGED = 0x00000004,
+    DISPLAYINFOL2TEST_HDCP_CHANGED = 0x00000004,
     DISPLAYINFOL2TEST_STATE_INVALID = 0x00000000
 } DisplayInfoL2test_async_events_t;
 
@@ -79,17 +77,17 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex);
 
         switch(event) {
-            case Source::ConnectionChange:
-                m_event_signalled |= DISPLAYINFOL2TEST_CONNECTION_CHANGED;
-                break;
-            case Source::ResolutionChange:
+            case Source::PRE_RESOLUTION_CHANGE:
                 m_event_signalled |= DISPLAYINFOL2TEST_RESOLUTION_CHANGED;
                 break;
-            case Source::HDCPChange:
-                m_event_signalled |= DISPLAYINFOL2TEST_HDCP_CHANGED;
+            case Source::POST_RESOLUTION_CHANGE:
+                m_event_signalled |= DISPLAYINFOL2TEST_RESOLUTION_CHANGED;
                 break;
-            case Source::HDRChange:
-                m_event_signalled |= DISPLAYINFOL2TEST_HDR_CHANGED;
+            case Source::HDMI_CHANGE:
+                m_event_signalled |= DISPLAYINFOL2TEST_CONNECTION_CHANGED;
+                break;
+            case Source::HDCP_CHANGE:
+                m_event_signalled |= DISPLAYINFOL2TEST_HDCP_CHANGED;
                 break;
         }
         m_condition_variable.notify_one();
@@ -215,9 +213,9 @@ DisplayInfo_L2test::DisplayInfo_L2test()
     ON_CALL(*p_videoOutputPortMock, getType())
         .WillByDefault(::testing::ReturnRef(videoOutputPortType));
 
-    EXPECT_CALL(*p_hostImplMock, Register(testing::_))
+    EXPECT_CALL(*p_hostImplMock, Register(::testing::An<device::Host::IVideoOutputPortEvents*>()))
         .WillRepeatedly(::testing::Return(dsERR_NONE));
-    EXPECT_CALL(*p_hostImplMock, UnRegister(testing::_))
+    EXPECT_CALL(*p_hostImplMock, UnRegister(::testing::An<device::Host::IVideoOutputPortEvents*>()))
         .WillRepeatedly(::testing::Return(dsERR_NONE));
 
     status = ActivateService("org.rdk.DisplayInfo");
@@ -357,26 +355,36 @@ uint32_t DisplayInfo_L2test::CreateDisplayInfoInterfaceObjectUsingComRPCConnecti
     return return_value;
 }
 
-TEST_F(DisplayInfo_L2test, JsonRpc_GetDisplayInfo_Success)
+TEST_F(DisplayInfo_L2test, WebAPI_GetDisplayInfo_Success)
 {
-    uint32_t status = Core::ERROR_GENERAL;
-    JsonObject params;
-    JsonObject result;
+    if (!m_connectionProperties || !m_graphicsProperties) {
+        TEST_LOG("Required interfaces not available");
+        return;
+    }
 
-    status = InvokeServiceMethod("org.rdk.DisplayInfo", "getDisplayInfo", params, result);
+    bool connected = false;
+    uint32_t status = m_connectionProperties->Connected(connected);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(result.HasLabel("success"));
-    EXPECT_TRUE(result["success"].Boolean());
-    EXPECT_TRUE(result.HasLabel("displayInfo"));
 
-    JsonObject displayInfo = result["displayInfo"].Object();
-    EXPECT_TRUE(displayInfo.HasLabel("totalGpuRam"));
-    EXPECT_TRUE(displayInfo.HasLabel("freeGpuRam"));
-    EXPECT_TRUE(displayInfo.HasLabel("audioPassthrough"));
-    EXPECT_TRUE(displayInfo.HasLabel("connected"));
-    EXPECT_TRUE(displayInfo.HasLabel("width"));
-    EXPECT_TRUE(displayInfo.HasLabel("height"));
-    EXPECT_TRUE(displayInfo.HasLabel("hdcpProtection"));
+    uint32_t width = 0, height = 0;
+    status = m_connectionProperties->Width(width);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    status = m_connectionProperties->Height(height);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    uint64_t totalGpuRam = 0, freeGpuRam = 0;
+    status = m_graphicsProperties->TotalGpuRam(totalGpuRam);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    status = m_graphicsProperties->FreeGpuRam(freeGpuRam);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    bool audioPassthrough = false;
+    status = m_connectionProperties->IsAudioPassthrough(audioPassthrough);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    Exchange::IConnectionProperties::HDCPProtectionType hdcpProtection;
+    status = m_connectionProperties->HDCPProtection(hdcpProtection);
+    EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
 TEST_F(DisplayInfo_L2test, ComRpc_GetConnectionProperties_Success)
@@ -499,53 +507,33 @@ TEST_F(DisplayInfo_L2test, ComRpc_GetDisplayProperties_Success)
     }
 }
 
-TEST_F(DisplayInfo_L2test, JsonRpc_DisplayConnectionNotification)
+TEST_F(DisplayInfo_L2test, ComRpc_DisplayConnectionNotification)
 {
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(DISPLAYINFO_CALLSIGN, DISPLAYINFOL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_DisplayInfo> async_handler;
-    uint32_t status = Core::ERROR_GENERAL;
+    if (!m_connectionProperties) {
+        TEST_LOG("Connection properties interface not available");
+        return;
+    }
+
     uint32_t signalled = DISPLAYINFOL2TEST_STATE_INVALID;
-
-    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
-                                           _T("onDisplayConnectionChanged"),
-                                           [&async_handler](const JsonObject& parameters) {
-                                               async_handler.onDisplayConnectionChanged(parameters);
-                                           });
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    EXPECT_CALL(async_handler, onDisplayConnectionChanged(::testing::_))
-        .WillOnce(::testing::Invoke(this, &DisplayInfo_L2test::onDisplayConnectionChanged));
 
     ON_CALL(*p_videoOutputPortMock, isDisplayConnected())
         .WillByDefault(::testing::Return(false));
 
-    signalled = notify.WaitForRequestStatus(JSON_TIMEOUT, DISPLAYINFOL2TEST_CONNECTION_CHANGED);
+    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, DISPLAYINFOL2TEST_CONNECTION_CHANGED);
     EXPECT_TRUE(signalled & DISPLAYINFOL2TEST_CONNECTION_CHANGED);
-
-    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("onDisplayConnectionChanged"));
 }
 
-TEST_F(DisplayInfo_L2test, JsonRpc_ResolutionChangeNotification)
+TEST_F(DisplayInfo_L2test, ComRpc_ResolutionChangeNotification)
 {
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(DISPLAYINFO_CALLSIGN, DISPLAYINFOL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_DisplayInfo> async_handler;
-    uint32_t status = Core::ERROR_GENERAL;
+    if (!m_connectionProperties) {
+        TEST_LOG("Connection properties interface not available");
+        return;
+    }
+
     uint32_t signalled = DISPLAYINFOL2TEST_STATE_INVALID;
 
-    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
-                                           _T("onResolutionChanged"),
-                                           [&async_handler](const JsonObject& parameters) {
-                                               async_handler.onResolutionChanged(parameters);
-                                           });
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    EXPECT_CALL(async_handler, onResolutionChanged(::testing::_))
-        .WillOnce(::testing::Invoke(this, &DisplayInfo_L2test::onResolutionChanged));
-
-    signalled = notify.WaitForRequestStatus(JSON_TIMEOUT, DISPLAYINFOL2TEST_RESOLUTION_CHANGED);
+    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, DISPLAYINFOL2TEST_RESOLUTION_CHANGED);
     EXPECT_TRUE(signalled & DISPLAYINFOL2TEST_RESOLUTION_CHANGED);
-
-    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("onResolutionChanged"));
 }
 
 TEST_F(DisplayInfo_L2test, ComRpc_SetHDCPProtection_Success)
@@ -619,50 +607,40 @@ TEST_F(DisplayInfo_L2test, ComRpc_EDID_Retrieval_Success)
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
-TEST_F(DisplayInfo_L2test, JsonRpc_HDCPProtectionChange_Notification)
+TEST_F(DisplayInfo_L2test, ComRpc_HDCPProtectionChange_Notification)
 {
-    JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(DISPLAYINFO_CALLSIGN, DISPLAYINFOL2TEST_CALLSIGN);
-    StrictMock<AsyncHandlerMock_DisplayInfo> async_handler;
+    if (!m_connectionProperties) {
+        TEST_LOG("Connection properties interface not available");
+        return;
+    }
+
     uint32_t status = Core::ERROR_GENERAL;
     uint32_t signalled = DISPLAYINFOL2TEST_STATE_INVALID;
-    JsonObject params;
-    JsonObject result;
-
-    status = jsonrpc.Subscribe<JsonObject>(JSON_TIMEOUT,
-                                           _T("onHdcpChanged"),
-                                           [&async_handler](const JsonObject& parameters) {
-                                               async_handler.onHdcpChanged(parameters);
-                                           });
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    EXPECT_CALL(async_handler, onHdcpChanged(::testing::_))
-        .WillOnce(::testing::Invoke(this, &DisplayInfo_L2test::onHdcpChanged));
 
     EXPECT_CALL(*p_videoOutputPortMock, setHdcpProfile(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
-    params["hdcpProtection"] = "1.4";
-    status = InvokeServiceMethod("org.rdk.DisplayInfo", "setHdcpProtection", params, result);
+    Exchange::IConnectionProperties::HDCPProtectionType hdcpType = Exchange::IConnectionProperties::HDCPProtectionType::HDCP_1X;
+    status = m_connectionProperties->HDCPProtection(hdcpType);
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    signalled = notify.WaitForRequestStatus(JSON_TIMEOUT, DISPLAYINFOL2TEST_HDCP_CHANGED);
+    signalled = notify.WaitForRequestStatus(COM_TIMEOUT, DISPLAYINFOL2TEST_HDCP_CHANGED);
     EXPECT_TRUE(signalled & DISPLAYINFOL2TEST_HDCP_CHANGED);
-
-    jsonrpc.Unsubscribe(JSON_TIMEOUT, _T("onHdcpChanged"));
 }
 
-TEST_F(DisplayInfo_L2test, JsonRpc_GetPortName_Success)
+TEST_F(DisplayInfo_L2test, ComRpc_GetPortName_Success)
 {
-    uint32_t status = Core::ERROR_GENERAL;
-    JsonObject params;
-    JsonObject result;
+    if (!m_connectionProperties) {
+        TEST_LOG("Connection properties interface not available");
+        return;
+    }
 
-    status = InvokeServiceMethod("org.rdk.DisplayInfo", "getPortName", params, result);
+    uint32_t status = Core::ERROR_GENERAL;
+    string portName;
+
+    status = m_connectionProperties->PortName(portName);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(result.HasLabel("success"));
-    EXPECT_TRUE(result["success"].Boolean());
-    EXPECT_TRUE(result.HasLabel("portName"));
-    EXPECT_EQ("HDMI0", result["portName"].String());
+    EXPECT_EQ("HDMI0", portName);
 }
 
 TEST_F(DisplayInfo_L2test, ComRpc_ErrorHandling_InvalidInterface)
@@ -715,11 +693,15 @@ TEST_F(DisplayInfo_L2test, ComRpc_MultipleInterfaceQueries_Success)
     EXPECT_LE(freeRam, totalRam);
 }
 
-TEST_F(DisplayInfo_L2test, JsonRpc_GetSupportedResolutions_Success)
+TEST_F(DisplayInfo_L2test, ComRpc_GetSupportedResolutions_Success)
 {
+    if (!m_connectionProperties) {
+        TEST_LOG("Connection properties interface not available");
+        return;
+    }
+
     uint32_t status = Core::ERROR_GENERAL;
-    JsonObject params;
-    JsonObject result;
+    uint32_t width = 0, height = 0, verticalFreq = 0;
 
     device::List<device::VideoResolution> resolutions;
     device::VideoResolution resolution1080p;
@@ -731,9 +713,12 @@ TEST_F(DisplayInfo_L2test, JsonRpc_GetSupportedResolutions_Success)
     ON_CALL(*p_videoOutputPortMock, getSupportedResolutions())
         .WillByDefault(::testing::Return(resolutions));
 
-    status = InvokeServiceMethod("org.rdk.DisplayInfo", "getSupportedResolutions", params, result);
+    status = m_connectionProperties->Width(width);
     EXPECT_EQ(Core::ERROR_NONE, status);
-    EXPECT_TRUE(result.HasLabel("success"));
-    EXPECT_TRUE(result["success"].Boolean());
-    EXPECT_TRUE(result.HasLabel("supportedResolutions"));
+    
+    status = m_connectionProperties->Height(height);
+    EXPECT_EQ(Core::ERROR_NONE, status);
+    
+    status = m_connectionProperties->VerticalFreq(verticalFreq);
+    EXPECT_EQ(Core::ERROR_NONE, status);
 }

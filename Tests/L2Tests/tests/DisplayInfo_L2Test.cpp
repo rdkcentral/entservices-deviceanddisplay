@@ -291,8 +291,8 @@ DisplayInfo_L2Test::DisplayInfo_L2Test()
 
     /* Activate plugin in constructor */
     status = ActivateService("org.rdk.DisplayInfo");
-    EXPECT_EQ(Core::ERROR_NONE, status);
     TEST_LOG("DisplayInfo service activation status: %u", status);
+    EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
 /**

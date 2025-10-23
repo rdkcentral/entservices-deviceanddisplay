@@ -18,6 +18,8 @@
 **/
 
 #include "FirmwareVersion.h"
+#include "mfrMgr.h"
+#include "UtilsIarm.h"
 
 #include <fstream>
 #include <regex>

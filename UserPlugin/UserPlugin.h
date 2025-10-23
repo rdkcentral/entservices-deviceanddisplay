@@ -35,6 +35,9 @@
 #include "PowerManagerInterface.h"
 using namespace WPEFramework::Exchange;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
+using DeviceSettingsManagerFPD            = WPEFramework::Exchange::IDeviceSettingsManagerFPD;
+using DeviceSettingsManagerHDMIIn         = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn;
+
 
 namespace WPEFramework
 {
@@ -76,7 +79,7 @@ namespace WPEFramework
                 UserPlugin& _parent;
             };
 
-            class HDMIInNotification : public virtual Exchange::IDeviceSettingsManager::IHDMIIn::INotification {
+            class HDMIInNotification : public virtual DeviceSettingsManagerHDMIIn::INotification {
             private:
                 HDMIInNotification(const HDMIInNotification&) = delete;
                 HDMIInNotification& operator=(const HDMIInNotification&) = delete;
@@ -88,32 +91,32 @@ namespace WPEFramework
                 }
 
             public:
-                void OnHDMIInEventHotPlug(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool isConnected) override
+                void OnHDMIInEventHotPlug(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool isConnected) override
                 {
                     _parent.OnHDMIInEventHotPlug(port, isConnected);
                 }
 
-                void OnHDMIInEventSignalStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus signalStatus) override
+                void OnHDMIInEventSignalStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInSignalStatus signalStatus) override
                 {
                     _parent.OnHDMIInEventSignalStatus(port, signalStatus);
                 }
 
-                void OnHDMIInEventStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort activePort, const bool isPresented) override
+                void OnHDMIInEventStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort activePort, const bool isPresented) override
                 {
                     _parent.OnHDMIInEventStatus(activePort, isPresented);
                 }
 
-                void OnHDMIInVideoModeUpdate(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution videoPortResolution) override
+                void OnHDMIInVideoModeUpdate(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoPortResolution) override
                 {
                     _parent.OnHDMIInVideoModeUpdate(port, videoPortResolution);
                 }
 
-                void OnHDMIInAllmStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool allmStatus) override
+                void OnHDMIInAllmStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool allmStatus) override
                 {
                     _parent.OnHDMIInAllmStatus(port, allmStatus);
                 }
 
-                void OnHDMIInAVIContentType(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType aviContentType) override
+                void OnHDMIInAVIContentType(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInAviContentType aviContentType) override
                 {
                     _parent.OnHDMIInAVIContentType(port, aviContentType);
                 }
@@ -123,7 +126,7 @@ namespace WPEFramework
                     _parent.OnHDMIInAVLatency(audioDelay, videoDelay);
                 }
 
-                void OnHDMIInVRRStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType vrrType) override
+                void OnHDMIInVRRStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInVRRType vrrType) override
                 {
                     _parent.OnHDMIInVRRStatus(port, vrrType);
                 }
@@ -136,7 +139,7 @@ namespace WPEFramework
                 }
 
                 BEGIN_INTERFACE_MAP(HDMIInNotification)
-                INTERFACE_ENTRY(Exchange::IDeviceSettingsManager::IHDMIIn::INotification)
+                INTERFACE_ENTRY(DeviceSettingsManagerHDMIIn::INotification)
                 END_INTERFACE_MAP
             
             private:
@@ -166,14 +169,14 @@ namespace WPEFramework
             void TestFPDAPIs();
             
             // HDMI In Event Handlers
-            void OnHDMIInEventHotPlug(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool isConnected);
-            void OnHDMIInEventSignalStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus signalStatus);
-            void OnHDMIInEventStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort activePort, const bool isPresented);
-            void OnHDMIInVideoModeUpdate(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution videoPortResolution);
-            void OnHDMIInAllmStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool allmStatus);
-            void OnHDMIInAVIContentType(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType aviContentType);
+            void OnHDMIInEventHotPlug(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool isConnected);
+            void OnHDMIInEventSignalStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInSignalStatus signalStatus);
+            void OnHDMIInEventStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort activePort, const bool isPresented);
+            void OnHDMIInVideoModeUpdate(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoPortResolution);
+            void OnHDMIInAllmStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool allmStatus);
+            void OnHDMIInAVIContentType(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInAviContentType aviContentType);
             void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay);
-            void OnHDMIInVRRStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType vrrType);
+            void OnHDMIInVRRStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInVRRType vrrType);
 
             //  IPlugin methods
             // -------------------------------------------------------------------------------------------------------
@@ -185,8 +188,8 @@ namespace WPEFramework
             PluginHost::IShell* _service{};
             uint32_t _connectionId{};
             Exchange::IPowerManager* _powerManager;
-            // Removed: Exchange::IDeviceSettingsManagerFPD* _fpdManager; // Not needed, use IDeviceSettingsManager only
-            Exchange::IDeviceSettingsManager* _deviceSettingsManager;
+            Exchange::IDeviceSettingsManagerFPD* _fpdManager;
+            Exchange::IDeviceSettingsManagerHDMIIn* _hdmiInManager;
             //PowerManagerInterfaceRef _powerManager{};
             Core::Sink<PowerManagerNotification> _pwrMgrNotification;
             Core::Sink<HDMIInNotification> _hdmiInNotification;

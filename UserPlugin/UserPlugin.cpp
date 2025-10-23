@@ -36,9 +36,9 @@ using namespace std;
 using namespace WPEFramework;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
-// Use proper FPD types from IDeviceSettingsManager interface
-using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDIndicator;
-using FPDState = WPEFramework::Exchange::IDeviceSettingsManager::IFPD::FPDState;
+// Use proper FPD types from IDeviceSettingsManagerFPD interface
+using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDIndicator;
+using FPDState = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDState;
 
 namespace WPEFramework {
 namespace {
@@ -60,7 +60,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _deviceSettingsManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -100,21 +100,25 @@ namespace Plugin {
             LOGERR("PowerManager or Notification is NULL");
         }
 
-    // Removed: _fpdManager assignment, use _deviceSettingsManager for FPD APIs
+        // Connect to FPD Manager interface
+        _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerFPD>("org.rdk.DeviceSettingsManager");
+        ASSERT(_fpdManager != nullptr);
+        if (_fpdManager) {
+            LOGINFO("Successfully connected to DeviceSettingsManagerFPD interface");
+        } else {
+            LOGERR("Failed to connect to DeviceSettingsManagerFPD interface");
+        }
 
-        _deviceSettingsManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManager>("org.rdk.DeviceSettingsManager");
-        ASSERT(_deviceSettingsManager != nullptr);
-
+        // Connect to HDMI In Manager interface
+        _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerHDMIIn>("org.rdk.DeviceSettingsManager");
+        ASSERT(_hdmiInManager != nullptr);
+        
         // Register for HDMI In notifications
-        if (_deviceSettingsManager) {
-            Exchange::IDeviceSettingsManager::IHDMIIn* hdmiIn = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IHDMIIn>();
-            if (hdmiIn) {
-                hdmiIn->Register(_hdmiInNotification.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
-                LOGINFO("Successfully registered for HDMI In notifications");
-                hdmiIn->Release();
-            } else {
-                LOGERR("Failed to get HDMI In interface for notification registration");
-            }
+        if (_hdmiInManager) {
+            _hdmiInManager->Register(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
+            LOGINFO("Successfully registered for HDMI In notifications");
+        } else {
+            LOGERR("Failed to get HDMI In interface for notification registration");
         }
 
         TestFPDAPIs();
@@ -155,17 +159,20 @@ namespace Plugin {
         LOGINFO("Deinitialize");
 
         _powerManager->Release();
-        // Removed: _fpdManager->Release(); // No longer needed
         
-        // Unregister HDMI In notifications
-        if (_deviceSettingsManager) {
-            Exchange::IDeviceSettingsManager::IHDMIIn* hdmiIn = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IHDMIIn>();
-            if (hdmiIn) {
-                hdmiIn->Unregister(_hdmiInNotification.baseInterface<Exchange::IDeviceSettingsManager::IHDMIIn::INotification>());
-                LOGINFO("Successfully unregistered HDMI In notifications");
-                hdmiIn->Release();
-            }
-            _deviceSettingsManager->Release();
+        // Unregister and release FPD Manager
+        if (_fpdManager) {
+            _fpdManager->Release();
+            _fpdManager = nullptr;
+            LOGINFO("Successfully released FPD Manager interface");
+        }
+        
+        // Unregister HDMI In notifications and release HDMI In Manager
+        if (_hdmiInManager) {
+            _hdmiInManager->Unregister(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
+            _hdmiInManager->Release();
+            _hdmiInManager = nullptr;
+            LOGINFO("Successfully unregistered and released HDMI In Manager interface");
         }
         Exchange::JUserPlugin::Unregister(*this);
         _service = nullptr;
@@ -219,28 +226,21 @@ namespace Plugin {
         LOGWARN("getPowerState called, power state : %s\n",
                 powerState.c_str());
 
-        // Get FPD interface from DeviceSettingsManager
-        Exchange::IDeviceSettingsManager::IFPD* fpd = nullptr;
-        if (_deviceSettingsManager) {
-            fpd = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IFPD>();
-            if (fpd == nullptr) {
-                LOGINFO("Failed to get FPD interface");
-            }
-        }
-        
-        if (fpd) {
-            fpd->GetFPDBrightness(FPDIndicator::DS_FPD_INDICATOR_POWER, brightness);
+        // Use FPD Manager interface directly
+        if (_fpdManager) {
+            _fpdManager->GetFPDBrightness(FPDIndicator::DS_FPD_INDICATOR_POWER, brightness);
             LOGINFO("GetFPDBrightness brightness: %d", brightness);
             brightness = 50;
             persist = 1;
             LOGINFO("SetFPDBrightness brightness: %d, persist: %d", brightness, persist);
-            fpd->SetFPDBrightness(FPDIndicator::DS_FPD_INDICATOR_POWER, brightness, persist);
-            fpd->GetFPDState(FPDIndicator::DS_FPD_INDICATOR_POWER, fpdState);
+            _fpdManager->SetFPDBrightness(FPDIndicator::DS_FPD_INDICATOR_POWER, brightness, persist);
+            _fpdManager->GetFPDState(FPDIndicator::DS_FPD_INDICATOR_POWER, fpdState);
             LOGINFO("GetFPDState state: %d", fpdState);
             fpdState = FPDState::DS_FPD_STATE_ON;
             LOGINFO("SetFPDState state:%d", fpdState);
-            fpd->SetFPDState(FPDIndicator::DS_FPD_INDICATOR_POWER, fpdState);
-            fpd->Release();
+            _fpdManager->SetFPDState(FPDIndicator::DS_FPD_INDICATOR_POWER, fpdState);
+        } else {
+            LOGERR("FPD Manager interface not available");
         }
 
         /*response["powerState"] = powerState;
@@ -290,28 +290,20 @@ namespace Plugin {
     {
         LOGINFO("========== FPD APIs Testing Framework ==========\n");
         
-        if (!_deviceSettingsManager) {
-            LOGERR("DeviceSettingsManager interface is not available!");
-            return;
-        }
-
-        // Get FPD interface from DeviceSettingsManager
-        Exchange::IDeviceSettingsManager::IFPD* fpd = nullptr;
-        fpd = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IFPD>();
-        if (fpd == nullptr) {
-            LOGERR("Failed to get FPD interface");
+        if (!_fpdManager) {
+            LOGERR("FPD Manager interface is not available!");
             return;
         }
 
         LOGINFO("========== Testing FPD APIs ==========\n");
 
         // Test all FPD indicators
-        Exchange::IDeviceSettingsManager::IFPD::FPDIndicator testIndicators[] = {
-            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
-            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
-            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_RECORD,
-            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_REMOTE,
-            Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_RFBYPASS
+        Exchange::IDeviceSettingsManagerFPD::FPDIndicator testIndicators[] = {
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_RECORD,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_REMOTE,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_RFBYPASS
         };
 
         const char* indicatorNames[] = {
@@ -330,53 +322,53 @@ namespace Plugin {
 
             // 1. Test GetFPDBrightness
             uint32_t currentBrightness = 0;
-            Core::hresult result = fpd->GetFPDBrightness(indicator, currentBrightness);
+            Core::hresult result = _fpdManager->GetFPDBrightness(indicator, currentBrightness);
             LOGINFO("GetFPDBrightness: indicator=%s, result=%u, brightness=%u", indicatorName, result, currentBrightness);
 
             // 2. Test SetFPDBrightness
             uint32_t newBrightness = 75;
             bool persist = true;
-            result = fpd->SetFPDBrightness(indicator, newBrightness, persist);
+            result = _fpdManager->SetFPDBrightness(indicator, newBrightness, persist);
             LOGINFO("SetFPDBrightness: indicator=%s, result=%u, brightness=%u, persist=%s", indicatorName, result, newBrightness, persist ? "true" : "false");
 
             // Verify the brightness was set
             uint32_t verifyBrightness = 0;
-            result = fpd->GetFPDBrightness(indicator, verifyBrightness);
+            result = _fpdManager->GetFPDBrightness(indicator, verifyBrightness);
             LOGINFO("GetFPDBrightness (verify): indicator=%s, result=%u, brightness=%u", indicatorName, result, verifyBrightness);
 
             // 3. Test GetFPDState
-            Exchange::IDeviceSettingsManager::IFPD::FPDState currentState;
-            result = fpd->GetFPDState(indicator, currentState);
+            Exchange::IDeviceSettingsManagerFPD::FPDState currentState;
+            result = _fpdManager->GetFPDState(indicator, currentState);
             LOGINFO("GetFPDState: indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(currentState));
 
             // 4. Test SetFPDState
-            Exchange::IDeviceSettingsManager::IFPD::FPDState newState = Exchange::IDeviceSettingsManager::IFPD::FPDState::DS_FPD_STATE_ON;
-            result = fpd->SetFPDState(indicator, newState);
+            Exchange::IDeviceSettingsManagerFPD::FPDState newState = Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON;
+            result = _fpdManager->SetFPDState(indicator, newState);
             LOGINFO("SetFPDState: indicator=%s, result=%u, state=%d (ON)", indicatorName, result, static_cast<int>(newState));
 
             // Verify the state was set
-            Exchange::IDeviceSettingsManager::IFPD::FPDState verifyState;
-            result = fpd->GetFPDState(indicator, verifyState);
+            Exchange::IDeviceSettingsManagerFPD::FPDState verifyState;
+            result = _fpdManager->GetFPDState(indicator, verifyState);
             LOGINFO("GetFPDState (verify): indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(verifyState));
 
             // 5. Test GetFPDColor
             uint32_t currentColor = 0;
-            result = fpd->GetFPDColor(indicator, currentColor);
+            result = _fpdManager->GetFPDColor(indicator, currentColor);
             LOGINFO("GetFPDColor: indicator=%s, result=%u, color=0x%08X", indicatorName, result, currentColor);
 
             // 6. Test SetFPDColor
             uint32_t newColor = 0x0000FF; // Blue color
-            result = fpd->SetFPDColor(indicator, newColor);
+            result = _fpdManager->SetFPDColor(indicator, newColor);
             LOGINFO("SetFPDColor: indicator=%s, result=%u, color=0x%08X (Blue)", indicatorName, result, newColor);
 
             // Verify the color was set
             uint32_t verifyColor = 0;
-            result = fpd->GetFPDColor(indicator, verifyColor);
+            result = _fpdManager->GetFPDColor(indicator, verifyColor);
             LOGINFO("GetFPDColor (verify): indicator=%s, result=%u, color=0x%08X", indicatorName, result, verifyColor);
 
             // Test with different state - OFF
-            newState = Exchange::IDeviceSettingsManager::IFPD::FPDState::DS_FPD_STATE_OFF;
-            result = fpd->SetFPDState(indicator, newState);
+            newState = Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_OFF;
+            result = _fpdManager->SetFPDState(indicator, newState);
             LOGINFO("SetFPDState: indicator=%s, result=%u, state=%d (OFF)", indicatorName, result, static_cast<int>(newState));
 
             LOGINFO("---------- Completed testing FPD Indicator: %s ----------\n", indicatorName);
@@ -385,10 +377,10 @@ namespace Plugin {
         // 7. Test SetFPDMode with different modes
         LOGINFO("---------- Testing FPD Mode Settings ----------");
         
-        Exchange::IDeviceSettingsManager::IFPD::FPDMode testModes[] = {
-            Exchange::IDeviceSettingsManager::IFPD::FPDMode::DS_FPD_MODE_ANY,
-            Exchange::IDeviceSettingsManager::IFPD::FPDMode::DS_FPD_MODE_TEXT,
-            Exchange::IDeviceSettingsManager::IFPD::FPDMode::DS_FPD_MODE_CLOCK
+        Exchange::IDeviceSettingsManagerFPD::FPDMode testModes[] = {
+            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_ANY,
+            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_TEXT,
+            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_CLOCK
         };
 
         const char* modeNames[] = {
@@ -401,7 +393,7 @@ namespace Plugin {
             auto mode = testModes[i];
             const char* modeName = modeNames[i];
             
-            Core::hresult result = fpd->SetFPDMode(mode);
+            Core::hresult result = _fpdManager->SetFPDMode(mode);
             LOGINFO("SetFPDMode: mode=%s, result=%u", modeName, result);
         }
 
@@ -409,16 +401,16 @@ namespace Plugin {
 
         // Additional comprehensive test with different brightness values
         LOGINFO("---------- Testing FPD Brightness Range ----------");
-        auto testIndicator = Exchange::IDeviceSettingsManager::IFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
+        auto testIndicator = Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
         uint32_t brightnessValues[] = {0, 25, 50, 75, 100};
         
         for (size_t i = 0; i < sizeof(brightnessValues)/sizeof(brightnessValues[0]); i++) {
             uint32_t brightness = brightnessValues[i];
-            Core::hresult result = fpd->SetFPDBrightness(testIndicator, brightness, true);
+            Core::hresult result = _fpdManager->SetFPDBrightness(testIndicator, brightness, true);
             LOGINFO("SetFPDBrightness: brightness=%u, result=%u", brightness, result);
             
             uint32_t verifyBrightness = 0;
-            result = fpd->GetFPDBrightness(testIndicator, verifyBrightness);
+            result = _fpdManager->GetFPDBrightness(testIndicator, verifyBrightness);
             LOGINFO("GetFPDBrightness (verify): brightness=%u, result=%u", verifyBrightness, result);
         }
 
@@ -452,19 +444,16 @@ namespace Plugin {
             uint32_t color = colorValues[i];
             const char* colorName = colorNames[i];
             
-            Core::hresult result = fpd->SetFPDColor(testIndicator, color);
+            Core::hresult result = _fpdManager->SetFPDColor(testIndicator, color);
             LOGINFO("SetFPDColor: color=%s (0x%08X), result=%u", colorName, color, result);
             
             uint32_t verifyColor = 0;
-            result = fpd->GetFPDColor(testIndicator, verifyColor);
+            result = _fpdManager->GetFPDColor(testIndicator, verifyColor);
             LOGINFO("GetFPDColor (verify): color=0x%08X, result=%u", verifyColor, result);
         }
 
         LOGINFO("---------- Completed FPD Color Variations Testing ----------\n");
 
-        // Release the FPD interface
-        fpd->Release();
-        
         LOGINFO("========== FPD APIs Testing Completed ==========\n");
     }
 
@@ -472,8 +461,8 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In APIs Testing Framework ==========\n");
         
-        if (!_deviceSettingsManager) {
-            LOGERR("DeviceSettingsManager interface is not available!");
+        if (!_hdmiInManager) {
+            LOGERR("HDMI In Manager interface is not available!");
             return;
         }
 
@@ -506,10 +495,10 @@ namespace Plugin {
         LOGINFO("========== HDMI In API Framework Ready ==========");
 
         // Test all HDMI In methods with sample values
-        using HDMIInPort = Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort;
-        //using HDMIInSignalStatus = Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus;
-        using HDMIVideoPortResolution = Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution;
-        //using HDMIInAviContentType = Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType;
+        using HDMIInPort = DeviceSettingsManagerHDMIIn::HDMIInPort;
+        //using HDMIInSignalStatus = DeviceSettingsManagerHDMIIn::HDMIInSignalStatus;
+        using HDMIVideoPortResolution = DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution;
+        //using HDMIInAviContentType = DeviceSettingsManagerHDMIIn::HDMIInAviContentType;
 
         // Test sample ports
         HDMIInPort testPorts[] = {
@@ -518,15 +507,8 @@ namespace Plugin {
             HDMIInPort::DS_HDMI_IN_PORT_2
         };
 
-        // Get HDMI In interface from DeviceSettingsManager
-        Exchange::IDeviceSettingsManager::IHDMIIn* hdmiIn = nullptr;
-        if (_deviceSettingsManager) {
-            hdmiIn = _deviceSettingsManager->QueryInterface<Exchange::IDeviceSettingsManager::IHDMIIn>();
-            if (hdmiIn == nullptr) {
-                LOGINFO("Failed to get HDMI In interface");
-                return;
-            }
-        }
+        // Use HDMI In Manager interface directly
+        DeviceSettingsManagerHDMIIn* hdmiIn = _hdmiInManager;
 
         uint32_t result = 0;
         for (auto port : testPorts) {
@@ -538,30 +520,30 @@ namespace Plugin {
             LOGINFO("GetHDMIInNumbefOfInputs: result=%u, numInputs=%d", result, numInputs);
 
             // 2. Test GetHDMIInStatus
-            Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInStatus hdmiStatus;
-            Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInPortConnectionStatusIterator* portConnIter = nullptr;
+            DeviceSettingsManagerHDMIIn::HDMIInStatus hdmiStatus;
+            DeviceSettingsManagerHDMIIn::IHDMIInPortConnectionStatusIterator* portConnIter = nullptr;
             result = hdmiIn->GetHDMIInStatus(hdmiStatus, portConnIter);
             LOGINFO("GetHDMIInStatus: result=%u, isPresented=%d, activePort=%d", result, hdmiStatus.isPresented, static_cast<int>(hdmiStatus.activePort));
             if (portConnIter) portConnIter->Release();
 
             // 3. Test SelectHDMIInPort
-            result = hdmiIn->SelectHDMIInPort(port, true, true, Exchange::IDeviceSettingsManager::IHDMIIn::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+            result = hdmiIn->SelectHDMIInPort(port, true, true, DeviceSettingsManagerHDMIIn::DS_HDMIIN_VIDEOPLANE_PRIMARY);
             LOGINFO("SelectHDMIInPort: result=%u, port=%d", result, static_cast<int>(port));
 
             // 4. Test ScaleHDMIInVideo
-            Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVideoRectangle rect = {100, 100, 1920, 1080};
+            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle rect = {100, 100, 1920, 1080};
             result = hdmiIn->ScaleHDMIInVideo(rect);
             LOGINFO("ScaleHDMIInVideo: result=%u, x=%d, y=%d, w=%d, h=%d", result, rect.x, rect.y, rect.width, rect.height);
 
             // 5. Test GetSupportedGameFeaturesList
-            Exchange::IDeviceSettingsManager::IHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
+            DeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
             result = hdmiIn->GetSupportedGameFeaturesList(gameFeatureList);
             LOGINFO("GetSupportedGameFeaturesList: result=%u", result);
 
             // Print all game features from the iterator
             if (gameFeatureList && result == Core::ERROR_NONE) {
                 LOGINFO("Printing game features from iterator:");
-                Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInGameFeatureList currentFeature;
+                DeviceSettingsManagerHDMIIn::HDMIInGameFeatureList currentFeature;
                 uint32_t featureIndex = 0;
 
                 // Iterate through all features (iterator starts at beginning by default)
@@ -589,12 +571,12 @@ namespace Plugin {
             LOGINFO("GetHDMIInAVLatency: result=%u, videoLatency=%u, audioLatency=%u", result, videoLatency, audioLatency);
 
             // 7. Test GetHDMIVideoMode
-            Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution videoMode;
+            DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoMode;
             result = hdmiIn->GetHDMIVideoMode(videoMode);
             LOGINFO("GetHDMIVideoMode: result=%u, name=%s", result, videoMode.name.c_str());
 
             // 8. Test GetHDMIVersion
-            Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInCapabilityVersion capVersion;
+            DeviceSettingsManagerHDMIIn::HDMIInCapabilityVersion capVersion;
             result = hdmiIn->GetHDMIVersion(port, capVersion);
             LOGINFO("GetHDMIVersion: result=%u, version=%d", result, static_cast<int>(capVersion));
 
@@ -609,7 +591,7 @@ namespace Plugin {
             LOGINFO("GetHDMISPDInformation: result=%u", result);
 
             // 11. Test GetHDMIEdidVersion
-            Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInEdidVersion edidVersion;
+            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion edidVersion;
             result = hdmiIn->GetHDMIEdidVersion(port, edidVersion);
             LOGINFO("GetHDMIEdidVersion: result=%u, version=%d", result, static_cast<int>(edidVersion));
 
@@ -632,7 +614,7 @@ namespace Plugin {
             LOGINFO("SetHDMIInEdid2AllmSupport: result=%u", result);
 
             // 16. Test SelectHDMIZoomMode
-            result = hdmiIn->SelectHDMIZoomMode(Exchange::IDeviceSettingsManager::IHDMIIn::DS_HDMIIN_VIDEO_ZOOM_FULL);
+            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::DS_HDMIIN_VIDEO_ZOOM_FULL);
             LOGINFO("SelectHDMIZoomMode: result=%u", result);
 
             // 17. Test GetVRRSupport
@@ -645,7 +627,7 @@ namespace Plugin {
             LOGINFO("SetVRRSupport: result=%u", result);
 
             // 19. Test GetVRRStatus
-            Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRStatus vrrStatus;
+            DeviceSettingsManagerHDMIIn::HDMIInVRRStatus vrrStatus;
             result = hdmiIn->GetVRRStatus(port, vrrStatus);
             LOGINFO("GetVRRStatus: result=%u, vrrType=%d, framerate=%.2f", result, static_cast<int>(vrrStatus.vrrType), vrrStatus.vrrFreeSyncFramerateHz);
 
@@ -660,16 +642,13 @@ namespace Plugin {
         testResolution.name = "1920x1080p60";
         LOGINFO("Testing with resolution: %s", testResolution.name.c_str());
 
-        // Release the HDMI In interface
-        if (hdmiIn) {
-            hdmiIn->Release();
-        }
+        // No need to release _hdmiInManager as it's managed by the class
         
         LOGINFO("========== HDMI In Methods Testing Completed ==========");
     }
 
     // HDMI In Event Handler Implementations
-    void UserPlugin::OnHDMIInEventHotPlug(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool isConnected)
+    void UserPlugin::OnHDMIInEventHotPlug(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool isConnected)
     {
         LOGINFO("========== HDMI In Event: Hot Plug ==========");
         LOGINFO("OnHDMIInEventHotPlug: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
@@ -682,7 +661,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInEventSignalStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInSignalStatus signalStatus)
+    void UserPlugin::OnHDMIInEventSignalStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInSignalStatus signalStatus)
     {
         LOGINFO("========== HDMI In Event: Signal Status ==========");
         LOGINFO("OnHDMIInEventSignalStatus: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
@@ -702,7 +681,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInEventStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort activePort, const bool isPresented)
+    void UserPlugin::OnHDMIInEventStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort activePort, const bool isPresented)
     {
         LOGINFO("========== HDMI In Event: Status ==========");
         LOGINFO("OnHDMIInEventStatus: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
@@ -715,7 +694,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInVideoModeUpdate(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIVideoPortResolution videoPortResolution)
+    void UserPlugin::OnHDMIInVideoModeUpdate(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoPortResolution)
     {
         LOGINFO("========== HDMI In Event: Video Mode Update ==========");
         LOGINFO("OnHDMIInVideoModeUpdate: port=%d", static_cast<int>(port));
@@ -731,7 +710,7 @@ namespace Plugin {
         LOGINFO("Video mode changed on port %d to %s", static_cast<int>(port), videoPortResolution.name.c_str());
     }
 
-    void UserPlugin::OnHDMIInAllmStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const bool allmStatus)
+    void UserPlugin::OnHDMIInAllmStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool allmStatus)
     {
         LOGINFO("========== HDMI In Event: ALLM Status ==========");
         LOGINFO("OnHDMIInAllmStatus: port=%d, allmStatus=%s", static_cast<int>(port), allmStatus ? "enabled" : "disabled");
@@ -744,7 +723,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInAVIContentType(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInAviContentType aviContentType)
+    void UserPlugin::OnHDMIInAVIContentType(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInAviContentType aviContentType)
     {
         LOGINFO("========== HDMI In Event: AVI Content Type ==========");
         LOGINFO("OnHDMIInAVIContentType: port=%d, aviContentType=%d", static_cast<int>(port), static_cast<int>(aviContentType));
@@ -781,7 +760,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInVRRStatus(const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInPort port, const Exchange::IDeviceSettingsManager::IHDMIIn::HDMIInVRRType vrrType)
+    void UserPlugin::OnHDMIInVRRStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInVRRType vrrType)
     {
         LOGINFO("========== HDMI In Event: VRR Status ==========");
         LOGINFO("OnHDMIInVRRStatus: port=%d, vrrType=%d", static_cast<int>(port), static_cast<int>(vrrType));

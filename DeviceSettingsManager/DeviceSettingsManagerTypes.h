@@ -32,7 +32,8 @@
 #include <sys/types.h>
 #include <interfaces/IDeviceSettingsManager.h>
 
-//#define USE_LEGACY_INTERFACE
+#define USE_LEGACY_INTERFACE
+
 #ifdef USE_LEGACY_INTERFACE
 using DeviceSettingsManagerFPD            = WPEFramework::Exchange::IDeviceSettingsManagerFPD;
 using DeviceSettingsManagerHDMIIn         = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn;

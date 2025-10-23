@@ -290,7 +290,7 @@ DisplayInfo_L2Test::DisplayInfo_L2Test()
         .WillRepeatedly(::testing::Return(dsERR_NONE));
 
     /* Activate plugin in constructor */
-    status = ActivateService("DisplayInfo");
+    status = ActivateService("org.rdk.DisplayInfo");
     TEST_LOG("DisplayInfo service activation status: %u", status);
     EXPECT_EQ(Core::ERROR_NONE, status);
 }
@@ -303,7 +303,7 @@ DisplayInfo_L2Test::~DisplayInfo_L2Test()
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = DISPLAYINFOL2TEST_STATE_INVALID;
 
-    status = DeactivateService("DisplayInfo");
+    status = DeactivateService("org.rdk.DisplayInfo");
     EXPECT_EQ(Core::ERROR_NONE, status);
     TEST_LOG("DisplayInfo service deactivation status: %u", status);
 }
@@ -625,7 +625,7 @@ TEST_F(DisplayInfo_L2Test, DisplayInfoComRpc)
     }
     else
     {
-        mController_DisplayInfo = mClient_DisplayInfo->Open<PluginHost::IShell>(_T("DisplayInfo"), ~0, 3000);
+        mController_DisplayInfo = mClient_DisplayInfo->Open<PluginHost::IShell>(_T("org.rdk.DisplayInfo"), ~0, 3000);
         if (mController_DisplayInfo)
         {
             auto connectionProperties = mController_DisplayInfo->QueryInterface<Exchange::IConnectionProperties>();
@@ -708,7 +708,7 @@ TEST_F(DisplayInfo_L2Test, DisplayInfoNotification)
     }
     else
     {
-        mController_DisplayInfo = mClient_DisplayInfo->Open<PluginHost::IShell>(_T("DisplayInfo"), ~0, 3000);
+        mController_DisplayInfo = mClient_DisplayInfo->Open<PluginHost::IShell>(_T("org.rdk.DisplayInfo"), ~0, 3000);
         if (mController_DisplayInfo)
         {
             auto connectionProperties = mController_DisplayInfo->QueryInterface<Exchange::IConnectionProperties>();
@@ -764,7 +764,7 @@ TEST_F(DisplayInfo_L2Test, DisplayInfoInterfaceValidation)
     }
     else
     {
-        mController_DisplayInfo = mClient_DisplayInfo->Open<PluginHost::IShell>(_T("DisplayInfo"), ~0, 3000);
+        mController_DisplayInfo = mClient_DisplayInfo->Open<PluginHost::IShell>(_T("org.rdk.DisplayInfo"), ~0, 3000);
         if (mController_DisplayInfo)
         {
             // Validate all required interfaces are available

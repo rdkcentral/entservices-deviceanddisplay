@@ -29,17 +29,9 @@ find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 
-#find_package(DeepSleepHal)
-#find_package(MFR)
-#find_package(RFC)
-
 add_library(${MODULE_NAME} SHARED
     Module.cpp
     DeviceSettingsManager.cpp)
-
-#add_executable(${MODULE_NAME}
-#    Module.cpp
-#    DeviceSettingsManager.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
@@ -59,13 +51,6 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     fpd.cpp
     HdmiIn.cpp
 )
-
-#add_executable(${PLUGIN_IMPLEMENTATION}
-#    Module.cpp
-#    DeviceSettingsManagerImp.cpp
-#    fpd.cpp
-#    HdmiIn.cpp
-#)
 
 find_package(dshal)
 
@@ -126,16 +111,6 @@ target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_HAL_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DSHALSRV_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${OEMHAL_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
-
-#if(DEEPSLEEP_HAL_FOUND)
-#    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEEPSLEEP_HAL_INCLUDE_DIRS})
-#    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEEPSLEEP_HAL_LIBRARIES})
-#endif()
-
-#if (RFC_FOUND)
-#  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_LIBRARIES})
-#  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_INCLUDE_DIRS})
-#endif()
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE

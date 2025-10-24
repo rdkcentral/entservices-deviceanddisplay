@@ -18,15 +18,15 @@
  */
 #pragma once
 
-#include <cstdint>     // for uint32_t
-#include <memory>      // for unique_ptr, default_delete
-#include <string>      // for basic_string, string
-#include <type_traits> // for is_base_of
-#include <utility>     // for forward
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <utility>
 
-#include <core/Portability.h>         // for string, ErrorCodes
-#include <core/Proxy.h>               // for ProxyType
-#include <core/Trace.h>               // for ASSERT
+#include <core/Portability.h>
+#include <core/Proxy.h>
+#include <core/Trace.h>
 
 #include "UtilsLogging.h"
 #include <com/com.h>
@@ -61,13 +61,6 @@ public:
     };
 
 public:
-
-    // We do not allow this plugin to be copied !!
-    //FPD();
-
-    // Avoid copying this obj
-    //FPD(const FPD&) = delete;            // copy constructor
-    //FPD& operator=(const FPD&) = delete; // copy assignment operator
 
     void Platform_init();
 
@@ -107,8 +100,4 @@ public:
     }
 
     INotification& _parent;
-
-    //std::unique_ptr<IPlatform> _platform;
-    //Settings _settings;
-    //WPEFramework::Core::IWorkerPool& _workerPool;
 };

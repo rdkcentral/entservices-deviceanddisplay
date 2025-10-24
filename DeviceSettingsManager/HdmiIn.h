@@ -57,11 +57,7 @@ public:
             virtual void OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType) = 0;
             virtual void OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay) = 0;
             virtual void OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType) = 0;
-            //virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) = 0;
-            //virtual void onDeepSleepForThermalChange() = 0;
     };
-    // We do not allow this plugin to be copied !!
-    //HdmiIn();
 
     void Platform_init();
 

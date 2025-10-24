@@ -106,15 +106,8 @@ namespace Plugin
         ENTRY_LOG;
         if (mService != nullptr) {
             ASSERT(mService == service);
-            //mService->Unregister(&mNotificationSink);
             mService->Unregister(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
             mService->Unregister(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
-            /*if (_mDeviceSettingsManager != nullptr) {
-                _mDeviceSettingsManager->Unregister(&mNotificationSink);
-            }*/
-            /*if (_mDeviceSettingsManagerHDMIIn != nullptr) {
-                _mDeviceSettingsManagerHDMIIn->Unregister(&mNotificationSink);
-            }*/
 #ifdef USE_LEGACY_INTERFACE
             _mDeviceSettingsManagerFPD = nullptr;
 #else
@@ -131,8 +124,9 @@ namespace Plugin
     string DeviceSettingsManager::Information() const
     {
         ENTRY_LOG;
-        EXIT_LOG;
         // No additional info to report.
+        EXIT_LOG;
+
         return (string());
     }
 

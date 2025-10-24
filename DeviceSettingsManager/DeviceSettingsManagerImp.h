@@ -24,7 +24,7 @@
 #include <memory>
 #include <unordered_map>
 #include <chrono>
-#include <cstdint> // Ensure this is present for uint32_t
+#include <cstdint>
 
 #include <com/com.h>
 #include <core/core.h>

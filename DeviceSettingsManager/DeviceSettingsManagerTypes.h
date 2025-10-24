@@ -91,7 +91,6 @@ using FDPLEDState = DeviceSettingsManagerFPD::FDPLEDState;
 #define TVSETTINGS_DALS_RFC_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TvSettings.DynamicAutoLatency"
 #define RDK_DSHAL_NAME "libds-hal.so"
 
-// Common logging macros - use sparingly for debug only
 #ifdef DEBUG_LOGGING
 #define ENTRY_LOG do { LOGINFO("%d: Enter %s", __LINE__, __func__); } while(0);
 #define EXIT_LOG do { LOGINFO("%d: Exit %s", __LINE__, __func__); } while(0);
@@ -100,7 +99,6 @@ using FDPLEDState = DeviceSettingsManagerFPD::FDPLEDState;
 #define EXIT_LOG do { } while(0)
 #endif
 
-// Debug logging helpers - only active in DEBUG_LOGGING mode
 #ifdef DEBUG_LOGGING
 #define DEBUG_LOG(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
 #else
@@ -314,7 +312,6 @@ namespace device {
     };
 }
 
-// Device utilities (moved from deviceUtils.h)
 struct CallbackBundle {
     std::function<void(HDMIInPort, bool)> OnHDMIInHotPlugEvent;
     std::function<void(HDMIInPort, HDMIInSignalStatus)> OnHDMIInSignalStatusEvent;

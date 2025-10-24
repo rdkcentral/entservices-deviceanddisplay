@@ -431,7 +431,7 @@ public:
         ENTRY_LOG;
         profile_t profileType = searchRdkProfile();
         LOGINFO("setAllCallbacks: profileType %d", profileType);
-        if (!m_hdmiInInitialized) {
+        if (!m_hdmiInInitialized && m_hdmiInPlatInitialized) {
             LOGINFO("Trace - First time Initialization");
             if (PROFILE_TV == profileType)
             {
@@ -553,7 +553,7 @@ public:
 
     void getPersistenceValue() override
     {
-        if (!m_hdmiInInitialized) {
+        if (!m_hdmiInInitialized && m_hdmiInPlatInitialized) {
             int itr = 0;
             bool isARCCapable = false;
             for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {

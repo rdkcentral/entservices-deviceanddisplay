@@ -17,18 +17,16 @@
  * limitations under the License.
  */
 
-#include <functional> // for function
-#include <unistd.h>   // for access, F_OK
+#include <functional>
+#include <unistd.h>
 
-#include <core/IAction.h>    // for IDispatch
-#include <core/Time.h>       // for Time
-#include <core/WorkerPool.h> // for IWorkerPool, WorkerPool
+#include <core/IAction.h>
+#include <core/Time.h>
+#include <core/WorkerPool.h>
 
-#include "UtilsLogging.h"   // for LOGINFO, LOGERR
-#include "secure_wrapper.h" // for v_secure_system
+#include "UtilsLogging.h"
+#include "secure_wrapper.h"
 #include "fpd.h"
-
-// RPC function declarations removed - now using platform interface calls
 
 FPD::FPD(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
@@ -46,12 +44,7 @@ FPD::FPD(INotification& parent, std::shared_ptr<IPlatform> platform)
 void FPD::Platform_init()
 {
     ENTRY_LOG;
-
-    if (_platform) {
-    //this->platform().setAllCallbacks(bundle);
-    //this->platform().getPersistenceValue();
-    }
-
+    // Initialize FPD platform
     LOGINFO("FPD Init");
     EXIT_LOG;
 }
@@ -96,9 +89,6 @@ uint32_t FPD::GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &b
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetFPDTextBrightness(textDisplay, brightNess);
-    } else {
-        brightNess = 50; // Fallback value
-        result = WPEFramework::Core::ERROR_NONE;
     }
     EXIT_LOG;
     return result;
@@ -121,9 +111,6 @@ uint32_t FPD::GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) {
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetFPDTimeFormat(fpdTimeFormat);
-    } else {
-        fpdTimeFormat = FPDTimeFormat::DS_FPD_TIMEFORMAT_24_HOUR; // Fallback value
-        result = WPEFramework::Core::ERROR_NONE;
     }
     EXIT_LOG;
     return result;

@@ -22,15 +22,13 @@
 #include "UtilsLogging.h"
 #include <syscall.h>
 
-#include <type_traits>
-
 using namespace std;
 
 namespace WPEFramework {
 namespace Plugin {
 
     SERVICE_REGISTRATION(DeviceSettingsManagerImp, 1, 0);
-    //PLUGIN_REGISTRATION(DeviceSettingsManagerImp)
+
     DeviceSettingsManagerImp* DeviceSettingsManagerImp::_instance = nullptr;
 
     DeviceSettingsManagerImp::DeviceSettingsManagerImp()
@@ -39,9 +37,6 @@ namespace Plugin {
     {
         ENTRY_LOG;
         DeviceSettingsManagerImp::_instance = this;
-        LOGINFO("DeviceSettingsManagerImp Is abstract class: %d", std::is_abstract<DeviceSettingsManagerImp>::value);
-        DeviceManager_Init();
-        InitializeIARM();
         LOGINFO("DeviceSettingsManagerImp Constructor");
         EXIT_LOG;
     }
@@ -49,21 +44,6 @@ namespace Plugin {
     DeviceSettingsManagerImp::~DeviceSettingsManagerImp() {
         ENTRY_LOG;
         LOGINFO("DeviceSettingsManagerImp Destructor");
-        EXIT_LOG;
-    }
-
-    void DeviceSettingsManagerImp::DeviceManager_Init()
-    {
-        ENTRY_LOG;
-        //dsMgr_init();
-        //_dsFPInit(nullptr);
-        EXIT_LOG;
-    }
-
-    void DeviceSettingsManagerImp::InitializeIARM()
-    {
-        ENTRY_LOG;
-
         EXIT_LOG;
     }
 
@@ -148,6 +128,7 @@ namespace Plugin {
         EXIT_LOG;
         return errorCode;
     }
+
     Core::hresult DeviceSettingsManagerImp::Unregister(DeviceSettingsManagerFPD::INotification* notification)
     {
         ENTRY_LOG;
@@ -173,6 +154,7 @@ namespace Plugin {
         EXIT_LOG;
         return errorCode;
     }
+
     Core::hresult DeviceSettingsManagerImp::Unregister(DeviceSettingsManagerHDMIIn::INotification* notification)
     {
         ENTRY_LOG;
@@ -291,7 +273,6 @@ namespace Plugin {
         EXIT_LOG;
         return Core::ERROR_NONE;
     }
-    //Depricated
 
     Core::hresult DeviceSettingsManagerImp::SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) {
         ENTRY_LOG;
@@ -299,6 +280,14 @@ namespace Plugin {
         EXIT_LOG;
         return Core::ERROR_NONE;
     }
+
+    Core::hresult DeviceSettingsManagerImp::SetFPDMode(const FPDMode fpdMode) {
+        ENTRY_LOG;
+        LOGINFO("SetFPDMode: fpdMode=%d", fpdMode);
+        EXIT_LOG;
+        return Core::ERROR_NONE;
+    }
+    //Depricated
 
     Core::hresult DeviceSettingsManagerImp::SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist) {
         ENTRY_LOG;
@@ -368,13 +357,6 @@ namespace Plugin {
         _fpd.SetFPDColor(indicator, color);
         _apiLock.Unlock();
 
-        EXIT_LOG;
-        return Core::ERROR_NONE;
-    }
-
-    Core::hresult DeviceSettingsManagerImp::SetFPDMode(const FPDMode fpdMode) {
-        ENTRY_LOG;
-        LOGINFO("SetFPDMode: fpdMode=%d", fpdMode);
         EXIT_LOG;
         return Core::ERROR_NONE;
     }

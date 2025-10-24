@@ -17,22 +17,14 @@
  * limitations under the License.
  */
 
-//#include <functional> // for function
-//#include <unistd.h>   // for access, F_OK
+#include "UtilsLogging.h"
 
-//#include <core/IAction.h>    // for IDispatch
-//#include <core/Time.h>       // for Time
-//#include <core/WorkerPool.h> // for IWorkerPool, WorkerPool
-
-#include "UtilsLogging.h"   // for LOGINFO, LOGERR
-//#include "secure_wrapper.h" // for v_secure_system
 #include "HdmiIn.h"
 #include "DeviceSettingsManagerTypes.h"
 
 using IPlatform = hal::dHdmiIn::IPlatform;
 using DefaultImpl = dHdmiInImpl;
 
-// Out-of-line destructor for hal::dHdmiIn::IPlatform to ensure typeinfo symbol is generated
 #include "hal/dHdmiIn.h"
 namespace hal {
 namespace dHdmiIn {
@@ -44,14 +36,11 @@ HdmiIn::HdmiIn(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    // HDMI In service initialized
     Platform_init();
 }
 
 void HdmiIn::Platform_init()
 {
-    // Initialize HDMI In platform
-
     CallbackBundle bundle;
     bundle.OnHDMIInHotPlugEvent = [this](HDMIInPort port, bool isConnected) {
         this->OnHDMIInHotPlugEvent(port, isConnected);
@@ -139,9 +128,7 @@ uint32_t HdmiIn::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnection
 
     LOGINFO("GetHDMIInStatus");
     this->platform().GetHDMIInStatus(hdmiStatus, portConnectionStatus);
-    hdmiStatus.activePort = HDMIInPort::DS_HDMI_IN_PORT_0; // Example value
-    hdmiStatus.isPresented = true; // Example value
-    portConnectionStatus = nullptr; // Example value
+    portConnectionStatus = nullptr;
     EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
@@ -192,8 +179,6 @@ uint32_t HdmiIn::GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLaten
 
     LOGINFO("GetHDMIInAVLatency");
     this->platform().GetHDMIInAVLatency(videoLatency, audioLatency);
-    videoLatency = 10; // Example value
-    audioLatency = 5; // Example value
 
     EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;

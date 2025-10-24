@@ -142,7 +142,7 @@ namespace Plugin {
                 }
             }
             if (_firmwareVersion->Pdri(value) == Core::ERROR_NONE)
-			    response.Pdri = value;
+			    response.Pdri = std::move(value);
         }
 
         return result;

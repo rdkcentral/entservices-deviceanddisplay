@@ -56,8 +56,7 @@ namespace Plugin {
             param.bufLen = 0;
             param.type = type;
             
-            auto status = IARM_RESULT_INVALID_PARAM;
-            // IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+            auto status = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
             if ((status == IARM_RESULT_SUCCESS) && param.bufLen) {
                 response.assign(param.buffer, param.bufLen);
                 result = Core::ERROR_NONE;

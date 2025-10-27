@@ -176,7 +176,7 @@ namespace WPEFramework {
         string getModel()
         {
             FILE* pipe = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh %s", GET_STB_DETAILS_SCRIPT_READ_COMMAND);
-            LOGWARN("%s: opened pipe for command /lib/rdk/getDeviceDetails.sh, with result %s : %s\n",
+            LOGWARN("%s: opened pipe for command /lib/rdk/getDeviceDetails.sh, with result: %s\n",
                     __FUNCTION__ , pipe ? "success" : "failure");
             if (!pipe) {
                 LOGERR("%s: SERVICEMANAGER_FILE_ERROR: Can't open pipe for command /lib/rdk/getDeviceDetails.sh for read mode: %s\n"

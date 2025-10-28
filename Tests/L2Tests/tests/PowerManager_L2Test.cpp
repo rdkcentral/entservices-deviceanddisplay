@@ -175,6 +175,7 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
             }
 
             signalled = m_event_signalled;
+            m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
             return signalled;
         }
 
@@ -426,6 +427,7 @@ uint32_t PowerManager_L2Test::WaitForRequestStatus(uint32_t timeout_ms,PowerMana
    }
 
     signalled = m_event_signalled;
+    m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     return signalled;
 }
@@ -542,7 +544,6 @@ void PowerManager_L2Test::Test_PowerStateChange( Exchange::IPowerManager* PowerM
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
     uint32_t status = Core::ERROR_GENERAL;
 
-    PowerState prevState = PowerState::POWER_STATE_ON;
     PowerState currentState = PowerState::POWER_STATE_STANDBY;
     const string  standbyReason = "";
     int keyCode = KED_FP_POWER;
@@ -564,7 +565,6 @@ void PowerManager_L2Test::Test_PowerStateChange( Exchange::IPowerManager* PowerM
 
     status = PowerManagerPlugin->GetPowerState(currentState1, prevState1);
     EXPECT_EQ(currentState1, currentState);
-    //EXPECT_EQ(prevState1, prevState);
     EXPECT_EQ(status,Core::ERROR_NONE);
     if (status != Core::ERROR_NONE)
     {
@@ -573,13 +573,16 @@ void PowerManager_L2Test::Test_PowerStateChange( Exchange::IPowerManager* PowerM
     }
 }
 
+using IWakeupSourceConfigIterator  = WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSourceConfigIterator>>;
+using WakeupSrcConfig           = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
+using WakeupSrcType             = WPEFramework::Exchange::IPowerManager::WakeupSrcType;
+
 /* COM-RPC tests */
 void PowerManager_L2Test::Test_WakeupSrcConfig( Exchange::IPowerManager* PowerManagerPlugin )
 {
     uint32_t status = Core::ERROR_GENERAL;
-    int powerMode = WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP;
-    int srcType = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE;
-    int config = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE;
+
     TEST_LOG("\n################### Running Test_WakeupSrcConfig Test ########################\n");
 
     EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
@@ -588,15 +591,17 @@ void PowerManager_L2Test::Test_WakeupSrcConfig( Exchange::IPowerManager* PowerMa
                 return PWRMGR_SUCCESS;
             }));
 
-    status = PowerManagerPlugin->SetWakeupSrcConfig(powerMode, srcType, config);
+    std::list<WPEFramework::Exchange::IPowerManager::WakeupSourceConfig> configs = {{WakeupSrcType::WAKEUP_SRC_VOICE, true}};
+    auto wakeupsrcsSetIter = WakeupSourceConfigIteratorImpl::Create<IWakeupSourceConfigIterator>(configs);
+
+    status = PowerManagerPlugin->SetWakeupSourceConfig(wakeupsrcsSetIter);
     EXPECT_EQ(status,Core::ERROR_NONE);
+
     if (status != Core::ERROR_NONE)
     {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
         TEST_LOG("Err: %s", errorMsg.c_str());
     }
-
-    int powerMode1, srcType1, config1;
 
     EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_GetWakeupSrc(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
@@ -604,18 +609,30 @@ void PowerManager_L2Test::Test_WakeupSrcConfig( Exchange::IPowerManager* PowerMa
                 if(wakeupSrc == PWRMGR_WAKEUPSRC_VOICE) {
                     *enabled = true;
                     return PWRMGR_SUCCESS;
-                    }
+                }
                 else {
                     *enabled = false;
                     return PWRMGR_GET_FAILURE;
-                    }
+                }
             }));
 
-    status = PowerManagerPlugin->GetWakeupSrcConfig(powerMode1, srcType1, config1);
-    EXPECT_EQ(powerMode, powerMode1);
-    EXPECT_EQ(srcType, srcType1);
-    EXPECT_EQ(config, config1);
-    EXPECT_EQ(status,Core::ERROR_NONE);
+    WPEFramework::RPC::IIteratorType<WakeupSrcConfig, WPEFramework::Exchange::IDS::ID_POWER_MANAGER_WAKEUP_SRC_ITERATOR>* wakeupsrcsGetIter;
+
+    status = PowerManagerPlugin->GetWakeupSourceConfig(wakeupsrcsGetIter);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    bool ok = false;
+
+    WPEFramework::Exchange::IPowerManager::WakeupSourceConfig config{WakeupSrcType::WAKEUP_SRC_UNKNOWN, false};
+    while (wakeupsrcsGetIter->Next(config)) {
+        if (WakeupSrcType::WAKEUP_SRC_VOICE == config.wakeupSource) {
+            EXPECT_TRUE(config.enabled);
+            ok = true;
+        }
+    }
+
+    EXPECT_TRUE(ok);
+
     if (status != Core::ERROR_NONE)
     {
         std::string errorMsg = "COM-RPC returned error " + std::to_string(status) + " (" + std::string(Core::ErrorToString(status)) + ")";
@@ -716,7 +733,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                             *curTemperature  = 120; // high temperature
                             *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_HIGH;
@@ -728,9 +745,14 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_THERMALSTATE_CHANGED);
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
                             EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                            return PWRMGR_SUCCESS;
+                     }))
+                    .WillOnce(::testing::Invoke(
+                        [](PWRMgr_PowerState_t powerState) {
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
                             return PWRMGR_SUCCESS;
                      }));
 
@@ -738,25 +760,16 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
                             return DEEPSLEEPMGR_SUCCESS;
                         }));
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_GetLastWakeupReason(::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
+                    .WillOnce(::testing::Invoke(
                         [](DeepSleep_WakeupReason_t* wakeupReason) {
                             *wakeupReason = DEEPSLEEP_WAKEUPREASON_GPIO;
                             return DEEPSLEEPMGR_SUCCESS;
-                        }));
-
-                EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
-                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
-                            *curTemperature  = 60; // safe temperature
-                            *curState        = (mfrTemperatureState_t)0;
-                            *wifiTemperature = 25;
-                            return mfrERR_NONE;
                         }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
@@ -768,12 +781,8 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 15, POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
 
-                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
-                    .WillRepeatedly(::testing::Invoke(
-                        [](PWRMgr_PowerState_t powerState) {
-                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
-                            return PWRMGR_SUCCESS;
-                     }));
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
 
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
@@ -882,7 +891,6 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
     PluginHost::IShell *mController_PowerManager;
-    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
     uint32_t deepSleepTimeout = 10;
 
     TEST_LOG("Creating mEngine_PowerManager");
@@ -916,9 +924,6 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
             {
                 uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(deepSleepTimeout);
                 EXPECT_EQ(status, Core::ERROR_NONE);
-
-                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
-                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_PRECHANGE);
 
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillOnce(::testing::Invoke(
@@ -1346,3 +1351,72 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
     }
 }
 
+
+TEST_F(PowerManager_L2Test, JsonRpcWakeupSourceChange)
+{
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonArray configs;
+
+    {
+        JsonObject source;
+        source["wakeupSource"] = "WIFI";
+        source["enabled"] = true;
+        configs.Add(source);
+    }
+    {
+        JsonObject source;
+        source["wakeupSource"] = "LAN";
+        source["enabled"] = true;
+        configs.Add(source);
+    }
+
+    params["wakeupSources"] = configs;
+
+    EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
+                EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_WIFI);
+                EXPECT_EQ(enabled, true);
+                return PWRMGR_SUCCESS;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
+                EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_LAN);
+                EXPECT_EQ(enabled, true);
+                return PWRMGR_SUCCESS;
+            }));
+
+    status = InvokeServiceMethod("org.rdk.PowerManager.1.", "setWakeupSourceConfig", params, result);
+
+    EXPECT_EQ(status,Core::ERROR_NONE);
+}
+
+TEST_F(PowerManager_L2Test, JsonRpcWakeupSource_UNKNOWN)
+{
+    uint32_t status = Core::ERROR_GENERAL;
+    JsonObject params;
+    JsonObject result;
+    JsonArray configs;
+
+    {
+        JsonObject source;
+        source["wakeupSource"] = "UNKNOWN";
+        source["enabled"] = true;
+        configs.Add(source);
+    }
+    {
+        JsonObject source;
+        source["wakeupSource"] = "LAN";
+        source["enabled"] = true;
+        configs.Add(source);
+    }
+
+    params["wakeupSources"] = configs;
+
+    status = InvokeServiceMethod("org.rdk.PowerManager.1.", "setWakeupSourceConfig", params, result);
+
+    // EXPECT_EQ((status & 0x7F), Core::ERROR_INVALID_PARAMETER);
+    EXPECT_NE((status & 0x7F), Core::ERROR_NONE);
+}

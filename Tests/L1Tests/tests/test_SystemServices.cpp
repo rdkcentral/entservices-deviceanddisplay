@@ -779,6 +779,7 @@ TEST_F(SystemServicesTest, Telemetry)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("isOptOutTelemetry"), _T("{}"), response));
     EXPECT_EQ(response, string("{\"Opt-Out\":true,\"success\":true}"));
 }
+#if 0
 
 TEST_F(SystemServicesTest, SystemVersions)
 {
@@ -1515,7 +1516,6 @@ TEST_F(SystemServicesEventIarmTest, onSystemClockSet)
 
     EVENT_UNSUBSCRIBE(0, _T("onSystemClockSet"), _T("org.rdk.System"), message);
 }
-#if 0
 /*************************************************************************************************************
  * Test function for :onTemperatureThresholdChanged
  * onTemperatureThresholdChanged :

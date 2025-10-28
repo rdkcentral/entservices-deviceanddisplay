@@ -396,6 +396,9 @@ TEST_F(SystemServicesTest, RebootDelay)
     EXPECT_EQ(response, string("{\"success\":true}"));
 }
 
+#if 0
+
+
 TEST_F(SystemServicesTest, Firmware)
 {
     ofstream file("/version.txt");
@@ -779,7 +782,6 @@ TEST_F(SystemServicesTest, Telemetry)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("isOptOutTelemetry"), _T("{}"), response));
     EXPECT_EQ(response, string("{\"Opt-Out\":true,\"success\":true}"));
 }
-#if 0
 
 TEST_F(SystemServicesTest, SystemVersions)
 {

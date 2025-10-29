@@ -19,7 +19,7 @@
 
 #include "FirmwareVersion.h"
 #include "mfrMgr.h"
-#include "UtilsIarm.h"
+#include "mfrApi.h"
 
 #include <fstream>
 #include <regex>
@@ -90,13 +90,15 @@ namespace Plugin {
 
     Core::hresult FirmwareVersion::Imagename(string& imagename) const
     {
+        GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri);
         return GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename);
     }
-
+#if 0
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
         return (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri));
     }
+#endif
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const
     {

@@ -19,13 +19,10 @@
 
 #include "FirmwareVersion.h"
 #include "mfrMgr.h"
+#include "mfrApi.h"
 
 #include <fstream>
 #include <regex>
-
-extern "C" {
-#include <mfrApi.h>
-}
 
 namespace WPEFramework {
 namespace Plugin {

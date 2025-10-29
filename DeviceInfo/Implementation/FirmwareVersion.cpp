@@ -47,7 +47,7 @@ namespace Plugin {
 
             return result;
         }
-
+#if 0
         uint32_t GetMFRData(mfrSerializedType_t type, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
@@ -64,6 +64,24 @@ namespace Plugin {
                 TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
             }
 
+            return result;
+        }
+#endif
+        uint32_t GetMFRData(mfrSerializedType_t type, string& response)
+        {
+            uint32_t result = Core::ERROR_GENERAL;
+            int retVal = -1;
+            mfrSerializedData_t mfrSerializedData;
+            
+            retVal = mfrGetSerializedData(type, &mfrSerializedData);
+            if ((mfrERR_NONE == retVal) && mfrSerializedData.bufLen) {
+                response = mfrSerializedData.buf;
+                if (mfrSerializedData.freeBuf) {
+                    mfrSerializedData.freeBuf(mfrSerializedData.buf);
+                }
+                
+                return Core::ERROR_NONE;
+            }
             return result;
         }
     }

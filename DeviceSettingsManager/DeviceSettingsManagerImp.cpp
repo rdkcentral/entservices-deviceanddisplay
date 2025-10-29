@@ -37,13 +37,13 @@ namespace Plugin {
     {
         ENTRY_LOG;
         DeviceSettingsManagerImp::_instance = this;
-        LOGINFO("DeviceSettingsManagerImp Constructor");
+        LOGINFO("DeviceSettingsManagerImp Constructor - Instance Address: %p", this);
         EXIT_LOG;
     }
 
     DeviceSettingsManagerImp::~DeviceSettingsManagerImp() {
         ENTRY_LOG;
-        LOGINFO("DeviceSettingsManagerImp Destructor");
+        LOGINFO("DeviceSettingsManagerImp Destructor - Instance Address: %p", this);
         EXIT_LOG;
     }
 
@@ -81,16 +81,18 @@ namespace Plugin {
         uint32_t status = Core::ERROR_GENERAL;
         ENTRY_LOG;
         ASSERT(nullptr != notification);
-        _callbackLock.Lock();
 
+        _callbackLock.Lock();
         // Make sure we can't register the same notification callback multiple times
         if (std::find(list.begin(), list.end(), notification) == list.end()) {
             list.push_back(notification);
             notification->AddRef();
             status = Core::ERROR_NONE;
+        } else {
+            LOGWARN("Notification %p already registered - skipping", notification);
         }
-
         _callbackLock.Unlock();
+
         EXIT_LOG;
         return status;
     }

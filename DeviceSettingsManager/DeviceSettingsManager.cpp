@@ -62,6 +62,7 @@ namespace Plugin
         ASSERT(mConnectionId == 0);
 #ifdef USE_LEGACY_INTERFACE
         ASSERT(_mDeviceSettingsManagerFPD == nullptr);
+        ASSERT(_mDeviceSettingsManagerHDMIIn == nullptr);
 #else
         ASSERT(_mDeviceSettingsManager == nullptr);
 #endif
@@ -72,16 +73,29 @@ namespace Plugin
         mService->Register(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
 
 #ifdef USE_LEGACY_INTERFACE
+        // Get the primary interface to establish connection to a specific instance
         _mDeviceSettingsManagerFPD = service->Root<Exchange::IDeviceSettingsManagerFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
 
         if (_mDeviceSettingsManagerFPD == nullptr) {
             SYSLOG(Logging::Startup, (_T("DeviceSettingsManager::Initialize: Failed to initialise DeviceSettingsManager plugin")));
             message = _T("DeviceSettingsManager plugin could not be initialised");
-            LOGERR("Failed to get IDeviceSettingsManager interface");
+            LOGERR("Failed to get IDeviceSettingsManagerFPD interface");
         } else {
-            LOGINFO("DeviceSettingsManagerImp initialized successfully");
+            LOGINFO("DeviceSettingsManagerFPD interface obtained successfully");
+
+            // Use QueryInterface to get HDMI interface from the same object instance
+            _mDeviceSettingsManagerHDMIIn = _mDeviceSettingsManagerFPD->QueryInterface<Exchange::IDeviceSettingsManagerHDMIIn>();
+
+            if (_mDeviceSettingsManagerHDMIIn == nullptr) {
+                SYSLOG(Logging::Startup, (_T("DeviceSettingsManager::Initialize: Failed to query HDMI interface from same object")));
+                message = _T("DeviceSettingsManager HDMI interface could not be queried");
+                LOGERR("Failed to QueryInterface for IDeviceSettingsManagerHDMIIn from same object");
+            } else {
+                LOGINFO("DeviceSettingsManagerHDMIIn interface queried successfully");
+            }
         }
 #else
+        // Get the unified interface that provides both FPD and HDMI functionality
         _mDeviceSettingsManager = service->Root<Exchange::IDeviceSettingsManager>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsManagerImp"));
 
         if (_mDeviceSettingsManager == nullptr) {
@@ -110,6 +124,7 @@ namespace Plugin
             mService->Unregister(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
 #ifdef USE_LEGACY_INTERFACE
             _mDeviceSettingsManagerFPD = nullptr;
+            _mDeviceSettingsManagerHDMIIn = nullptr;
 #else
             _mDeviceSettingsManager = nullptr;
 #endif

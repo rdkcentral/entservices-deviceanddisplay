@@ -28,6 +28,7 @@
 #include <functional>
 #include <iostream>
 #include <cstring>
+
 #include "dHdmiIn.h"
 #include "dsHdmiIn.h"
 #include "dsError.h"
@@ -83,8 +84,9 @@ public:
 
     void InitialiseHAL()
     {
-        profile_t profileType = searchRdkProfile();
         getDynamicAutoLatencyConfig();
+        profile_t profileType = searchRdkProfile();
+
         if (PROFILE_TV == profileType)
         {
             if (!m_hdmiInPlatInitialized)
@@ -92,6 +94,8 @@ public:
                 dsError_t eError = dsHdmiInInit();
                 if (eError != dsERR_NONE) {
                     LOGERR("dsHdmiInInit failed: %d", eError);
+                } else {
+                    LOGINFO("dsHdmiInInit succeeded: %d", eError);
                 }
             }
             m_hdmiInPlatInitialized++;
@@ -432,7 +436,7 @@ public:
         profile_t profileType = searchRdkProfile();
         LOGINFO("setAllCallbacks: profileType %d", profileType);
         if (!m_hdmiInInitialized && m_hdmiInPlatInitialized) {
-            LOGINFO("Trace - First time Initialization");
+            LOGINFO("HdmiIn platform callback Initialization");
             if (PROFILE_TV == profileType)
             {
                 LOGINFO("setAllCallbacks: its TV Profile");
@@ -540,7 +544,7 @@ public:
                     if (!AVLatencyChangeCBFunc) {
                         AVLatencyChangeCBFunc = (dsHdmiInRegisterAVLatencyChangeCB_t)resolve(RDK_DSHAL_NAME, "dsHdmiInRegisterAVLatencyChangeCB");
                     }
-                    if (AVLatencyChangeCBFunc) {
+                    if (AVLatencyChangeCBFunc && isDalsEnabled) {
                         AVLatencyChangeCBFunc(DS_OnHDMIInAVLatencyEvent);
                     } else {
                         LOGERR("Failed to resolve dsHdmiInRegisterAVLatencyChangeCB");
@@ -686,7 +690,7 @@ public:
             LOGINFO("Value of isDalsEnabled = [ %d ]", isDalsEnabled);
         }
         else {
-            LOGERR("Fetching RFC for DALS failed or DALS is disabled");
+            LOGERR("Fetching RFC for DALS failed or DALS is disabled: %d", status);
         }
     }
 
@@ -761,7 +765,7 @@ public:
 
     static void DS_OnHDMIInStatusEvent(const dsHdmiInStatus_t status)
     {
-        LOGINFO("DS_OnHDMIInStatusEvent event Received: status=%d, isPresented=%s", status.activePort, status.isPresented ? "true" : "false");
+        LOGINFO("DS_OnHDMIInStatusEvent event Received: Port=%d, isPresented=%s", status.activePort, status.isPresented ? "true" : "false");
         
         if (g_HdmiInStatusCallback) {
             g_HdmiInStatusCallback(static_cast<HDMIInPort>(status.activePort), status.isPresented);

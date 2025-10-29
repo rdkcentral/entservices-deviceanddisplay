@@ -291,6 +291,7 @@ uint32_t HdmiIn::GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus)
     ENTRY_LOG;
 
     LOGINFO("GetVRRStatus: port=%d", port);
+    memset(&vrrStatus, 0, sizeof(vrrStatus));
     this->platform().GetVRRStatus(port, vrrStatus);
     LOGINFO("GetVRRStatus: port=%d, vrrType=%d", port, vrrStatus.vrrType);
 

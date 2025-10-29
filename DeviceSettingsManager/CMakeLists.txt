@@ -52,8 +52,6 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     HdmiIn.cpp
 )
 
-find_package(dshal)
-
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/../helpers
@@ -106,11 +104,8 @@ else (DS_FOUND)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 endif(DS_FOUND)
 
-target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_HAL_INCLUDE_DIRS})
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEVICE_HAL_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DSHALSRV_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${OEMHAL_LIBRARIES})
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE

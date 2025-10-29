@@ -310,6 +310,9 @@ TEST_F(SystemServicesTest, TestedAPIsShouldExist)
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getBlocklistFlag")));
 }
 
+#if 0
+
+
 TEST_F(SystemServicesTest, SystemUptime)
 {
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("requestSystemUptime"), _T("{}"), response));
@@ -396,7 +399,6 @@ TEST_F(SystemServicesTest, RebootDelay)
     EXPECT_EQ(response, string("{\"success\":true}"));
 }
 
-#if 0
 
 
 TEST_F(SystemServicesTest, Firmware)

@@ -45,6 +45,7 @@ target_include_directories(${MODULE_NAME} PRIVATE
         ${RFC_INCLUDE_DIRS}
         ${DS_INCLUDE_DIRS}
         ${IARMBUS_INCLUDE_DIRS}
+        ${IARMMGR_INCLUDE_DIRS}
         ../helpers)
 
 set_source_files_properties(

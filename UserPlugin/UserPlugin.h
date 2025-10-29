@@ -178,6 +178,19 @@ namespace WPEFramework
             void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay);
             void OnHDMIInVRRStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInVRRType vrrType);
 
+            // IARM API methods for direct DsMgr daemon communication
+            Core::hresult TestIARMHdmiInSelectPort(const int port, const bool requestAudioMix, const bool topMostPlane, const int videoPlaneType);
+            Core::hresult TestIARMHdmiInScaleVideo(const int x, const int y, const int width, const int height);
+            Core::hresult TestIARMGetAVLatency();
+            Core::hresult TestIARMGetAllmStatus(const int port);
+            Core::hresult TestIARMSetEdid2AllmSupport(const int port, const bool allmSupport);
+            Core::hresult TestIARMSetEdidVersion(const int port, const int edidVersion);
+            Core::hresult TestIARMHdmiInGetCurrentVideoMode();
+            Core::hresult TestIARMSetVRRSupport(const int port, const bool vrrSupport);
+            Core::hresult TestIARMGetVRRSupport(const int port);
+            void TestIARMHdmiInAPIs();
+            void TestIARMAdditionalAPIs();
+
             //  IPlugin methods
             // -------------------------------------------------------------------------------------------------------
             virtual const string Initialize(PluginHost::IShell *service) override;

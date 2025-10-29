@@ -28,6 +28,11 @@
 #include "exception.hpp"
 #include "manager.hpp"
 
+// IARM includes for direct DsMgr daemon communication
+#include "libIBus.h"
+#include "rdk/ds-rpc/dsRpc.h"
+#include "rdk/ds-rpc/dsMgr.h"
+
 #define API_VERSION_NUMBER_MAJOR 1
 #define API_VERSION_NUMBER_MINOR 1
 #define API_VERSION_NUMBER_PATCH 0
@@ -112,7 +117,7 @@ namespace Plugin {
         // Connect to HDMI In Manager interface
         _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerHDMIIn>("org.rdk.DeviceSettingsManager");
         ASSERT(_hdmiInManager != nullptr);
-        
+
         // Register for HDMI In notifications
         if (_hdmiInManager) {
             _hdmiInManager->Register(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
@@ -125,31 +130,13 @@ namespace Plugin {
         // Test HDMI In methods with sample values
         TestSpecificHDMIInAPIs();
 
+        // Test IARM APIs for direct DsMgr daemon communication
+        TestIARMHdmiInAPIs();
+
+        // Test additional IARM APIs (AV Latency, ALLM, EDID, VRR)
+        TestIARMAdditionalAPIs();
+
         Exchange::JUserPlugin::Register(*this, this);
-
-        /*try
-        {
-            //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
-            device::Manager::Initialize();
-            LOGINFO("device::Manager::Initialize success");
-        }
-        catch(...)
-        {
-            LOGINFO("device::Manager::Initialize failed");
-        }
- 
-        string portName = "HDMI0"; // Replace with the actual port name as needed
-
-        device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(portName);
-    
-    	if (aPort.getName().empty()) {
-            LOGERR("AudioOutputPort '%s' is not valid!", portName.c_str());
-        } else {
-            float volumeLevel;
-            volumeLevel = aPort.getLevel();
-//            GetVolumeLevel(portName, volumeLevel);
-            LOGINFO("Volume level for port %s: Vol Level[HDMI0] %f", portName.c_str(), volumeLevel);
-        }*/
 
         return (string());
     }
@@ -159,14 +146,14 @@ namespace Plugin {
         LOGINFO("Deinitialize");
 
         _powerManager->Release();
-        
+
         // Unregister and release FPD Manager
         if (_fpdManager) {
             _fpdManager->Release();
             _fpdManager = nullptr;
             LOGINFO("Successfully released FPD Manager interface");
         }
-        
+
         // Unregister HDMI In notifications and release HDMI In Manager
         if (_hdmiInManager) {
             _hdmiInManager->Unregister(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
@@ -289,7 +276,7 @@ namespace Plugin {
     void UserPlugin::TestFPDAPIs()
     {
         LOGINFO("========== FPD APIs Testing Framework ==========\n");
-        
+
         if (!_fpdManager) {
             LOGERR("FPD Manager interface is not available!");
             return;
@@ -317,7 +304,7 @@ namespace Plugin {
         for (size_t i = 0; i < sizeof(testIndicators)/sizeof(testIndicators[0]); i++) {
             auto indicator = testIndicators[i];
             const char* indicatorName = indicatorNames[i];
-            
+
             LOGINFO("---------- Testing FPD Indicator: %s ----------", indicatorName);
 
             // 1. Test GetFPDBrightness
@@ -376,7 +363,7 @@ namespace Plugin {
 
         // 7. Test SetFPDMode with different modes
         LOGINFO("---------- Testing FPD Mode Settings ----------");
-        
+
         Exchange::IDeviceSettingsManagerFPD::FPDMode testModes[] = {
             Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_ANY,
             Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_TEXT,
@@ -392,7 +379,7 @@ namespace Plugin {
         for (size_t i = 0; i < sizeof(testModes)/sizeof(testModes[0]); i++) {
             auto mode = testModes[i];
             const char* modeName = modeNames[i];
-            
+
             Core::hresult result = _fpdManager->SetFPDMode(mode);
             LOGINFO("SetFPDMode: mode=%s, result=%u", modeName, result);
         }
@@ -403,12 +390,12 @@ namespace Plugin {
         LOGINFO("---------- Testing FPD Brightness Range ----------");
         auto testIndicator = Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
         uint32_t brightnessValues[] = {0, 25, 50, 75, 100};
-        
+
         for (size_t i = 0; i < sizeof(brightnessValues)/sizeof(brightnessValues[0]); i++) {
             uint32_t brightness = brightnessValues[i];
             Core::hresult result = _fpdManager->SetFPDBrightness(testIndicator, brightness, true);
             LOGINFO("SetFPDBrightness: brightness=%u, result=%u", brightness, result);
-            
+
             uint32_t verifyBrightness = 0;
             result = _fpdManager->GetFPDBrightness(testIndicator, verifyBrightness);
             LOGINFO("GetFPDBrightness (verify): brightness=%u, result=%u", verifyBrightness, result);
@@ -428,7 +415,7 @@ namespace Plugin {
             0xFF00FF, // Magenta
             0x00FFFF  // Cyan
         };
-        
+
         const char* colorNames[] = {
             "Black",
             "White", 
@@ -443,10 +430,10 @@ namespace Plugin {
         for (size_t i = 0; i < sizeof(colorValues)/sizeof(colorValues[0]); i++) {
             uint32_t color = colorValues[i];
             const char* colorName = colorNames[i];
-            
+
             Core::hresult result = _fpdManager->SetFPDColor(testIndicator, color);
             LOGINFO("SetFPDColor: color=%s (0x%08X), result=%u", colorName, color, result);
-            
+
             uint32_t verifyColor = 0;
             result = _fpdManager->GetFPDColor(testIndicator, verifyColor);
             LOGINFO("GetFPDColor (verify): color=0x%08X, result=%u", verifyColor, result);
@@ -460,7 +447,7 @@ namespace Plugin {
     void UserPlugin::TestSpecificHDMIInAPIs()
     {
         LOGINFO("========== HDMI In APIs Testing Framework ==========\n");
-        
+
         if (!_hdmiInManager) {
             LOGERR("HDMI In Manager interface is not available!");
             return;
@@ -469,7 +456,7 @@ namespace Plugin {
         // Note: HDMI In APIs require a separate IHDMIIn interface that needs to be obtained
         // The specific methods listed in the requirement are part of the IHDMIIn sub-interface
         // This would require proper interface access pattern implementation
-        
+
         LOGINFO("DeviceSettingsManager available - HDMI In interface access needs implementation");
         LOGINFO("Required APIs for implementation:");
         LOGINFO("- GetHDMIInNumbefOfInputs");
@@ -491,7 +478,7 @@ namespace Plugin {
         LOGINFO("- SetVRRSupport");
         LOGINFO("- GetVRRSupport");
         LOGINFO("- GetVRRStatus");
-        
+
         LOGINFO("========== HDMI In API Framework Ready ==========");
 
         // Test all HDMI In methods with sample values
@@ -643,7 +630,7 @@ namespace Plugin {
         LOGINFO("Testing with resolution: %s", testResolution.name.c_str());
 
         // No need to release _hdmiInManager as it's managed by the class
-        
+
         LOGINFO("========== HDMI In Methods Testing Completed ==========");
     }
 
@@ -652,7 +639,7 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In Event: Hot Plug ==========");
         LOGINFO("OnHDMIInEventHotPlug: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
-        
+
         // Add your custom logic here
         if (isConnected) {
             LOGINFO("HDMI device connected on port %d", static_cast<int>(port));
@@ -665,10 +652,10 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In Event: Signal Status ==========");
         LOGINFO("OnHDMIInEventSignalStatus: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
-        
+
         // Add your custom logic here - using generic logging since exact enum values may vary
         LOGINFO("Signal status changed to %d on port %d", static_cast<int>(signalStatus), static_cast<int>(port));
-        
+
         // Add specific handling based on your interface definition
         if (static_cast<int>(signalStatus) == 0) {
             LOGINFO("No signal detected on port %d", static_cast<int>(port));
@@ -685,7 +672,7 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In Event: Status ==========");
         LOGINFO("OnHDMIInEventStatus: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
-        
+
         // Add your custom logic here
         if (isPresented) {
             LOGINFO("HDMI input is being presented on port %d", static_cast<int>(activePort));
@@ -705,7 +692,7 @@ namespace Plugin {
                 static_cast<int>(videoPortResolution.stereoScopicMode),
                 static_cast<int>(videoPortResolution.frameRate),
                 videoPortResolution.interlaced ? "true" : "false");
-        
+
         // Add your custom logic here
         LOGINFO("Video mode changed on port %d to %s", static_cast<int>(port), videoPortResolution.name.c_str());
     }
@@ -714,7 +701,7 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In Event: ALLM Status ==========");
         LOGINFO("OnHDMIInAllmStatus: port=%d, allmStatus=%s", static_cast<int>(port), allmStatus ? "enabled" : "disabled");
-        
+
         // Add your custom logic here
         if (allmStatus) {
             LOGINFO("Auto Low Latency Mode (ALLM) enabled on port %d", static_cast<int>(port));
@@ -727,10 +714,10 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In Event: AVI Content Type ==========");
         LOGINFO("OnHDMIInAVIContentType: port=%d, aviContentType=%d", static_cast<int>(port), static_cast<int>(aviContentType));
-        
+
         // Add your custom logic here - using generic logging since exact enum values may vary
         LOGINFO("AVI Content Type changed to %d on port %d", static_cast<int>(aviContentType), static_cast<int>(port));
-        
+
         // Add specific handling based on your interface definition
         if (static_cast<int>(aviContentType) == 0) {
             LOGINFO("AVI Content Type: Graphics on port %d", static_cast<int>(port));
@@ -749,10 +736,10 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In Event: AV Latency ==========");
         LOGINFO("OnHDMIInAVLatency: audioDelay=%d ms, videoDelay=%d ms", audioDelay, videoDelay);
-        
+
         // Add your custom logic here
         LOGINFO("Audio/Video latency updated - Audio: %d ms, Video: %d ms", audioDelay, videoDelay);
-        
+
         if (audioDelay != videoDelay) {
             LOGINFO("Audio/Video sync required - difference: %d ms", abs(audioDelay - videoDelay));
         } else {
@@ -764,10 +751,10 @@ namespace Plugin {
     {
         LOGINFO("========== HDMI In Event: VRR Status ==========");
         LOGINFO("OnHDMIInVRRStatus: port=%d, vrrType=%d", static_cast<int>(port), static_cast<int>(vrrType));
-        
+
         // Add your custom logic here - using generic logging since exact enum values may vary
         LOGINFO("VRR Type changed to %d on port %d", static_cast<int>(vrrType), static_cast<int>(port));
-        
+
         // Add specific handling based on your interface definition
         if (static_cast<int>(vrrType) == 0) {
             LOGINFO("VRR Type: None on port %d", static_cast<int>(port));
@@ -778,6 +765,275 @@ namespace Plugin {
         } else {
             LOGINFO("VRR Type: Unknown (%d) on port %d", static_cast<int>(vrrType), static_cast<int>(port));
         }
+    }
+
+    // IARM API implementations for direct DsMgr daemon communication
+    Core::hresult UserPlugin::TestIARMHdmiInSelectPort(const int port, const bool requestAudioMix, const bool topMostPlane, const int videoPlaneType)
+    {
+        dsHdmiInSelectPortParam_t param;
+        memset(&param, 0, sizeof(param));
+
+        // Set parameters and call IARM
+        param.port = static_cast<dsHdmiInPort_t>(port);
+        param.requestAudioMix = requestAudioMix;
+        param.topMostPlane = topMostPlane;
+        param.videoPlaneType = static_cast<dsVideoPlaneType_t>(videoPlaneType);
+
+        IARM_Result_t result = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsHdmiInSelectPort, &param, sizeof(param));
+
+        if (result == IARM_RESULT_SUCCESS && param.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsHdmiInSelectPort completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsHdmiInSelectPort call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    Core::hresult UserPlugin::TestIARMHdmiInScaleVideo(const int x, const int y, const int width, const int height)
+    {
+        dsHdmiInScaleVideoParam_t param;
+        memset(&param, 0, sizeof(param));
+
+        // Set video rectangle parameters and call IARM
+        param.videoRect.x = x;
+        param.videoRect.y = y;
+        param.videoRect.width = width;
+        param.videoRect.height = height;
+
+        IARM_Result_t result = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsHdmiInScaleVideo, &param, sizeof(param));
+
+        if (result == IARM_RESULT_SUCCESS && param.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsHdmiInScaleVideo completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsHdmiInScaleVideo call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    void UserPlugin::TestIARMHdmiInAPIs()
+    {
+        LOGINFO("=== IARM Basic HDMI Tests ===");
+
+        // Test port selection
+        TestIARMHdmiInSelectPort(0, true, true, 0);
+        sleep(1);
+        TestIARMHdmiInSelectPort(1, false, false, 1);
+        sleep(1);
+
+        // Test video scaling
+        TestIARMHdmiInScaleVideo(0, 0, 1920, 1080);
+        sleep(1);
+        TestIARMHdmiInScaleVideo(480, 270, 960, 540);
+        sleep(1);
+        TestIARMHdmiInScaleVideo(100, 100, 640, 360);
+
+        LOGINFO("=== IARM Basic Tests Complete ===");
+    }
+
+    // Additional IARM API implementations for advanced DsMgr daemon functionality
+    Core::hresult UserPlugin::TestIARMGetAVLatency()
+    {
+        dsTVAudioVideoLatencyParam_t param;
+        memset(&param, 0, sizeof(param));
+
+        IARM_Result_t result = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsGetAVLatency, &param, sizeof(param));
+
+        if (result == IARM_RESULT_SUCCESS && param.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsGetAVLatency completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsGetAVLatency call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    Core::hresult UserPlugin::TestIARMGetAllmStatus(const int port)
+    {
+        dsAllmStatusParam_t param;
+        memset(&param, 0, sizeof(param));
+        param.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+
+        IARM_Result_t result = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsGetAllmStatus, &param, sizeof(param));
+
+        if (result == IARM_RESULT_SUCCESS && param.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsGetAllmStatus Port complete");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsGetAllmStatus Port call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    Core::hresult UserPlugin::TestIARMSetEdid2AllmSupport(const int port, const bool allmSupport)
+    {
+        // Step 1: Get original ALLM support value
+        dsEdidAllmSupportParam_t getParam;
+        memset(&getParam, 0, sizeof(getParam));
+        getParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+
+        IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsGetAllmStatus, &getParam, sizeof(getParam));
+        bool originalValue = getParam.allmSupport;
+
+        // Step 2: Set new value
+        dsEdidAllmSupportParam_t setParam;
+        memset(&setParam, 0, sizeof(setParam));
+        setParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+        setParam.allmSupport = allmSupport;
+
+        IARM_Result_t setResult = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsSetEdid2AllmSupport, &setParam, sizeof(setParam));
+
+        // Step 3: Restore original value
+        dsEdidAllmSupportParam_t restoreParam;
+        memset(&restoreParam, 0, sizeof(restoreParam));
+        restoreParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+        restoreParam.allmSupport = originalValue;
+        IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsSetEdid2AllmSupport, &restoreParam, sizeof(restoreParam));
+
+        if (setResult == IARM_RESULT_SUCCESS && setParam.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsSetEdid2AllmSupport completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsSetEdid2AllmSupport call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    Core::hresult UserPlugin::TestIARMSetEdidVersion(const int port, const int edidVersion)
+    {
+        // Step 1: Get original EDID version (assume original = 1 if get fails)
+        int originalVersion = 1;
+
+        // Step 2: Set new version
+        dsEdidVersionParam_t setParam;
+        memset(&setParam, 0, sizeof(setParam));
+        setParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+        setParam.iEdidVersion = static_cast<tv_hdmi_edid_version_t>(edidVersion);
+
+        IARM_Result_t setResult = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsSetEdidVersion, &setParam, sizeof(setParam));
+
+        // Step 3: Restore original version
+        dsEdidVersionParam_t restoreParam;
+        memset(&restoreParam, 0, sizeof(restoreParam));
+        restoreParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+        restoreParam.iEdidVersion = static_cast<tv_hdmi_edid_version_t>(originalVersion);
+        IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsSetEdidVersion, &restoreParam, sizeof(restoreParam));
+
+        if (setResult == IARM_RESULT_SUCCESS && setParam.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsSetEdidVersion completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsSetEdidVersion call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    Core::hresult UserPlugin::TestIARMHdmiInGetCurrentVideoMode()
+    {
+        dsVideoPortResolution_t resolution;
+        memset(&resolution, 0, sizeof(resolution));
+
+        IARM_Result_t result = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsHdmiInGetCurrentVideoMode, &resolution, sizeof(resolution));
+
+        if (result == IARM_RESULT_SUCCESS) {
+            LOGINFO("SUCCESS dsHdmiInGetCurrentVideoMode completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsHdmiInGetCurrentVideoMode call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    Core::hresult UserPlugin::TestIARMSetVRRSupport(const int port, const bool vrrSupport)
+    {
+        // Step 1: Get original VRR support value
+        dsVRRSupportParam_t getParam;
+        memset(&getParam, 0, sizeof(getParam));
+        getParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+
+        IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsGetVRRSupport, &getParam, sizeof(getParam));
+        bool originalValue = getParam.vrrSupport;
+
+        // Step 2: Set new value
+        dsVRRSupportParam_t setParam;
+        memset(&setParam, 0, sizeof(setParam));
+        setParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+        setParam.vrrSupport = vrrSupport;
+
+        IARM_Result_t setResult = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsSetVRRSupport, &setParam, sizeof(setParam));
+
+        // Step 3: Restore original value
+        dsVRRSupportParam_t restoreParam;
+        memset(&restoreParam, 0, sizeof(restoreParam));
+        restoreParam.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+        restoreParam.vrrSupport = originalValue;
+        IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsSetVRRSupport, &restoreParam, sizeof(restoreParam));
+
+        if (setResult == IARM_RESULT_SUCCESS && setParam.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsSetVRRSupport completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsSetVRRSupport call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    Core::hresult UserPlugin::TestIARMGetVRRSupport(const int port)
+    {
+        dsVRRSupportParam_t param;
+        memset(&param, 0, sizeof(param));
+        param.iHdmiPort = static_cast<dsHdmiInPort_t>(port);
+
+        IARM_Result_t result = IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_dsGetVRRSupport, &param, sizeof(param));
+
+        if (result == IARM_RESULT_SUCCESS && param.result == dsERR_NONE) {
+            LOGINFO("SUCCESS dsGetVRRSupport completed");
+            return Core::ERROR_NONE;
+        } else {
+            LOGERR("FAILED dsGetVRRSupport call");
+            return Core::ERROR_GENERAL;
+        }
+    }
+
+    void UserPlugin::TestIARMAdditionalAPIs()
+    {
+        LOGINFO("=== IARM Advanced HDMI Tests ===");
+
+        // Test AV Latency
+        TestIARMGetAVLatency();
+        sleep(1);
+
+        // Test ALLM with get-set-restore pattern
+        TestIARMGetAllmStatus(0);
+        sleep(1);
+        TestIARMSetEdid2AllmSupport(0, true);  // Will restore original value
+        sleep(1);
+        TestIARMGetAllmStatus(0);
+        sleep(1);
+
+        // Test EDID Version with get-set-restore pattern
+        TestIARMSetEdidVersion(0, 1);  // Will restore original value
+        sleep(1);
+        TestIARMSetEdidVersion(1, 2);  // Will restore original value
+        sleep(1);
+
+        // Test Video Mode Info
+        TestIARMHdmiInGetCurrentVideoMode();
+        sleep(1);
+
+        // Test VRR with get-set-restore pattern
+        TestIARMGetVRRSupport(0);
+        sleep(1);
+        TestIARMSetVRRSupport(0, true);  // Will restore original value
+        sleep(1);
+        TestIARMGetVRRSupport(0);
+        sleep(1);
+        TestIARMSetVRRSupport(1, true);  // Will restore original value
+        sleep(1);
+        TestIARMGetVRRSupport(1);
+
+        LOGINFO("=== IARM Advanced Tests Complete ===");
     }
 
 } // namespace Plugin

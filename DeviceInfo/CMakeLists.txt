@@ -61,7 +61,7 @@ target_link_libraries(${MODULE_NAME}
         ${RFC_LIBRARIES}
         ${DS_LIBRARIES}
         ${IARMBUS_LIBRARIES}
-        RDKMfrLib)
+        ${MFR_LIBRARIES})
 
 install(TARGETS ${MODULE_NAME}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)

@@ -148,6 +148,7 @@ touch rdk/iarmbus/libIBus.h
 touch rdk/iarmbus/libIBusDaemon.h
 touch rdk/halif/deepsleep-manager/deepSleepMgr.h
 touch rdk/iarmmgrs-hal/mfrMgr.h
+touch rdk/iarmmgrs-hal/mfrApi.h
 touch rdk/iarmmgrs-hal/sysMgr.h
 touch network/wifiSrvMgrIarmIf.h
 touch network/netsrvmgrIarm.h

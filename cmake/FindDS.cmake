@@ -33,7 +33,6 @@ find_library(MFR_LIBRARIES NAMES RDKMfrLib)
 find_path(DS_INCLUDE_DIRS NAMES manager.hpp PATH_SUFFIXES rdk/ds)
 find_path(DSHAL_INCLUDE_DIRS NAMES dsTypes.h PATH_SUFFIXES rdk/halif/ds-hal)
 find_path(DSRPC_INCLUDE_DIRS NAMES dsMgr.h PATH_SUFFIXES rdk/ds-rpc)
-find_path(IARMMGR_INCLUDE_DIRS NAMES mfrApi.h PATH_SUFFIXES rdk/iarmmgrs/mfr)
 
 set(DS_LIBRARIES ${DS_LIBRARIES} ${DSHAL_LIBRARIES})
 set(DS_LIBRARIES ${DS_LIBRARIES} CACHE PATH "Path to DS library")

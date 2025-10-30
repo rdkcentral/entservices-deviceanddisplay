@@ -93,12 +93,11 @@ namespace Plugin {
        
         return GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, imagename);
     }
-#if 0
+
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
         return (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri));
     }
-#endif
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const
     {

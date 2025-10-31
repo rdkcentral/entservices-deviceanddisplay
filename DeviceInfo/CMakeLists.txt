@@ -27,6 +27,7 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_package(RFC)
 find_package(DS)
 find_package(IARMBus)
+find_package(MFR)
 
 add_library(${MODULE_NAME} SHARED
         DeviceInfo.cpp
@@ -61,7 +62,7 @@ target_link_libraries(${MODULE_NAME}
         ${RFC_LIBRARIES}
         ${DS_LIBRARIES}
         ${IARMBUS_LIBRARIES}
-        ${MFR_LIBRARY})
+        ${MFR_LIBRARIES})
 
 install(TARGETS ${MODULE_NAME}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)

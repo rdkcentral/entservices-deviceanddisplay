@@ -47,26 +47,15 @@ namespace Plugin {
 
             return result;
         }
-#if 0
-        uint32_t GetMFRData(mfrSerializedType_t type, string& response)
-        {
-            uint32_t result = Core::ERROR_GENERAL;
 
-            IARM_Bus_MFRLib_GetSerializedData_Param_t param;
-            param.bufLen = 0;
-            param.type = type;
-            
-            auto status = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
-            if ((status == IARM_RESULT_SUCCESS) && param.bufLen) {
-                response.assign(param.buffer, param.bufLen);
-                result = Core::ERROR_NONE;
-            } else {
-                TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
+        bool GetStringRegex(const string& input, const std::regex& regex) {
+            if ((std::regex_search(input, regex))) {
+                return true;
             }
 
-            return result;
+            return false;
         }
-#endif
+
         uint32_t GetMFRData(mfrSerializedType_t type, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
@@ -82,6 +71,7 @@ namespace Plugin {
                 
                 return Core::ERROR_NONE;
             }
+            
             return result;
         }
     }
@@ -95,7 +85,16 @@ namespace Plugin {
 
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
-        return (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri));
+        if (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri) == Core::ERROR_NONE) {
+            // Return empty for device which doesnt have PDRI image
+            if (GetStringRegex(pdri, std::regex("no/bad"))) {
+                pdri = "";  
+            }
+            
+            return Core::ERROR_NONE;
+        }
+        
+        return Core::ERROR_GENERAL;
     }
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const

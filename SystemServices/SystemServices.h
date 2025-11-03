@@ -226,6 +226,7 @@ namespace WPEFramework {
 #endif
                 pid_t m_uploadLogsPid;
                 std::mutex m_uploadLogsMutex;
+                std::mutex m_territoryMutex;
                 PowerManagerInterfaceRef _powerManagerPlugin;
                 Core::Sink<PowerManagerNotification> _pwrMgrNotification;
                 bool _registeredEventHandlers;
@@ -259,6 +260,7 @@ namespace WPEFramework {
 		std::string getStbBranchString();
                 bool makePersistentDir();
                 std::string retrieveModelNumber();
+                std::string safeExtractAfterColon(const std::string& inputLine);
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
                 void InitializeIARM();

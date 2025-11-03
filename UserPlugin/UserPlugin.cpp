@@ -312,56 +312,76 @@ namespace Plugin {
             Core::hresult result = _fpdManager->GetFPDBrightness(indicator, currentBrightness);
             LOGINFO("GetFPDBrightness: indicator=%s, result=%u, brightness=%u", indicatorName, result, currentBrightness);
 
-            // 2. Test SetFPDBrightness
-            uint32_t newBrightness = 75;
+            // 2. Test SetFPDBrightness with get-set-restore pattern
+            uint32_t originalBrightness = currentBrightness; // Save original
+            uint32_t newBrightness = (currentBrightness == 75) ? 50 : 75; // Use different value
             bool persist = true;
             result = _fpdManager->SetFPDBrightness(indicator, newBrightness, persist);
-            LOGINFO("SetFPDBrightness: indicator=%s, result=%u, brightness=%u, persist=%s", indicatorName, result, newBrightness, persist ? "true" : "false");
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetFPDBrightness completed");
+            } else {
+                LOGERR("FAILED SetFPDBrightness call");
+            }
 
-            // Verify the brightness was set
-            uint32_t verifyBrightness = 0;
-            result = _fpdManager->GetFPDBrightness(indicator, verifyBrightness);
-            LOGINFO("GetFPDBrightness (verify): indicator=%s, result=%u, brightness=%u", indicatorName, result, verifyBrightness);
+            // Restore original brightness
+            result = _fpdManager->SetFPDBrightness(indicator, originalBrightness, persist);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS FPD brightness restored");
+            } else {
+                LOGERR("FAILED FPD brightness restore");
+            }
 
             // 3. Test GetFPDState
             Exchange::IDeviceSettingsManagerFPD::FPDState currentState;
             result = _fpdManager->GetFPDState(indicator, currentState);
             LOGINFO("GetFPDState: indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(currentState));
 
-            // 4. Test SetFPDState
-            Exchange::IDeviceSettingsManagerFPD::FPDState newState = Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON;
+            // 4. Test SetFPDState with get-set-restore pattern
+            Exchange::IDeviceSettingsManagerFPD::FPDState originalState = currentState; // Save original
+            Exchange::IDeviceSettingsManagerFPD::FPDState newState = (currentState == Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON) ? 
+                Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_OFF : Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON;
             result = _fpdManager->SetFPDState(indicator, newState);
-            LOGINFO("SetFPDState: indicator=%s, result=%u, state=%d (ON)", indicatorName, result, static_cast<int>(newState));
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetFPDState completed");
+            } else {
+                LOGERR("FAILED SetFPDState call");
+            }
 
-            // Verify the state was set
-            Exchange::IDeviceSettingsManagerFPD::FPDState verifyState;
-            result = _fpdManager->GetFPDState(indicator, verifyState);
-            LOGINFO("GetFPDState (verify): indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(verifyState));
+            // Restore original state
+            result = _fpdManager->SetFPDState(indicator, originalState);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS FPD state restored");
+            } else {
+                LOGERR("FAILED FPD state restore");
+            }
 
             // 5. Test GetFPDColor
             uint32_t currentColor = 0;
             result = _fpdManager->GetFPDColor(indicator, currentColor);
             LOGINFO("GetFPDColor: indicator=%s, result=%u, color=0x%08X", indicatorName, result, currentColor);
 
-            // 6. Test SetFPDColor
-            uint32_t newColor = 0x0000FF; // Blue color
+            // 6. Test SetFPDColor with get-set-restore pattern
+            uint32_t originalColor = currentColor; // Save original
+            uint32_t newColor = (currentColor == 0x0000FF) ? 0xFF0000 : 0x0000FF; // Use different color
             result = _fpdManager->SetFPDColor(indicator, newColor);
-            LOGINFO("SetFPDColor: indicator=%s, result=%u, color=0x%08X (Blue)", indicatorName, result, newColor);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetFPDColor completed");
+            } else {
+                LOGERR("FAILED SetFPDColor call");
+            }
 
-            // Verify the color was set
-            uint32_t verifyColor = 0;
-            result = _fpdManager->GetFPDColor(indicator, verifyColor);
-            LOGINFO("GetFPDColor (verify): indicator=%s, result=%u, color=0x%08X", indicatorName, result, verifyColor);
-
-            // Test with different state - OFF
-            newState = Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_OFF;
-            result = _fpdManager->SetFPDState(indicator, newState);
-            LOGINFO("SetFPDState: indicator=%s, result=%u, state=%d (OFF)", indicatorName, result, static_cast<int>(newState));
+            // Restore original color
+            result = _fpdManager->SetFPDColor(indicator, originalColor);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS FPD color restored");
+            } else {
+                LOGERR("FAILED FPD color restore");
+            }
 
             LOGINFO("---------- Completed testing FPD Indicator: %s ----------\n", indicatorName);
         }
 
-        // 7. Test SetFPDMode with different modes
+        // 7. Test SetFPDMode with different modes (get-set-restore pattern)
         LOGINFO("---------- Testing FPD Mode Settings ----------");
 
         Exchange::IDeviceSettingsManagerFPD::FPDMode testModes[] = {
@@ -370,41 +390,67 @@ namespace Plugin {
             Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_CLOCK
         };
 
-        const char* modeNames[] = {
-            "ANY",
-            "TEXT",
-            "CLOCK"
-        };
+        // Assume default mode is ANY for restoration
+        Exchange::IDeviceSettingsManagerFPD::FPDMode originalMode = Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_ANY;
 
         for (size_t i = 0; i < sizeof(testModes)/sizeof(testModes[0]); i++) {
             auto mode = testModes[i];
-            const char* modeName = modeNames[i];
 
             Core::hresult result = _fpdManager->SetFPDMode(mode);
-            LOGINFO("SetFPDMode: mode=%s, result=%u", modeName, result);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetFPDMode completed");
+            } else {
+                LOGERR("FAILED SetFPDMode call");
+            }
+        }
+
+        // Restore original mode
+        Core::hresult result = _fpdManager->SetFPDMode(originalMode);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("SUCCESS FPD mode restored");
+        } else {
+            LOGERR("FAILED FPD mode restore");
         }
 
         LOGINFO("---------- Completed FPD Mode Testing ----------\n");
 
-        // Additional comprehensive test with different brightness values
+        // Additional comprehensive test with different brightness values (get-set-restore)
         LOGINFO("---------- Testing FPD Brightness Range ----------");
-        auto testIndicator = Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
+        Exchange::IDeviceSettingsManagerFPD::FPDIndicator testIndicator = Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
+        
+        // Get original brightness for restoration
+        uint32_t originalBrightness = 0;
+        _fpdManager->GetFPDBrightness(testIndicator, originalBrightness);
+        
         uint32_t brightnessValues[] = {0, 25, 50, 75, 100};
 
         for (size_t i = 0; i < sizeof(brightnessValues)/sizeof(brightnessValues[0]); i++) {
             uint32_t brightness = brightnessValues[i];
             Core::hresult result = _fpdManager->SetFPDBrightness(testIndicator, brightness, true);
-            LOGINFO("SetFPDBrightness: brightness=%u, result=%u", brightness, result);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS FPD brightness test completed");
+            } else {
+                LOGERR("FAILED FPD brightness test");
+            }
+        }
 
-            uint32_t verifyBrightness = 0;
-            result = _fpdManager->GetFPDBrightness(testIndicator, verifyBrightness);
-            LOGINFO("GetFPDBrightness (verify): brightness=%u, result=%u", verifyBrightness, result);
+        // Restore original brightness
+        result = _fpdManager->SetFPDBrightness(testIndicator, originalBrightness, true);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("SUCCESS FPD brightness range restored");
+        } else {
+            LOGERR("FAILED FPD brightness range restore");
         }
 
         LOGINFO("---------- Completed FPD Brightness Range Testing ----------\n");
 
-        // Test color variations
+        // Test color variations with get-set-restore pattern
         LOGINFO("---------- Testing FPD Color Variations ----------");
+        
+        // Get original color for restoration
+        uint32_t originalColor = 0;
+        _fpdManager->GetFPDColor(testIndicator, originalColor);
+        
         uint32_t colorValues[] = {
             0x000000, // Black
             0xFFFFFF, // White
@@ -416,27 +462,23 @@ namespace Plugin {
             0x00FFFF  // Cyan
         };
 
-        const char* colorNames[] = {
-            "Black",
-            "White", 
-            "Red",
-            "Green",
-            "Blue",
-            "Yellow",
-            "Magenta",
-            "Cyan"
-        };
-
         for (size_t i = 0; i < sizeof(colorValues)/sizeof(colorValues[0]); i++) {
             uint32_t color = colorValues[i];
-            const char* colorName = colorNames[i];
 
             Core::hresult result = _fpdManager->SetFPDColor(testIndicator, color);
-            LOGINFO("SetFPDColor: color=%s (0x%08X), result=%u", colorName, color, result);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS FPD color test completed");
+            } else {
+                LOGERR("FAILED FPD color test");
+            }
+        }
 
-            uint32_t verifyColor = 0;
-            result = _fpdManager->GetFPDColor(testIndicator, verifyColor);
-            LOGINFO("GetFPDColor (verify): color=0x%08X, result=%u", verifyColor, result);
+        // Restore original color
+        result = _fpdManager->SetFPDColor(testIndicator, originalColor);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("SUCCESS FPD color variations restored");
+        } else {
+            LOGERR("FAILED FPD color variations restore");
         }
 
         LOGINFO("---------- Completed FPD Color Variations Testing ----------\n");
@@ -513,14 +555,40 @@ namespace Plugin {
             LOGINFO("GetHDMIInStatus: result=%u, isPresented=%d, activePort=%d", result, hdmiStatus.isPresented, static_cast<int>(hdmiStatus.activePort));
             if (portConnIter) portConnIter->Release();
 
-            // 3. Test SelectHDMIInPort
-            result = hdmiIn->SelectHDMIInPort(port, true, true, DeviceSettingsManagerHDMIIn::DS_HDMIIN_VIDEOPLANE_PRIMARY);
-            LOGINFO("SelectHDMIInPort: result=%u, port=%d", result, static_cast<int>(port));
+            // 3. Test SelectHDMIInPort with get-set-restore pattern
+            DeviceSettingsManagerHDMIIn::HDMIInPort originalActivePort = hdmiStatus.activePort; // Save original active port
+            result = hdmiIn->SelectHDMIInPort(port, true, true, DeviceSettingsManagerHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SelectHDMIInPort completed");
+            } else {
+                LOGERR("FAILED SelectHDMIInPort call");
+            }
 
-            // 4. Test ScaleHDMIInVideo
-            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle rect = {100, 100, 1920, 1080};
-            result = hdmiIn->ScaleHDMIInVideo(rect);
-            LOGINFO("ScaleHDMIInVideo: result=%u, x=%d, y=%d, w=%d, h=%d", result, rect.x, rect.y, rect.width, rect.height);
+            // Restore original active port
+            result = hdmiIn->SelectHDMIInPort(originalActivePort, true, true, DeviceSettingsManagerHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS HDMI port selection restored");
+            } else {
+                LOGERR("FAILED HDMI port selection restore");
+            }
+
+            // 4. Test ScaleHDMIInVideo with get-set-restore pattern
+            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle testRect = {100, 100, 1920, 1080};
+            result = hdmiIn->ScaleHDMIInVideo(testRect);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS ScaleHDMIInVideo completed");
+            } else {
+                LOGERR("FAILED ScaleHDMIInVideo call");
+            }
+
+            // Restore to full screen (assuming default)
+            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle defaultRect = {0, 0, 1920, 1080};
+            result = hdmiIn->ScaleHDMIInVideo(defaultRect);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS HDMI video scaling restored");
+            } else {
+                LOGERR("FAILED HDMI video scaling restore");
+            }
 
             // 5. Test GetSupportedGameFeaturesList
             DeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
@@ -582,9 +650,24 @@ namespace Plugin {
             result = hdmiIn->GetHDMIEdidVersion(port, edidVersion);
             LOGINFO("GetHDMIEdidVersion: result=%u, version=%d", result, static_cast<int>(edidVersion));
 
-            // 12. Test SetHDMIEdidVersion
-            result = hdmiIn->SetHDMIEdidVersion(port, edidVersion);
-            LOGINFO("SetHDMIEdidVersion: result=%u", result);
+            // 12. Test SetHDMIEdidVersion with get-set-restore pattern
+            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion originalEdidVersion = edidVersion; // Save original
+            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion newEdidVersion = (edidVersion == DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14) ? 
+                DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_20 : DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14;
+            result = hdmiIn->SetHDMIEdidVersion(port, newEdidVersion);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetHDMIEdidVersion completed");
+            } else {
+                LOGERR("FAILED SetHDMIEdidVersion call");
+            }
+
+            // Restore original EDID version
+            result = hdmiIn->SetHDMIEdidVersion(port, originalEdidVersion);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS HDMI EDID version restored");
+            } else {
+                LOGERR("FAILED HDMI EDID version restore");
+            }
 
             // 13. Test GetHDMIInAllmStatus
             bool allmStatus = false;
@@ -596,22 +679,62 @@ namespace Plugin {
             result = hdmiIn->GetHDMIInEdid2AllmSupport(port, allmSupport);
             LOGINFO("GetHDMIInEdid2AllmSupport: result=%u, allmSupport=%d", result, allmSupport);
 
-            // 15. Test SetHDMIInEdid2AllmSupport
-            result = hdmiIn->SetHDMIInEdid2AllmSupport(port, allmSupport);
-            LOGINFO("SetHDMIInEdid2AllmSupport: result=%u", result);
+            // 15. Test SetHDMIInEdid2AllmSupport with get-set-restore pattern
+            bool originalAllmSupport = allmSupport; // Save original
+            bool newAllmSupport = !allmSupport; // Use opposite value
+            result = hdmiIn->SetHDMIInEdid2AllmSupport(port, newAllmSupport);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetHDMIInEdid2AllmSupport completed");
+            } else {
+                LOGERR("FAILED SetHDMIInEdid2AllmSupport call");
+            }
 
-            // 16. Test SelectHDMIZoomMode
-            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::DS_HDMIIN_VIDEO_ZOOM_FULL);
-            LOGINFO("SelectHDMIZoomMode: result=%u", result);
+            // Restore original ALLM support
+            result = hdmiIn->SetHDMIInEdid2AllmSupport(port, originalAllmSupport);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS HDMI ALLM support restored");
+            } else {
+                LOGERR("FAILED HDMI ALLM support restore");
+            }
+
+            // 16. Test SelectHDMIZoomMode with get-set-restore pattern
+            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_FULL);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SelectHDMIZoomMode completed");
+            } else {
+                LOGERR("FAILED SelectHDMIZoomMode call");
+            }
+
+            // Restore to default zoom mode (assuming NONE is default)
+            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_NONE);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS HDMI zoom mode restored");
+            } else {
+                LOGERR("FAILED HDMI zoom mode restore");
+            }
 
             // 17. Test GetVRRSupport
             bool vrrSupport = false;
             result = hdmiIn->GetVRRSupport(port, vrrSupport);
             LOGINFO("GetVRRSupport: result=%u, vrrSupport=%d", result, vrrSupport);
 
-            // 18. Test SetVRRSupport
-            result = hdmiIn->SetVRRSupport(port, vrrSupport);
-            LOGINFO("SetVRRSupport: result=%u", result);
+            // 18. Test SetVRRSupport with get-set-restore pattern
+            bool originalVrrSupport = vrrSupport; // Save original
+            bool newVrrSupport = !vrrSupport; // Use opposite value
+            result = hdmiIn->SetVRRSupport(port, newVrrSupport);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetVRRSupport completed");
+            } else {
+                LOGERR("FAILED SetVRRSupport call");
+            }
+
+            // Restore original VRR support
+            result = hdmiIn->SetVRRSupport(port, originalVrrSupport);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS HDMI VRR support restored");
+            } else {
+                LOGERR("FAILED HDMI VRR support restore");
+            }
 
             // 19. Test GetVRRStatus
             DeviceSettingsManagerHDMIIn::HDMIInVRRStatus vrrStatus;

@@ -49,7 +49,7 @@ namespace Plugin {
         }
 
         uint32_t GetMFRData(mfrSerializedType_t type, string& response)
-        
+        {
             uint32_t result = Core::ERROR_GENERAL;
             int retVal = -1;
             mfrSerializedData_t mfrSerializedData;

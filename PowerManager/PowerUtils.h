@@ -28,8 +28,4 @@ public:
     static const char* str(const WPEFramework::Exchange::IPowerManager::WakeupSrcType wakeupSrc);
 
     static WPEFramework::Exchange::IPowerManager::WakeupSrcType conv(const std::string& wakeupSrc);
-    static WPEFramework::Exchange::IPowerManager::PowerState convPowerState(const std::string& powerState);
-
-    static std::string readFromFile(const std::string& path);
-    static bool writeToFile(const std::string& path, const std::string& value);
 };

@@ -48,14 +48,6 @@ namespace Plugin {
             return result;
         }
 
-        bool GetStringRegex(const string& input, const std::regex& regex) {
-            if ((std::regex_search(input, regex))) {
-                return true;
-            }
-
-            return false;
-        }
-
         uint32_t GetMFRData(mfrSerializedType_t type, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
@@ -85,16 +77,7 @@ namespace Plugin {
 
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
-        if (GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri) == Core::ERROR_NONE) {
-            // Return empty for device which doesnt have PDRI image
-            if (GetStringRegex(pdri, std::regex("no/bad"))) {
-                pdri = "";  
-            }
-            
-            return Core::ERROR_NONE;
-        }
-        
-        return Core::ERROR_GENERAL;
+        return GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri);
     }
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const

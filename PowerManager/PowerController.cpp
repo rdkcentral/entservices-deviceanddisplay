@@ -101,6 +101,11 @@ void PowerController::init()
         _settings.SetPowerState(currentState);
         _settings.Save(m_settingsFile);
     } while (false);
+
+    if (access("/opt/simulateCrash", F_OK) == 0) {
+        LOGINFO("[TEST]  Simulating crash as /opt/simulateCrash file is present");
+        raise(SIGSEGV);
+    }
 }
 
 uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powerState, const std::string& reason)

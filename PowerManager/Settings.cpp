@@ -222,7 +222,36 @@ Settings Settings::Load(const std::string& path)
         close(fd);
     }
 
-    settings._powerStateBeforeReboot = settings._powerState;
+    std::string powerStateBeforeRebootFromRAM = util::readFromFile(kPowerStateBeforeRebootFilePath);
+    bool isValidPowerStateFromRAM = false;
+    if (!powerStateBeforeRebootFromRAM.empty()) {
+        PowerState tempPowerState = util::convPowerState(powerStateBeforeRebootFromRAM);
+        if (tempPowerState != PowerState::POWER_STATE_UNKNOWN) {
+            isValidPowerStateFromRAM = true;
+            settings._powerStateBeforeReboot = tempPowerState;
+            LOGINFO("PowerStateBeforeReboot retrieved from RAM[%s]", powerStateBeforeRebootFromRAM.c_str());
+        }
+        else {
+            LOGERR("Invalid PowerStateBeforeReboot was read from RAM[%s]", powerStateBeforeRebootFromRAM.c_str());
+        }
+    }
+
+    if (access("/opt/avoidCrashFix", F_OK) == 0) {
+        LOGINFO("[TEST] Avoiding crash fix as /opt/avoidCrashFix file is present");
+        isValidPowerStateFromRAM = false; // force to not use RAM value
+    }
+
+    if (false == isValidPowerStateFromRAM) {
+        settings._powerStateBeforeReboot = settings._powerState;
+        if (powerStateBeforeRebootFromRAM.empty()) {
+            if (util::writeToFile(kPowerStateBeforeRebootFilePath, util::str(settings._powerState))) {
+                LOGINFO("PowerStateBeforeReboot[%s] saved to RAM",util::str(settings._powerStateBeforeReboot));
+            }
+            else {
+                LOGERR("Failed to write PowerStateBeforeReboot[%s] to RAM",util::str(settings._powerStateBeforeReboot));
+            }
+        }
+    }
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {

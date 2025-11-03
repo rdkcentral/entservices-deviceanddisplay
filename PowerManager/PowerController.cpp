@@ -103,7 +103,8 @@ void PowerController::init()
     } while (false);
 
     if (access("/opt/simulateCrash", F_OK) == 0) {
-        LOGINFO("[TEST]  Simulating crash as /opt/simulateCrash file is present");
+        LOGINFO("[TEST] Crash will be Simulated as /opt/simulateCrash file is present and Removing the file ...");
+        v_secure_system("rm -rf /opt/simulateCrash");
         raise(SIGSEGV);
     }
 }

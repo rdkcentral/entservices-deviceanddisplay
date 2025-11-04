@@ -226,7 +226,8 @@ Settings Settings::Load(const std::string& path)
         settings.printDetails("RAM Settings Loaded");
         return settings;
     }
-
+    // updating powerStateBeforeReboot
+    settings._powerStateBeforeReboot = settings._powerState;
     if (0 != access(kRamSettingsFilePath, F_OK)) {
         LOGINFO("Creating RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
         settings.Save(kRamSettingsFilePath);
@@ -234,6 +235,7 @@ Settings Settings::Load(const std::string& path)
     else {
         LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
         Settings ramSettings = Settings::Load(kRamSettingsFilePath);
+        // Seems PowerManager starting again so using RAM value
         settings._powerStateBeforeReboot = ramSettings._powerStateBeforeReboot;
     }
 

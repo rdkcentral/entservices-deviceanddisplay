@@ -60,7 +60,7 @@ target_link_libraries(${MODULE_NAME}
         ${NAMESPACE}Definitions::${NAMESPACE}Definitions
         ${RFC_LIBRARIES}
         ${DS_LIBRARIES}
-        ${IARMBUS_LIBRARIES})   
+        ${IARMBUS_LIBRARIES})
 
 install(TARGETS ${MODULE_NAME}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)

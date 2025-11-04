@@ -52,7 +52,7 @@ namespace Plugin {
         {
             uint32_t result = Core::ERROR_GENERAL;
             int retVal = -1;
-            mfrSerializedData_t mfrSerializedData;
+            mfrSerializedData_t mfrSerializedData = {};
             
             retVal = mfrGetSerializedData(type, &mfrSerializedData);
             if ((mfrERR_NONE == retVal) && mfrSerializedData.bufLen) {

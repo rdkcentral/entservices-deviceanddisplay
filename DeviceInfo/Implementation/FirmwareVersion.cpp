@@ -18,8 +18,8 @@
 **/
 
 #include "FirmwareVersion.h"
-#include <mfrMgr.h>
-#include <mfrApi.h>
+#include "mfrMgr.h"
+#include "mfrApi.h"
 
 #include <fstream>
 #include <regex>
@@ -51,19 +51,19 @@ namespace Plugin {
         uint32_t GetMFRData(mfrSerializedType_t type, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
-            int retVal = -1;
-            mfrSerializedData_t mfrSerializedData = {};
             
-            retVal = mfrGetSerializedData(type, &mfrSerializedData);
-            if ((mfrERR_NONE == retVal) && mfrSerializedData.bufLen) {
-                response = mfrSerializedData.buf;
-                if (mfrSerializedData.freeBuf) {
-                    mfrSerializedData.freeBuf(mfrSerializedData.buf);
-                }
-                
-                return Core::ERROR_NONE;
+            IARM_Bus_MFRLib_GetSerializedData_Param_t param;
+            param.bufLen = 0;
+            param.type = type;
+
+            auto status = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
+            if ((status == IARM_RESULT_SUCCESS) && param.bufLen) {
+                response.assign(param.buffer, param.bufLen);
+                result = Core::ERROR_NONE;
+            } else {
+                TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
             }
-            
+
             return result;
         }
     }

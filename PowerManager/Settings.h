@@ -33,6 +33,7 @@ class Settings {
     using Timestamp = std::chrono::time_point<MonotonicClock>;
 
     static constexpr const char* kSettingsFilePath = "/opt/uimgr_settings.bin";
+    static constexpr const char* kRamSettingsFilePath = "/tmp/uimgr_settings.bin";
     static constexpr const int kDeepSleepTimeoutSec = 8 * 60 * 60; // 8 hours
 
     // Common header across all settings versions
@@ -89,7 +90,7 @@ public:
     inline uint32_t deepSleepTimeout() const { return _deepSleepTimeout; }
     inline bool nwStandbyMode() const { return _nwStandbyMode; }
 
-    std::string str() const;
+    void printDetails(const std::string& prefix) const;
 
 private:
     void initDefaults();

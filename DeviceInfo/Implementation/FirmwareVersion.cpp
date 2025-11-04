@@ -18,8 +18,8 @@
 **/
 
 #include "FirmwareVersion.h"
-#include "mfrMgr.h"
-#include "mfrApi.h"
+#include <mfrMgr.h>
+#include <mfrApi.h>
 
 #include <fstream>
 #include <regex>
@@ -77,7 +77,7 @@ namespace Plugin {
 
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
-        return GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri);
+        return GetMFRData(mfrSERIALIZED_TYPE_SOFTWAREVERSION, pdri);
     }
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const

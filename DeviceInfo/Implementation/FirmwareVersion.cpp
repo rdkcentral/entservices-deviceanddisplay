@@ -77,7 +77,7 @@ namespace Plugin {
 
     Core::hresult FirmwareVersion::Pdri(string& pdri) const
     {
-        return GetMFRData(mfrSERIALIZED_TYPE_SOFTWAREVERSION, pdri);
+        return GetMFRData(mfrSERIALIZED_TYPE_PDRIVERSION, pdri);
     }
 
     Core::hresult FirmwareVersion::Sdk(string& sdk) const

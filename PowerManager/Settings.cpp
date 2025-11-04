@@ -238,12 +238,6 @@ Settings Settings::Load(const std::string& path)
         // Seems PowerManager starting again so using RAM value
         settings._powerStateBeforeReboot = ramSettings._powerStateBeforeReboot;
     }
-
-    if (access("/opt/avoidCrashFix", F_OK) == 0) {
-        LOGINFO("[TEST] Avoiding crash fix as /opt/avoidCrashFix file is present");
-        settings._powerStateBeforeReboot = settings._powerState; // force to not use RAM value
-    }
-
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {

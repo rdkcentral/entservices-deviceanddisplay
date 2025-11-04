@@ -259,11 +259,11 @@ public:
             }
 
             if (!m_isPlatformInitialized) {
-                LOGINFO("Retrying power manager PLAT_INIT... (%d/20)", retryCount);
-                usleep(50000); // Sleep for 50ms before retrying
+                LOGINFO("Retrying power manager PLAT_INIT... (%d/25)", retryCount);
+                usleep(100000); // Sleep for 100ms before retrying
             }
         }
-        while ((!m_isPlatformInitialized) && (retryCount++ < 20));
+        while ((!m_isPlatformInitialized) && (retryCount++ < 25));
     }
 
     virtual ~PowerImpl()

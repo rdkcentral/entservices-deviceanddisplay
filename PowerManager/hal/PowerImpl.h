@@ -19,6 +19,7 @@
 #pragma once
 
 #include <cstdint>
+#include <unistd.h>
 
 #include "plat_power.h"
 
@@ -230,15 +231,39 @@ class PowerImpl : public hal::power::IPlatform {
 
         return retCode;
     }
+private:
+    bool m_isPlatformInitialized;
 
 public:
     PowerImpl()
     {
-        // Initialize the platform
-        pmStatus_t result = PLAT_INIT();
-        if (PWRMGR_SUCCESS != result) {
-            LOGERR("Failed to initialize power manager: %s", str(result));
+        pmStatus_t result = PWRMGR_SUCCESS;
+        unsigned int retryCount = 1;
+        m_isPlatformInitialized = false;
+        do {
+            try{
+                // Initialize the platform
+                result = PLAT_INIT();
+                if (PWRMGR_SUCCESS != result) {
+                    LOGERR("Failed to initialize power manager:[%s]", str(result));
+                } else {
+                    m_isPlatformInitialized = true;
+                    LOGINFO("PowerManager initialized successfully.");
+                }
+            }
+            catch (const std::exception& e) {
+                LOGERR("Exception occurred during PLAT_INIT:[%s]", e.what());
+            }
+            catch (...) {
+                LOGERR("Unknown exception occurred during PLAT_INIT");
+            }
+
+            if (!m_isPlatformInitialized) {
+                LOGINFO("Retrying power manager PLAT_INIT... (%d/35)", retryCount);
+                usleep(100000); // Sleep for 100ms before retrying
+            }
         }
+        while ((!m_isPlatformInitialized) && (retryCount++ < 35));
     }
 
     virtual ~PowerImpl()

@@ -28,7 +28,7 @@ class TestPowerManagerSettings : public ::testing::TestWithParam<PowerManagerSet
 
 public:
     TestPowerManagerSettings()
-        : _settingsFile("/tmp/uimgr_settings.bin")
+        : _settingsFile("/tmp/test_uimgr_settings.bin")
     {
     }
 
@@ -42,6 +42,7 @@ public:
 
         if(0!=system(rmCmd.c_str())){/* do nothig */}
         if(0!=system("rm -f /tmp/pwrmgr_restarted")){/* do nothig */}
+        if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
     }
 
     void populateSettingsV1(PowerState prevState, uint32_t deepSleepTimeout, bool nwStandbyMode)
@@ -73,12 +74,23 @@ TEST_F(TestPowerManagerSettings, Empty)
     EXPECT_EQ(settings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
     EXPECT_EQ(settings.deepSleepTimeout(), 8U * 60U * 60U); // 8 hours
     EXPECT_EQ(settings.nwStandbyMode(), false);
+
+    int ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
+
+    settings.SetPowerState(PowerState::POWER_STATE_STANDBY);
+    settings.Save(_settingsFile);
+
+    Settings ramsettings = Settings::Load(_settingsFile);
+    // Last PowerState is ON while boot
+    EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
 }
 
 TEST_P(TestPowerManagerSettings, AllTests)
 {
     const auto& param = GetParam();
 
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
     populateSettingsV1(param.powerState, param.deepSleepTimeout, param.nwStandbyMode);
 
     if (param.restart) {
@@ -88,6 +100,7 @@ TEST_P(TestPowerManagerSettings, AllTests)
         }
     }
 
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
     Settings settings = Settings::Load(_settingsFile);
 
     EXPECT_EQ(settings.powerState(), param.powerStateEx);

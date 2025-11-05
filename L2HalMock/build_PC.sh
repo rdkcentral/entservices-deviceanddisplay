@@ -500,6 +500,12 @@ echo -e "${GREEN}========================================Build power-manager====
 cd $WORKSPACE/deps/rdk/
 git clone git@github.com:rdkcentral/power-manager.git
 
+echo -e "${GREEN}========================================Build deepsleep_manager===============================================${NC}"
+cd $WORKSPACE/deps/rdk/
+git clone git@github.com:rdkcentral/rdk-halif-deepsleep_manager.git
+sudo cp $WORKSPACE/deps/rdk/rdk-halif-deepsleep_manager/include/deepSleepMgr.h $INCLUDE_DIR
+sudo cp $WORKSPACE/deps/rdk/iarmmgrs/sysmgr/include/sysMgr.h $INCLUDE_DIR
+
 echo -e "${GREEN}========================================Build act-hdmicec===============================================${NC}"
 cd $WORKSPACE/deps/rdk/
 rm -rf act-hdmicec
@@ -528,11 +534,11 @@ if grep -q "HdmiCecSource" <<< "$SelectedPlugins"; then
 sudo cp $SCRIPTS_DIR/patches/rdkservices/properties/HdmiCecSource/device.properties /etc/
 fi
 
-cd $WORKSPACE/
-#Run time dependency 
-mkdir -p $WORKSPACE/install/etc/WPEFramework/plugins
-cp $SCRIPTS_DIR/patches/rdkservices/files/HdmiCecSource.json $WORKSPACE/install/etc/WPEFramework/plugins/
-cp $SCRIPTS_DIR/patches/rdkservices/files/HdmiCecSink.json $WORKSPACE/install/etc/WPEFramework/plugins/
+# cd $WORKSPACE/
+# #Run time dependency 
+# mkdir -p $WORKSPACE/install/etc/WPEFramework/plugins
+# cp $SCRIPTS_DIR/patches/rdkservices/files/HdmiCecSource.json $WORKSPACE/install/etc/WPEFramework/plugins/
+# cp $SCRIPTS_DIR/patches/rdkservices/files/HdmiCecSink.json $WORKSPACE/install/etc/WPEFramework/plugins/
 
 #included CmakeHelperFunctions.cmake instead to during in CMakeLists.txt
 sudo cp ${WORKSPACE}/install/usr/lib/cmake/WPEFramework/common/CmakeHelperFunctions.cmake $WORKSPACE/install/usr/include/WPEFramework/Modules
@@ -553,8 +559,7 @@ cmake -S . -B build \
 -DCEC_INCLUDE_DIRS="$SCRIPTS_DIR/workspace/deps/rdk/hdmicec/ccec/include" \
 -DRDK_SERVICE_L2HALMOCK=ON \
 -DUSE_THUNDER_R4=ON \
--DPLUGIN_HDMICECSOURCE=ON \
--DPLUGIN_HDMICECSINK=OFF \
+-DPLUGIN_POWERMANAGER=ON \
 -DCOMCAST_CONFIG=OFF \
 -DCEC_INCLUDE_DIRS="$SCRIPTS_DIR/workspace/deps/rdk/hdmicec/ccec/include" \
 -DOSAL_INCLUDE_DIRS="$SCRIPTS_DIR/workspace/deps/rdk/hdmicec/osal/include" \

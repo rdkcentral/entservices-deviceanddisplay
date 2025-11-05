@@ -533,6 +533,7 @@ namespace WPEFramework {
             registerMethod("setBlocklistFlag", &SystemServices::setBlocklistFlag, this);
             registerMethod("getBlocklistFlag", &SystemServices::getBlocklistFlag, this);
             registerMethod("getBootTypeInfo", &SystemServices::getBootTypeInfo, this);
+            registerMethod("getBuildType", &SystemServices::getBuildType, this);
 	    registerMethod("setMigrationStatus", &SystemServices::setMigrationStatus, this);
             registerMethod("getMigrationStatus", &SystemServices::getMigrationStatus, this);
             registerMethod("setWakeupSrcConfiguration", &SystemServices::setWakeupSrcConfiguration, this);
@@ -549,7 +550,6 @@ namespace WPEFramework {
             registerMethod("getStoreDemoLink", &SystemServices::getStoreDemoLink, this);
 #endif
             registerMethod("getPowerStateIsManagedByDevice", &SystemServices::getPowerStateIsManagedByDevice, this);
-            registerMethod("getBuildType", &SystemServices::getBuildType, this);
             registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
 	        registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
             registerMethod("getPreviousRebootInfo",
@@ -5352,7 +5352,6 @@ namespace WPEFramework {
 	    return (status ? static_cast<uint32_t>(WPEFramework::Core::ERROR_NONE) : static_cast<uint32_t>(ERROR_FILE_IO));
 	}//end of getBootTypeInfo method
 
-#if 0
         /**
          * @brief : API to query BuildType details
          *
@@ -5382,7 +5381,6 @@ namespace WPEFramework {
             }
             returnResponse(result);
         }//end of getBuildType method
-#endif
 
 	/*
          * @brief This function tells the Migration Status of the device.

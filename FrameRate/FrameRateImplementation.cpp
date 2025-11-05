@@ -230,6 +230,16 @@ namespace WPEFramework
             {
                 LOG_DEVICE_EXCEPTION0();
             }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
+            }
 
             return Core::ERROR_GENERAL;
         }
@@ -266,6 +276,16 @@ namespace WPEFramework
             catch(const device::Exception& err)
             {
                 LOG_DEVICE_EXCEPTION0();
+            }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
             }
             return Core::ERROR_GENERAL;
         }
@@ -342,6 +362,16 @@ namespace WPEFramework
             {
                 LOG_DEVICE_EXCEPTION0();
             }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
+            }
             return Core::ERROR_GENERAL;
         }
 
@@ -381,6 +411,16 @@ namespace WPEFramework
             catch (const device::Exception& err)
             {
                 LOG_DEVICE_EXCEPTION0();
+            }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
             }
             return Core::ERROR_GENERAL;
         }

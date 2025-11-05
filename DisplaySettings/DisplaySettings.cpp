@@ -205,29 +205,6 @@ namespace WPEFramework {
                 }
                 return result;
             }
-            uint32_t activate(PluginHost::IShell* shell, const string& callsign)
-            {
-                uint32_t result = Core::ERROR_ASYNC_FAILED;
-                Core::Event event(false, true);
-#ifndef USE_THUNDER_R4
-                Core::IWorkerPool::Instance().Submit(Core::ProxyType<Core::IDispatchType<void>>(Core::ProxyType<Job>::Create([&]() {
-#else
-                Core::IWorkerPool::Instance().Submit(Core::ProxyType<Core::IDispatch>(Core::ProxyType<Job>::Create([&]() {
-#endif /* USE_THUNDER_R4 */
-                    auto interface = shell->QueryInterfaceByCallsign<PluginHost::IShell>(callsign);
-                    if (interface == nullptr) {
-                        result = Core::ERROR_UNAVAILABLE;
-                        std::cout << "no IShell for " << callsign << std::endl;
-                    } else {
-                        result = interface->Activate(PluginHost::IShell::reason::REQUESTED);
-                        std::cout << "IShell activate status " << result << " for " << callsign << std::endl;
-                        interface->Release();
-                    }
-                    event.SetEvent();
-                })));
-                event.Lock();
-                return result;
-            }
         }
 
         SERVICE_REGISTRATION(DisplaySettings, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
@@ -920,6 +897,14 @@ namespace WPEFramework {
             {
                 LOG_DEVICE_EXCEPTION0();
             }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+            }
             setResponseArray(response, "supportedSettopResolutions", supportedSettopResolutions);
             returnResponse(true);
         }
@@ -1044,6 +1029,16 @@ namespace WPEFramework {
                 LOG_DEVICE_EXCEPTION0();
                 success = false;
             }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
+            }
 #ifdef USE_IARM
             zoomSetting = iarm2svc(zoomSetting);
 #endif
@@ -1077,6 +1072,16 @@ namespace WPEFramework {
             catch(const device::Exception& err)
             {
                 LOG_DEVICE_EXCEPTION1(zoomSetting);
+                success = false;
+            }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
                 success = false;
             }
             returnResponse(success);
@@ -1693,6 +1698,14 @@ namespace WPEFramework {
                 catch(const device::Exception& err)
                 {
                     LOG_DEVICE_EXCEPTION0();
+                }
+                catch(const std::exception& err)
+                {
+                    LOGERR("exception: %s", err.what());
+                }
+                catch(...)
+                {
+                    LOGWARN("Unknown exception occurred");
                 }
 		stbHDRcapabilitiesCache = capabilities;
 		isStbHDRcapabilitiesCache = true;
@@ -5022,24 +5035,7 @@ void DisplaySettings::sendMsgThread()
             // lock to prevent: parallel onTimer runs, destruction during onTimer
             lock_guard<mutex> lck(m_callMutex);
 
-            bool isPluginActivated = false;
-
             PluginHost::IShell::state state;
-            if ((getServiceState(m_service, HDMICECSINK_CALLSIGN, state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED)) {
-                LOGINFO("%s is active", HDMICECSINK_CALLSIGN);
-                isPluginActivated = true;
-            }
-
-            if (!isPluginActivated) {
-                /*HDMICECSINK_CALLSIGN plugin activation moved to onTimer.
-                 *To decouple from displyasettings init. Since its time taking*/
-
-                activate(m_service, HDMICECSINK_CALLSIGN);
-
-                LOGWARN ("DisplaySettings::onTimer after activatePlugin HDMICECSINK_CALLSIGN line:%d", __LINE__);
-                sleep(HDMICECSINK_PLUGIN_ACTIVATION_TIME);
-            }
-
             bool pluginActivated = false;
 
             if ((getServiceState(m_service, HDMICECSINK_CALLSIGN, state) == Core::ERROR_NONE) && (state == PluginHost::IShell::state::ACTIVATED)) {
@@ -5568,6 +5564,16 @@ void DisplaySettings::sendMsgThread()
             catch(const device::Exception& err)
             {
                 LOG_DEVICE_EXCEPTION0();
+                return videoFormats;
+            }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                return videoFormats;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
                 return videoFormats;
             }
 

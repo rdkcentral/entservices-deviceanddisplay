@@ -1599,13 +1599,6 @@ TEST_F(TestPowerManager, EnableWakeOnLAN)
     EXPECT_EQ(status, Core::ERROR_NONE);
 };
 
-TEST_F(TestPowerManager, SystemMode)
-{
-    // dummy test only for coverage
-    auto status = powerManagerImpl->SetSystemMode(Exchange::IPowerManager::SystemMode::SYSTEM_MODE_NORMAL, Exchange::IPowerManager::SystemMode::SYSTEM_MODE_EAS);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-}
-
 TEST_F(TestPowerManager, TemperatureThresholds)
 {
     EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))

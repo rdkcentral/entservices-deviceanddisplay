@@ -799,27 +799,6 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const
-    {
-        LOGINFO(">> currentMode: %u, newMode: %u", currentMode, newMode);
-
-        _apiLock.Lock();
-
-        // In the legacy implementation, this call routed to the System Plugin's SetSystemMode via IARM.
-        // Since it only contains setters and lacks getters, it appears to be an unused API.
-        // Please reach out if this API is still required.
-
-        LOGWARN("SetSystemMode is depricated, not found any module utilizing this");
-
-        uint32_t errorCode = Core::ERROR_NONE;
-
-        _apiLock.Unlock();
-
-        LOGINFO("<< errorCode: %u", errorCode);
-
-        return errorCode;
-    }
-
     Core::hresult PowerManagerImplementation::GetPowerStateBeforeReboot(PowerState& powerStateBeforeReboot)
     {
         LOGINFO(">>");

@@ -41,7 +41,13 @@ public:
         ON_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string(_T("cp %s %s")));
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256] = {0};
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                EXPECT_EQ(string(strFmt), string(_T("cp /tmp/test_uimgr_settings.bin /tmp/uimgr_settings.bin")));
+                if(0!=system(strFmt)){/* do nothing */}
                 return 0;
             }));
     }

@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "PowerManagerImplementation.h"
+#include "WrapsMock.h"
 
 using namespace WPEFramework;
 
@@ -26,10 +27,22 @@ struct PowerManagerSettingsParam {
 
 class TestPowerManagerSettings : public ::testing::TestWithParam<PowerManagerSettingsParam> {
 
+protected:
+    WrapsImplMock* p_wrapsImplMock = nullptr;
+
 public:
     TestPowerManagerSettings()
         : _settingsFile("/tmp/test_uimgr_settings.bin")
     {
+        p_wrapsImplMock = new NiceMock<WrapsImplMock>;
+        Wraps::setImpl(p_wrapsImplMock);
+
+        ON_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](const char* command, va_list args) {
+                EXPECT_EQ(string(command), string(_T("cp /tmp/test_uimgr_settings.bin /tmp/uimgr_settings.bin")));
+                return 0;
+            }));
     }
 
     ~TestPowerManagerSettings()
@@ -43,6 +56,12 @@ public:
         if(0!=system(rmCmd.c_str())){/* do nothig */}
         if(0!=system("rm -f /tmp/pwrmgr_restarted")){/* do nothig */}
         if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+
+        Wraps::setImpl(nullptr);
+        if (p_wrapsImplMock != nullptr) {
+            delete p_wrapsImplMock;
+            p_wrapsImplMock = nullptr;
+        }
     }
 
     void populateSettingsV1(PowerState prevState, uint32_t deepSleepTimeout, bool nwStandbyMode)

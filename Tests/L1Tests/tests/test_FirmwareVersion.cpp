@@ -132,7 +132,7 @@ TEST_F(FirmwareVersionTest, Pdri_Success)
                 param->bufLen = strlen(expectedPdriVersion);
                 
                 return IARM_RESULT_SUCCESS;
-        });
+            });
 
     string pdri;
     EXPECT_EQ(Core::ERROR_NONE, interface->Pdri(pdri));

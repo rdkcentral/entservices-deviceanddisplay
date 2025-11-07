@@ -29,6 +29,7 @@
 #include "ThunderPortability.h"
 
 using namespace WPEFramework;
+using ::testing::NiceMock;
 
 class FirmwareVersionTest : public ::testing::Test {
 protected:
@@ -114,22 +115,23 @@ TEST_F(FirmwareVersionTest, Pdri_Success)
 {
     const char* expectedPdriVersion = "PDRI-1.2.3";
 
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillOnce(Invoke([expectedPdriVersion](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-            EXPECT_STREQ(ownerName, "MFRLib");
-            EXPECT_STREQ(methodName, "mfrGetManufacturerData");
-            
-            IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
-                static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
-            
-            // Verify the type is PDRI version
-            EXPECT_EQ(param->type, mfrSERIALIZED_TYPE_PDRIVERSION);
-            
-            // Simulate successful response
-            strcpy(param->buffer, expectedPdriVersion);
-            param->bufLen = strlen(expectedPdriVersion);
-            
-            return IARM_RESULT_SUCCESS;
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
+        .WillRepeatedly(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                EXPECT_STREQ(ownerName, "MFRLib");
+                EXPECT_STREQ(methodName, "mfrGetManufacturerData");
+                
+                IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
+                    static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                
+                // Verify the type is PDRI version
+                EXPECT_EQ(param->type, mfrSERIALIZED_TYPE_PDRIVERSION);
+                
+                // Simulate successful response
+                strcpy(param->buffer, expectedPdriVersion);
+                param->bufLen = strlen(expectedPdriVersion);
+                
+                return IARM_RESULT_SUCCESS;
         }));
 
     string pdri;

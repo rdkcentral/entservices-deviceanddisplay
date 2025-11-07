@@ -138,3 +138,26 @@ TEST_F(FirmwareVersionTest, Pdri_Success)
     EXPECT_EQ(Core::ERROR_NONE, interface->Pdri(pdri));
     EXPECT_EQ(pdri, expectedPdriVersion);
 }
+
+TEST_F(FirmwareVersionTest, Pdri_Failure)
+{
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillOnce(Invoke([](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+            EXPECT_STREQ(ownerName, "MFRLib");
+            EXPECT_STREQ(methodName, "mfrGetManufacturerData");
+            
+            IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
+                static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+            
+            EXPECT_EQ(param->type, mfrSERIALIZED_TYPE_PDRIVERSION);
+            
+            // Simulate IARM call failure
+            param->bufLen = 0;
+            
+            return IARM_RESULT_IPCCORE_FAIL;
+        }));
+
+    string pdri;
+    EXPECT_EQ(Core::ERROR_GENERAL, interface->Pdri(pdri));
+    EXPECT_TRUE(pdri.empty());
+}

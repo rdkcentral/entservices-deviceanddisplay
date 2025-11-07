@@ -110,7 +110,7 @@ TEST_F(TestPowerManagerSettings, Empty)
 
     ramsettings = Settings::Load(_settingsFile);
     EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
-    int ret = access("/tmp/uimgr_settings.bin", F_OK);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
     EXPECT_EQ(ret, 0); // file should be present
     ramsettings = Settings::Load(_settingsFile);
     EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);

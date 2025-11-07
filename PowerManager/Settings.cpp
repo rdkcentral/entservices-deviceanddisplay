@@ -25,6 +25,7 @@
 #include "UtilsLogging.h"
 
 #include "Settings.h"
+#include "secure_wrapper.h"
 
 using util = PowerUtils;
 
@@ -187,7 +188,19 @@ void Settings::initDefaults()
 Settings Settings::Load(const std::string& path)
 {
     Settings settings {};
-    int fd  = open(path.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRUSR);
+    std::string settingsFilePath = "";
+
+    if (0 != access(kRamSettingsFilePath, F_OK)) {
+        LOGINFO("Creating RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
+        v_secure_system("cp %s %s", path.c_str(), kRamSettingsFilePath);
+        settingsFilePath = path;
+    }
+    else {
+        LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
+        settingsFilePath = kRamSettingsFilePath;
+    }
+
+    int fd  = open(settingsFilePath.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRUSR);
     bool ok = false;
 
     if (fd >= 0) {
@@ -213,6 +226,7 @@ Settings Settings::Load(const std::string& path)
         }
 
         if (!ok) {
+            LOGERR("Failed to read settings file, initializing default settings");
             // failed to read settings file, init default settings
             settings.initDefaults();
             settings.save(fd);
@@ -221,23 +235,11 @@ Settings Settings::Load(const std::string& path)
         fsync(fd);
         close(fd);
     }
+    else{
+        LOGERR("Failed to open settings[%s] file %s", path.c_str(), strerror(errno));
+    }
 
-    if (path == kRamSettingsFilePath) {
-        settings.printDetails("RAM Settings Loaded");
-        return settings;
-    }
-    // updating powerStateBeforeReboot
     settings._powerStateBeforeReboot = settings._powerState;
-    if (0 != access(kRamSettingsFilePath, F_OK)) {
-        LOGINFO("Creating RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
-        settings.Save(kRamSettingsFilePath);
-    }
-    else {
-        LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
-        Settings ramSettings = Settings::Load(kRamSettingsFilePath);
-        // Seems PowerManager starting again so using RAM value
-        settings._powerStateBeforeReboot = ramSettings._powerStateBeforeReboot;
-    }
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
@@ -245,7 +247,8 @@ Settings Settings::Load(const std::string& path)
         LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
     }
 #endif
-    settings.printDetails("Final Settings from opt");
+    std::string prefix = "Final Settings loaded from " + settingsFilePath;
+    settings.printDetails(prefix);
     return settings;
 }
 

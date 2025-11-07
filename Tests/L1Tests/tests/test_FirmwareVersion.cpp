@@ -117,7 +117,7 @@ TEST_F(FirmwareVersionTest, Pdri_Success)
 
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
         .WillRepeatedly(
-            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+            [&](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
                 EXPECT_STREQ(ownerName, "MFRLib");
                 EXPECT_STREQ(methodName, "mfrGetManufacturerData");
                 
@@ -132,7 +132,7 @@ TEST_F(FirmwareVersionTest, Pdri_Success)
                 param->bufLen = strlen(expectedPdriVersion);
                 
                 return IARM_RESULT_SUCCESS;
-        }));
+        });
 
     string pdri;
     EXPECT_EQ(Core::ERROR_NONE, interface->Pdri(pdri));

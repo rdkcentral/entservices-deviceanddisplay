@@ -157,7 +157,7 @@ set (DEVICEINFO_SRC
     tests/test_FirmwareVersion.cpp)
 set (DEVICEINFO_LIBS 
     ${NAMESPACE}DeviceInfo 
-    ${NAMESPACE}DeviceInfoImplementation
+ 
 )
 add_plugin_test_ex(PLUGIN_DEVICEINFO "${DEVICEINFO_SRC}" "${DEVICEINFO_INC}" "${DEVICEINFO_LIBS}")
 

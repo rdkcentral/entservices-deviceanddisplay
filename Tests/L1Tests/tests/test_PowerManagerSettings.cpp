@@ -41,7 +41,7 @@ public:
         ON_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
         .WillByDefault(::testing::Invoke(
             [&](const char* command, va_list args) {
-                EXPECT_EQ(string(command), string(_T("cp /tmp/test_uimgr_settings.bin /tmp/uimgr_settings.bin")));
+                EXPECT_EQ(string(command), string(_T("cp %s %s")));
                 return 0;
             }));
     }
@@ -104,6 +104,16 @@ TEST_F(TestPowerManagerSettings, Empty)
     Settings ramsettings = Settings::Load(_settingsFile);
     // Last PowerState is ON while boot
     EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
+
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    populateSettingsV1(PowerState::POWER_STATE_STANDBY, 600, false);
+
+    ramsettings = Settings::Load(_settingsFile);
+    EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
+    int ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
+    ramsettings = Settings::Load(_settingsFile);
+    EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
 }
 
 TEST_P(TestPowerManagerSettings, AllTests)

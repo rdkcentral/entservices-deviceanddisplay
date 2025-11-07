@@ -146,10 +146,11 @@ TEST_F(FirmwareVersionTest, Pdri_Success)
 
 TEST_F(FirmwareVersionTest, Pdri_Failure)
 {
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillOnce(Invoke([](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-            EXPECT_STREQ(ownerName, "MFRLib");
-            EXPECT_STREQ(methodName, "mfrGetManufacturerData");
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
+        .WillRepeatedly(
+            [&](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                EXPECT_STREQ(ownerName, "MFRLib");
+                EXPECT_STREQ(methodName, "mfrGetManufacturerData");
             
             IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
                 static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);

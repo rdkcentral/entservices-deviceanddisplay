@@ -113,7 +113,7 @@ TEST_F(FirmwareVersionTest, Yocto)
 
 TEST_F(FirmwareVersionTest, Pdri_Success)
 {
-    const char* expectedPdriVersion = "PDRI-1.2.3";
+    const char* expectedPdriVersion = "COESST11AEI_PDRI_PROD_20240119170804_3.2.2.0.bin";
 
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
         .WillRepeatedly(
@@ -126,11 +126,16 @@ TEST_F(FirmwareVersionTest, Pdri_Success)
                 
                 // Verify the type is PDRI version
                 EXPECT_EQ(param->type, mfrSERIALIZED_TYPE_PDRIVERSION);
-                
-                // Simulate successful response
-                strcpy(param->buffer, expectedPdriVersion);
-                param->bufLen = strlen(expectedPdriVersion);
-                
+                // Simulate successful response with bounds checking
+                size_t expectedLen = strlen(expectedPdriVersion);
+                if (expectedLen < sizeof(param->buffer)) {
+                   strncpy(param->buffer, expectedPdriVersion, sizeof(param->buffer) - 1);
+                   param->buffer[sizeof(param->buffer) - 1] = '\0';
+                   param->bufLen = expectedLen;
+                } else {
+                   param->bufLen = 0;
+                }
+                                
                 return IARM_RESULT_SUCCESS;
             });
 

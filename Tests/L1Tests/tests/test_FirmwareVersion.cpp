@@ -18,6 +18,10 @@
 **/
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "IarmBusMock.h"
+#include "Iarm.h"
+#include "mfrTypes.h"
 
 #include "Implementation/FirmwareVersion.h"
 
@@ -30,15 +34,24 @@ class FirmwareVersionTest : public ::testing::Test {
 protected:
     Core::ProxyType<Plugin::FirmwareVersion> firmwareVersion;
     Exchange::IFirmwareVersion* interface;
+    IarmBusImplMock* p_iarmBusImplMock;
 
     FirmwareVersionTest()
         : firmwareVersion(Core::ProxyType<Plugin::FirmwareVersion>::Create())
     {
         interface = static_cast<Exchange::IFirmwareVersion*>(
             firmwareVersion->QueryInterface(Exchange::IFirmwareVersion::ID));
+        p_iarmBusImplMock = new NiceMock<IarmBusImplMock>;
+        IarmBus::setImpl(p_iarmBusImplMock);
     }
     virtual ~FirmwareVersionTest()
     {
+        IarmBus::setImpl(nullptr);
+        if (p_iarmBusImplMock != nullptr)
+        {
+            delete p_iarmBusImplMock;
+            p_iarmBusImplMock = nullptr;
+        }
         interface->Release();
     }
 
@@ -95,4 +108,31 @@ TEST_F(FirmwareVersionTest, Yocto)
     string yocto;
     EXPECT_EQ(Core::ERROR_NONE, interface->Yocto(yocto));
     EXPECT_EQ(yocto, _T("dunfell"));
+}
+
+TEST_F(FirmwareVersionTest, Pdri_Success)
+{
+    const char* expectedPdriVersion = "PDRI-1.2.3";
+
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillOnce(Invoke([expectedPdriVersion](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+            EXPECT_STREQ(ownerName, "MFRLib");
+            EXPECT_STREQ(methodName, "mfrGetManufacturerData");
+            
+            IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
+                static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+            
+            // Verify the type is PDRI version
+            EXPECT_EQ(param->type, mfrSERIALIZED_TYPE_PDRIVERSION);
+            
+            // Simulate successful response
+            strcpy(param->buffer, expectedPdriVersion);
+            param->bufLen = strlen(expectedPdriVersion);
+            
+            return IARM_RESULT_SUCCESS;
+        }));
+
+    string pdri;
+    EXPECT_EQ(Core::ERROR_NONE, interface->Pdri(pdri));
+    EXPECT_EQ(pdri, expectedPdriVersion);
 }

@@ -161,7 +161,7 @@ TEST_F(FirmwareVersionTest, Pdri_Failure)
             param->bufLen = 0;
             
             return IARM_RESULT_IPCCORE_FAIL;
-        }));
+        });
 
     string pdri;
     EXPECT_EQ(Core::ERROR_GENERAL, interface->Pdri(pdri));

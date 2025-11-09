@@ -33,7 +33,7 @@ class Settings {
     using Timestamp = std::chrono::time_point<MonotonicClock>;
 
     static constexpr const char* kSettingsFilePath = "/opt/uimgr_settings.bin";
-    static constexpr const char* kRamSettingsFilePath = "/tmp/uimgr_settings.bin";
+    static constexpr const char* kCachedSettingsFilePath = "/tmp/uimgr_settings.bin";
     static constexpr const int kDeepSleepTimeoutSec = 8 * 60 * 60; // 8 hours
 
     // Common header across all settings versions
@@ -59,7 +59,7 @@ public:
     enum Version {
         V1 = 1, // Current version
     };
-    static Settings Load(const std::string& path = kSettingsFilePath);
+    static Settings LoadFromFile(const std::string& persistentSettingsPath = kSettingsFilePath);
     bool Save(const std::string& path = kSettingsFilePath);
 
     inline void setMagic(const uint32_t magic) { _magic = magic; }
@@ -90,10 +90,11 @@ public:
     inline uint32_t deepSleepTimeout() const { return _deepSleepTimeout; }
     inline bool nwStandbyMode() const { return _nwStandbyMode; }
 
-    void printDetails(const std::string& prefix) const;
+    void printDetails(const std::string& prefix, bool isPowerStateBeforeRebootRequired = false) const;
 
 private:
     void initDefaults();
+    bool Load(const std::string& path);
     bool save(int fd);
 
 private:

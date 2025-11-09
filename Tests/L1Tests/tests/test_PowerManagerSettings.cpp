@@ -73,7 +73,7 @@ public:
 
     void populateSettingsV1(PowerState prevState, uint32_t deepSleepTimeout, bool nwStandbyMode)
     {
-        Settings settings = Settings::Load(_settingsFile);
+        Settings settings = Settings::LoadFromFile(_settingsFile);
 
         settings.SetPowerState(prevState);
         settings.SetDeepSleepTimeout(deepSleepTimeout);
@@ -88,7 +88,8 @@ protected:
 
 TEST_F(TestPowerManagerSettings, Empty)
 {
-    Settings settings = Settings::Load(_settingsFile);
+    // when settings file is not present
+    Settings settings = Settings::LoadFromFile(_settingsFile);
 
 #ifdef PLATCO_BOOTTO_STANDBY
     // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
@@ -101,24 +102,28 @@ TEST_F(TestPowerManagerSettings, Empty)
     EXPECT_EQ(settings.deepSleepTimeout(), 8U * 60U * 60U); // 8 hours
     EXPECT_EQ(settings.nwStandbyMode(), false);
 
+    // file should not present
     int ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_NE(ret, 0);
+    // create settings file with POWER_STATE_ON
+    settings.Save(_settingsFile);
+    ret = access(_settingsFile.c_str(), F_OK);
     EXPECT_EQ(ret, 0); // file should be present
 
-    settings.SetPowerState(PowerState::POWER_STATE_STANDBY);
-    settings.Save(_settingsFile);
-
-    Settings ramsettings = Settings::Load(_settingsFile);
+    Settings ramsettings = Settings::LoadFromFile(_settingsFile);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
     // Last PowerState is ON while boot
     EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
 
     if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
     populateSettingsV1(PowerState::POWER_STATE_STANDBY, 600, false);
 
-    ramsettings = Settings::Load(_settingsFile);
+    ramsettings = Settings::LoadFromFile(_settingsFile);
     EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
     ret = access("/tmp/uimgr_settings.bin", F_OK);
     EXPECT_EQ(ret, 0); // file should be present
-    ramsettings = Settings::Load(_settingsFile);
+    ramsettings = Settings::LoadFromFile(_settingsFile);
     EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
 }
 
@@ -137,7 +142,7 @@ TEST_P(TestPowerManagerSettings, AllTests)
     }
 
     if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
-    Settings settings = Settings::Load(_settingsFile);
+    Settings settings = Settings::LoadFromFile(_settingsFile);
 
     EXPECT_EQ(settings.powerState(), param.powerStateEx);
     EXPECT_EQ(settings.powerStateBeforeReboot(), param.powerStateBeforeRebootEx);

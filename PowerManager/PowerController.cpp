@@ -43,7 +43,7 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     : _platform(std::move(platform))
     , _powerStateBeforeReboot(PowerState::POWER_STATE_UNKNOWN)
     , _lastKnownPowerState(PowerState::POWER_STATE_ON)
-    , _settings(Settings::Load(m_settingsFile))
+    , _settings(Settings::LoadFromFile(m_settingsFile))
     , _deepSleepWakeupSettings(_settings)
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _deepSleep(deepSleep)

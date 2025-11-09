@@ -105,26 +105,45 @@ TEST_F(TestPowerManagerSettings, Empty)
     // file should not present
     int ret = access("/tmp/uimgr_settings.bin", F_OK);
     EXPECT_NE(ret, 0);
-    // create settings file with POWER_STATE_ON
-    settings.Save(_settingsFile);
-    ret = access(_settingsFile.c_str(), F_OK);
-    EXPECT_EQ(ret, 0); // file should be present
 
-    Settings ramsettings = Settings::LoadFromFile(_settingsFile);
-    ret = access("/tmp/uimgr_settings.bin", F_OK);
-    EXPECT_EQ(ret, 0); // file should be present
-    // Last PowerState is ON while boot
-    EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
-
-    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
     populateSettingsV1(PowerState::POWER_STATE_STANDBY, 600, false);
-
-    ramsettings = Settings::LoadFromFile(_settingsFile);
-    EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
+    Settings testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
     ret = access("/tmp/uimgr_settings.bin", F_OK);
     EXPECT_EQ(ret, 0); // file should be present
-    ramsettings = Settings::LoadFromFile(_settingsFile);
-    EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
+    populateSettingsV1(PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, 600, false);
+
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    // Last PowerState is STANDBY while boot eventhough persisted state is DEEP_SLEEP
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
+    // Removing cached file to test recreation
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
+    populateSettingsV1(PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, 600, false);
+
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    // Last PowerState is DEEP SLEEP while boot eventhough persisted state is LIGHT SLEEP
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+    // Removing cached file to test recreation
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
+    populateSettingsV1(PowerState::POWER_STATE_ON, 600, false);
+
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    // Last PowerState is LIGHT SLEEP while boot eventhough persisted state is ON
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    // Removing cached file to test recreation
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
 }
 
 TEST_P(TestPowerManagerSettings, AllTests)

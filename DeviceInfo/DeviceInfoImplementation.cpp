@@ -95,6 +95,7 @@ namespace Plugin {
     DeviceInfoImplementation::DeviceInfoImplementation():_service(nullptr)
     {
         Utils::IARM::init();
+		LOGINFO("IARM::init");
     }
 
     DeviceInfoImplementation::~DeviceInfoImplementation()
@@ -119,6 +120,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::SerialNumber(string& serialNumber) const
     {
+		LOGINFO("SerialNumber");
         return (GetMFRData(mfrSERIALIZED_TYPE_SERIALNUMBER, serialNumber)
                    == Core::ERROR_NONE)
             ? Core::ERROR_NONE
@@ -140,7 +142,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Make(string& make) const
     {
-
+        LOGINFO("Make");
         return ( GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, make) == Core::ERROR_NONE)
             ? Core::ERROR_NONE
             : GetFileRegex(_T("/etc/device.properties"),std::regex("^MFG_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), make);
@@ -148,6 +150,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Model(string& model) const
     {
+		LOGINFO("model");
         return
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
             (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, model) == Core::ERROR_NONE)
@@ -160,6 +163,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Brand(string& brand) const
     {
+		LOGINFO("Brand");
         brand = "Unknown";
         return
             ((Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), brand)) || 
@@ -168,6 +172,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::DeviceType(DeviceTypeInfo& deviceType) const
     {
+		LOGINFO("DeviceType");
         const char* device_type;
 	string deviceTypeInfo;
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
@@ -203,12 +208,14 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::SocName(string& socName)  const
     {
+		LOGINFO("SocName");
         return (GetFileRegex(_T("/etc/device.properties"),
                 std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), socName));
     }
 
     Core::hresult DeviceInfoImplementation::DistributorId(string& distributorId) const
     {
+		LOGINFO("DistributorId");
         return (GetFileRegex(_T("/opt/www/authService/partnerId3.dat"),
                     std::regex("^([^\\n]+)$"), distributorId)
                    == Core::ERROR_NONE)
@@ -218,6 +225,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::ReleaseVersion(string& releaseVersion ) const
     {
+		LOGINFO("ReleaseVersion");
         const std::string defaultVersion = "99.99.0.0";
         std::regex pattern(R"((\d+)\.(\d+)[sp])");
         std::smatch match;
@@ -247,12 +255,14 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::ChipSet(string& chipset) const
     {
+		LOGINFO("ChipSet");
         auto result = GetFileRegex(_T("/etc/device.properties"),std::regex("^CHIPSET_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), chipset);
         return result;
     }
 
     Core::hresult DeviceInfoImplementation::FirmwareVersion(FirmwareversionInfo& firmwareVersionInfo) const
     {
+		LOGINFO("FirmwareVersion");
         uint32_t result = Core::ERROR_GENERAL;
 
         result = GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), firmwareVersionInfo.imagename);
@@ -269,6 +279,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::SystemInfo(SystemInfos& systemInfo) const
     {
+		LOGINFO("SystemInfo");
         string serialNumber;
         struct timespec currentTime{};
 
@@ -309,6 +320,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Addresses(IAddressesInfoIterator*& addressesInfo) const
     {
+		LOGINFO("Addresses");
         std::list<AddressesInfo> deviceAddressesInfoList;
         AddressesInfo deviceAddressInfo;
 
@@ -336,6 +348,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::EthMac(string& ethMac) const
     {
+		LOGINFO("EthMac");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read eth_mac");
         if (!fp) {
             return Core::ERROR_GENERAL;
@@ -360,6 +373,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::EstbMac(string& estbMac) const
     {
+		LOGINFO("EstbMac");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read estb_mac");
         if (!fp) {
                 return Core::ERROR_GENERAL;
@@ -384,6 +398,7 @@ namespace Plugin {
  
     Core::hresult DeviceInfoImplementation::WifiMac(string& wifiMac) const
     {
+		LOGINFO("WifiMac");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read wifi_mac");
         if (!fp) {
                 return Core::ERROR_GENERAL;
@@ -408,6 +423,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::EstbIp(string& estbIp) const
     {
+		LOGINFO("EstbIp");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read estb_ip");
         if (!fp) {
                 return Core::ERROR_GENERAL;

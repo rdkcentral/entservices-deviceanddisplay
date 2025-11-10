@@ -3990,6 +3990,7 @@ namespace WPEFramework {
 			char sysServices[] = "SystemServices";
 
                         memset(&rfcParam, 0, sizeof(rfcParam));
+                        printf("RFC parameter name: %s\n", jsonRFCList[i].String().c_str());
                         wdmpStatus = getRFCParameter(sysServices, jsonRFCList[i].String().c_str(), &rfcParam);
                         if(WDMP_SUCCESS == wdmpStatus || WDMP_ERR_DEFAULT_VALUE == wdmpStatus)
                             cmdResponse = rfcParam.value;

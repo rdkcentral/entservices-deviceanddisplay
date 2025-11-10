@@ -25,6 +25,7 @@
 #include "UtilsLogging.h"
 
 #include "Settings.h"
+#include "secure_wrapper.h"
 
 using util = PowerUtils;
 
@@ -128,7 +129,6 @@ public:
                 settings._powerState       = conv(pwrSettings.powerState);
                 settings._deepSleepTimeout = pwrSettings.deep_sleep_timeout;
                 settings._nwStandbyMode    = pwrSettings.nwStandbyMode;
-
                 ok = true;
             }
         } else {
@@ -184,9 +184,8 @@ void Settings::initDefaults()
     DefaultSettingsVersion::initDefaults(*this);
 }
 
-Settings Settings::Load(const std::string& path)
+bool Settings::Load(const std::string& path)
 {
-    Settings settings {};
     int fd  = open(path.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRUSR);
     bool ok = false;
 
@@ -202,7 +201,7 @@ Settings Settings::Load(const std::string& path)
         if (nbytes == read_size) {
             switch (header.version) {
             case Version::V1:
-                ok = SettingsV1::Load(fd, header, settings);
+                ok = SettingsV1::Load(fd, header, *this);
                 break;
             default:
                 LOGERR("Invalid version %d", header.version);
@@ -213,40 +212,67 @@ Settings Settings::Load(const std::string& path)
         }
 
         if (!ok) {
+            LOGERR("Failed to read settings file, initializing default settings");
             // failed to read settings file, init default settings
-            settings.initDefaults();
-            settings.save(fd);
+            initDefaults();
+            save(fd);
         }
-
+        else {
+            _powerStateBeforeReboot = _powerState;
+            std::string prefix = "Settings Loaded from [" + path + "]";
+            printDetails(prefix);
+        }
         fsync(fd);
         close(fd);
     }
+    else{
+        LOGERR("Failed to open settings from [%s], Error[%s]", path.c_str(), strerror(errno));
+    }
+    return ok;
+}
 
-    if (path == kRamSettingsFilePath) {
-        settings.printDetails("RAM Settings Loaded");
-        return settings;
+Settings Settings::LoadFromFile(const std::string& persistentSettingsPath)
+{
+    Settings persistentSettings {};
+    Settings cachedSettings {};
+    PowerState cachedPowerStateBeforeReboot = PowerState::POWER_STATE_UNKNOWN;
+
+    bool ok = persistentSettings.Load(persistentSettingsPath);
+    if (!ok) {
+        LOGERR("Failed to load persistent settings from [%s]", persistentSettingsPath.c_str());
     }
-    // updating powerStateBeforeReboot
-    settings._powerStateBeforeReboot = settings._powerState;
-    if (0 != access(kRamSettingsFilePath, F_OK)) {
-        LOGINFO("Creating RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
-        settings.Save(kRamSettingsFilePath);
+    else{
+        LOGINFO("Persistent Settings Loaded");
+        if (0 != access(kCachedSettingsFilePath, F_OK)) {
+            LOGINFO("Creating Cached Settings to [%s] for powerStateBeforeReboot", kCachedSettingsFilePath);
+            v_secure_system("cp %s %s", persistentSettingsPath.c_str(), kCachedSettingsFilePath);
+        }
+        else {
+            LOGINFO("Using Cached Settings from [%s] for powerStateBeforeReboot", kCachedSettingsFilePath);
+            ok = cachedSettings.Load(kCachedSettingsFilePath);
+            if (ok) {
+                cachedPowerStateBeforeReboot = cachedSettings._powerState;
+            }
+            else {
+                LOGERR("Failed to load cached settings from [%s]", kCachedSettingsFilePath);
+            }
+        }
     }
-    else {
-        LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
-        Settings ramSettings = Settings::Load(kRamSettingsFilePath);
-        // Seems PowerManager starting again so using RAM value
-        settings._powerStateBeforeReboot = ramSettings._powerStateBeforeReboot;
+
+    if ( PowerState::POWER_STATE_UNKNOWN != cachedPowerStateBeforeReboot) {
+        persistentSettings._powerStateBeforeReboot = cachedPowerStateBeforeReboot;
     }
+    LOGINFO("PowerStateBeforeReboot:[%s]",util::str(persistentSettings._powerStateBeforeReboot));
+
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-        settings._powerState = PowerState::POWER_STATE_STANDBY;
+        persistentSettings._powerState = PowerState::POWER_STATE_STANDBY;
         LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
     }
 #endif
-    settings.printDetails("Final Settings from opt");
-    return settings;
+    persistentSettings.printDetails("Final Settings Loaded", true);
+    return persistentSettings;
 }
 
 bool Settings::save(int fd)
@@ -268,16 +294,22 @@ bool Settings::Save(const std::string& path)
     fsync(fd);
     close(fd);
 
+    if (ok) {
+        printDetails("Settings updated");
+    }
+
     return ok;
 }
 
-void Settings::printDetails(const std::string& prefix) const
+void Settings::printDetails(const std::string& prefix, bool isPowerStateBeforeRebootRequired) const
 {
     LOGINFO("====================[%s]====================", prefix.c_str());
     LOGINFO("Magic: 0x%X", _magic);
     LOGINFO("Version: %u", _version);
     LOGINFO("Power State: %s", util::str(_powerState));
-    LOGINFO("Power State Before Reboot: %s", util::str(_powerStateBeforeReboot));
+    if (isPowerStateBeforeRebootRequired) {
+        LOGINFO("Power State Before Reboot: %s", util::str(_powerStateBeforeReboot));
+    }
     LOGINFO("Deep Sleep Timeout (sec): %u", _deepSleepTimeout);
     LOGINFO("Network Standby Mode: %s", _nwStandbyMode ? "Enabled" : "Disabled");
     LOGINFO("==================================================");

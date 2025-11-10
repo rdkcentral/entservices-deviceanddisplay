@@ -7,8 +7,10 @@
 #include <gtest/gtest.h>
 
 #include "PowerManagerImplementation.h"
+#include "WrapsMock.h"
 
 using namespace WPEFramework;
+using ::testing::NiceMock;
 
 #define TEST_LOG(x, ...) fprintf(stderr, "\033[1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); fflush(stderr);
 struct PowerManagerSettingsParam {
@@ -26,10 +28,28 @@ struct PowerManagerSettingsParam {
 
 class TestPowerManagerSettings : public ::testing::TestWithParam<PowerManagerSettingsParam> {
 
+protected:
+    WrapsImplMock* p_wrapsImplMock = nullptr;
+
 public:
     TestPowerManagerSettings()
         : _settingsFile("/tmp/test_uimgr_settings.bin")
     {
+        p_wrapsImplMock = new NiceMock<WrapsImplMock>;
+        Wraps::setImpl(p_wrapsImplMock);
+
+        ON_CALL(*p_wrapsImplMock, v_secure_system(::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [&](const char* command, va_list args) {
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256] = {0};
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                EXPECT_EQ(string(strFmt), string(_T("cp /tmp/test_uimgr_settings.bin /tmp/uimgr_settings.bin")));
+                if(0!=system(strFmt)){/* do nothing */}
+                return 0;
+            }));
     }
 
     ~TestPowerManagerSettings()
@@ -43,11 +63,17 @@ public:
         if(0!=system(rmCmd.c_str())){/* do nothig */}
         if(0!=system("rm -f /tmp/pwrmgr_restarted")){/* do nothig */}
         if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+
+        Wraps::setImpl(nullptr);
+        if (p_wrapsImplMock != nullptr) {
+            delete p_wrapsImplMock;
+            p_wrapsImplMock = nullptr;
+        }
     }
 
     void populateSettingsV1(PowerState prevState, uint32_t deepSleepTimeout, bool nwStandbyMode)
     {
-        Settings settings = Settings::Load(_settingsFile);
+        Settings settings = Settings::LoadFromFile(_settingsFile);
 
         settings.SetPowerState(prevState);
         settings.SetDeepSleepTimeout(deepSleepTimeout);
@@ -62,7 +88,8 @@ protected:
 
 TEST_F(TestPowerManagerSettings, Empty)
 {
-    Settings settings = Settings::Load(_settingsFile);
+    // when settings file is not present
+    Settings settings = Settings::LoadFromFile(_settingsFile);
 
 #ifdef PLATCO_BOOTTO_STANDBY
     // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
@@ -75,15 +102,64 @@ TEST_F(TestPowerManagerSettings, Empty)
     EXPECT_EQ(settings.deepSleepTimeout(), 8U * 60U * 60U); // 8 hours
     EXPECT_EQ(settings.nwStandbyMode(), false);
 
+    // file should not present
     int ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_NE(ret, 0);
+
+    // PowerStateBeforeReboot with ON(Default) and current PowerState is STANDBY
+    populateSettingsV1(PowerState::POWER_STATE_STANDBY, 600, false);
+    Settings testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
     EXPECT_EQ(ret, 0); // file should be present
 
-    settings.SetPowerState(PowerState::POWER_STATE_STANDBY);
-    settings.Save(_settingsFile);
+    // PowerStateBeforeReboot still ON since /tmp/uimgr_settings.bin present with ON and current PowerState is DEEP_SLEEP
+    populateSettingsV1(PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, 600, false);
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    // PowerStateBeforeReboot still ON even though current PowerState is DEEP_SLEEP
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
+    // Removing cached file to test recreation
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
 
-    Settings ramsettings = Settings::Load(_settingsFile);
-    // Last PowerState is ON while boot
-    EXPECT_EQ(ramsettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
+    // PowerStateBeforeReboot still DEEP_SLEEP since /tmp/uimgr_settings.bin present with DEEP_SLEEP and current PowerState is LIGHT_SLEEP
+    populateSettingsV1(PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, 600, false);
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    // PowerStateBeforeReboot still DEEP_SLEEP even though current PowerState is LIGHT_SLEEP
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+    // Removing cached file to test recreation
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
+
+    // PowerStateBeforeReboot still LIGHT_SLEEP since /tmp/uimgr_settings.bin present with LIGHT_SLEEP and current PowerState is ON
+    populateSettingsV1(PowerState::POWER_STATE_ON, 600, false);
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    // PowerStateBeforeReboot still LIGHT_SLEEP even though current PowerState is ON
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    // Removing cached file to test recreation
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
+
+    // PowerStateBeforeReboot still ON since /tmp/uimgr_settings.bin present with ON and current PowerState is STANDBY
+    populateSettingsV1(PowerState::POWER_STATE_STANDBY, 600, false);
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    // PowerStateBeforeReboot still ON even though current PowerState is STANDBY
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_ON);
+    // Removing cached file to test recreation
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    testSettings = Settings::LoadFromFile(_settingsFile);
+    EXPECT_EQ(testSettings.powerStateBeforeReboot(), PowerState::POWER_STATE_STANDBY);
+    ret = access("/tmp/uimgr_settings.bin", F_OK);
+    EXPECT_EQ(ret, 0); // file should be present
 }
 
 TEST_P(TestPowerManagerSettings, AllTests)
@@ -101,7 +177,7 @@ TEST_P(TestPowerManagerSettings, AllTests)
     }
 
     if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
-    Settings settings = Settings::Load(_settingsFile);
+    Settings settings = Settings::LoadFromFile(_settingsFile);
 
     EXPECT_EQ(settings.powerState(), param.powerStateEx);
     EXPECT_EQ(settings.powerStateBeforeReboot(), param.powerStateBeforeRebootEx);

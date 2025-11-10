@@ -114,6 +114,8 @@ uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powe
 
     PowerState curState = _settings.powerState();
 
+    LOGINFO("current[%s] new[%s] reason[%s] keyCode[%d]", util::str(curState), util::str(powerState), reason.c_str(), keyCode);
+
     /* Independent of Deep sleep */
     uint32_t errCode = platform().SetPowerState(powerState);
     if (WPEFramework::Core::ERROR_NONE != errCode) {

@@ -294,6 +294,10 @@ bool Settings::Save(const std::string& path)
     fsync(fd);
     close(fd);
 
+    if (ok) {
+        printDetails("Settings updated");
+    }
+
     return ok;
 }
 

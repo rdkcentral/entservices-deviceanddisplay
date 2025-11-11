@@ -1136,13 +1136,14 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_NW_STANDBYMODECHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_NW_STANDBYMODECHANGED);
 
-                PowerManagerPlugin->SetNetworkStandbyMode(false);
+                bool initialStandbyMode = false;
+                PowerManagerPlugin->GetNetworkStandbyMode(initialStandbyMode);
 
+                PowerManagerPlugin->SetNetworkStandbyMode(!initialStandbyMode);
                 bool standbyMode = false;
-
                 uint32_t status = PowerManagerPlugin->GetNetworkStandbyMode(standbyMode);
                 EXPECT_EQ(status, Core::ERROR_NONE);
-                EXPECT_EQ(standbyMode, false);
+                EXPECT_EQ(standbyMode, !initialStandbyMode);
 
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());

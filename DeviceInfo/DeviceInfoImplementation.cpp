@@ -118,63 +118,63 @@ namespace Plugin {
 	return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfoImplementation::SerialNumber(string& serialNumber) const
+    Core::hresult DeviceInfoImplementation::SerialNumber(DeviceSerialNo& deviceSerialNo) const
     {
 		LOGINFO("SerialNumber");
-        return (GetMFRData(mfrSERIALIZED_TYPE_SERIALNUMBER, serialNumber)
+        return (GetMFRData(mfrSERIALIZED_TYPE_SERIALNUMBER, deviceSerialNo.serialnumber)
                    == Core::ERROR_NONE)
             ? Core::ERROR_NONE
-            : GetRFCData(_T("Device.DeviceInfo.SerialNumber"), serialNumber);
+            : GetRFCData(_T("Device.DeviceInfo.SerialNumber"), deviceSerialNo.serialnumber);
     }
 
-    Core::hresult DeviceInfoImplementation::Sku(string& sku) const
+    Core::hresult DeviceInfoImplementation::Sku(DeviceModelNo& deviceModelNo) const
     {
         LOGINFO("ENTERING SKU TO GET device.properties");
         return (GetFileRegex(_T("/etc/device.properties"),
-                    std::regex("^MODEL_NUM(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), sku)
+                    std::regex("^MODEL_NUM(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceModelNo.sku)
                    == Core::ERROR_NONE)
             ? Core::ERROR_NONE
-            : ((GetMFRData(mfrSERIALIZED_TYPE_MODELNAME, sku)
+            : ((GetMFRData(mfrSERIALIZED_TYPE_MODELNAME, deviceModelNo.sku)
                    == Core::ERROR_NONE)
                     ? Core::ERROR_NONE
-                    : GetRFCData(_T("Device.DeviceInfo.ModelName"), sku));
+                    : GetRFCData(_T("Device.DeviceInfo.ModelName"), deviceModelNo.sku));
     }
 
-    Core::hresult DeviceInfoImplementation::Make(string& make) const
+    Core::hresult DeviceInfoImplementation::Make(DeviceMake& deviceMake) const
     {
         LOGINFO("Make");
-        return ( GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, make) == Core::ERROR_NONE)
+        return ( GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, deviceMake.make) == Core::ERROR_NONE)
             ? Core::ERROR_NONE
-            : GetFileRegex(_T("/etc/device.properties"),std::regex("^MFG_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), make);
+            : GetFileRegex(_T("/etc/device.properties"),std::regex("^MFG_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceMake.make);
     }
 
-    Core::hresult DeviceInfoImplementation::Model(string& model) const
+    Core::hresult DeviceInfoImplementation::Model(DeviceModel& deviceModel) const
     {
 		LOGINFO("model");
         return
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
-            (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, model) == Core::ERROR_NONE)
+            (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, deviceModel.model) == Core::ERROR_NONE)
             ? Core::ERROR_NONE
             :
 #endif
             GetFileRegex(_T("/etc/device.properties"),
-                std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), model);
+                std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceModel.model);
     }
 
-    Core::hresult DeviceInfoImplementation::Brand(string& brand) const
+    Core::hresult DeviceInfoImplementation::Brand(DeviceBrand& deviceBrand) const
     {
 		LOGINFO("Brand");
-        brand = "Unknown";
+        deviceBrand.brand = "Unknown";
         return
-            ((Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), brand)) || 
-             (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
+            ((Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), deviceBrand.brand)) || 
+             (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, deviceBrand.brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
     }
 
-    Core::hresult DeviceInfoImplementation::DeviceType(DeviceTypeInfo& deviceType) const
+    Core::hresult DeviceInfoImplementation::DeviceType(DeviceTypeInfos& deviceTypeInfos) const
     {
 		LOGINFO("DeviceType");
         const char* device_type;
-	string deviceTypeInfo;
+	    string deviceTypeInfo;
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
             std::regex("^deviceType(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceTypeInfo);
 
@@ -198,7 +198,7 @@ namespace Plugin {
 
                 auto it = stringToDeviceType.find(deviceTypeInfo);
                 if (it != stringToDeviceType.end()) {
-                    deviceType = it->second;
+                    deviceTypeInfos.devicetype = it->second;
                 }
             }
         }
@@ -206,24 +206,24 @@ namespace Plugin {
     }
 
 
-    Core::hresult DeviceInfoImplementation::SocName(string& socName)  const
+    Core::hresult DeviceInfoImplementation::SocName(DeviceSoc& deviceSoc)  const
     {
 		LOGINFO("SocName");
         return (GetFileRegex(_T("/etc/device.properties"),
-                std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), socName));
+                std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceSoc.socname));
     }
 
-    Core::hresult DeviceInfoImplementation::DistributorId(string& distributorId) const
+    Core::hresult DeviceInfoImplementation::DistributorId(DeviceDistId& deviceDistId) const
     {
 		LOGINFO("DistributorId");
         return (GetFileRegex(_T("/opt/www/authService/partnerId3.dat"),
-                    std::regex("^([^\\n]+)$"), distributorId)
+                    std::regex("^([^\\n]+)$"), deviceDistId.distributorid)
                    == Core::ERROR_NONE)
             ? Core::ERROR_NONE
-            : GetRFCData(_T("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), distributorId);
+            : GetRFCData(_T("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), deviceDistId.distributorid);
     }
 
-    Core::hresult DeviceInfoImplementation::ReleaseVersion(string& releaseVersion ) const
+    Core::hresult DeviceInfoImplementation::ReleaseVersion(DeviceReleaseVer& deviceReleaseVer) const
     {
 		LOGINFO("ReleaseVersion");
         const std::string defaultVersion = "99.99.0.0";
@@ -235,28 +235,28 @@ namespace Plugin {
             if (std::regex_search(imagename, match, pattern)) {
                 std::string major = match[1];
                 std::string minor = match[2];
-                releaseVersion = major + "." + minor + ".0.0";
+                deviceReleaseVer.releaseversion = major + "." + minor + ".0.0";
             }
             else
             {
-                releaseVersion = defaultVersion ;
-                LOGERR("Unable to get releaseVersion of the Image:%s.So default releaseVersion is: %s ",imagename.c_str(),releaseVersion.c_str());
+                deviceReleaseVer.releaseversion = defaultVersion ;
+                LOGERR("Unable to get releaseVersion of the Image:%s.So default releaseVersion is: %s ",imagename.c_str(),deviceReleaseVer.releaseversion.c_str());
             }
         }
         else
         {
-                releaseVersion = defaultVersion ;
-                LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",releaseVersion.c_str());
+                deviceReleaseVer.releaseversion = defaultVersion ;
+                LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",deviceReleaseVer.releaseversion.c_str());
 
         }
 
         return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfoImplementation::ChipSet(string& chipset) const
+    Core::hresult DeviceInfoImplementation::ChipSet(DeviceChip& deviceChip) const
     {
 		LOGINFO("ChipSet");
-        auto result = GetFileRegex(_T("/etc/device.properties"),std::regex("^CHIPSET_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), chipset);
+        auto result = GetFileRegex(_T("/etc/device.properties"),std::regex("^CHIPSET_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceChip.chipset);
         return result;
     }
 
@@ -310,7 +310,7 @@ namespace Plugin {
             }
         }
 
-	if (_subSystem != nullptr) {
+	    if (_subSystem != nullptr) {
             _subSystem->Release();
             _subSystem = nullptr;
         }
@@ -323,7 +323,7 @@ namespace Plugin {
 		LOGINFO("Addresses");
         std::list<AddressesInfo> deviceAddressesInfoList;
         AddressesInfo deviceAddressInfo;
-
+		Core::JSON::String nodeName;
         Core::AdapterIterator interfaces;
 
         while (interfaces.Next() == true) {
@@ -334,7 +334,11 @@ namespace Plugin {
             // get an interface with a public IP address, then we will have a proper MAC address..
             Core::IPV4AddressIterator selectedNode(interfaces.IPV4Addresses());
 
-            deviceAddressInfo.ip = selectedNode.Address().HostAddress();
+			while (selectedNode.Next() == true) {
+                nodeName = selectedNode.Address().HostAddress();
+            }
+
+            deviceAddressInfo.ip = nodeName.Value();
             
             deviceAddressesInfoList.push_back(deviceAddressInfo);
 
@@ -343,10 +347,10 @@ namespace Plugin {
         addressesInfo = Core::Service<RPC::IteratorType<Exchange::IDeviceInfo::IAddressesInfoIterator>> \
                                     ::Create<Exchange::IDeviceInfo::IAddressesInfoIterator>(deviceAddressesInfoList);
 
-    return Core::ERROR_NONE;
+        return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfoImplementation::EthMac(string& ethMac) const
+    Core::hresult DeviceInfoImplementation::EthMac(EthernetMac& ethernetMac) const
     {
 		LOGINFO("EthMac");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read eth_mac");
@@ -361,17 +365,17 @@ namespace Plugin {
         }
         v_secure_pclose(fp);
 
-        ethMac = oss.str();
+        ethernetMac.ethMac = oss.str();
 
         // Remove trailing newline if present
-        if (!ethMac.empty() && ethMac.back() == '\n') {
-             ethMac.pop_back();
+        if (!ethernetMac.ethMac.empty() && ethernetMac.ethMac.back() == '\n') {
+             ethernetMac.ethMac.pop_back();
         }
 
         return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfoImplementation::EstbMac(string& estbMac) const
+    Core::hresult DeviceInfoImplementation::EstbMac(StbMac& stbMac) const
     {
 		LOGINFO("EstbMac");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read estb_mac");
@@ -386,17 +390,17 @@ namespace Plugin {
         }
         v_secure_pclose(fp);
 
-        estbMac = oss.str();
+        stbMac.estbMac = oss.str();
 
         // Remove trailing newline if present
-        if (!estbMac.empty() && estbMac.back() == '\n') {
-                estbMac.pop_back();
+        if (!stbMac.estbMac.empty() && stbMac.estbMac.back() == '\n') {
+                stbMac.estbMac.pop_back();
         }
 
         return Core::ERROR_NONE;
     }
  
-    Core::hresult DeviceInfoImplementation::WifiMac(string& wifiMac) const
+    Core::hresult DeviceInfoImplementation::WifiMac(WiFiMac& wiFiMac) const
     {
 		LOGINFO("WifiMac");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read wifi_mac");
@@ -411,17 +415,17 @@ namespace Plugin {
         }
         v_secure_pclose(fp);
 
-        wifiMac = oss.str();
+        wiFiMac.wifiMac = oss.str();
  
         // Remove trailing newline if present
-        if (!wifiMac.empty() && wifiMac.back() == '\n') {
-                wifiMac.pop_back();
+        if (!wiFiMac.wifiMac.empty() && wiFiMac.wifiMac.back() == '\n') {
+                wiFiMac.wifiMac.pop_back();
         }
 
         return Core::ERROR_NONE;
     }
 
-    Core::hresult DeviceInfoImplementation::EstbIp(string& estbIp) const
+    Core::hresult DeviceInfoImplementation::EstbIp(StbIp& stbIp) const
     {
 		LOGINFO("EstbIp");
         FILE* fp = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh read estb_ip");
@@ -436,11 +440,11 @@ namespace Plugin {
         }
         v_secure_pclose(fp);
 
-        estbIp = oss.str();
+        stbIp.estbIp = oss.str();
 
         // Remove trailing newline if present
-        if (!estbIp.empty() && estbIp.back() == '\n') {
-                estbIp.pop_back();
+        if (!stbIp.estbIp.empty() && stbIp.estbIp.back() == '\n') {
+                stbIp.estbIp.pop_back();
         }
 
         return Core::ERROR_NONE;

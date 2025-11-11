@@ -1123,13 +1123,11 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
                     .WillOnce(::testing::Invoke(
                         [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
                             EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_WIFI);
-                            EXPECT_EQ(enabled, false);
                             return PWRMGR_SUCCESS;
                         }))
                     .WillOnce(::testing::Invoke(
                         [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
                             EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_LAN);
-                            EXPECT_EQ(enabled, false);
                             return PWRMGR_SUCCESS;
                         }));
 

@@ -75,6 +75,7 @@ if(RDK_SERVICES_L1_TEST OR RDK_SERVICE_L2_TEST)
 
     target_compile_definitions(${PLUGIN_IMPLEMENTATION}
                                PUBLIC
+                                 UNIT_TEST_ENABLED
                                  ENABLE_THERMAL_PROTECTION
                                  OFFLINE_MAINT_REBOOT)
 

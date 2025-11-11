@@ -57,32 +57,6 @@ typedef enum : uint32_t {
     POWERMANAGERL2TEST_STATE_INVALID = 0x00000000
 }PowerManagerL2test_async_events_t;
 
-namespace {
-static void removeFile(const char* fileName)
-{
-    // Use sudo for protected files
-    if (strcmp(fileName, "/opt/uimgr_settings.bin") == 0) {
-        char cmd[256];
-        snprintf(cmd, sizeof(cmd), "sudo rm -f %s", fileName);
-        int ret = system(cmd);
-        if (ret != 0) {
-            printf("File %s failed to remove with sudo\n", fileName);
-            perror("Error deleting file");
-        } else {
-            printf("File %s successfully deleted with sudo\n", fileName);
-        }
-    } else {
-        if (std::remove(fileName) != 0) {
-            printf("File %s failed to remove\n", fileName);
-            perror("Error deleting file");
-        } else {
-            printf("File %s successfully deleted\n", fileName);
-        }
-    }
-}
-
-}
-
 class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
                              public Exchange::IPowerManager::IModePreChangeNotification,
                              public Exchange::IPowerManager::IModeChangedNotification,
@@ -346,7 +320,7 @@ PowerManager_L2Test::PowerManager_L2Test()
                           }));
 
          /* All tests were run without settings file */
-         removeFile("/opt/uimgr_settings.bin");
+         if (0 != system("rm /tmp/uimgr_settings.bin")) { /* do nothing */ }
 
          /* Activate plugin in constructor */
          status = ActivateService("org.rdk.PowerManager");
@@ -371,7 +345,7 @@ PowerManager_L2Test::~PowerManager_L2Test()
     EXPECT_EQ(Core::ERROR_NONE, status);
 
     /* All tests were run without settings file */
-    removeFile("/opt/uimgr_settings.bin");
+    if (0 != system("rm /tmp/uimgr_settings.bin")) { /* do nothing */ }
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)
@@ -1344,6 +1318,14 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                             return PWRMGR_SUCCESS;
                         }));
 
+                PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
+                PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
+                status = PowerManagerPlugin->GetPowerState(currentState, prevState);
+                if (PowerState::POWER_STATE_ON != currentState)
+                {
+                    TEST_LOG("Current power state is not ON,seems settings file not removed");
+                }
+
                 status = PowerManagerPlugin->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY, "l2-test");
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
@@ -1352,9 +1334,6 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
 
                 // some delay to destroy AckController after IModeChanged notification
                 std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-
-                PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-                PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
 
                 status = PowerManagerPlugin->GetPowerState(currentState, prevState);
                 EXPECT_EQ(status, Core::ERROR_NONE);

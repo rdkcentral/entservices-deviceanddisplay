@@ -329,7 +329,7 @@ public:
 
         TearDownMocks();
 
-        if (0 != system("rm /opt/uimgr_settings.bin")) { /* do nothig */
+        if (0 != system("rm /tmp/uimgr_settings.bin")) { /* do nothig */
         }
 
         // Although this file is not created always

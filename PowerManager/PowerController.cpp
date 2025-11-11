@@ -69,6 +69,7 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 
 void PowerController::init()
 {
+    PowerState actualPowerState = PowerState::POWER_STATE_UNKNOWN;
     // settings already loaded in constructor
     _lastKnownPowerState = _settings.powerState();
 
@@ -83,24 +84,39 @@ void PowerController::init()
             break;
         }
 
-        if (_settings.powerState() == currentState) {
+        if (_lastKnownPowerState == currentState) {
             LOGINFO("Bootup powerState is already in sync with hardware: %s", util::str(currentState));
             break;
         }
 
-        errorCode = SetPowerState(0, _settings.powerState(), "Initialization");
+        if ((PowerState::POWER_STATE_ON != _lastKnownPowerState) && (PowerState::POWER_STATE_STANDBY != _lastKnownPowerState)) {
+            LOGINFO("Updating Bootup PowerState to STANDBY from [%s]", util::str(_lastKnownPowerState));
+            actualPowerState = PowerState::POWER_STATE_STANDBY;
+        }
+        else {
+            actualPowerState = _lastKnownPowerState;
+        }
+        LOGINFO("Syncing Bootup PowerState[%s] with hardware", util::str(actualPowerState));
+
+        errorCode = SetPowerState(0, actualPowerState, "Initialization");
 
         if (WPEFramework::Core::ERROR_NONE == errorCode) {
-            LOGINFO("Successfull at syncing powerState %s with hardware", util::str(_settings.powerState()));
+            LOGINFO("Successfully synced PowerState[%s] with hardware", util::str(actualPowerState));
             break;
         }
-
-        LOGINFO("Bootup failed to sync powerState with hardware, update settings file to powerState: %s",
-            util::str(currentState));
-
-        _settings.SetPowerState(currentState);
-        _settings.Save(m_settingsFile);
+        LOGERR("Bootup failed to sync PowerState[%s] with hardware",util::str(actualPowerState));
+        actualPowerState = currentState;
     } while (false);
+
+    // Settings file need to be updated if there was a change in power state
+    if (actualPowerState != _lastKnownPowerState) {
+        LOGINFO("Update settings file to powerState:[%s]",util::str(actualPowerState));
+        _settings.SetPowerState(actualPowerState);
+        bool ok = _settings.Save(m_settingsFile);
+        if (!ok) {
+            LOGERR("Failed to save settings");
+        }
+    }
 }
 
 uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powerState, const std::string& reason)

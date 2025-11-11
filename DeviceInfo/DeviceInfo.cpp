@@ -72,10 +72,14 @@ namespace WPEFramework
         _service->AddRef();
 
         _deviceInfo = _service->Root<Exchange::IDeviceInfo>(_connectionId, 2000, _T("DeviceInfoImplementation"));
+        _deviceAudioCapabilities = service->Root<Exchange::IDeviceAudioCapabilities>(_connectionId, 2000, _T("DeviceAudioCapabilities"));
+        _deviceVideoCapabilities = service->Root<Exchange::IDeviceVideoCapabilities>(_connectionId, 2000, _T("DeviceVideoCapabilities"));
 
         ASSERT(_deviceInfo != nullptr);
+        ASSERT(_deviceAudioCapabilities != nullptr);
+        ASSERT(_deviceVideoCapabilities != nullptr);
 
-        if(nullptr != _deviceInfo)
+        if(nullptr != _deviceInfo && nullptr != _deviceAudioCapabilities && nullptr != _deviceVideoCapabilities)
         {
             configure = _deviceInfo->QueryInterface<Exchange::IConfiguration>();
             if (configure != nullptr)
@@ -92,28 +96,8 @@ namespace WPEFramework
             }
             // Invoking Plugin API register to wpeframework
             Exchange::JDeviceInfo::Register(*this, _deviceInfo);
-            
-            _deviceAudioCapabilities = _deviceInfo->QueryInterface<Exchange::IDeviceAudioCapabilities>();
-
-            if (_deviceAudioCapabilities != nullptr)
-            {
-                Exchange::JDeviceAudioCapabilities::Register(*this, _deviceAudioCapabilities);
-            }
-            else
-            {
-                message = _T("DeviceInfo implementation did not provide a IDeviceAudioCapabilities interface");
-            }
-
-            _deviceVideoCapabilities = _deviceInfo->QueryInterface<Exchange::IDeviceVideoCapabilities>();
-
-            if (_deviceVideoCapabilities != nullptr)
-            {
-                Exchange::JDeviceVideoCapabilities::Register(*this, _deviceVideoCapabilities);
-            }
-            else
-            {
-                message = _T("DeviceInfo implementation did not provide a IDeviceVideoCapabilities interface");
-            }
+            Exchange::JDeviceAudioCapabilities::Register(*this, _deviceAudioCapabilities);
+            Exchange::JDeviceVideoCapabilities::Register(*this, _deviceVideoCapabilities);
         }
         else
         {
@@ -128,13 +112,13 @@ namespace WPEFramework
     void DeviceInfo::Deinitialize(PluginHost::IShell* service)
     {
         ASSERT(_service == service);
-        ASSERT(_deviceInfo != nullptr)
-        ASSERT(_deviceAudioCapabilities != nullptr)
-        ASSERT(_deviceVideoCapabilities != nullptr)
+        ASSERT(_deviceInfo != nullptr);
+        ASSERT(_deviceAudioCapabilities != nullptr);
+        ASSERT(_deviceVideoCapabilities != nullptr);
 
         SYSLOG(Logging::Shutdown, (string(_T("DeviceInfo::Deinitialize"))));
 
-        if (nullptr != _deviceInfo)
+        if (nullptr != _deviceInfo && nullptr != _deviceAudioCapabilities && nullptr != _deviceVideoCapabilities)
         {
             Exchange::JDeviceAudioCapabilities::Unregister(*this);
             _deviceAudioCapabilities->Release();

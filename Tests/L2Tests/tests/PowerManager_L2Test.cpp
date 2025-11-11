@@ -57,6 +57,19 @@ typedef enum : uint32_t {
     POWERMANAGERL2TEST_STATE_INVALID = 0x00000000
 }PowerManagerL2test_async_events_t;
 
+namespace {
+static void removeFile(const char* fileName)
+{
+    if (std::remove(fileName) != 0) {
+        printf("File %s failed to remove\n", fileName);
+        perror("Error deleting file");
+    }
+    else {
+        printf("File %s successfully deleted\n", fileName);
+    }
+}
+}
+
 class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
                              public Exchange::IPowerManager::IModePreChangeNotification,
                              public Exchange::IPowerManager::IModeChangedNotification,
@@ -320,7 +333,7 @@ PowerManager_L2Test::PowerManager_L2Test()
                           }));
 
          /* All tests were run without settings file */
-         if (0 != system("rm /tmp/uimgr_settings.bin")) { /* do nothing */ }
+         removeFile("/tmp/uimgr_settings.bin");
 
          /* Activate plugin in constructor */
          status = ActivateService("org.rdk.PowerManager");
@@ -345,7 +358,7 @@ PowerManager_L2Test::~PowerManager_L2Test()
     EXPECT_EQ(Core::ERROR_NONE, status);
 
     /* All tests were run without settings file */
-    if (0 != system("rm /tmp/uimgr_settings.bin")) { /* do nothing */ }
+    removeFile("/tmp/uimgr_settings.bin");
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)

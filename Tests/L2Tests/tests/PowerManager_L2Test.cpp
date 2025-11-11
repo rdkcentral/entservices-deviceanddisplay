@@ -1309,11 +1309,11 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
-                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
                             return PWRMGR_SUCCESS;
                         }));
 
-                status = PowerManagerPlugin->SetPowerState(keyCode, PowerState::POWER_STATE_ON, "l2-test");
+                status = PowerManagerPlugin->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY, "l2-test");
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
@@ -1327,8 +1327,8 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
 
                 status = PowerManagerPlugin->GetPowerState(currentState, prevState);
                 EXPECT_EQ(status, Core::ERROR_NONE);
-                EXPECT_EQ(currentState, PowerState::POWER_STATE_ON);
-                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY);
+                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY);
+                EXPECT_EQ(prevState, PowerState::POWER_STATE_ON);
 
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());

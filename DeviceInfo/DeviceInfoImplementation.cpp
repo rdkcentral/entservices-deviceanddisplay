@@ -280,13 +280,13 @@ namespace Plugin {
     Core::hresult DeviceInfoImplementation::SystemInfo(SystemInfos& systemInfo) const
     {
 		LOGINFO("SystemInfo");
-        string serialNumber;
+        DeviceSerialNo deviceSerial;
         struct timespec currentTime{};
 
         PluginHost::ISubSystem* _subSystem;
         _subSystem = _service->SubSystems();
         ASSERT(_subSystem != nullptr);
-
+        SerialNumber(deviceSerial);
         Core::SystemInfo& singleton(Core::SystemInfo::Instance());
         clock_gettime(CLOCK_REALTIME, &currentTime);
         systemInfo.time = Core::Time(currentTime).ToRFC1123(true);
@@ -298,7 +298,7 @@ namespace Plugin {
         systemInfo.freeswap = singleton.GetFreeSwap();
         systemInfo.devicename = singleton.GetHostName();
         systemInfo.cpuload = Core::NumberType<uint32_t>(static_cast<uint32_t>(singleton.GetCpuLoad())).Text();
-        systemInfo.serialnumber = SerialNumber(serialNumber);
+        systemInfo.serialnumber = deviceSerial.serialnumber;
         auto cpuloadavg = singleton.GetCpuLoadAvg();
         if (cpuloadavg != nullptr) {
             systemInfo.cpuloadavg.avg1min = *(cpuloadavg);

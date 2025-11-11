@@ -41,28 +41,28 @@ namespace Plugin {
 
         BEGIN_INTERFACE_MAP(DeviceInfoImplementation)
         INTERFACE_ENTRY(Exchange::IDeviceInfo)
-	INTERFACE_ENTRY(Exchange::IConfiguration)
+	    INTERFACE_ENTRY(Exchange::IConfiguration)
         END_INTERFACE_MAP
 
     public:
         // IDeviceInfo interface
-        Core::hresult SerialNumber(string& serialNumber) const override;
-        Core::hresult Sku(string& sku) const override;
-        Core::hresult Make(string& make) const override;
-        Core::hresult Model(string& model) const override;
-        Core::hresult DeviceType(DeviceTypeInfo& deviceType) const override;
-        Core::hresult SocName(string& socName) const override;
-        Core::hresult DistributorId(string& distributorId) const override;
-        Core::hresult Brand(string& brand) const override;
-        Core::hresult ReleaseVersion(string& releaseVersion) const override;
-        Core::hresult ChipSet(string& chipSet) const override;
+        Core::hresult SerialNumber(DeviceSerialNo& deviceSerialNo) const override;
+        Core::hresult Sku(DeviceModelNo& deviceModelNo) const override;
+        Core::hresult Make(DeviceMake& deviceMake) const override;
+        Core::hresult Model(DeviceModel& deviceModel) const override;
+        Core::hresult DeviceType(DeviceTypeInfos& deviceTypeInfos) const override;
+        Core::hresult SocName(DeviceSoc& deviceSoc) const override;
+        Core::hresult DistributorId(DeviceDistId& deviceDistId) const override;
+        Core::hresult Brand(DeviceBrand& deviceBrand) const override;
+        Core::hresult ReleaseVersion(DeviceReleaseVer& deviceReleaseVer) const override;
+        Core::hresult ChipSet(DeviceChip& deviceChip) const override;
         Core::hresult FirmwareVersion(FirmwareversionInfo& firmwareVersionInfo) const override;
         Core::hresult SystemInfo(SystemInfos& systemInfo) const override;
         Core::hresult Addresses(IAddressesInfoIterator*& addressesInfo) const override;
-        Core::hresult EthMac(string& ethMac) const override;
-        Core::hresult EstbMac(string& estbMac) const override;
-        Core::hresult WifiMac(string& wifiMac) const override;
-        Core::hresult EstbIp(string& estbIp) const override;
+        Core::hresult EthMac(EthernetMac& ethernetMac) const override;
+        Core::hresult EstbMac(StbMac& stbMac) const override;
+        Core::hresult WifiMac(WiFiMac& wiFiMa) const override;
+        Core::hresult EstbIp(StbIp& stbIp) const override;
 
         // IConfiguration interface
         uint32_t Configure(PluginHost::IShell* service) override;

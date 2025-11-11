@@ -95,7 +95,7 @@ INSTANTIATE_TEST_SUITE_P(
             .nwStandbyMode    = true,
             .restart          = false,
             // output
-            .powerStateEx             = PowerState::POWER_STATE_STANDBY,
+            .powerStateEx             = PowerState::POWER_STATE_ON,
             .powerStateBeforeRebootEx = PowerState::POWER_STATE_ON }, // on device, APP moves to device state to ON
 
         // 1
@@ -117,7 +117,7 @@ INSTANTIATE_TEST_SUITE_P(
             .nwStandbyMode    = true,
             .restart          = false,
             // output
-            .powerStateEx             = PowerState::POWER_STATE_STANDBY,
+            .powerStateEx             = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP,
             .powerStateBeforeRebootEx = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP },
 
         // 3
@@ -129,7 +129,7 @@ INSTANTIATE_TEST_SUITE_P(
             .restart          = false,
 
             // output
-            .powerStateEx             = PowerState::POWER_STATE_STANDBY,
+            .powerStateEx             = PowerState::POWER_STATE_STANDBY_DEEP_SLEEP,
             .powerStateBeforeRebootEx = PowerState::POWER_STATE_STANDBY_DEEP_SLEEP })
     // end
 );

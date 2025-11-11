@@ -109,7 +109,9 @@ void PowerController::init()
     } while (false);
 
     // Settings file need to be updated if there was a change in power state
-    if (actualPowerState != _lastKnownPowerState) {
+    if ((PowerState::POWER_STATE_UNKNOWN != actualPowerState) &&
+        (actualPowerState != _lastKnownPowerState))
+    {
         LOGINFO("Update settings file to powerState:[%s]",util::str(actualPowerState));
         _settings.SetPowerState(actualPowerState);
         bool ok = _settings.Save(m_settingsFile);

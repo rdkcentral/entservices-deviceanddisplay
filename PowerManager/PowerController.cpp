@@ -88,6 +88,18 @@ void PowerController::init()
             break;
         }
 
+        if (PowerState::POWER_STATE_STANDBY_DEEP_SLEEP == _settings.powerState()) {
+            if (access("/opt/applydeepsleep", F_OK) == 0) {
+                v_secure_system("rm -rf /opt/applydeepsleep");
+                LOGINFO("Applying DEEPSLEEP state during boot due to opt override /opt/ignoredeepsleep");
+                errorCode = SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Initialization");
+            }
+            else {
+                LOGINFO("Ignoring DEEPSLEEP state during boot");
+                break;
+            }
+        }
+
         errorCode = SetPowerState(0, _settings.powerState(), "Initialization");
 
         if (WPEFramework::Core::ERROR_NONE == errorCode) {

@@ -796,8 +796,8 @@ TEST_F(FrameRateTest, NotificationHandler_RegisterAndUnregister_Success)
 // Test FPS event notification via timer trigger
 TEST_F(FrameRateTest, NotificationHandler_FpsEventViaTimerTrigger_Success)
 {
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(FrameRateImplem, nullptr);
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
@@ -843,8 +843,8 @@ TEST_F(FrameRateTest, NotificationHandler_FpsEventViaTimerTrigger_Success)
 // Test FPS event notification via StopFpsCollection API
 TEST_F(FrameRateTest, NotificationHandler_FpsEventViaStopCollection_Success)
 {
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(FrameRateImplem, nullptr);
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
@@ -890,8 +890,8 @@ TEST_F(FrameRateTest, NotificationHandler_FpsEventViaStopCollection_Success)
 // Test display frame rate changing notification via device event
 TEST_F(FrameRateTest, NotificationHandler_DisplayFrameRateChanging_Success)
 {
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(FrameRateImplem, nullptr);
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
@@ -923,8 +923,8 @@ TEST_F(FrameRateTest, NotificationHandler_DisplayFrameRateChanging_Success)
 // Test display frame rate changed notification via device event
 TEST_F(FrameRateTest, NotificationHandler_DisplayFrameRateChanged_Success)
 {
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(FrameRateImplem, nullptr);
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
@@ -956,8 +956,8 @@ TEST_F(FrameRateTest, NotificationHandler_DisplayFrameRateChanged_Success)
 // Test multiple notifications and selective reset functionality
 TEST_F(FrameRateTest, NotificationHandler_MultipleNotificationsAndSelectiveReset_Success)
 {
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(FrameRateImplem, nullptr);
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
@@ -1012,8 +1012,8 @@ TEST_F(FrameRateTest, NotificationHandler_MultipleNotificationsAndSelectiveReset
 // Test notification handler timeout behavior
 TEST_F(FrameRateTest, NotificationHandler_TimeoutBehavior_Success)
 {
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(FrameRateImplem, nullptr);
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
@@ -1039,8 +1039,8 @@ TEST_F(FrameRateTest, NotificationHandler_TimeoutBehavior_Success)
 // Test notification parameter storage and getter methods
 TEST_F(FrameRateTest, NotificationHandler_ParameterStorageAndGetters_Success)
 {
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(FrameRateImplem, nullptr);
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();

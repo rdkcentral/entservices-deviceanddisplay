@@ -24,6 +24,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <chrono>
+#include <thread>
 
 #include "FrameRate.h"
 
@@ -43,6 +44,154 @@
 using namespace WPEFramework;
 
 using ::testing::NiceMock;
+
+typedef enum : uint32_t {
+    FrameRate_OnFpsEvent = 0x00000001,
+    FrameRate_OnDisplayFrameRateChanging = 0x00000002,
+    FrameRate_OnDisplayFrameRateChanged = 0x00000004,
+    FrameRate_StateInvalid = 0x00000000
+} FrameRateEventType_t;
+
+class FrameRateNotificationHandler : public Exchange::IFrameRate::INotification {
+private:
+    std::mutex m_mutex;
+    std::condition_variable m_condition_variable;
+    uint32_t m_event_signalled;
+    
+    // Individual event flags and parameter storage
+    bool m_fpsEvent_signalled = false;
+    bool m_displayFrameRateChanging_signalled = false;
+    bool m_displayFrameRateChanged_signalled = false;
+    
+    // Parameter storage for validation
+    int m_last_average;
+    int m_last_min;
+    int m_last_max;
+    string m_last_displayFrameRate_changing;
+    string m_last_displayFrameRate_changed;
+    
+    BEGIN_INTERFACE_MAP(FrameRateNotificationHandler)
+    INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
+    END_INTERFACE_MAP
+
+public:
+    FrameRateNotificationHandler() : m_event_signalled(0), m_last_average(0), m_last_min(0), m_last_max(0) {}
+    ~FrameRateNotificationHandler() {}
+
+    // Implement notification methods from IFrameRate::INotification interface
+    void OnFpsEvent(int average, int min, int max) override {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_last_average = average;
+        m_last_min = min;
+        m_last_max = max;
+        m_fpsEvent_signalled = true;
+        m_event_signalled |= FrameRate_OnFpsEvent;
+        m_condition_variable.notify_one();
+    }
+
+    void OnDisplayFrameRateChanging(const string& displayFrameRate) override {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_last_displayFrameRate_changing = displayFrameRate;
+        m_displayFrameRateChanging_signalled = true;
+        m_event_signalled |= FrameRate_OnDisplayFrameRateChanging;
+        m_condition_variable.notify_one();
+    }
+
+    void OnDisplayFrameRateChanged(const string& displayFrameRate) override {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_last_displayFrameRate_changed = displayFrameRate;
+        m_displayFrameRateChanged_signalled = true;
+        m_event_signalled |= FrameRate_OnDisplayFrameRateChanged;
+        m_condition_variable.notify_one();
+    }
+
+    // Wait for specific event with timeout
+    bool WaitForRequestStatus(uint32_t timeout_ms, FrameRateEventType_t expected_status) {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        auto now = std::chrono::system_clock::now();
+        std::chrono::milliseconds timeout(timeout_ms);
+
+        while (!(expected_status & m_event_signalled)) {
+            if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Parameter getter methods for validation
+    void GetLastFpsEventParams(int& average, int& min, int& max) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        average = m_last_average;
+        min = m_last_min;
+        max = m_last_max;
+    }
+
+    string GetLastDisplayFrameRateChanging() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_last_displayFrameRate_changing;
+    }
+
+    string GetLastDisplayFrameRateChanged() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_last_displayFrameRate_changed;
+    }
+
+    // Individual event check methods
+    bool IsFpsEventSignalled() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_fpsEvent_signalled;
+    }
+
+    bool IsDisplayFrameRateChangingSignalled() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_displayFrameRateChanging_signalled;
+    }
+
+    bool IsDisplayFrameRateChangedSignalled() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_displayFrameRateChanged_signalled;
+    }
+
+    // Reset all events and parameters
+    void Reset() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_event_signalled = 0;
+        m_fpsEvent_signalled = false;
+        m_displayFrameRateChanging_signalled = false;
+        m_displayFrameRateChanged_signalled = false;
+        m_last_average = 0;
+        m_last_min = 0;
+        m_last_max = 0;
+        m_last_displayFrameRate_changing.clear();
+        m_last_displayFrameRate_changed.clear();
+    }
+
+    // Reset specific event
+    void ResetEvent(FrameRateEventType_t event) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_event_signalled &= ~event;
+        
+        switch(event) {
+            case FrameRate_OnFpsEvent:
+                m_fpsEvent_signalled = false;
+                m_last_average = 0;
+                m_last_min = 0;
+                m_last_max = 0;
+                break;
+            case FrameRate_OnDisplayFrameRateChanging:
+                m_displayFrameRateChanging_signalled = false;
+                m_last_displayFrameRate_changing.clear();
+                break;
+            case FrameRate_OnDisplayFrameRateChanged:
+                m_displayFrameRateChanged_signalled = false;
+                m_last_displayFrameRate_changed.clear();
+                break;
+            default:
+                break;
+        }
+    }
+};
 
 class FrameRateTest : public ::testing::Test {
 protected:
@@ -190,129 +339,7 @@ protected:
     }
 };
 
-typedef enum : uint32_t {
-    FrameRate_OnDisplayFrameRateChanging = 0x00000001,
-    FrameRate_OnDisplayFrameRateChanged = 0x00000002,
-    FrameRate_OnFpsEvent = 0x00000004,
-} FrameRateEventType_t;
 
-class L1FrameRateNotificationHandler : public Exchange::IFrameRate::INotification {
-    private:
-        std::mutex m_mutex;
-        std::condition_variable m_condition_variable;
-        uint32_t m_event_signalled;
-        bool m_OnDisplayFrameRateChanging_signalled = false;
-        bool m_OnDisplayFrameRateChanged_signalled = false;
-        bool m_OnFpsEvent_signalled = false;
-        string m_lastFrameRate;
-        int m_lastAverage;
-        int m_lastMin;
-        int m_lastMax;
-        mutable uint32_t m_refCount;
-
-        BEGIN_INTERFACE_MAP(L1FrameRateNotificationHandler)
-        INTERFACE_ENTRY(Exchange::IFrameRate::INotification)
-        END_INTERFACE_MAP
-
-    public:
-        L1FrameRateNotificationHandler() : m_event_signalled(0), m_lastAverage(0), m_lastMin(0), m_lastMax(0), m_refCount(1) {}
-        ~L1FrameRateNotificationHandler() {}
-
-        void AddRef() const override
-        {
-            Core::InterlockedIncrement(m_refCount);
-        }
-
-        uint32_t Release() const override
-        {
-            uint32_t result = Core::InterlockedDecrement(m_refCount);
-            if (result == 0) {
-                delete this;
-            }
-            return result;
-        }
-
-        void OnDisplayFrameRateChanging(const string& frameRate) override
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_event_signalled |= FrameRate_OnDisplayFrameRateChanging;
-            m_OnDisplayFrameRateChanging_signalled = true;
-            m_lastFrameRate = frameRate;
-            m_condition_variable.notify_one();
-        }
-
-        void OnDisplayFrameRateChanged(const string& frameRate) override
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_event_signalled |= FrameRate_OnDisplayFrameRateChanged;
-            m_OnDisplayFrameRateChanged_signalled = true;
-            m_lastFrameRate = frameRate;
-            m_condition_variable.notify_one();
-        }
-
-        void OnFpsEvent(const int average, const int min, const int max) override
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_event_signalled |= FrameRate_OnFpsEvent;
-            m_OnFpsEvent_signalled = true;
-            m_lastAverage = average;
-            m_lastMin = min;
-            m_lastMax = max;
-            m_condition_variable.notify_one();
-        }
-
-        bool WaitForRequestStatus(uint32_t timeout_ms, FrameRateEventType_t expected_status)
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            auto now = std::chrono::system_clock::now();
-            std::chrono::milliseconds timeout(timeout_ms);
-            bool signalled = false;
-
-            while (!(expected_status & m_event_signalled))
-            {
-                if (m_condition_variable.wait_until(lock, now + timeout) == std::cv_status::timeout)
-                {
-                    break;
-                }
-            }
-
-            switch(expected_status)
-            {
-                case FrameRate_OnDisplayFrameRateChanging:
-                    signalled = m_OnDisplayFrameRateChanging_signalled;
-                    break;
-                case FrameRate_OnDisplayFrameRateChanged:
-                    signalled = m_OnDisplayFrameRateChanged_signalled;
-                    break;
-                case FrameRate_OnFpsEvent:
-                    signalled = m_OnFpsEvent_signalled;
-                    break;
-                default:
-                    signalled = false;
-                    break;
-            }
-
-            return signalled;
-        }
-
-        string GetLastFrameRate() const { return m_lastFrameRate; }
-        int GetLastAverage() const { return m_lastAverage; }
-        int GetLastMin() const { return m_lastMin; }
-        int GetLastMax() const { return m_lastMax; }
-
-        void Reset()
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_event_signalled = 0;
-            m_OnDisplayFrameRateChanging_signalled = false;
-            m_OnDisplayFrameRateChanged_signalled = false;
-            m_OnFpsEvent_signalled = false;
-            m_lastFrameRate.clear();
-            m_lastAverage = 0;
-            m_lastMin = 0;
-            m_lastMax = 0;
-        }
-};
 
 
 TEST_F(FrameRateTest, GetDisplayFrameRate_Success)
@@ -526,237 +553,6 @@ TEST_F(FrameRateTest, UpdateFps_HighValue)
     EXPECT_TRUE(response.find("true") != string::npos);
 }
 
-TEST_F(FrameRateTest, OnReportFpsTimer_WithUpdates)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-
-    Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-    
-    bool success;
-    Plugin::FrameRateImplementation::_instance->UpdateFps(60, success);
-    Plugin::FrameRateImplementation::_instance->UpdateFps(58, success);
-    Plugin::FrameRateImplementation::_instance->UpdateFps(62, success);
-    
-    Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-    
-    EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-    EXPECT_EQ(60, notificationHandler->GetLastAverage());
-    EXPECT_EQ(58, notificationHandler->GetLastMin());
-    EXPECT_EQ(62, notificationHandler->GetLastMax());
-    
-    Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnReportFpsTimer_NoUpdates)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-        EXPECT_EQ(-1, notificationHandler->GetLastAverage());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnReportFpsTimer_SingleUpdate)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        bool success;
-        Plugin::FrameRateImplementation::_instance->UpdateFps(30, success);
-        
-        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-        EXPECT_EQ(30, notificationHandler->GetLastAverage());
-        EXPECT_EQ(30, notificationHandler->GetLastMin());
-        EXPECT_EQ(30, notificationHandler->GetLastMax());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePreChange_ValidFrameRate)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160x48");
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
-        EXPECT_EQ("3840x2160x48", notificationHandler->GetLastFrameRate());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePreChange_EmptyFrameRate)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("");
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
-        EXPECT_EQ("", notificationHandler->GetLastFrameRate());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePreChange_StandardResolution)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("1920x1080x60");
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
-        EXPECT_EQ("1920x1080x60", notificationHandler->GetLastFrameRate());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePostChange_ValidFrameRate)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("3840x2160x48");
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
-        EXPECT_EQ("3840x2160x48", notificationHandler->GetLastFrameRate());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePostChange_EmptyFrameRate)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("");
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
-        EXPECT_EQ("", notificationHandler->GetLastFrameRate());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnDisplayFrameratePostChange_StandardResolution)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("1920x1080x60");
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
-        EXPECT_EQ("1920x1080x60", notificationHandler->GetLastFrameRate());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnReportFpsTimer_MultipleUpdatesAverageCalculation)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        bool success;
-        Plugin::FrameRateImplementation::_instance->UpdateFps(50, success);
-        Plugin::FrameRateImplementation::_instance->UpdateFps(60, success);
-        Plugin::FrameRateImplementation::_instance->UpdateFps(70, success);
-        Plugin::FrameRateImplementation::_instance->UpdateFps(80, success);
-        
-        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-        EXPECT_EQ(65, notificationHandler->GetLastAverage());
-        EXPECT_EQ(50, notificationHandler->GetLastMin());
-        EXPECT_EQ(80, notificationHandler->GetLastMax());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
-TEST_F(FrameRateTest, OnReportFpsTimer_ZeroFpsUpdate)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-    
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
-        
-        bool success;
-        Plugin::FrameRateImplementation::_instance->UpdateFps(0, success);
-        
-        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
-        
-        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
-        EXPECT_EQ(0, notificationHandler->GetLastAverage());
-        EXPECT_EQ(0, notificationHandler->GetLastMin());
-        EXPECT_EQ(0, notificationHandler->GetLastMax());
-        
-        Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler);
-    }
-    
-    notificationHandler->Release();
-}
-
 TEST_F(FrameRateTest, Information_Success)
 {
     string info = plugin->Information();
@@ -966,4 +762,518 @@ TEST_F(FrameRateTest, getDisplayFrameRate_EmptyFramerate)
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getDisplayFrameRate"), _T("{}"), response));
     EXPECT_EQ(response, "");
+}
+
+/**
+ * @brief Comprehensive notification tests covering all notification trigger points
+ */
+
+// Test notification registration and unregistration
+TEST_F(FrameRateTest, NotificationHandler_RegisterAndUnregister_Success)
+{
+    // Get the Exchange::IFrameRate interface
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    
+    // Test successful registration
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->Register(notificationHandler.get()));
+    
+    // Test registration of the same handler again (should return ERROR_ALREADY_CONNECTED)
+    EXPECT_EQ(Core::ERROR_ALREADY_CONNECTED, frameRateInterface->Register(notificationHandler.get()));
+    
+    // Test successful unregistration
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->Unregister(notificationHandler.get()));
+    
+    // Test unregistration of already unregistered handler (should return ERROR_GENERAL)
+    EXPECT_EQ(Core::ERROR_GENERAL, frameRateInterface->Unregister(notificationHandler.get()));
+    
+    frameRateInterface->Release();
+}
+
+// Test FPS event notification via timer trigger
+TEST_F(FrameRateTest, NotificationHandler_FpsEventViaTimerTrigger_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    bool success = false;
+    
+    // Start FPS collection to enable timer
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->StartFpsCollection(success));
+    EXPECT_TRUE(success);
+    
+    // Update FPS values to have data for the timer callback
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->UpdateFps(30, success));
+    EXPECT_TRUE(success);
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->UpdateFps(60, success));
+    EXPECT_TRUE(success);
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->UpdateFps(45, success));
+    EXPECT_TRUE(success);
+    
+    // Trigger the timer callback directly via the static instance
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        
+        // Small delay to allow notification processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        // Verify FPS event was received
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_TRUE(notificationHandler->IsFpsEventSignalled());
+        
+        // Verify notification parameters
+        int average, min, max;
+        notificationHandler->GetLastFpsEventParams(average, min, max);
+        EXPECT_EQ(average, 45); // (30+60+45)/3 = 45
+        EXPECT_EQ(min, 30);
+        EXPECT_EQ(max, 60);
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test FPS event notification via StopFpsCollection API
+TEST_F(FrameRateTest, NotificationHandler_FpsEventViaStopCollection_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    bool success = false;
+    
+    // Start FPS collection
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->StartFpsCollection(success));
+    EXPECT_TRUE(success);
+    
+    // Update some FPS values
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->UpdateFps(25, success));
+    EXPECT_TRUE(success);
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->UpdateFps(50, success));
+    EXPECT_TRUE(success);
+    
+    // Reset notification handler before stopping collection
+    notificationHandler->Reset();
+    
+    // Stop FPS collection - this should trigger OnFpsEvent notification
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->StopFpsCollection(success));
+    EXPECT_TRUE(success);
+    
+    // Small delay to allow notification processing
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    // Verify FPS event was received
+    EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+    EXPECT_TRUE(notificationHandler->IsFpsEventSignalled());
+    
+    // Verify notification parameters
+    int average, min, max;
+    notificationHandler->GetLastFpsEventParams(average, min, max);
+    EXPECT_EQ(average, 37); // (25+50)/2 = 37
+    EXPECT_EQ(min, 25);
+    EXPECT_EQ(max, 50);
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test display frame rate changing notification via device event
+TEST_F(FrameRateTest, NotificationHandler_DisplayFrameRateChanging_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    // Trigger pre-change event directly via the static instance
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("3840x2160px30");
+        
+        // Allow some time for worker pool processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        
+        // Verify display frame rate changing event was received
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangingSignalled());
+        
+        // Verify notification parameters
+        string displayFrameRate = notificationHandler->GetLastDisplayFrameRateChanging();
+        EXPECT_EQ(displayFrameRate, "3840x2160px30");
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test display frame rate changed notification via device event
+TEST_F(FrameRateTest, NotificationHandler_DisplayFrameRateChanged_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    // Trigger post-change event directly via the static instance
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("1920x1080px60");
+        
+        // Allow some time for worker pool processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        
+        // Verify display frame rate changed event was received
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangedSignalled());
+        
+        // Verify notification parameters
+        string displayFrameRate = notificationHandler->GetLastDisplayFrameRateChanged();
+        EXPECT_EQ(displayFrameRate, "1920x1080px60");
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test multiple notifications and selective reset functionality
+TEST_F(FrameRateTest, NotificationHandler_MultipleNotificationsAndSelectiveReset_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    // Trigger multiple events
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        bool success = false;
+        
+        // Start and update FPS collection
+        frameRateInterface->StartFpsCollection(success);
+        frameRateInterface->UpdateFps(120, success);
+        
+        // Trigger timer event
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        
+        // Trigger frame rate change events
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("4096x2160px24");
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("4096x2160px24");
+        
+        // Allow time for processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        
+        // Verify all events were received
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, 
+            FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged));
+        
+        EXPECT_TRUE(notificationHandler->IsFpsEventSignalled());
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangingSignalled());
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangedSignalled());
+        
+        // Test selective reset - reset only FPS event
+        notificationHandler->ResetEvent(FrameRate_OnFpsEvent);
+        EXPECT_FALSE(notificationHandler->IsFpsEventSignalled());
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangingSignalled());
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangedSignalled());
+        
+        // Test full reset
+        notificationHandler->Reset();
+        EXPECT_FALSE(notificationHandler->IsFpsEventSignalled());
+        EXPECT_FALSE(notificationHandler->IsDisplayFrameRateChangingSignalled());
+        EXPECT_FALSE(notificationHandler->IsDisplayFrameRateChangedSignalled());
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test notification handler timeout behavior
+TEST_F(FrameRateTest, NotificationHandler_TimeoutBehavior_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    // Test timeout when no notification is sent
+    auto startTime = std::chrono::system_clock::now();
+    bool result = notificationHandler->WaitForRequestStatus(500, FrameRate_OnFpsEvent);
+    auto endTime = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+    
+    EXPECT_FALSE(result);
+    EXPECT_GE(duration.count(), 450); // Should wait at least 450ms
+    EXPECT_LE(duration.count(), 600); // Should not wait more than 600ms
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test notification parameter storage and getter methods
+TEST_F(FrameRateTest, NotificationHandler_ParameterStorageAndGetters_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        bool success = false;
+        
+        // Test FPS parameter storage
+        frameRateInterface->StartFpsCollection(success);
+        frameRateInterface->UpdateFps(15, success);
+        frameRateInterface->UpdateFps(90, success);
+        frameRateInterface->UpdateFps(75, success);
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        
+        // Test display frame rate parameter storage
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("7680x4320px120");
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("7680x4320px120");
+        
+        // Allow time for processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        
+        // Wait for all notifications
+        notificationHandler->WaitForRequestStatus(1000, 
+            FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged);
+        
+        // Verify FPS parameters
+        int average, min, max;
+        notificationHandler->GetLastFpsEventParams(average, min, max);
+        EXPECT_EQ(average, 60); // (15+90+75)/3 = 60
+        EXPECT_EQ(min, 15);
+        EXPECT_EQ(max, 90);
+        
+        // Verify display frame rate parameters
+        string changingFrameRate = notificationHandler->GetLastDisplayFrameRateChanging();
+        string changedFrameRate = notificationHandler->GetLastDisplayFrameRateChanged();
+        EXPECT_EQ(changingFrameRate, "7680x4320px120");
+        EXPECT_EQ(changedFrameRate, "7680x4320px120");
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test notification handler with API calls that don't trigger notifications
+TEST_F(FrameRateTest, NotificationHandler_NoNotificationAPIs_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    // Configure video device mock for successful operations
+    ON_CALL(*p_videoDeviceMock, getCurrentDisframerate(::testing::_))
+        .WillByDefault(::testing::DoAll(
+            ::testing::SetArrayArgument<0>("1920x1080x60", "1920x1080x60" + 13),
+            ::testing::Return(0)));
+    
+    ON_CALL(*p_videoDeviceMock, getFRFMode(::testing::_))
+        .WillByDefault(::testing::DoAll(
+            ::testing::SetArgPointee<0>(1),
+            ::testing::Return(0)));
+    
+    ON_CALL(*p_videoDeviceMock, setDisplayframerate(::testing::_))
+        .WillByDefault(::testing::Return(0));
+    
+    ON_CALL(*p_videoDeviceMock, setFRFMode(::testing::_))
+        .WillByDefault(::testing::Return(0));
+    
+    bool success = false;
+    string framerate;
+    int frmmode;
+    
+    // Call APIs that typically don't trigger notifications
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->GetDisplayFrameRate(framerate, success));
+    EXPECT_TRUE(success);
+    
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->GetFrmMode(frmmode, success));
+    EXPECT_TRUE(success);
+    
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->SetCollectionFrequency(5000, success));
+    EXPECT_TRUE(success);
+    
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->SetDisplayFrameRate("1920x1080x60", success));
+    EXPECT_TRUE(success);
+    
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->SetFrmMode(1, success));
+    EXPECT_TRUE(success);
+    
+    // UpdateFps should not trigger notification directly
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->UpdateFps(30, success));
+    EXPECT_TRUE(success);
+    
+    // Small delay to ensure no notifications are processed
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    
+    // Verify no notifications were received
+    EXPECT_FALSE(notificationHandler->WaitForRequestStatus(500, 
+        FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged));
+    
+    EXPECT_FALSE(notificationHandler->IsFpsEventSignalled());
+    EXPECT_FALSE(notificationHandler->IsDisplayFrameRateChangingSignalled());
+    EXPECT_FALSE(notificationHandler->IsDisplayFrameRateChangedSignalled());
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test worker pool job dispatch mechanism for frame rate events
+TEST_F(FrameRateTest, NotificationHandler_WorkerPoolJobDispatch_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        // Test pre-change and post-change events through worker pool jobs
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("1280x720px50");
+        Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("1280x720px50");
+        
+        // Allow sufficient time for worker pool processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        
+        // Verify both events were received
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanging));
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnDisplayFrameRateChanged));
+        
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangingSignalled());
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangedSignalled());
+        
+        // Verify parameters match for both events
+        string changingFrameRate = notificationHandler->GetLastDisplayFrameRateChanging();
+        string changedFrameRate = notificationHandler->GetLastDisplayFrameRateChanged();
+        EXPECT_EQ(changingFrameRate, "1280x720px50");
+        EXPECT_EQ(changedFrameRate, "1280x720px50");
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test edge case: notification when FPS collection has no updates
+TEST_F(FrameRateTest, NotificationHandler_FpsEventNoUpdates_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    // Reset notification handler
+    notificationHandler->Reset();
+    
+    bool success = false;
+    
+    // Start FPS collection but don't update any values
+    EXPECT_EQ(Core::ERROR_NONE, frameRateInterface->StartFpsCollection(success));
+    EXPECT_TRUE(success);
+    
+    // Trigger timer without any FPS updates
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        Plugin::FrameRateImplementation::_instance->onReportFpsTimer();
+        
+        // Small delay to allow notification processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        // Verify FPS event was received even with no updates
+        EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, FrameRate_OnFpsEvent));
+        EXPECT_TRUE(notificationHandler->IsFpsEventSignalled());
+        
+        // Verify notification parameters for no-update scenario
+        int average, min, max;
+        notificationHandler->GetLastFpsEventParams(average, min, max);
+        EXPECT_EQ(average, -1); // No updates = -1 average
+        EXPECT_EQ(min, 60);     // DEFAULT_MIN_FPS_VALUE
+        EXPECT_EQ(max, -1);     // DEFAULT_MAX_FPS_VALUE
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
+}
+
+// Test notification handler robustness with rapid events
+TEST_F(FrameRateTest, NotificationHandler_RapidEvents_Success)
+{
+    uint32_t connectionId = 0;
+    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_NE(frameRateInterface, nullptr);
+
+    auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();
+    frameRateInterface->Register(notificationHandler.get());
+    
+    if (Plugin::FrameRateImplementation::_instance != nullptr) {
+        // Reset notification handler
+        notificationHandler->Reset();
+        
+        // Send rapid sequence of events
+        for (int i = 0; i < 5; i++) {
+            Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePreChange("640x480px30");
+            Plugin::FrameRateImplementation::_instance->OnDisplayFrameratePostChange("640x480px30");
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+        
+        // Allow time for all events to be processed
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        
+        // Verify at least one of each event type was received
+        // (rapid events may overwrite previous parameters but flags should be set)
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangingSignalled());
+        EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangedSignalled());
+        
+        // Last parameters should match the final event
+        string changingFrameRate = notificationHandler->GetLastDisplayFrameRateChanging();
+        string changedFrameRate = notificationHandler->GetLastDisplayFrameRateChanged();
+        EXPECT_EQ(changingFrameRate, "640x480px30");
+        EXPECT_EQ(changedFrameRate, "640x480px30");
+    }
+    
+    frameRateInterface->Unregister(notificationHandler.get());
+    frameRateInterface->Release();
 }

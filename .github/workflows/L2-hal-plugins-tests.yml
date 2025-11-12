@@ -57,7 +57,7 @@ jobs:
         #   name: Fetch the changed file from given paths
         id: getfile
         run: |
-          git config --global --add safe.directory /__w/entservices-inputoutput/entservices-inputoutput
+          git config --global --add safe.directory /__w/entservices-deviceanddisplay/entservices-deviceanddisplay
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "::set-output name=files::$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | xargs)"
           else
@@ -106,8 +106,8 @@ jobs:
         run: |
           rm -rf rdkservices
           #apt install libjsoncpp-dev
-          git clone -b topic/RDK-57171-Latest https://github.com/rdkcentral/entservices-inputoutput.git
-          cd entservices-inputoutput/L2HalMock
+          git clone -b topic/RDK-57171-L2HalMock https://github.com/rdkcentral/entservices-deviceandisplay.git
+          cd entservices-deviceanddisplay/L2HalMock
           rm -rf build.sh
           #rm -rf peru.yaml
           #git clone -b peru https://github.com/rdk-e/FLASK-for-Hal-Mock.git
@@ -117,7 +117,6 @@ jobs:
           mv dependencies_auto.py ..
           mv build.sh ..
           mv peru.yaml ..
-          #cp -r peru.yaml __w/rdkservices/rdkservices/rdkservices/L2HalMock
           cd ..
           chmod -Rf 777 dependencies_auto.py
           python3 dependencies_auto.py
@@ -133,7 +132,7 @@ jobs:
           
       - name: Start all services, Execute testcases  
         run: |
-            cd entservices-inputoutput/L2HalMock
+            cd entservices-deviceanddisplay/L2HalMock
             echo "$$$$$$$$$$$ make all services up $$$$$$$$$$$$$$$$"
             chmod -Rf 777 run.sh
             ./run.sh $PLUGIN_NAME 
@@ -152,7 +151,6 @@ jobs:
             apt-get -y update
             apt-get install -y lcov
             ${pwd}
-            #cd rdkservices/build/HdmiCecSource/CMakeFiles/WPEFrameworkHdmiCecSource.dir
             ls
             # killall -QUIT WPEFramework 
             ${pwd}
@@ -163,14 +161,14 @@ jobs:
 
       - name: copying code coverage report
         run: |
-             cd entservices-inputoutput/L2HalMock
+             cd entservices-deviceanddisplay/L2HalMock
              cp -r coverage /tmp/coverage
         continue-on-error: false
          
       - name: Generating Test report
         run: |
           echo "********************"
-          cd entservices-inputoutput/L2HalMock/workspace/deps/rdk/flask/Test_Framework
+          cd entservices-deviceanddisplay/L2HalMock/workspace/deps/rdk/flask/Test_Framework
           pwd
           echo "Latest Results of the Run in CSV Format"
           more TestReport.csv
@@ -183,28 +181,12 @@ jobs:
         shell: bash
         continue-on-error: false
         
-
-      - name: Generating code coverage report
-        run: |
-            apt-get install -y neovim
-            apt-get -y update
-            apt-get install -y lcov
-            ${pwd}
-            #cd rdkservices/build/HdmiCecSource/CMakeFiles/WPEFrameworkHdmiCecSource.dir
-            ls
-            # killall -QUIT WPEFramework 
-            ${pwd}
-            cd entservices-inputoutput/L2HalMock
-            # nvim rdkservices/HdmiCecSink/HdmiCecSink.cpp
-            chmod 777 generate_coveragereport.sh
-            ./generate_coveragereport.sh
-        continue-on-error: false     
-
+ 
 
       - name: copying code coverage report
-        if: contains(steps.getfile.outputs.files, 'HdmiCecSource')
+        if: contains(steps.getfile.outputs.files, 'FrontPanel')
         run: |
-             cd entservices-inputoutput/L2HalMock
+             cd entservices-deviceanddisplay/L2HalMock
              cp -r coverage /tmp/coverage
         continue-on-error: false
 
@@ -213,14 +195,14 @@ jobs:
         run: |  
             echo "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
             netstat -ntlp
-            cd entservices-inputoutput/L2HALMock/start_services
+            cd entservices-deviceanddisplay/L2HALMock/start_services
             python3 stop_run.py
         continue-on-error: true
    
       - name:  Cache the Reports
         id: report
         run: |
-          cd entservices-inputoutput/L2HalMock/workspace/deps/rdk/flask/Test_Framework
+          cd entservices-deviceanddisplay/L2HalMock/workspace/deps/rdk/flask/Test_Framework
           # Get the latest file with .html extension using absolute path
           latest_report=$(realpath $(pwd)/'Test Execution Reports'/*.html | tail -n 1)
           echo "Uploading: $latest_report"

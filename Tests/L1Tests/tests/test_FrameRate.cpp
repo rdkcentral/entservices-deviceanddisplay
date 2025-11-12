@@ -986,7 +986,7 @@ TEST_F(FrameRateTest, NotificationHandler_MultipleNotificationsAndSelectiveReset
         
         // Verify all events were received
         EXPECT_TRUE(notificationHandler->WaitForRequestStatus(1000, 
-            FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged));
+            static_cast<FrameRateEventType_t>(FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged)));
         
         EXPECT_TRUE(notificationHandler->IsFpsEventSignalled());
         EXPECT_TRUE(notificationHandler->IsDisplayFrameRateChangingSignalled());
@@ -1068,7 +1068,7 @@ TEST_F(FrameRateTest, NotificationHandler_ParameterStorageAndGetters_Success)
         
         // Wait for all notifications
         notificationHandler->WaitForRequestStatus(1000, 
-            FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged);
+            static_cast<FrameRateEventType_t>(FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged));
         
         // Verify FPS parameters
         int average, min, max;
@@ -1147,7 +1147,7 @@ TEST_F(FrameRateTest, NotificationHandler_NoNotificationAPIs_Success)
     
     // Verify no notifications were received
     EXPECT_FALSE(notificationHandler->WaitForRequestStatus(500, 
-        FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged));
+        static_cast<FrameRateEventType_t>(FrameRate_OnFpsEvent | FrameRate_OnDisplayFrameRateChanging | FrameRate_OnDisplayFrameRateChanged)));
     
     EXPECT_FALSE(notificationHandler->IsFpsEventSignalled());
     EXPECT_FALSE(notificationHandler->IsDisplayFrameRateChangingSignalled());

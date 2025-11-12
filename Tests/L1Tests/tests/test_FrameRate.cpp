@@ -787,8 +787,8 @@ TEST_F(FrameRateTest, getDisplayFrameRate_EmptyFramerate)
 TEST_F(FrameRateTest, NotificationHandler_RegisterAndUnregister_Success)
 {
     // Get the Exchange::IFrameRate interface
-    uint32_t connectionId = 0;
-    Exchange::IFrameRate* frameRateInterface = plugin->QueryInterface<Exchange::IFrameRate>();
+    ASSERT_TRUE(FrameRateImplem.IsValid());
+    Exchange::IFrameRate* frameRateInterface = &(*FrameRateImplem);
     ASSERT_NE(frameRateInterface, nullptr);
 
     auto notificationHandler = std::make_shared<FrameRateNotificationHandler>();

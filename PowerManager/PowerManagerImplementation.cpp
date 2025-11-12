@@ -937,25 +937,15 @@ namespace Plugin {
 
     void PowerManagerImplementation::onDeepSleepUserWakeup(const bool userWakeup)
     {
-        PowerState newState = PowerState::POWER_STATE_ON;
-
-#ifdef PLATCO_BOOTTO_STANDBY
-        newState = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP;
-#endif
-        LOGINFO(">> User triggered wakeup from DEEP_SLEEP, moving to powerState: %s", util::str(newState));
-        SetPowerState(0, newState, "DeepSleep userwakeup");
+        LOGINFO(">> User triggered wakeup[%u] from DEEP_SLEEP, moving to LIGHT_SLEEP", userWakeup);
+        SetPowerState(0, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "DeepSleep userwakeup");
         LOGINFO("<<");
     }
 
     void PowerManagerImplementation::onDeepSleepFailed()
     {
-        PowerState newState = PowerState::POWER_STATE_ON;
-
-#ifdef PLATCO_BOOTTO_STANDBY
-        newState = PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP;
-#endif
-        LOGINFO(">> Failed to enter DeepSleep, moving to powerState: %s", util::str(newState));
-        SetPowerState(0, newState, "DeepSleep failed");
+        LOGINFO(">> Failed to enter DeepSleep, moving to LIGHT_SLEEP");
+        SetPowerState(0, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "DeepSleep failed");
         LOGINFO("<<");
     }
 

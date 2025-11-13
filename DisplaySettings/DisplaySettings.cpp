@@ -1282,7 +1282,7 @@ namespace WPEFramework {
                             modeString.append(mode.toString());
                     }
                     else if((aPort.getType().getId() == device::AudioOutputPortType::kARC)
-				|| (aPort.getType().getId() == device::AudioOutputPortType::kSPD)
+				|| (aPort.getType().getId() == device::AudioOutputPortType::kSPDIF)
 				|| (aPort.getType().getId() == device::AudioOutputPortType::kHEADPHONE)) {
                         if (aPort.getStereoAuto()) {
                             LOGINFO("%s output mode Auto", audioPort.c_str());

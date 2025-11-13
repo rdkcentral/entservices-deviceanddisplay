@@ -1435,8 +1435,6 @@ namespace WPEFramework {
                             aPort.setStereoMode(mode.toString(), persist);
                         }
 			else if (aPort.getType().getId() == device::AudioOutputPortType::kARC) {
-
-
 		            if(((mode == device::AudioStereoMode::kSurround) || (mode == device::AudioStereoMode::kPassThru) || (mode == device::AudioStereoMode::kStereo)) && (stereoAuto == false)) {
 				    aPort.setStereoAuto(false, persist);
 
@@ -1478,7 +1476,7 @@ namespace WPEFramework {
 				}
 			   }
 			}
-                        else if (aPort.getType().getId() == device::AudioOutputPortType::kSPDIF)
+                        else if ((aPort.getType().getId() == device::AudioOutputPortType::kSPDIF) || (aPort.getType().getId() == device::AudioOutputPortType::kHEADPHONE))
                         {
 			    if(stereoAuto == false) {
                                 aPort.setStereoAuto(false, persist);
@@ -5438,6 +5436,8 @@ void DisplaySettings::sendMsgThread()
                 name = "IDLR0";
             else if (Utils::String::stringContains(name,"SPEAKER"))
                 name = "SPEAKER0";
+            else if (Utils::String::stringContains(name,"HEADPHONE"))
+                name = "HEADPHONE0";
             else if (!name.empty()) // Empty is allowed
                 return false;
 

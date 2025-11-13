@@ -32,8 +32,11 @@ class Settings {
     using MonotonicClock = std::chrono::steady_clock;
     using Timestamp = std::chrono::time_point<MonotonicClock>;
 
+#ifndef UNIT_TEST_ENABLED
     static constexpr const char* kSettingsFilePath = "/opt/uimgr_settings.bin";
-    static constexpr const char* kRamSettingsFilePath = "/tmp/uimgr_settings.bin";
+#else
+    static constexpr const char* kSettingsFilePath = "/tmp/uimgr_settings.bin";
+#endif
     static constexpr const int kDeepSleepTimeoutSec = 8 * 60 * 60; // 8 hours
 
     // Common header across all settings versions

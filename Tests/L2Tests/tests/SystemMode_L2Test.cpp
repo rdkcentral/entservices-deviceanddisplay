@@ -51,7 +51,7 @@ namespace {
 static void removeFile(const char* fileName)
 {
     // Use sudo for protected files
-    if (strcmp(fileName, "/etc/device.properties") == 0 || strcmp(fileName, "/opt/persistent/ds/cecData_2.json") == 0 || strcmp(fileName, "/opt/uimgr_settings.bin") == 0) {
+    if (strcmp(fileName, "/etc/device.properties") == 0 || strcmp(fileName, "/opt/persistent/ds/cecData_2.json") == 0) {
         char cmd[256];
         snprintf(cmd, sizeof(cmd), "sudo rm -f %s", fileName);
         int ret = system(cmd);
@@ -121,8 +121,6 @@ SystemMode_L2test::SystemMode_L2test()
 {
     uint32_t status = Core::ERROR_GENERAL;
 
-    // PowerManager Mocks
-    createFile("/tmp/pwrmgr_restarted", "2");
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_INIT())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
@@ -336,8 +334,7 @@ SystemMode_L2test::~SystemMode_L2test()
     status = DeactivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    removeFile("/tmp/pwrmgr_restarted");
-    removeFile("/opt/uimgr_settings.bin");
+    removeFile("/tmp/uimgr_settings.bin");
 }
 
 uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()

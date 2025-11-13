@@ -104,7 +104,11 @@ public:
     PowerController(PowerController&&) = default;
 
 private:
+#ifndef UNIT_TEST_ENABLED
     const std::string m_settingsFile = "/opt/uimgr_settings.bin";
+#else
+    const std::string m_settingsFile = "/tmp/uimgr_settings.bin";
+#endif
     std::unique_ptr<IPlatform> _platform;
     PowerState _powerStateBeforeReboot;
     PowerState _lastKnownPowerState;

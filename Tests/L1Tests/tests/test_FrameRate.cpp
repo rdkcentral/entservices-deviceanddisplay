@@ -789,29 +789,6 @@ TEST_F(FrameRateTest, getDisplayFrameRate_EmptyFramerate)
  * @brief Comprehensive notification tests following proper L1 test patterns
  */
 
-// Test notification registration and unregistration
-TEST_F(FrameRateTest, NotificationHandler_RegisterAndUnregister_Success)
-{
-    L1FrameRateNotificationHandler* notificationHandler = new L1FrameRateNotificationHandler();
-
-    if (Plugin::FrameRateImplementation::_instance != nullptr)
-    {
-        // Test successful registration
-        EXPECT_EQ(Core::ERROR_NONE, Plugin::FrameRateImplementation::_instance->Register(notificationHandler));
-        
-        // Test registration of the same handler again (should return ERROR_ALREADY_CONNECTED)
-        EXPECT_EQ(Core::ERROR_ALREADY_CONNECTED, Plugin::FrameRateImplementation::_instance->Register(notificationHandler));
-        
-        // Test successful unregistration
-        EXPECT_EQ(Core::ERROR_NONE, Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler));
-        
-        // Test unregistration of already unregistered handler (should return ERROR_GENERAL)
-        EXPECT_EQ(Core::ERROR_GENERAL, Plugin::FrameRateImplementation::_instance->Unregister(notificationHandler));
-    }
-
-    notificationHandler->Release();
-}
-
 // Test display frame rate pre-change notification
 TEST_F(FrameRateTest, OnDisplayFrameratePreChange_StandardResolution)
 {

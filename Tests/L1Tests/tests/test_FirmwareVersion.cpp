@@ -18,6 +18,10 @@
 **/
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "IarmBusMock.h"
+#include "Iarm.h"
+#include "mfrTypes.h"
 
 #include "Implementation/FirmwareVersion.h"
 
@@ -25,20 +29,30 @@
 #include "ThunderPortability.h"
 
 using namespace WPEFramework;
+using ::testing::NiceMock;
 
 class FirmwareVersionTest : public ::testing::Test {
 protected:
     Core::ProxyType<Plugin::FirmwareVersion> firmwareVersion;
     Exchange::IFirmwareVersion* interface;
+    IarmBusImplMock* p_iarmBusImplMock;
 
     FirmwareVersionTest()
         : firmwareVersion(Core::ProxyType<Plugin::FirmwareVersion>::Create())
     {
         interface = static_cast<Exchange::IFirmwareVersion*>(
             firmwareVersion->QueryInterface(Exchange::IFirmwareVersion::ID));
+        p_iarmBusImplMock = new NiceMock<IarmBusImplMock>;
+        IarmBus::setImpl(p_iarmBusImplMock);
     }
     virtual ~FirmwareVersionTest()
     {
+        IarmBus::setImpl(nullptr);
+        if (p_iarmBusImplMock != nullptr)
+        {
+            delete p_iarmBusImplMock;
+            p_iarmBusImplMock = nullptr;
+        }
         interface->Release();
     }
 
@@ -95,4 +109,61 @@ TEST_F(FirmwareVersionTest, Yocto)
     string yocto;
     EXPECT_EQ(Core::ERROR_NONE, interface->Yocto(yocto));
     EXPECT_EQ(yocto, _T("dunfell"));
+}
+
+TEST_F(FirmwareVersionTest, Pdri_Success)
+{
+    const char* expectedPdriVersion = "COESST11AEI_PDRI_PROD_20240119170804_3.2.2.0.bin";
+
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
+        .WillRepeatedly(
+            [&](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                EXPECT_STREQ(ownerName, "MFRLib");
+                EXPECT_STREQ(methodName, "mfrGetManufacturerData");
+                
+                IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
+                    static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                
+                // Verify the type is PDRI version
+                EXPECT_EQ(param->type, mfrSERIALIZED_TYPE_PDRIVERSION);
+                // Simulate successful response with bounds checking
+                size_t expectedLen = strlen(expectedPdriVersion);
+                if (expectedLen < sizeof(param->buffer)) {
+                   strncpy(param->buffer, expectedPdriVersion, sizeof(param->buffer) - 1);
+                   param->buffer[sizeof(param->buffer) - 1] = '\0';
+                   param->bufLen = expectedLen;
+                } else {
+                   param->bufLen = 0;
+                }
+                                
+                return IARM_RESULT_SUCCESS;
+            });
+
+    string pdri;
+    EXPECT_EQ(Core::ERROR_NONE, interface->Pdri(pdri));
+    EXPECT_EQ(pdri, expectedPdriVersion);
+}
+
+TEST_F(FirmwareVersionTest, Pdri_Failure)
+{
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
+        .WillRepeatedly(
+            [&](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                EXPECT_STREQ(ownerName, "MFRLib");
+                EXPECT_STREQ(methodName, "mfrGetManufacturerData");
+            
+            IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
+                static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+            
+            EXPECT_EQ(param->type, mfrSERIALIZED_TYPE_PDRIVERSION);
+            
+            // Simulate IARM call failure
+            param->bufLen = 0;
+            
+            return IARM_RESULT_IPCCORE_FAIL;
+        });
+
+    string pdri;
+    EXPECT_EQ(Core::ERROR_GENERAL, interface->Pdri(pdri));
+    EXPECT_TRUE(pdri.empty());
 }

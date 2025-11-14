@@ -323,7 +323,7 @@ namespace Plugin {
 		LOGINFO("Addresses");
         std::list<AddressesInfo> deviceAddressesInfoList;
         AddressesInfo deviceAddressInfo;
-		Core::JSON::ArrayType<Core::JSON::String> Ip;
+		Core::JSON::String nodeName;
         Core::AdapterIterator interfaces;
 
         while (interfaces.Next() == true) {
@@ -335,14 +335,11 @@ namespace Plugin {
             Core::IPV4AddressIterator selectedNode(interfaces.IPV4Addresses());
 
 			while (selectedNode.Next() == true) {
-				Core::JSON::String nodeName;
                 nodeName = selectedNode.Address().HostAddress();
-				Ip.Add(nodeName);
             }
 
-			Ip.ToString(deviceAddressInfo.ip);
-            //deviceAddressInfo.ip = nodeName.Value();
-            
+            deviceAddressInfo.ip = nodeName.Value();
+
             deviceAddressesInfoList.push_back(deviceAddressInfo);
 
         }

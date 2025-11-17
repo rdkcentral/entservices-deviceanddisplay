@@ -114,7 +114,7 @@ namespace Plugin {
         _service = service;
         _service->AddRef();
 
-	return Core::ERROR_NONE;
+        return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceInfoImplementation::SerialNumber(DeviceSerialNo& deviceSerialNo) const
@@ -167,7 +167,7 @@ namespace Plugin {
     Core::hresult DeviceInfoImplementation::DeviceType(DeviceTypeInfos& deviceTypeInfos) const
     {
         const char* device_type;
-	    string deviceTypeInfo;
+        string deviceTypeInfo;
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
             std::regex("^deviceType(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceTypeInfo);
 
@@ -229,13 +229,13 @@ namespace Plugin {
             }
             else
             {
-                deviceReleaseVer.releaseversion = defaultVersion ;
+                deviceReleaseVer.releaseversion = std::move(defaultVersion);
                 LOGERR("Unable to get releaseVersion of the Image:%s.So default releaseVersion is: %s ",imagename.c_str(),deviceReleaseVer.releaseversion.c_str());
             }
         }
         else
         {
-                deviceReleaseVer.releaseversion = defaultVersion ;
+                deviceReleaseVer.releaseversion = std::move(defaultVersion;)
                 LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",deviceReleaseVer.releaseversion.c_str());
 
         }
@@ -313,11 +313,8 @@ namespace Plugin {
             }
         }
 
-	    if (_subSystem != nullptr) {
-            _subSystem->Release();
-            _subSystem = nullptr;
-        }
-        
+        _subSystem->Release();
+
         return Core::ERROR_NONE;
     }
 
@@ -325,7 +322,7 @@ namespace Plugin {
     {
         std::list<AddressesInfo> deviceAddressesInfoList;
         AddressesInfo deviceAddressInfo;
-		Core::JSON::String nodeName;
+        Core::JSON::String nodeName;
         Core::AdapterIterator interfaces;
 
         while (interfaces.Next() == true) {
@@ -336,7 +333,7 @@ namespace Plugin {
             // get an interface with a public IP address, then we will have a proper MAC address..
             Core::IPV4AddressIterator selectedNode(interfaces.IPV4Addresses());
 
-			while (selectedNode.Next() == true) {
+            while (selectedNode.Next() == true) {
                 nodeName = selectedNode.Address().HostAddress();
             }
 

@@ -48,7 +48,7 @@ namespace WPEFramework
          **/
         SERVICE_REGISTRATION(DeviceInfo, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
-    DeviceInfo::DeviceInfo() : _service(nullptr), _connectionId(0), _deviceInfo(nullptr), _deviceAudioCapabilities(nullptr), _deviceVideoCapabilities(nullptr)
+    DeviceInfo::DeviceInfo() : _service(nullptr), _connectionId(0), _deviceInfo(nullptr), _deviceAudioCapabilities(nullptr), _deviceVideoCapabilities(nullptr), configure(nullptr)
     {
         SYSLOG(Logging::Startup, (_T("DeviceInfo Constructor")));
     }

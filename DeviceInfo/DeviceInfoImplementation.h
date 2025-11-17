@@ -41,7 +41,7 @@ namespace Plugin {
 
         BEGIN_INTERFACE_MAP(DeviceInfoImplementation)
         INTERFACE_ENTRY(Exchange::IDeviceInfo)
-	    INTERFACE_ENTRY(Exchange::IConfiguration)
+        INTERFACE_ENTRY(Exchange::IConfiguration)
         END_INTERFACE_MAP
 
     public:

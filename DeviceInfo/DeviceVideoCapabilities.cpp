@@ -98,7 +98,7 @@ namespace Plugin {
         try {
             std::vector<unsigned char> edidVec2;
             device::Host::getInstance().getHostEDID(edidVec2);
-            edidVec = edidVec2;
+            edidVec = std::move(edidVec2);
         } catch (const device::Exception& e) {
             TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
             result = Core::ERROR_GENERAL;
@@ -117,7 +117,7 @@ namespace Plugin {
             } else {
                 string base64String;
                 Core::ToString((uint8_t*)&edidVec[0], edidVec.size(), true, base64String);
-                hostEdid.EDID = base64String;
+                hostEdid.EDID = std::move(base64String);
             }
         }
 

@@ -235,7 +235,7 @@ namespace Plugin {
         }
         else
         {
-                deviceReleaseVer.releaseversion = std::move(defaultVersion;)
+                deviceReleaseVer.releaseversion = std::move(defaultVersion);
                 LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",deviceReleaseVer.releaseversion.c_str());
 
         }

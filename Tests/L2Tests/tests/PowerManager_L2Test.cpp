@@ -1245,11 +1245,11 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
 
-                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 15, POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
-                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
-
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
                     .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 15, POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
 
                 sleep(3);
 

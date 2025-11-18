@@ -236,7 +236,7 @@ Settings Settings::Load(const std::string& path)
         LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
         Settings ramSettings = Settings::Load(kRamSettingsFilePath);
         // Seems PowerManager starting again so using RAM value
-        settings._powerStateBeforeReboot = ramSettings._powerStateBeforeReboot;
+        settings._powerStateBeforeReboot = ramSettings._powerState;
     }
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};

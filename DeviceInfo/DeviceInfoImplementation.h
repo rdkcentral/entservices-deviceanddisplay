@@ -63,6 +63,7 @@ namespace Plugin {
         Core::hresult EstbMac(StbMac& stbMac) const override;
         Core::hresult WifiMac(WiFiMac& wiFiMa) const override;
         Core::hresult EstbIp(StbIp& stbIp) const override;
+        Core::hresult SupportedAudioPorts(RPC::IStringIterator*& supportedAudioPorts, bool& success) const override;
 
         // IConfiguration interface
         uint32_t Configure(PluginHost::IShell* service) override;

@@ -444,5 +444,34 @@ namespace Plugin {
 
         return Core::ERROR_NONE;
     }
+
+    Core::hresult DeviceInfoImplementation::SupportedAudioPorts(RPC::IStringIterator*& supportedAudioPorts, bool& success) const
+    {
+        uint32_t result = Core::ERROR_NONE;
+
+        std::list<string> list;
+
+        try {
+            const auto& aPorts = device::Host::getInstance().getAudioOutputPorts();
+            for (size_t i = 0; i < aPorts.size(); i++) {
+                list.emplace_back(aPorts.at(i).getName());
+            }
+        } catch (const device::Exception& e) {
+            TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
+            result = Core::ERROR_GENERAL;
+        } catch (const std::exception& e) {
+            TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
+            result = Core::ERROR_GENERAL;
+        } catch (...) {
+            result = Core::ERROR_GENERAL;
+        }
+
+        if (result == Core::ERROR_NONE) {
+            supportedAudioPorts = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
+            success = true;
+        }
+
+        return result;
+    }
 }
 }

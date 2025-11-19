@@ -25,7 +25,6 @@ jobs:
     container:
       image: ubuntu:22.04
       options: >-
-        --network bridge
         --cap-add=SYS_PTRACE
         --security-opt seccomp=unconfined
     strategy:

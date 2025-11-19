@@ -86,6 +86,9 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
         /** @brief Event signalled flag */
         uint32_t m_event_signalled;
 
+        /** @brief Flag to indicate if object is being destroyed */
+        std::atomic<bool> m_destroying{false};
+
         BEGIN_INTERFACE_MAP(PwrMgr_Notification)
         INTERFACE_ENTRY(Exchange::IPowerManager::IRebootNotification)
         INTERFACE_ENTRY(Exchange::IPowerManager::IModePreChangeNotification)
@@ -97,7 +100,11 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
 
     public:
         PwrMgr_Notification(){}
-        ~PwrMgr_Notification(){}
+        ~PwrMgr_Notification(){
+            m_destroying = true;
+            // Wake up any waiting threads
+            m_condition_variable.notify_all();
+        }
 
        template <typename T>
        T* baseInterface()
@@ -347,6 +354,9 @@ PowerManager_L2Test::~PowerManager_L2Test()
 {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
+
+    // Add small delay to ensure any ongoing operations complete
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     EXPECT_CALL(POWERMANAGER_MOCK, PLAT_TERM())
         .WillOnce(::testing::Return(PWRMGR_SUCCESS));
@@ -715,7 +725,7 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
+    PluginHost::IShell *mController_PowerManager = nullptr;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     TEST_LOG("Creating mEngine_PowerManager");
@@ -738,12 +748,15 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
         {
             auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
 
+            if (PowerManagerPlugin)
+            {
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+            }
 
             if (PowerManagerPlugin)
             {
@@ -802,6 +815,11 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
 
+                // Add small delay to ensure async operations complete before cleanup
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+                if (PowerManagerPlugin)
+                {
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -809,12 +827,18 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
+                PowerManagerPlugin = nullptr;
+                }
             }
             else
             {
                 TEST_LOG("PowerManagerPlugin is NULL");
             }
-            mController_PowerManager->Release();
+            if (mController_PowerManager)
+            {
+                mController_PowerManager->Release();
+                mController_PowerManager = nullptr;
+            }
         }
         else
         {
@@ -835,7 +859,7 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
+    PluginHost::IShell *mController_PowerManager = nullptr;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
@@ -857,12 +881,15 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
         {
             auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
 
+            if (PowerManagerPlugin)
+            {
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+            }
 
             if (PowerManagerPlugin)
             {
@@ -883,6 +910,11 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
                 Test_PerformReboot(PowerManagerPlugin);
                 Test_NetworkStandbyMode(PowerManagerPlugin);
 
+                // Add small delay to ensure async operations complete before cleanup
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+                if (PowerManagerPlugin)
+                {
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -890,12 +922,18 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
+                PowerManagerPlugin = nullptr;
+                }    
             }
             else
             {
                 TEST_LOG("PowerManagerPlugin is NULL");
             }
-            mController_PowerManager->Release();
+            if (mController_PowerManager)
+            {
+                mController_PowerManager->Release();
+                mController_PowerManager = nullptr;
+            }
         }
         else
         {
@@ -908,7 +946,7 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
+    PluginHost::IShell *mController_PowerManager = nullptr;
     uint32_t deepSleepTimeout = 10;
 
     TEST_LOG("Creating mEngine_PowerManager");
@@ -931,12 +969,15 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
         {
             auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
 
+            if (PowerManagerPlugin)
+            {
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+            }
 
             if (PowerManagerPlugin)
             {
@@ -983,6 +1024,8 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
 
+                if (PowerManagerPlugin)
+                {
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -990,12 +1033,17 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
+                PowerManagerPlugin = nullptr;    
             }
             else
             {
                 TEST_LOG("PowerManagerPlugin is NULL");
             }
-            mController_PowerManager->Release();
+            if (mController_PowerManager)
+            {
+                mController_PowerManager->Release();
+                mController_PowerManager = nullptr;
+            }    
         }
         else
         {
@@ -1008,7 +1056,7 @@ TEST_F(PowerManager_L2Test, DeepSleepIgnore)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
+    PluginHost::IShell *mController_PowerManager = nullptr;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     TEST_LOG("Creating mEngine_PowerManager");
@@ -1031,12 +1079,15 @@ TEST_F(PowerManager_L2Test, DeepSleepIgnore)
         {
             auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
 
+            if (PowerManagerPlugin)
+            {
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
+            }
 
             std::ofstream file("/tmp/ignoredeepsleep");
             file.close();
@@ -1061,6 +1112,8 @@ TEST_F(PowerManager_L2Test, DeepSleepIgnore)
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_NE(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
 
+                if (PowerManagerPlugin)
+                {
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -1068,12 +1121,18 @@ TEST_F(PowerManager_L2Test, DeepSleepIgnore)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
+                PowerManagerPlugin = nullptr;    
+                }
             }
             else
             {
                 TEST_LOG("PowerManagerPlugin is NULL");
             }
-            mController_PowerManager->Release();
+            if (mController_PowerManager)
+            {
+                mController_PowerManager->Release();
+                mController_PowerManager = nullptr;
+            }
             std::remove("/tmp/ignoredeepsleep");
         }
         else
@@ -1087,7 +1146,7 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
+    PluginHost::IShell *mController_PowerManager = nullptr;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     TEST_LOG("Creating mEngine_PowerManager");
@@ -1110,13 +1169,16 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
         {
             auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
 
+            if (PowerManagerPlugin)
+            {
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
-
+            }
+            
             if (PowerManagerPlugin)
             {
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
@@ -1143,6 +1205,8 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_EQ(standbyMode, !initialStandbyMode);
 
+                if (PowerManagerPlugin)
+                {
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -1150,12 +1214,18 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
+                PowerManagerPlugin = nullptr;
+                }
             }
             else
             {
                 TEST_LOG("PowerManagerPlugin is NULL");
             }
-            mController_PowerManager->Release();
+            if (mController_PowerManager)
+            {
+                mController_PowerManager->Release();
+                mController_PowerManager = nullptr;
+            }    
         }
         else
         {
@@ -1168,7 +1238,7 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
+    PluginHost::IShell *mController_PowerManager = nullptr;;
     uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
     uint32_t deepSleepTimeout = 10;
 
@@ -1192,13 +1262,16 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
         {
             auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
 
+            if (PowerManagerPlugin)
+            {
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
-
+            }
+            
             if (PowerManagerPlugin)
             {
                 uint32_t status = PowerManagerPlugin->SetDeepSleepTimer(deepSleepTimeout);
@@ -1260,6 +1333,8 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
 
+                if (PowerManagerPlugin)
+                {
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -1267,12 +1342,18 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
+                PowerManagerPlugin = nullptr;    
+                }
             }
             else
             {
                 TEST_LOG("PowerManagerPlugin is NULL");
             }
-            mController_PowerManager->Release();
+            if (mController_PowerManager)
+            {
+                mController_PowerManager->Release();
+                mController_PowerManager = nullptr;
+            }
         }
         else
         {
@@ -1308,13 +1389,16 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
         {
             auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
 
+            if (PowerManagerPlugin)
+            {
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IDeepSleepTimeoutNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
             PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
-
+            }
+            
             if (PowerManagerPlugin)
             {
                 int keyCode = 0;
@@ -1352,6 +1436,8 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                 EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY);
                 EXPECT_EQ(prevState, PowerState::POWER_STATE_ON);
 
+                if (PowerManagerPlugin)
+                {
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -1359,12 +1445,18 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
+                PowerManagerPlugin = nullptr;
+                }
             }
             else
             {
                 TEST_LOG("PowerManagerPlugin is NULL");
             }
-            mController_PowerManager->Release();
+            if (mController_PowerManager)
+            {
+                mController_PowerManager->Release();
+                mController_PowerManager = nullptr;
+            }
         }
         else
         {

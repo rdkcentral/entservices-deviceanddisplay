@@ -45,6 +45,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y git curl sudo psmisc python3 python3-pip
+          pip3 install jsonref
           
       - name: Pre-test cleanup
         run: |
@@ -60,12 +61,6 @@ jobs:
           ipcs -m | awk 'NR>3 {print $2}' | xargs -r ipcrm -m || true
           sleep 3
           echo "=== Cleanup complete ==="
-          
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - run: pip install jsonref
 
       - name: ACK External Trigger
         run: |

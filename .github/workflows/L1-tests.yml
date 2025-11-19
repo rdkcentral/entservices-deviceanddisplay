@@ -75,6 +75,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y git curl sudo psmisc python3 python3-pip
+          pip3 install jsonref
           
       - name: Pre-test cleanup
         run: |
@@ -88,12 +89,6 @@ jobs:
           rm -rf /tmp/communicator* || true
           sleep 2
           echo "=== Cleanup complete ==="
-          
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - run: pip install jsonref
 
       - name: ACK External Trigger
         run: |

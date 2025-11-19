@@ -7,6 +7,11 @@ on:
         description: "Specifies the source type (e.g., local or test framework) for the workflow."
         required: true
         type: string
+      use_containers:
+        description: "Enable container isolation (disable for act local runs)"
+        required: false
+        type: boolean
+        default: true
     secrets:
       RDKCM_RDKE:
         required: true
@@ -22,11 +27,8 @@ jobs:
   L2-tests-OOP:
     name: Build and run L2 tests
     runs-on: ubuntu-22.04
-    container:
-      image: ubuntu:22.04
-      options: >-
-        --cap-add=SYS_PTRACE
-        --security-opt seccomp=unconfined
+    container: ${{ inputs.use_containers && fromJSON('{"image":"ubuntu:22.04","options":"--cap-add=SYS_PTRACE --security-opt seccomp=unconfined"}') || null }}
+
     strategy:
       matrix:
         compiler: [ gcc, clang ]
@@ -41,13 +43,22 @@ jobs:
       max-parallel: 1
 
     steps:
+      - name: Set up Python
+        if: ${{ !inputs.use_containers }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          run: pip install jsonref
+
       - name: Install container dependencies
+        if: ${{ inputs.use_containers }}
         run: |
           apt-get update
           apt-get install -y git curl sudo psmisc python3 python3-pip
           pip3 install jsonref
           
       - name: Pre-test cleanup
+        if: ${{ inputs.use_containers }}
         run: |
           echo "=== Cleaning up previous test artifacts ==="
           pkill -9 -f WPEFramework || true

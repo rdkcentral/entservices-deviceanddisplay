@@ -22,7 +22,9 @@
 #include "mfrMgr.h"
 #include "rfcapi.h"
 #include "secure_wrapper.h"
-
+#include "exception.hpp"
+#include "host.hpp"
+#include "manager.hpp"
 #include "UtilsIarm.h"
 
 #include <fstream>
@@ -95,6 +97,14 @@ namespace Plugin {
     DeviceInfoImplementation::DeviceInfoImplementation():_service(nullptr)
     {
         Utils::IARM::init();
+        try {
+            device::Manager::Initialize();
+        } catch (const device::Exception& e) {
+            TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
+        } catch (const std::exception& e) {
+            TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
+        } catch (...) {
+        }
     }
 
     DeviceInfoImplementation::~DeviceInfoImplementation()

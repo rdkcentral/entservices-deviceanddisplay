@@ -2782,7 +2782,7 @@ namespace WPEFramework {
 #endif
 
                 pid_t wp;
-                int status;
+                int status = 0;
 
                 if ((wp = waitpid(m_uploadLogsPid, &status, 0)) != m_uploadLogsPid) {
                     LOGERR("Waitpid for failed: %d, status: %d", m_uploadLogsPid, status);
@@ -3327,7 +3327,7 @@ namespace WPEFramework {
 
             kill(m_uploadLogsPid, SIGKILL);
 
-            int status;
+            int status = 0;
             waitpid(m_uploadLogsPid, &status, 0);
 
             m_uploadLogsPid = -1;
@@ -4926,7 +4926,7 @@ namespace WPEFramework {
          */
         static void handleThermalLevelChange(const int &currentThermalLevel, const int &newThermalLevel, const float &currentTemperature)
         {
-            bool crossOver;
+            bool crossOver = false;
             bool validparams = true;
             std::string thermLevel;
 

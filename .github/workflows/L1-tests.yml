@@ -81,14 +81,14 @@ jobs:
       - run: pip install jsonref
 
       - name: Install container dependencies
-        if: ${{ !env.ACT }}
+        if: ${{ inputs.use_containers }}
         run: |
           apt-get update
           apt-get install -y git curl sudo psmisc python3 python3-pip
           pip3 install jsonref
           
       - name: Pre-test cleanup
-        if: ${{ !env.ACT }}
+        if: ${{ inputs.use_containers }}
         run: |
           echo "=== Cleaning up previous test artifacts ==="
           pkill -9 -f WPEFramework || true

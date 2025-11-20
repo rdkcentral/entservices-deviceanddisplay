@@ -189,7 +189,7 @@ namespace WPEFramework {
                 // We do not allow this plugin to be copied !!
                 SystemServices(const SystemServices&) = delete;
                 SystemServices& operator=(const SystemServices&) = delete;
-                static void getMacAddressesAsync(SystemServices *p);
+                static void getMacAddressesAsync();
                 static std::string m_currentMode;
                 std::string m_current_state;
                 static cTimer m_operatingModeTimer;

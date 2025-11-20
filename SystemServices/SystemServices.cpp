@@ -666,6 +666,14 @@ namespace WPEFramework {
 
         void SystemServices::Deinitialize(PluginHost::IShell*)
         {
+            // Join worker threads before deinitializing to prevent use-after-free
+            if (thread_getMacAddresses.get().joinable()) {
+                thread_getMacAddresses.get().join();
+            }
+            if (m_getFirmwareInfoThread.get().joinable()) {
+                m_getFirmwareInfoThread.get().join();
+            }
+
             if (_powerManagerPlugin) {
                 _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
@@ -2832,7 +2840,7 @@ namespace WPEFramework {
          *     "eth_mac":"<MAC>","wifi_mac":"<MAC>","info":"Details fetch status",
          *     "success":<bool>}
          */
-        void SystemServices::getMacAddressesAsync(SystemServices *pSs)
+        void SystemServices::getMacAddressesAsync()
         {
             long unsigned int i=0;
             long unsigned int listLength = 0;
@@ -2867,10 +2875,11 @@ namespace WPEFramework {
             } else {
                 params["success"] = false;
             }
-            if (pSs) {
-                pSs->Notify(EVT_ONMACADDRESSRETRIEVED, params);
+            SystemServices* instance = SystemServices::GetInstanceSafe();
+            if (instance) {
+                instance->Notify(EVT_ONMACADDRESSRETRIEVED, params);
             } else {
-                LOGERR("SystemServices *pSs is NULL\n");
+                LOGERR("SystemServices instance is NULL\n");
             }
         }
 
@@ -2895,13 +2904,13 @@ namespace WPEFramework {
                     if (thread_getMacAddresses.get().joinable())
                         thread_getMacAddresses.get().join();
 
-                    thread_getMacAddresses = Utils::ThreadRAII(std::thread(getMacAddressesAsync, this));
+                    thread_getMacAddresses = Utils::ThreadRAII(std::thread(getMacAddressesAsync));
                     response["asyncResponse"] = true;
                     status = true;
                 }
                 catch(const std::system_error& e)
                 {
-                    LOGERR("exception in getFirmwareUpdateInfo %s", e.what());
+                    LOGERR("exception in getMacAddresses %s", e.what());
                     response["asyncResponse"] = false;
                     status = false;
                 }

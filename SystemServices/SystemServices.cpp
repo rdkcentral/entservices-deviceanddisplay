@@ -432,16 +432,24 @@ namespace WPEFramework {
         SERVICE_REGISTRATION(SystemServices, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
         SystemServices* SystemServices::_instance = nullptr;
+        std::mutex SystemServices::m_instanceMutex;
         cSettings SystemServices::m_temp_settings(SYSTEM_SERVICE_TEMP_FILE);
 
         /**
          * Register SystemService module as wpeframework plugin
          */
+        SystemServices* SystemServices::GetInstanceSafe()
+        {
+            std::lock_guard<std::mutex> lock(m_instanceMutex);
+            return _instance;
+        }
+
         SystemServices::SystemServices()
 	    : PluginHost::JSONRPCErrorAssessor<PluginHost::JSONRPCErrorAssessorTypes::FunctionCallbackType>(SystemServices::OnJSONRPCError)
             , _pwrMgrNotification(*this)
             , _registeredEventHandlers(false)
         {
+            std::lock_guard<std::mutex> lock(m_instanceMutex);
             SystemServices::_instance = this;
             //Updating the standard territory
             m_strStandardTerritoryList =   "ABW AFG AGO AIA ALA ALB AND ARE ARG ARM ASM ATA ATF ATG AUS AUT AZE BDI BEL BEN BES BFA BGD BGR BHR BHS BIH BLM BLR BLZ BMU BOL                BRA BRB BRN BTN BVT BWA CAF CAN CCK CHE CHL CHN CIV CMR COD COG COK COL COM CPV CRI CUB Cuba CUW CXR CYM CYP CZE DEU DJI DMA DNK DOM DZA ECU EGY ERI ESH ESP                EST ETH FIN FJI FLK FRA FRO FSM GAB GBR GEO GGY GHA GIB GIN GLP GMB GNB GNQ GRC GRD GRL GTM GUF GUM GUY HKG HMD HND HRV HTI HUN IDN IMN IND IOT IRL IRN IRQ                 ISL ISR ITA JAM JEY JOR JPN KAZ KEN KGZ KHM KIR KNA KOR KWT LAO LBN LBR LBY LCA LIE LKA LSO LTU LUX LVA MAC MAF MAR MCO MDA MDG MDV MEX MHL MKD MLI MLT MMR                 MNE MNG MNP MOZ MRT MSR MTQ MUS MWI MYS MYT NAM NCL NER NFK NGA NIC NIU NLD NOR NPL NRU NZL OMN PAK PAN PCN PER PHL PLW PNG POL PRI PRK PRT PRY PSE PYF QAT                 REU ROU RUS RWA SAU SDN SEN SGP SGS SHN SJM SLB SLE SLV SMR SOM SPM SRB SSD STP SUR SVK SVN SWE SWZ SXM SYC SYR TCA TCD TGO THA TJK TKL TKM TLS TON TTO TUN                 TUR TUV TWN TZA UGA UKR UMI URY USA UZB VAT VCT VEN VGB VIR VNM VUT WLF WSM YEM ZAF ZMB ZWE";
@@ -647,6 +655,7 @@ namespace WPEFramework {
             WDMP_STATUS status = getRFCParameter((char*)"thunderapi", TR181_SYSTEM_FRIENDLY_NAME, &param);
             if(WDMP_SUCCESS == status && param.type == WDMP_STRING)
             {
+                std::lock_guard<std::mutex> lock(m_friendlyNameMutex);
                 m_friendlyName = param.value;
                 LOGINFO("Success Getting the friendly name value :%s \n",m_friendlyName.c_str());
             }
@@ -670,7 +679,10 @@ namespace WPEFramework {
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
             DeinitializeIARM();
 #endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
-            SystemServices::_instance = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(m_instanceMutex);
+                SystemServices::_instance = nullptr;
+            }
             m_shellService->Release();
             m_shellService = nullptr;
         }
@@ -782,8 +794,9 @@ namespace WPEFramework {
 
         void SystemServices::onNetworkStandbyModeChanged(const bool enabled)
         {
-            if (SystemServices::_instance) {
-                SystemServices::_instance->onNetworkModeChanged(enabled);
+            SystemServices* instance = SystemServices::GetInstanceSafe();
+            if (instance) {
+                instance->onNetworkModeChanged(enabled);
             } else {
                 LOGERR("SystemServices::_instance is NULL.\n");
             }
@@ -796,8 +809,9 @@ namespace WPEFramework {
 
         void SystemServices::onRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor)
         {
-            if (SystemServices::_instance) {
-                SystemServices::_instance->onPwrMgrReboot(rebootRequestor, rebootReasonOther);
+            SystemServices* instance = SystemServices::GetInstanceSafe();
+            if (instance) {
+                instance->onPwrMgrReboot(rebootRequestor, rebootReasonOther);
             } else {
                 LOGERR("SystemServices::_instance is NULL.\n");
             }
@@ -1058,8 +1072,11 @@ namespace WPEFramework {
 
         void SystemServices::onNetworkModeChanged(bool bNetworkStandbyMode)
         {
-            m_networkStandbyMode = bNetworkStandbyMode;
-            m_networkStandbyModeValid = true;
+            {
+                std::lock_guard<std::mutex> lock(m_networkStandbyModeMutex);
+                m_networkStandbyMode = bNetworkStandbyMode;
+                m_networkStandbyModeValid = true;
+            }
             JsonObject params;
             params["nwStandby"] = bNetworkStandbyMode;
             sendNotify(EVT_ONNETWORKSTANDBYMODECHANGED , params);
@@ -1686,8 +1703,9 @@ namespace WPEFramework {
                 param["mode"] = "NORMAL";
                 param["duration"] = 0;
                 parameters["modeInfo"] = param;
-                if (_instance) {
-                    _instance->setMode(parameters,response);
+                SystemServices* instance = SystemServices::GetInstanceSafe();
+                if (instance) {
+                    instance->setMode(parameters,response);
                 } else {
                     LOGERR("_instance is NULL.\n");
                 }
@@ -1909,8 +1927,9 @@ namespace WPEFramework {
                 LOGINFO("Update= %s", (update ? "true":"false"));
                 if(update == true) {
                     /*Send ONBLOCKLISTCHANGED event notify*/
-                    if (SystemServices::_instance) {
-                        SystemServices::_instance->onBlocklistChanged(blocklistFlag, oldBlocklistFlag);
+                    SystemServices* instance = SystemServices::GetInstanceSafe();
+                    if (instance) {
+                        instance->onBlocklistChanged(blocklistFlag, oldBlocklistFlag);
                     } else {
                         LOGERR("SystemServices::_instance is NULL.\n");
                     }
@@ -2037,8 +2056,9 @@ namespace WPEFramework {
         {
             string env = "";
             string firmwareVersion;
-            if (_instance) {
-                firmwareVersion = _instance->getStbVersionString();
+            SystemServices* instance = SystemServices::GetInstanceSafe();
+            if (instance) {
+                firmwareVersion = instance->getStbVersionString();
             } else {
                 LOGERR("_instance is NULL.\n");
             }
@@ -2069,8 +2089,9 @@ namespace WPEFramework {
                 {
                     // empty /opt/swupdate.conf. Don't initiate FW download
                     LOGWARN("Empty /opt/swupdate.conf. Skipping FW upgrade check with xconf");
-                    if (_instance) {
-                        _instance->reportFirmwareUpdateInfoReceived("",
+                    SystemServices* inst = SystemServices::GetInstanceSafe();
+                    if (inst) {
+                        inst->reportFirmwareUpdateInfoReceived("",
                         STATUS_CODE_NO_SWUPDATE_CONF, true, "", response);
                     }
                     return;
@@ -2131,8 +2152,9 @@ namespace WPEFramework {
             }
             
 
-            if (_instance) {
-                _instance->reportFirmwareUpdateInfoReceived(_fwUpdate.firmwareUpdateVersion,
+            SystemServices* inst = SystemServices::GetInstanceSafe();
+            if (inst) {
+                inst->reportFirmwareUpdateInfoReceived(_fwUpdate.firmwareUpdateVersion,
                         _fwUpdate.httpStatus, _fwUpdate.success, firmwareVersion, response);
             } else {
                 LOGERR("_instance is NULL.\n");
@@ -2232,6 +2254,7 @@ namespace WPEFramework {
 
                  if (Core::ERROR_NONE == retStatus) {
                      status = true;
+                     std::lock_guard<std::mutex> lock(m_networkStandbyModeMutex);
                      m_networkStandbyModeValid = false;
                  } else {
                      status = false;
@@ -2271,8 +2294,11 @@ namespace WPEFramework {
                 response["nwStandby"] = nwStandby;
                 if (Core::ERROR_NONE == retStatus) {
                     retVal = true;
-                    m_networkStandbyMode = nwStandby;
-                    m_networkStandbyModeValid = true;
+                    {
+                        std::lock_guard<std::mutex> lock(m_networkStandbyModeMutex);
+                        m_networkStandbyMode = nwStandby;
+                        m_networkStandbyModeValid = true;
+                    }
                 } else {
                     retVal = false;
                 }
@@ -2768,29 +2794,35 @@ namespace WPEFramework {
          */
         void SystemServices::onLogUpload(int newState)
         {
-            lock_guard<mutex> lck(m_uploadLogsMutex);
+            pid_t pidToWait = -1;
+            {
+                lock_guard<mutex> lck(m_uploadLogsMutex);
 
-            if (-1 != m_uploadLogsPid) {
-                JsonObject params;
+                if (-1 != m_uploadLogsPid) {
+                    JsonObject params;
 
-                params["logUploadStatus"] = newState == IARM_BUS_SYSMGR_LOG_UPLOAD_SUCCESS ? LOG_UPLOAD_STATUS_SUCCESS :
-                    newState == IARM_BUS_SYSMGR_LOG_UPLOAD_ABORTED ? LOG_UPLOAD_STATUS_ABORTED : LOG_UPLOAD_STATUS_FAILURE;
+                    params["logUploadStatus"] = newState == IARM_BUS_SYSMGR_LOG_UPLOAD_SUCCESS ? LOG_UPLOAD_STATUS_SUCCESS :
+                        newState == IARM_BUS_SYSMGR_LOG_UPLOAD_ABORTED ? LOG_UPLOAD_STATUS_ABORTED : LOG_UPLOAD_STATUS_FAILURE;
 
-                sendNotify(EVT_ONLOGUPLOAD, params);
+                    sendNotify(EVT_ONLOGUPLOAD, params);
 #if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
-                GetHandler(2)->Notify(EVT_ONLOGUPLOAD, params);
+                    GetHandler(2)->Notify(EVT_ONLOGUPLOAD, params);
 #endif
 
+                    pidToWait = m_uploadLogsPid;
+                    m_uploadLogsPid = -1;
+                } else {
+                    LOGERR("Upload Logs script isn't runing");
+                }
+            }
+            
+            // Wait outside the lock to avoid blocking other threads
+            if (pidToWait != -1) {
                 pid_t wp;
                 int status;
-
-                if ((wp = waitpid(m_uploadLogsPid, &status, 0)) != m_uploadLogsPid) {
-                    LOGERR("Waitpid for failed: %d, status: %d", m_uploadLogsPid, status);
+                if ((wp = waitpid(pidToWait, &status, 0)) != pidToWait) {
+                    LOGERR("Waitpid for failed: %d, status: %d", pidToWait, status);
                 }
-
-                m_uploadLogsPid = -1;
-            } else {
-                LOGERR("Upload Logs script isn't runing");
             }
         }
 
@@ -3002,8 +3034,9 @@ namespace WPEFramework {
                                 }
                             }
 
-                            if (SystemServices::_instance && (oldTimeZoneDST != timeZone || oldAccuracy != accuracy))
-                                SystemServices::_instance->onTimeZoneDSTChanged(oldTimeZoneDST,timeZone,oldAccuracy, accuracy);
+                            SystemServices* inst = SystemServices::GetInstanceSafe();
+                            if (inst && (oldTimeZoneDST != timeZone || oldAccuracy != accuracy))
+                                inst->onTimeZoneDSTChanged(oldTimeZoneDST,timeZone,oldAccuracy, accuracy);
 
                         }
                         else{
@@ -3041,15 +3074,23 @@ namespace WPEFramework {
             string friendlyName = parameters["friendlyName"].String();
             bool success = true;
             LOGWARN("SystemServices::setFriendlyName  :%s \n", friendlyName.c_str());
-            if(m_friendlyName != friendlyName)
+            std::string oldFriendlyName;
             {
-                m_friendlyName = friendlyName;
+                std::lock_guard<std::mutex> lock(m_friendlyNameMutex);
+                oldFriendlyName = m_friendlyName;
+                if(m_friendlyName != friendlyName)
+                {
+                    m_friendlyName = friendlyName;
+                }
+            }
+            if(oldFriendlyName != friendlyName)
+            {
                 JsonObject params;
-                params["friendlyName"] = m_friendlyName;
+                params["friendlyName"] = friendlyName;
                 sendNotify("onFriendlyNameChanged", params);
                 //write to persistence storage
                 WDMP_STATUS status = setRFCParameter((char*)"thunderapi",
-                       TR181_SYSTEM_FRIENDLY_NAME,m_friendlyName.c_str(),WDMP_STRING);
+                       TR181_SYSTEM_FRIENDLY_NAME,friendlyName.c_str(),WDMP_STRING);
                 if ( WDMP_SUCCESS == status ){
                     LOGINFO("Success Setting the friendly name value\n");
                 }
@@ -3279,14 +3320,15 @@ namespace WPEFramework {
     {
         LOGWARN("");
 
-        pid_t uploadLogsPid = -1;
-
+        bool needAbort = false;
         {
             lock_guard<mutex> lck(m_uploadLogsMutex);
-            uploadLogsPid = m_uploadLogsPid;
+            if (-1 != m_uploadLogsPid) {
+                needAbort = true;
+            }
         }
-
-        if (-1 != uploadLogsPid) {
+        
+        if (needAbort) {
             LOGWARN("Another instance of log upload script is running");
             abortLogUpload(parameters, response);
         }
@@ -4794,8 +4836,9 @@ namespace WPEFramework {
             std::string mode = iarmModeToString(param->newMode);
 
 #ifdef HAS_API_POWERSTATE
-            if (SystemServices::_instance) {
-                SystemServices::_instance->onSystemModeChanged(mode);
+            SystemServices* instance = SystemServices::GetInstanceSafe();
+            if (instance) {
+                instance->onSystemModeChanged(mode);
             } else {
                 LOGERR("SystemServices::_instance is NULL.\n");
             }
@@ -4851,13 +4894,14 @@ namespace WPEFramework {
                 case IARM_BUS_SYSMGR_SYSSTATE_FIRMWARE_UPDATE_STATE:
                     {
                         LOGWARN("IARMEvt: IARM_BUS_SYSMGR_SYSSTATE_FIRMWARE_UPDATE_STATE = '%d'\n", state);
-                        if (SystemServices::_instance)
+                        SystemServices* instance = SystemServices::GetInstanceSafe();
+                        if (instance)
                         {
                             if (IARM_BUS_SYSMGR_FIRMWARE_UPDATE_STATE_CRITICAL_REBOOT == state) {
                                 LOGWARN(" Critical reboot is required. \n ");
-                                SystemServices::_instance->onFirmwarePendingReboot(seconds);
+                                instance->onFirmwarePendingReboot(seconds);
                             } else {
-                                SystemServices::_instance->onFirmwareUpdateStateChange(state);
+                                instance->onFirmwareUpdateStateChange(state);
                             }
                         } else {
                             LOGERR("SystemServices::_instance is NULL.\n");
@@ -4869,8 +4913,9 @@ namespace WPEFramework {
                         if (sysEventData->data.systemStates.state)
                         {
                             LOGWARN("Clock is set.");
-                            if (SystemServices::_instance) {
-                                SystemServices::_instance->onClockSet();
+                            SystemServices* instance = SystemServices::GetInstanceSafe();
+                            if (instance) {
+                                instance->onClockSet();
                             } else {
                                 LOGERR("SystemServices::_instance is NULL.\n");
                             }
@@ -4879,9 +4924,10 @@ namespace WPEFramework {
                 case IARM_BUS_SYSMGR_SYSSTATE_LOG_UPLOAD:
                     {
                         LOGWARN("IARMEvt: IARM_BUS_SYSMGR_SYSSTATE_LOG_UPLOAD = '%d'", state);
-                        if (SystemServices::_instance)
+                        SystemServices* instance = SystemServices::GetInstanceSafe();
+                        if (instance)
                         {
-                            SystemServices::_instance->onLogUpload(state);
+                            instance->onLogUpload(state);
                         } else {
                             LOGERR("SystemServices::_instance is NULL.\n");
                         }

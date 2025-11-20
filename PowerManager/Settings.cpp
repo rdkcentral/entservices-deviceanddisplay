@@ -191,6 +191,7 @@ Settings Settings::Load(const std::string& path)
     bool ok = false;
 
     if (fd >= 0) {
+
         Header header;
 
         lseek(fd, 0, SEEK_SET);
@@ -216,16 +217,34 @@ Settings Settings::Load(const std::string& path)
             settings.initDefaults();
             settings.save(fd);
         }
+
         fsync(fd);
         close(fd);
     }
-    else {
-        LOGERR("Failed to open settings file, Error:[%s]", strerror(errno));
-        // failed to open file, init default settings
-        settings.initDefaults();
+
+    if (path == kRamSettingsFilePath) {
+        settings.printDetails("RAM Settings Loaded");
+        return settings;
     }
     // updating powerStateBeforeReboot
     settings._powerStateBeforeReboot = settings._powerState;
+    if (0 != access(kRamSettingsFilePath, F_OK)) {
+        LOGINFO("Creating RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
+        settings.Save(kRamSettingsFilePath);
+    }
+    else {
+        LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
+        Settings ramSettings = Settings::Load(kRamSettingsFilePath);
+        // Seems PowerManager starting again so using RAM value
+        settings._powerStateBeforeReboot = ramSettings._powerState;
+    }
+#ifdef PLATCO_BOOTTO_STANDBY
+    struct stat buf = {};
+    if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
+        settings._powerState = PowerState::POWER_STATE_STANDBY;
+        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
+    }
+#endif
     settings.printDetails("Final Settings from opt");
     return settings;
 }

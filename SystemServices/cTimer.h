@@ -19,6 +19,7 @@
 
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 using namespace std;
 
@@ -28,6 +29,7 @@ class cTimer{
         int interval;
         void (*callBack_function)() = NULL;
         std::thread timerThread;
+        std::mutex m_timerMutex;  // Protects 'clear' variable
         void timerFunction();
     public:
         /***

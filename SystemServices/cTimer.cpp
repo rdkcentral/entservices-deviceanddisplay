@@ -43,13 +43,19 @@ Running this timer function as thread function
 */
 void cTimer::timerFunction() {
     while (true) {
-         if (this->clear) {
-            return;
+        {
+            std::lock_guard<std::mutex> lock(m_timerMutex);
+            if (this->clear) {
+                return;
             }
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(interval));
-         if (this->clear) {
-            return;
+        {
+            std::lock_guard<std::mutex> lock(m_timerMutex);
+            if (this->clear) {
+                return;
             }
+        }
 
         this->callBack_function();
     }
@@ -74,7 +80,10 @@ bool cTimer::start()
  */
 void cTimer::stop()
 {
-     this->clear = true;
+    {
+        std::lock_guard<std::mutex> lock(m_timerMutex);
+        this->clear = true;
+    }
 }
 
 void cTimer::detach()

@@ -120,7 +120,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: DeepSleepInvalidWakeup
+          ref: Feature/L1-L2test
 
       - name: Apply patches ThunderTools
         run: |

@@ -138,7 +138,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: Feature/L1-L2test
 
       - name: Checkout googletest
         if: steps.cache.outputs.cache-hit != 'true'

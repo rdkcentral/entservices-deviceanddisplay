@@ -1033,7 +1033,8 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
                 PowerManagerPlugin->Release();
-                PowerManagerPlugin = nullptr;    
+                PowerManagerPlugin = nullptr;
+                }
             }
             else
             {

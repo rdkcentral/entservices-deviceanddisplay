@@ -404,7 +404,6 @@ namespace WPEFramework {
 
         //Prototypes
         std::string   SystemServices::m_currentMode = "";
-        std::mutex    SystemServices::m_modeMutex;  // Protects m_currentMode, m_operatingModeTimer, m_remainingDuration
         cTimer    SystemServices::m_operatingModeTimer;
         int       SystemServices::m_remainingDuration = 0;
         JsonObject SystemServices::_systemParams;
@@ -1461,19 +1460,10 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             JsonObject modeInfo;
-            std::string currentMode;
-            int remainingDuration;
-
-            {
-                std::lock_guard<std::mutex> lock(m_modeMutex);
-                currentMode = m_currentMode;
-                remainingDuration = m_remainingDuration;
-            }
-
             LOGWARN("current mode: '%s', duration: %d\n",
-                    currentMode.c_str(), remainingDuration);
-            modeInfo["mode"] = currentMode.c_str();
-            modeInfo["duration"] = remainingDuration;
+                    m_currentMode.c_str(), m_remainingDuration);
+            modeInfo["mode"] = m_currentMode.c_str();
+            modeInfo["duration"] = m_remainingDuration;
             response["modeInfo"] = modeInfo;
             returnResponse(true);
         }
@@ -1577,118 +1567,95 @@ namespace WPEFramework {
         {
             bool changeMode  = true;
             JsonObject param;
-            std::string oldMode;
-            std::string newMode;
-            int duration = 0;
+            std::string oldMode = m_currentMode;
             bool result = true;
 
-            // Read parameters without holding lock
             if (parameters.HasLabel("modeInfo")) {
                 param.FromString(parameters["modeInfo"].String());
                 if (param.HasLabel("duration") && param.HasLabel("mode")) {
-                    duration = param["duration"].Number();
-                    newMode = param["mode"].String();
+                    int duration = param["duration"].Number();
+                    std::string newMode = param["mode"].String();
+
+                    LOGWARN("request to switch to mode '%s' from mode '%s' \
+                            with duration %d\n", newMode.c_str(),
+                            oldMode.c_str(), duration);
+
+                    if (MODE_NORMAL != newMode && MODE_WAREHOUSE != newMode &&
+                            MODE_EAS != newMode) {
+                        LOGERR("value of new mode is incorrect, therefore \
+                                current mode '%s' not changed.\n", oldMode.c_str());
+                        returnResponse(false);
+                    }
+                    if (MODE_NORMAL == m_currentMode && (0 == duration ||
+                                (0 != duration && MODE_NORMAL == newMode))) {
+                        changeMode = false;
+                    } else if (MODE_NORMAL != newMode && 0 != duration) {
+                        m_currentMode = newMode;
+                        duration < 0 ? stopModeTimer() : startModeTimer(duration);
+                    } else {
+                        m_currentMode = MODE_NORMAL;
+                        stopModeTimer();
+                    }
+
+                    if (changeMode) {
+                        IARM_Bus_CommonAPI_SysModeChange_Param_t modeParam;
+                        stringToIarmMode(oldMode, modeParam.oldMode);
+                        stringToIarmMode(m_currentMode, modeParam.newMode);
+
+                        if (IARM_RESULT_SUCCESS == IARM_Bus_Call(IARM_BUS_DAEMON_NAME,
+                                    "DaemonSysModeChange", &modeParam, sizeof(modeParam))) {
+                            LOGWARN("switched to mode '%s'\n", m_currentMode.c_str());
+
+                            if (MODE_NORMAL != m_currentMode && duration < 0) {
+                                LOGWARN("duration is negative, therefore \
+                                        mode timer stopped and Receiver will keep \
+                                        mode '%s', untill changing it in next call",
+                                        m_currentMode.c_str());
+                            }
+                        } else {
+                            stopModeTimer();
+                            m_currentMode = MODE_NORMAL;
+                            LOGERR("failed to switch to mode '%s'. Receiver \
+                                    forced to switch to '%s'", newMode.c_str(), m_currentMode.c_str());
+                            result = false;
+                        }
+
+                        if (MODE_WAREHOUSE == m_currentMode){
+                            FILE *fp = fopen(WAREHOUSE_MODE_FILE, "w+");
+                            if(!fp){
+                                LOGWARN("Unable to create [%s] file ",WAREHOUSE_MODE_FILE);
+                            }
+                            else{
+                                fclose(fp);
+                            }
+                        }
+                        else {
+                            if(Utils::fileExists(WAREHOUSE_MODE_FILE)){
+                                if(0 != unlink(WAREHOUSE_MODE_FILE)){
+                                    LOGWARN("Unlink is failed for [%s] file",WAREHOUSE_MODE_FILE);
+                                }
+                            }
+                        }
+                        //set values in temp file so they can be restored in receiver restarts / crashes
+                        m_temp_settings.setValue("mode", m_currentMode);
+                        m_temp_settings.setValue("mode_duration", m_remainingDuration);
+                    } else {
+                        LOGWARN("Current mode '%s' not changed", m_currentMode.c_str());
+                    }
                 } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
                     result = false;
-                    returnResponse(result);
-                    return Core::ERROR_GENERAL;
                 }
             } else {
                 populateResponseWithError(SysSrv_MissingKeyValues, response);
                 result = false;
-                returnResponse(result);
-                return Core::ERROR_GENERAL;
             }
 
-            // Now acquire lock for shared state access
-            {
-                std::lock_guard<std::mutex> lock(m_modeMutex);
-                oldMode = m_currentMode;
-
-                LOGWARN("request to switch to mode '%s' from mode '%s' \
-                        with duration %d\n", newMode.c_str(),
-                        oldMode.c_str(), duration);
-
-                if (MODE_NORMAL != newMode && MODE_WAREHOUSE != newMode &&
-                        MODE_EAS != newMode) {
-                    LOGERR("value of new mode is incorrect, therefore \
-                            current mode '%s' not changed.\n", oldMode.c_str());
-                    returnResponse(false);
-                    return Core::ERROR_GENERAL;
-                }
-                if (MODE_NORMAL == m_currentMode && (0 == duration ||
-                            (0 != duration && MODE_NORMAL == newMode))) {
-                    changeMode = false;
-                } else if (MODE_NORMAL != newMode && 0 != duration) {
-                    m_currentMode = newMode;
-                    m_remainingDuration = duration;
-                    m_operatingModeTimer.start();
-                    //set values in temp file so they can be restored in receiver restarts / crashes
-                    m_temp_settings.setValue("mode_duration", m_remainingDuration);
-                } else {
-                    m_currentMode = MODE_NORMAL;
-                    m_remainingDuration = 0;
-                    m_operatingModeTimer.stop();
-                    //set values in temp file so they can be restored in receiver restarts / crashes
-                    m_temp_settings.setValue("mode_duration", m_remainingDuration);
-                }
-
-                if (changeMode) {
-                    IARM_Bus_CommonAPI_SysModeChange_Param_t modeParam;
-                    stringToIarmMode(oldMode, modeParam.oldMode);
-                    stringToIarmMode(m_currentMode, modeParam.newMode);
-
-                    if (IARM_RESULT_SUCCESS == IARM_Bus_Call(IARM_BUS_DAEMON_NAME,
-                                "DaemonSysModeChange", &modeParam, sizeof(modeParam))) {
-                        LOGWARN("switched to mode '%s'\n", m_currentMode.c_str());
-
-                        if (MODE_NORMAL != m_currentMode && duration < 0) {
-                            LOGWARN("duration is negative, therefore \
-                                    mode timer stopped and Receiver will keep \
-                                    mode '%s', untill changing it in next call",
-                                    m_currentMode.c_str());
-                        }
-                    } else {
-                        m_remainingDuration = 0;
-                        m_operatingModeTimer.stop();
-                        m_currentMode = MODE_NORMAL;
-                        LOGERR("failed to switch to mode '%s'. Receiver \
-                                forced to switch to '%s'", newMode.c_str(), m_currentMode.c_str());
-                        result = false;
-                    }
-
-                    if (MODE_WAREHOUSE == m_currentMode){
-                        FILE *fp = fopen(WAREHOUSE_MODE_FILE, "w+");
-                        if(!fp){
-                            LOGWARN("Unable to create [%s] file ",WAREHOUSE_MODE_FILE);
-                        }
-                        else{
-                            fclose(fp);
-                        }
-                    }
-                    else {
-                        if(Utils::fileExists(WAREHOUSE_MODE_FILE)){
-                            if(0 != unlink(WAREHOUSE_MODE_FILE)){
-                                LOGWARN("Unlink is failed for [%s] file",WAREHOUSE_MODE_FILE);
-                            }
-                        }
-                    }
-                    //set values in temp file so they can be restored in receiver restarts / crashes
-                    m_temp_settings.setValue("mode", m_currentMode);
-                    m_temp_settings.setValue("mode_duration", m_remainingDuration);
-                } else {
-                    LOGWARN("Current mode '%s' not changed", m_currentMode.c_str());
-                }
-            }  // Lock released here
-
             returnResponse(result);
-            return Core::ERROR_NONE;
         }
 
         void SystemServices::startModeTimer(int duration)
         {
-            // NOTE: Lock must be held by caller (setMode or updateDuration)
             m_remainingDuration = duration;
             m_operatingModeTimer.start();
             //set values in temp file so they can be restored in receiver restarts / crashes
@@ -1697,7 +1664,6 @@ namespace WPEFramework {
 
         void SystemServices::stopModeTimer()
         {
-            // NOTE: Lock must be held by caller (setMode or updateDuration)
             m_remainingDuration = 0;
             m_operatingModeTimer.stop();
 
@@ -1711,33 +1677,24 @@ namespace WPEFramework {
          */
         void SystemServices::updateDuration()
         {
-            {
-                std::lock_guard<std::mutex> lock(m_modeMutex);
-                if (m_remainingDuration > 0) {
-                    m_remainingDuration--;
-                } else {
-                    m_operatingModeTimer.stop();
-                    m_operatingModeTimer.detach();
-                    m_temp_settings.setValue("mode_duration", m_remainingDuration);
-                    // Release lock before calling setMode to avoid recursive lock issues
-                }
-            }
-
-            // If duration expired, switch back to NORMAL mode
-            if (m_remainingDuration == 0) {
+            if (m_remainingDuration > 0) {
+                m_remainingDuration--;
+            } else {
+                m_operatingModeTimer.stop();
+		m_operatingModeTimer.detach();
                 JsonObject parameters, param, response;
                 param["mode"] = "NORMAL";
                 param["duration"] = 0;
                 parameters["modeInfo"] = param;
                 if (_instance) {
-                    _instance->setMode(parameters, response);
+                    _instance->setMode(parameters,response);
                 } else {
                     LOGERR("_instance is NULL.\n");
                 }
-            } else {
-                //set values in temp file so they can be restored in receiver restarts / crashes
-                m_temp_settings.setValue("mode_duration", m_remainingDuration);
             }
+
+            //set values in temp file so they can be restored in receiver restarts / crashes
+            m_temp_settings.setValue("mode_duration", m_remainingDuration);
         }
 
         bool checkOpFlashStoreDir()

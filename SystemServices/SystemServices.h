@@ -191,7 +191,6 @@ namespace WPEFramework {
                 SystemServices& operator=(const SystemServices&) = delete;
                 static void getMacAddressesAsync(SystemServices *p);
                 static std::string m_currentMode;
-                static std::mutex m_modeMutex;  // Protects m_currentMode, m_operatingModeTimer, m_remainingDuration
                 std::string m_current_state;
                 static cTimer m_operatingModeTimer;
                 static int m_remainingDuration;

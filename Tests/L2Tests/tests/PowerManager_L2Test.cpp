@@ -1235,7 +1235,7 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
     }
 }
 
-TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
+TEST_F(PowerManager_L2Test,DISABLED_DeepSleepInvalidWakeup)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;

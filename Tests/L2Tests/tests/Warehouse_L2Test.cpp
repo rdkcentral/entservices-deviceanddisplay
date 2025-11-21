@@ -497,7 +497,7 @@ TEST_F(Warehouse_L2Test, COMRPC_Warehouse_getHardwareTestResults_executeHardware
                 return WDMP_SUCCESS;
             }));
 
-    bool success;
+    bool success = false;
     string response;
     status = m_warehouseplugin->GetHardwareTestResults(success, response);
     EXPECT_EQ(status, Core::ERROR_NONE);

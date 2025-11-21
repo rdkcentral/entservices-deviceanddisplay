@@ -111,7 +111,7 @@ string PlatformCapsData::GetAccountId() {
 
   std::string altenateIds;
   std::string message;
-  bool success;
+  bool success = false;
 
   auto rc = authservicePlugin->GetAlternateIds(altenateIds, message, success);
   if (rc == Core::ERROR_NONE && success)

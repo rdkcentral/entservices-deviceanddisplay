@@ -100,7 +100,7 @@ void DeepSleepWakeupSettings::initializeTimeZone()
 uint32_t DeepSleepWakeupSettings::secure_random() const
 {
     std::ifstream urandom("/dev/urandom", std::ios::in | std::ios::binary);
-    uint32_t value;
+    uint32_t value = 0;
     urandom.read(reinterpret_cast<char*>(&value), sizeof(value));
     return value;
 }

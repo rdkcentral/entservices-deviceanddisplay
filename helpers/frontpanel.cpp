@@ -505,7 +505,7 @@ namespace WPEFramework
             stopBlinkTimer();
             m_blinkList.clear();
             string ledIndicator = svc2iarm(blinkInfo["ledIndicator"].String());
-            int iterations;
+            int iterations = 0;
             getNumberParameterObject(blinkInfo, "iterations", iterations);
             JsonArray patternList = blinkInfo["pattern"].Array();
             for (int i = 0; i < patternList.Length(); i++)
@@ -517,7 +517,7 @@ namespace WPEFramework
                 if (frontPanelBlinkHash.HasLabel("brightness"))
                     getNumberParameterObject(frontPanelBlinkHash, "brightness", brightness);
 
-                int duration;
+                int duration = 0;
                 getNumberParameterObject(frontPanelBlinkHash, "duration", duration);
                 LOGWARN("setBlink ledIndicator: %s iterations: %d brightness: %d duration: %d", ledIndicator.c_str(), iterations, brightness, duration);
                 frontPanelBlinkInfo.brightness = brightness;

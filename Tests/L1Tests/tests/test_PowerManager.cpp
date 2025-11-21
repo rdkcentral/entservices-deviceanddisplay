@@ -246,8 +246,13 @@ public:
             .WillRepeatedly(::testing::Invoke(
                 [](PWRMgr_PowerState_t powerState) {
                     // All tests are run without settings file
+#ifdef PLATCO_BOOTTO_STANDBY
+                    // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
+                    EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+#else
                     // default expected power state is ON
                     EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+#endif
                     return PWRMGR_SUCCESS;
                 }));
 
@@ -329,7 +334,7 @@ public:
 
         TearDownMocks();
 
-        if (0 != system("rm /tmp/uimgr_settings.bin")) { /* do nothig */
+        if (0 != system("rm /opt/uimgr_settings.bin")) { /* do nothig */
         }
 
         // Although this file is not created always
@@ -358,8 +363,13 @@ public:
 
     PowerState initialPowerState()
     {
+#ifdef PLATCO_BOOTTO_STANDBY
+        // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
+        return PowerState::POWER_STATE_STANDBY;
+#else
         // default expected power state is ON
         return PowerState::POWER_STATE_ON;
+#endif
     }
 };
 

@@ -57,19 +57,6 @@ typedef enum : uint32_t {
     POWERMANAGERL2TEST_STATE_INVALID = 0x00000000
 }PowerManagerL2test_async_events_t;
 
-namespace {
-static void removeFile(const char* fileName)
-{
-    if (std::remove(fileName) != 0) {
-        printf("File %s failed to remove\n", fileName);
-        perror("Error deleting file");
-    }
-    else {
-        printf("File %s successfully deleted\n", fileName);
-    }
-}
-}
-
 class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
                              public Exchange::IPowerManager::IModePreChangeNotification,
                              public Exchange::IPowerManager::IModeChangedNotification,
@@ -339,12 +326,10 @@ PowerManager_L2Test::PowerManager_L2Test()
                       return mfrERR_NONE;
                           }));
 
-         /* All tests were run without settings file */
-         removeFile("/tmp/uimgr_settings.bin");
-
          /* Activate plugin in constructor */
          status = ActivateService("org.rdk.PowerManager");
          EXPECT_EQ(Core::ERROR_NONE, status);
+
 }
 
 /**
@@ -366,9 +351,6 @@ PowerManager_L2Test::~PowerManager_L2Test()
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
-
-    /* All tests were run without settings file */
-    removeFile("/tmp/uimgr_settings.bin");
 }
 
 void PowerManager_L2Test::OnPowerModeChanged(const PowerState currentState, const PowerState newState)
@@ -1186,25 +1168,26 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
                     .WillOnce(::testing::Invoke(
                         [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
                             EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_WIFI);
+                            EXPECT_EQ(enabled, false);
                             return PWRMGR_SUCCESS;
                         }))
                     .WillOnce(::testing::Invoke(
                         [](PWRMGR_WakeupSrcType_t wakeupSrc, bool enabled) {
                             EXPECT_EQ(wakeupSrc, PWRMGR_WAKEUPSRC_LAN);
+                            EXPECT_EQ(enabled, false);
                             return PWRMGR_SUCCESS;
                         }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_NW_STANDBYMODECHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_NW_STANDBYMODECHANGED);
 
-                bool initialStandbyMode = false;
-                PowerManagerPlugin->GetNetworkStandbyMode(initialStandbyMode);
+                PowerManagerPlugin->SetNetworkStandbyMode(false);
 
-                PowerManagerPlugin->SetNetworkStandbyMode(!initialStandbyMode);
                 bool standbyMode = false;
+
                 uint32_t status = PowerManagerPlugin->GetNetworkStandbyMode(standbyMode);
                 EXPECT_EQ(status, Core::ERROR_NONE);
-                EXPECT_EQ(standbyMode, !initialStandbyMode);
+                EXPECT_EQ(standbyMode, false);
 
                 if (PowerManagerPlugin)
                 {
@@ -1411,19 +1394,11 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                 EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
                     .WillOnce(::testing::Invoke(
                         [](PWRMgr_PowerState_t powerState) {
-                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
                             return PWRMGR_SUCCESS;
                         }));
 
-                PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
-                PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
-                status = PowerManagerPlugin->GetPowerState(currentState, prevState);
-                if (PowerState::POWER_STATE_ON != currentState)
-                {
-                    TEST_LOG("Current power state is not ON,seems settings file not removed");
-                }
-
-                status = PowerManagerPlugin->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY, "l2-test");
+                status = PowerManagerPlugin->SetPowerState(keyCode, PowerState::POWER_STATE_ON, "l2-test");
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
@@ -1432,10 +1407,13 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                 // some delay to destroy AckController after IModeChanged notification
                 std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 
+                PowerState currentState = PowerState::POWER_STATE_UNKNOWN;
+                PowerState prevState    = PowerState::POWER_STATE_UNKNOWN;
+
                 status = PowerManagerPlugin->GetPowerState(currentState, prevState);
                 EXPECT_EQ(status, Core::ERROR_NONE);
-                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY);
-                EXPECT_EQ(prevState, PowerState::POWER_STATE_ON);
+                EXPECT_EQ(currentState, PowerState::POWER_STATE_ON);
+                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY);
 
                 if (PowerManagerPlugin)
                 {

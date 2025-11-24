@@ -669,6 +669,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-         name: BuildL2 results
+         name: BuildL2-deviceanddisplay results
          path: |
           ./

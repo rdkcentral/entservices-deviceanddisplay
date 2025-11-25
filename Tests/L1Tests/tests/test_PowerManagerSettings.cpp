@@ -90,7 +90,7 @@ TEST_P(TestPowerManagerSettings, AllTests)
 {
     const auto& param = GetParam();
 
-    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothing */}
     populateSettingsV1(param.powerState, param.deepSleepTimeout, param.nwStandbyMode);
 
     if (param.restart) {

@@ -221,6 +221,10 @@ Settings Settings::Load(const std::string& path)
         fsync(fd);
         close(fd);
     }
+    else {
+        LOGERR("Failed to open settings file: %s", path.c_str());
+        settings.initDefaults();
+    }
 
     if (path == kRamSettingsFilePath) {
         settings.printDetails("RAM Settings Loaded");

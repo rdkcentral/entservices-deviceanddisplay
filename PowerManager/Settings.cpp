@@ -235,7 +235,7 @@ Settings Settings::Load(const std::string& path)
     // - If RAM file is missing, create it with current power state.
     // - If RAM file exists, load its power state.
     // Note: Settings::Load() here is safe (early return prevents deep recursion),
-    // but future changes should add a guard or mode flag to avoid accidental re-entny.
+    // but future changes should add a guard or mode flag to avoid accidental re-entry.
     // updating powerStateBeforeReboot
     settings._powerStateBeforeReboot = settings._powerState;
     if (0 != access(kRamSettingsFilePath, F_OK)) {
@@ -252,7 +252,7 @@ Settings Settings::Load(const std::string& path)
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
         settings._powerState = PowerState::POWER_STATE_STANDBY;
-        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
+        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY");
     }
 #endif
     settings.printDetails("Final Settings from opt");

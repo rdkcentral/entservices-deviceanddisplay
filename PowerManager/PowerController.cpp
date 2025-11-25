@@ -100,6 +100,7 @@ void PowerController::init()
 
         _settings.SetPowerState(currentState);
         _settings.Save(m_settingsFile);
+        _lastKnownPowerState = currentState;
     } while (false);
 }
 

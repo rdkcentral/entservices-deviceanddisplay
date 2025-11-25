@@ -100,7 +100,7 @@ TEST_P(TestPowerManagerSettings, AllTests)
         }
     }
 
-    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+    if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothing */}
     Settings settings = Settings::Load(_settingsFile);
 
     EXPECT_EQ(settings.powerState(), param.powerStateEx);

@@ -230,6 +230,12 @@ Settings Settings::Load(const std::string& path)
         settings.printDetails("RAM Settings Loaded");
         return settings;
     }
+
+    // Handle RAM persistence for powerStateBeforeReboot:
+    // - If RAM file is missing, create it with current power state.
+    // - If RAM file exists, load its power state.
+    // Note: Settings::Load() here is safe (early return prevents deep recursion),
+    // but future changes should add a guard or mode flag to avoid accidental re-entny.
     // updating powerStateBeforeReboot
     settings._powerStateBeforeReboot = settings._powerState;
     if (0 != access(kRamSettingsFilePath, F_OK)) {

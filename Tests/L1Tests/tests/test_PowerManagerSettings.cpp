@@ -40,9 +40,9 @@ public:
 
         std::string rmCmd = "rm -f " + _settingsFile;
 
-        if(0!=system(rmCmd.c_str())){/* do nothig */}
-        if(0!=system("rm -f /tmp/pwrmgr_restarted")){/* do nothig */}
-        if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothig */}
+        if(0!=system(rmCmd.c_str())){/* do nothing */}
+        if(0!=system("rm -f /tmp/pwrmgr_restarted")){/* do nothing */}
+        if(0!=system("rm -f /tmp/uimgr_settings.bin")){/* do nothing */}
     }
 
     void populateSettingsV1(PowerState prevState, uint32_t deepSleepTimeout, bool nwStandbyMode)

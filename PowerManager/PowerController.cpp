@@ -91,7 +91,7 @@ void PowerController::init()
         errorCode = SetPowerState(0, _settings.powerState(), "Initialization");
 
         if (WPEFramework::Core::ERROR_NONE == errorCode) {
-            LOGINFO("Successfull at syncing powerState %s with hardware", util::str(_settings.powerState()));
+            LOGINFO("Successful at syncing powerState %s with hardware", util::str(_settings.powerState()));
             break;
         }
 

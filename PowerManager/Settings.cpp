@@ -240,7 +240,10 @@ Settings Settings::Load(const std::string& path)
     settings._powerStateBeforeReboot = settings._powerState;
     if (0 != access(kRamSettingsFilePath, F_OK)) {
         LOGINFO("Creating RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
-        settings.Save(kRamSettingsFilePath);
+        bool ok = settings.Save(kRamSettingsFilePath);
+        if (!ok) {
+            LOGERR("Failed to save RAM settings file");
+        }
     }
     else {
         LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);

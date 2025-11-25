@@ -246,8 +246,13 @@ public:
             .WillRepeatedly(::testing::Invoke(
                 [](PWRMgr_PowerState_t powerState) {
                     // All tests are run without settings file
+#ifdef PLATCO_BOOTTO_STANDBY
+                    // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
+                    EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+#else
                     // default expected power state is ON
                     EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+#endif
                     return PWRMGR_SUCCESS;
                 }));
 
@@ -329,22 +334,22 @@ public:
 
         TearDownMocks();
 
-        if (0 != system("rm /tmp/uimgr_settings.bin")) { /* do nothig */
+        if (0 != system("rm /opt/uimgr_settings.bin")) { /* do nothing */
         }
 
         // Although this file is not created always
         // delete to avoid dependency among test cases
-        if (0 != system("rm -f /tmp/deepSleepTimer")) { /* do nothig */
+        if (0 != system("rm -f /tmp/deepSleepTimer")) { /* do nothing */
         }
-        if (0 != system("rm -f /tmp/deepSleepTimerVal")) { /* do nothig */
+        if (0 != system("rm -f /tmp/deepSleepTimerVal")) { /* do nothing */
         }
-        if (0 != system("rm -f /tmp/ignoredeepsleep")) { /* do nothig */
+        if (0 != system("rm -f /tmp/ignoredeepsleep")) { /* do nothing */
         }
 
         // in some rare cases we saw settings file being reused from
         // old testcase, fs sync would resolve such issues
         if (0 != system("sync")) {
-            // do nothig
+            // do nothing
         }
     }
 
@@ -358,8 +363,13 @@ public:
 
     PowerState initialPowerState()
     {
+#ifdef PLATCO_BOOTTO_STANDBY
+        // If BOOTTO_STANDBY is enabled, device boots in STANDBY by default.
+        return PowerState::POWER_STATE_STANDBY;
+#else
         // default expected power state is ON
         return PowerState::POWER_STATE_ON;
+#endif
     }
 };
 

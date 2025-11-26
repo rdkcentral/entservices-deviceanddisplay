@@ -2928,7 +2928,7 @@ namespace WPEFramework {
                     // IMPACT: Clearer validation with proper error handling
                     if (timeZone.empty() || (timeZone == "null")) {
                         LOGERR("Empty timeZone received.");
-                        populateResponseWithError(SysSrv_MangerInternalError, response);
+                        populateResponseWithError(SysSrv_MissingKeyValues, response);
                         returnResponse(false);
                     }
                     
@@ -2947,7 +2947,7 @@ namespace WPEFramework {
                         
                         if (!hasSlash || !slashNotAtEnd) {
                             LOGERR("Invalid timezone format received : %s . Timezone should be in either Universal or Olson format Ex : America/New_York . \n", timeZone.c_str());
-                            populateResponseWithError(SysSrv_MangerInternalError, response);
+                            populateResponseWithError(SysSrv_UnSupportedFormat, response);
                             returnResponse(false);
                         }
                     }

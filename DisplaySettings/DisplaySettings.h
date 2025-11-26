@@ -285,6 +285,7 @@ namespace WPEFramework {
 	    std::condition_variable arcRoutingCV;
 	    bool m_hdmiInAudioDeviceConnected;
             bool m_arcEarcAudioEnabled;
+	    bool m_ArcEarcConnectionNotifiedToUI;
             bool m_arcPendingSADRequest;   
 	    bool m_hdmiCecAudioDeviceDetected;
 	    bool m_systemAudioMode_Power_RequestedAndReceived;
@@ -365,6 +366,11 @@ namespace WPEFramework {
 		SEND_REQUEST_ARC_INITIATION,
 		SEND_REQUEST_ARC_TERMINATION,
 		} msg_t;
+
+	    enum {
+		ARC_EARC_DISCONNECTED,
+		ARC_EARC_CONNECTED,
+	    };
 
 	   typedef struct sendMsgInfo {
                    int msg;

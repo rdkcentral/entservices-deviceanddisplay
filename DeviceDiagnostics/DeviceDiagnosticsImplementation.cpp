@@ -50,11 +50,17 @@ namespace WPEFramework
             NULL
         };
 
-        static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, std::string stream)
+        // FIX(Coverity): Security - Callback Issue - Fix callback signature
+        // Reason: CURLOPT_WRITEDATA expects userdata pointer, not by-value string
+        // Impact: No API signature changes. Fixed internal callback to properly receive data pointer.
+        static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, void* userdata)
         {
             size_t realsize = size * nmemb;
-            std::string temp(static_cast<const char*>(ptr), realsize);
-            stream.append(temp);
+            std::string* stream = static_cast<std::string*>(userdata);
+            if (stream) {
+                std::string temp(static_cast<const char*>(ptr), realsize);
+                stream->append(temp);
+            }
             return realsize;
         }
 
@@ -69,6 +75,10 @@ namespace WPEFramework
             if ((m_EssRMgr = EssRMgrCreate()) == NULL)
             {
                 LOGERR("EssRMgrCreate() failed");
+                // FIX(Coverity): Resource Leak - Clear instance on failure
+                // Reason: If initialization fails, _instance should be null to prevent use of partially constructed object
+                // Impact: No API signature changes. Proper cleanup on initialization failure.
+                DeviceDiagnosticsImplementation::_instance = nullptr;
                 return;
             }
 
@@ -83,9 +93,13 @@ namespace WPEFramework
         DeviceDiagnosticsImplementation::~DeviceDiagnosticsImplementation()
         {
 #ifdef ENABLE_ERM
-            m_AVDecoderStatusLock.lock();
-            m_pollThreadRun = 0;
-            m_AVDecoderStatusLock.unlock();
+            // FIX(Coverity): Concurrency - Thread Safety - Use RAII lock guard
+            // Reason: Manual lock/unlock is error-prone and not exception-safe
+            // Impact: No API signature changes. Better exception safety using RAII.
+            {
+                std::lock_guard<std::mutex> lock(m_AVDecoderStatusLock);
+                m_pollThreadRun = 0;
+            }
             m_avDecoderStatusCv.notify_one();
 			if (m_AVPollThread.joinable())
 			{
@@ -152,14 +166,25 @@ namespace WPEFramework
 
         void DeviceDiagnosticsImplementation::Dispatch(Event event, const JsonValue params)
         {
+            // FIX(Coverity): Deadlock Potential - Copy notification list before iterating
+            // Reason: Holding lock while calling callbacks can deadlock if callback tries to Register/Unregister
+            // Impact: No API signature changes. Safer notification dispatch by copying list first.
+            std::list<Exchange::IDeviceDiagnostics::INotification*> notificationsCopy;
+            
             _adminLock.Lock();
+            notificationsCopy = _deviceDiagnosticsNotification;
+            // AddRef each notification while holding lock to ensure they stay valid
+            for (auto* notification : notificationsCopy) {
+                notification->AddRef();
+            }
+            _adminLock.Unlock();
         
-            std::list<Exchange::IDeviceDiagnostics::INotification*>::const_iterator index(_deviceDiagnosticsNotification.begin());
+            std::list<Exchange::IDeviceDiagnostics::INotification*>::const_iterator index(notificationsCopy.begin());
         
             switch(event)
             {
                 case ON_AVDECODER_STATUSCHANGED:
-                    while (index != _deviceDiagnosticsNotification.end()) 
+                    while (index != notificationsCopy.end()) 
                     {
                         (*index)->OnAVDecoderStatusChanged(params.String());
                         ++index;
@@ -170,7 +195,11 @@ namespace WPEFramework
                     LOGWARN("Event[%u] not handled", event);
                     break;
             }
-            _adminLock.Unlock();
+            
+            // Release the refs we added
+            for (auto* notification : notificationsCopy) {
+                notification->Release();
+            }
         }
     
         /* retrieves most active decoder status from ERM library,
@@ -195,22 +224,36 @@ namespace WPEFramework
             int lastStatus = EssRMgrRes_idle;
             int status;
             int timeoutInSec = AVDECODERSTATUS_RETRY_INTERVAL;
+            // FIX(Coverity): Null Pointer Dereference - Add null check for _instance
+            // Reason: Static _instance could be null if accessed before initialization or after destruction
+            // Impact: No API signature changes. Added defensive null check.
             DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
+            if (t == nullptr) {
+                LOGERR("AVPollThread: _instance is null, exiting thread");
+                return NULL;
+            }
 
             LOGINFO("AVPollThread started");
             for (;;)
             {
-                std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
-                if (t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec)) != std::cv_status::timeout)
+                int pollThreadRun = 0;
+                // FIX(Coverity): Concurrency - Undefined Behavior - Let lock go out of scope naturally
+                // Reason: Manual unlock can cause issues if exceptions occur; scope-based unlock is safer
+                // Impact: No API signature changes. Better scoping for lock management.
                 {
-                    LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
+                    std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
+                    if (t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec)) != std::cv_status::timeout)
+                    {
+                        LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
+                    }
+
+                    pollThreadRun = t->m_pollThreadRun;
+                    if (pollThreadRun == 0)
+                        break;
+
+                    status = t->getMostActiveDecoderStatus();
                 }
-
-                if (t->m_pollThreadRun == 0)
-                    break;
-
-                status = t->getMostActiveDecoderStatus();
-                lock.unlock();
+                // lock is automatically released here
 
                 if (status == lastStatus)
                     continue;
@@ -344,25 +387,46 @@ namespace WPEFramework
 
             if (curl_handle)
             {
-                if(curl_easy_setopt(curl_handle, CURLOPT_URL, "http://127.0.0.1:10999") != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_URL");
-                if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, postData.c_str()) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_POSTFIELDS");
-                if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, postData.size()) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_POSTFIELDSIZE");
-                if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK) //when redirected, follow the redirections
-                    LOGWARN("Failed to set curl option: CURLOPT_FOLLOWLOCATION");
-                if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_WRITEFUNCTION");
-                if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_WRITEDATA");
-                if(curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, curlTimeoutInSeconds) != CURLE_OK)
-                    LOGWARN("Failed to set curl option: CURLOPT_TIMEOUT");
+                // FIX(Coverity): Error Handling - Check critical curl options and abort on failure
+                // Reason: Critical curl setup failures should abort the operation, not just warn
+                // Impact: No API signature changes. Better error handling for curl operations.
+                bool curlSetupFailed = false;
+                
+                if(curl_easy_setopt(curl_handle, CURLOPT_URL, "http://127.0.0.1:10999") != CURLE_OK) {
+                    LOGERR("Failed to set curl option: CURLOPT_URL");
+                    curlSetupFailed = true;
+                }
+                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, postData.c_str()) != CURLE_OK) {
+                    LOGERR("Failed to set curl option: CURLOPT_POSTFIELDS");
+                    curlSetupFailed = true;
+                }
+                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, postData.size()) != CURLE_OK) {
+                    LOGERR("Failed to set curl option: CURLOPT_POSTFIELDSIZE");
+                    curlSetupFailed = true;
+                }
+                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK) {
+                    LOGWARN("Failed to set curl option: CURLOPT_FOLLOWLOCATION"); // Non-critical
+                }
+                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK) {
+                    LOGERR("Failed to set curl option: CURLOPT_WRITEFUNCTION");
+                    curlSetupFailed = true;
+                }
+                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK) {
+                    LOGERR("Failed to set curl option: CURLOPT_WRITEDATA");
+                    curlSetupFailed = true;
+                }
+                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, curlTimeoutInSeconds) != CURLE_OK) {
+                    LOGWARN("Failed to set curl option: CURLOPT_TIMEOUT"); // Non-critical
+                }
 
-                res = curl_easy_perform(curl_handle);
-                curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
-
-                LOGWARN("Perfomed curl call : %d http response code: %ld", res, http_code);
+                if (!curlSetupFailed) {
+                    res = curl_easy_perform(curl_handle);
+                    curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
+                    LOGWARN("Perfomed curl call : %d http response code: %ld", res, http_code);
+                } else {
+                    LOGERR("Curl setup failed, skipping perform");
+                }
+                
                 curl_easy_cleanup(curl_handle);
             }
             else
@@ -374,21 +438,40 @@ namespace WPEFramework
             {
                 LOGWARN("curl Response: %s", response.c_str());
 
-                ParamList param;
-                std::string::size_type start = 0, end = 0;
-                while ((start = response.find("\"name\":", end)) != std::string::npos) 
-                {
-                    start = response.find("\"", start + 6) + 1;
-                    end = response.find("\"", start);
-                    param.name = response.substr(start, end - start);
-
-                    start = response.find("\"value\":", end) + 8;
-                    end = response.find("}", start);
-                    param.value = response.substr(start, end - start);
-
-                    paramListInfo.push_back(param);
+                // FIX(Coverity): Logic Error - String Parsing - Use proper JSON parser
+                // Reason: Manual string parsing is fragile and error-prone; use existing JSON library
+                // Impact: No API signature changes. More robust JSON parsing using JsonObject/JsonArray.
+                try {
+                    JsonObject jsonResponse;
+                    jsonResponse.FromString(response);
+                    
+                    if (jsonResponse.HasLabel("paramList")) {
+                        JsonArray paramArray = jsonResponse["paramList"].Array();
+                        
+                        for (uint32_t i = 0; i < paramArray.Length(); i++) {
+                            JsonObject paramObj = paramArray[i].Object();
+                            ParamList param;
+                            
+                            if (paramObj.HasLabel("name")) {
+                                param.name = paramObj["name"].String();
+                            }
+                            if (paramObj.HasLabel("value")) {
+                                param.value = paramObj["value"].String();
+                            }
+                            
+                            if (!param.name.empty()) {
+                                paramListInfo.push_back(param);
+                            }
+                        }
+                        result = 0;
+                    } else {
+                        LOGWARN("Response does not contain paramList");
+                    }
+                } catch (const std::exception& e) {
+                    LOGERR("JSON parsing failed: %s", e.what());
+                } catch (...) {
+                    LOGERR("JSON parsing failed with unknown exception");
                 }
-                result = 0;
             }
             return result;
         }

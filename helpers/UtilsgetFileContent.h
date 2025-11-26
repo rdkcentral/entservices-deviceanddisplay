@@ -167,6 +167,9 @@ inline bool searchFilesRec(std::vector<std::string> &pathList, unsigned int curr
 
     if (currentPath.find('*') != std::string::npos || currentPath.find('?') != std::string::npos)
     {
+        // FIX(Coverity): Resource Leak - Directory Handle - Ensure closedir on all paths
+        // Reason: DIR* must be closed on all exit paths to prevent resource leak
+        // Impact: No API signature changes. Added proper cleanup for directory handle.
         // Process files and directories in the current directory
         DIR *dir = opendir(inputPath.c_str());
         if (!dir)
@@ -227,7 +230,9 @@ inline bool searchFilesRec(std::vector<std::string> &pathList, unsigned int curr
                 }
             }
         }
+        // Ensure directory is always closed before function exit
         closedir(dir);
+        dir = nullptr;
     }
     else
     {

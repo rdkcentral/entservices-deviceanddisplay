@@ -67,6 +67,14 @@ namespace WPEFramework
         ASSERT(nullptr == _deviceDiagnostics);
         ASSERT(0 == _connectionId);
 
+        // FIX(Coverity): Null Pointer Check - Add runtime validation
+        // Reason: ASSERT is compiled out in release builds
+        // Impact: No API signature changes. Added defensive check for null service pointer.
+        if (nullptr == service) {
+            LOGERR("DeviceDiagnostics::Initialize: service is null");
+            return _T("Service pointer is null");
+        }
+
         SYSLOG(Logging::Startup, (_T("DeviceDiagnostics::Initialize: PID=%u"), getpid()));
 
         _service = service;
@@ -108,7 +116,10 @@ namespace WPEFramework
 
             // Stop processing:
             RPC::IRemoteConnection* connection = service->RemoteConnection(_connectionId);
-            VARIABLE_IS_NOT_USED uint32_t result = _deviceDiagnostics->Release();
+            // FIX(Coverity): Unused Variable - Use [[maybe_unused]] attribute
+            // Reason: Variable is used in ASSERT which is disabled in release builds
+            // Impact: No API signature changes. Proper handling of variable that's only used in debug.
+            [[maybe_unused]] uint32_t result = _deviceDiagnostics->Release();
 
             _deviceDiagnostics = nullptr;
 
@@ -124,17 +135,23 @@ namespace WPEFramework
                // out-of-process code. Which will guard
                // that unwilling processes, get shot if
                // not stopped friendly :-)
+               // FIX(Coverity): Exception Handling - Improve exception handling
+               // Reason: Exception should be logged with more context and cleanup should still proceed
+               // Impact: No API signature changes. Better error handling and logging.
                try
                {
                    connection->Terminate();
-                   // Log success if needed
-                   LOGWARN("Connection terminated successfully.");
+                   LOGINFO("Connection terminated successfully.");
                }
                catch (const std::exception& e)
                {
-                   std::string errorMessage = "Failed to terminate connection: ";
-                   errorMessage += e.what();
-                   LOGWARN("%s",errorMessage.c_str());
+                   LOGERR("Failed to terminate connection: %s. Continuing with cleanup.", e.what());
+                   // Continue with cleanup even if termination fails
+               }
+               catch (...)
+               {
+                   LOGERR("Failed to terminate connection: Unknown exception. Continuing with cleanup.");
+                   // Continue with cleanup even if termination fails
                }
 
                connection->Release();

@@ -432,6 +432,7 @@ namespace WPEFramework {
         SERVICE_REGISTRATION(SystemServices, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
         SystemServices* SystemServices::_instance = nullptr;
+        std::mutex SystemServices::_instanceMutex;
         cSettings SystemServices::m_temp_settings(SYSTEM_SERVICE_TEMP_FILE);
 
         /**
@@ -757,6 +758,10 @@ namespace WPEFramework {
             LOGWARN("IARM Event triggered for PowerStateChange.\
                     Old State %s, New State: %s\n",
                     curPowerState.c_str() , newPowerState.c_str());
+            // FIX(Coverity): Add mutex protection when accessing static _instance member
+            // REASON: _instance can be accessed from multiple threads concurrently
+            // IMPACT: Prevents race conditions and potential crashes from concurrent access
+            std::lock_guard<std::mutex> lock(_instanceMutex);
             if (SystemServices::_instance) {
                 SystemServices::_instance->onSystemPowerStateChanged(curPowerState, newPowerState);
             } else {
@@ -1178,9 +1183,12 @@ namespace WPEFramework {
                         response["make"] = string(param.buffer);
                         retAPIStatus = true;
 				       } else {
+                        // FIX(Coverity): Return error when IARM call fails
+                        // REASON: Function was continuing execution after IARM failure, potentially returning success
+                        // IMPACT: Ensures proper error status is returned to caller when device info retrieval fails
                         LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
-						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
-                        retAPIStatus = false;
+						populateResponseWithError(SysSrv_MissingKeyValues, response);
+                        returnResponse(false);
 					}
 				} else {
                 std::string make;
@@ -2914,29 +2922,42 @@ namespace WPEFramework {
                 std::string timeZone = "";
                 try {
                     timeZone = parameters["timeZone"].String();
-                    size_t pos = timeZone.find("/");
+                    
+                    // FIX(Coverity): Simplify validation logic and handle errors properly
+                    // REASON: Original code had complex nested conditions that were hard to follow
+                    // IMPACT: Clearer validation with proper error handling
                     if (timeZone.empty() || (timeZone == "null")) {
                         LOGERR("Empty timeZone received.");
+                        populateResponseWithError(SysSrv_MangerInternalError, response);
+                        returnResponse(false);
                     }
                     
-                    if( (timeZone.compare("Universal")) == 0) {
+                    // Check if timezone is "Universal" format
+                    if (timeZone == "Universal") {
                         isUniversal = true;
                         isOlson = false;
                     }
                     
-                    if(isOlson) {
+                    // Validate Olson format (e.g., "America/New_York")
+                    if (isOlson) {
+                        size_t pos = timeZone.find("/");
+                        // Olson format requires "/" and it cannot be at the end
+                        bool hasSlash = (pos != string::npos);
+                        bool slashNotAtEnd = hasSlash && (pos + 1 < timeZone.length());
                         
-                        if( (pos == string::npos) ||  ( (pos != string::npos) &&  (pos+1 == timeZone.length())  )   )
-                        {
-                            LOGERR("Invalid timezone format received : %s . Timezone should be in either Universal or  Olson format  Ex : America/New_York . \n", timeZone.c_str());
+                        if (!hasSlash || !slashNotAtEnd) {
+                            LOGERR("Invalid timezone format received : %s . Timezone should be in either Universal or Olson format Ex : America/New_York . \n", timeZone.c_str());
+                            populateResponseWithError(SysSrv_MangerInternalError, response);
+                            returnResponse(false);
                         }
                     }
                     
-                    if( (isUniversal == true) || (isOlson == true)) {
-                        std::string path =ZONEINFO_DIR;
+                    if (isUniversal || isOlson) {
+                        std::string path = ZONEINFO_DIR;
                         path += "/";
-                        std::string country = timeZone.substr(0,pos);
-                        std::string city = path+timeZone;
+                        size_t slashPos = timeZone.find("/");
+                        std::string country = (slashPos != string::npos) ? timeZone.substr(0, slashPos) : "";
+                        std::string city = path + timeZone;
                         if( dirExists(path+country)  && Utils::fileExists(city.c_str()) )
                         {
                             if (!dirExists(dir)) {
@@ -4260,14 +4281,23 @@ namespace WPEFramework {
                 LOGINFO("SystemServices::setDevicePowerState state: %s, reason: %s\n", state.c_str(), reason.c_str());
 
                 if (state == "LIGHT_SLEEP" || state == "DEEP_SLEEP") {
-                    const device::SleepMode &mode = device::Host::getInstance().getPreferredSleepMode();
-                    sleepMode = mode.toString();
-                    LOGWARN("Output of getPreferredSleepMode: '%s'", sleepMode.c_str());
+                    // FIX(Coverity): Add exception handling for Host::getInstance() call
+                    // REASON: getInstance() can throw exceptions that need to be caught
+                    // IMPACT: Prevents crashes and provides proper error reporting to caller
+                    try {
+                        const device::SleepMode &mode = device::Host::getInstance().getPreferredSleepMode();
+                        sleepMode = mode.toString();
+                        LOGWARN("Output of getPreferredSleepMode: '%s'", sleepMode.c_str());
 
-                    if (convert("DEEP_SLEEP", sleepMode)) {
-                        retVal = setPowerState(sleepMode);
-                    } else {
-                        retVal = setPowerState(state);
+                        if (convert("DEEP_SLEEP", sleepMode)) {
+                            retVal = setPowerState(sleepMode);
+                        } else {
+                            retVal = setPowerState(state);
+                        }
+                    } catch (const std::exception& e) {
+                        LOGERR("Exception in getPreferredSleepMode: %s", e.what());
+                        populateResponseWithError(SysSrv_Unexpected, response);
+                        returnResponse(false);
                     }
 
                     outfile.open(STANDBY_REASON_FILE, ios::out);
@@ -4794,6 +4824,10 @@ namespace WPEFramework {
             std::string mode = iarmModeToString(param->newMode);
 
 #ifdef HAS_API_POWERSTATE
+            // FIX(Coverity): Add mutex protection when accessing static _instance member
+            // REASON: _instance can be accessed from multiple threads concurrently
+            // IMPACT: Prevents race conditions and potential crashes from concurrent access
+            std::lock_guard<std::mutex> lock(SystemServices::_instanceMutex);
             if (SystemServices::_instance) {
                 SystemServices::_instance->onSystemModeChanged(mode);
             } else {

@@ -532,24 +532,9 @@ size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, std::string strea
 void findMacInString(std::string totalStr, std::string macId, std::string& mac)
 {
     const std::regex re("^([0-9A-F]{2}[:]){5}([0-9A-F]{2})$");
-    const std::string defMac = "00:00:00:00:00:00";
     std::size_t found = totalStr.find(macId);
-    
-    // FIX(Coverity): Add bounds checking before substr operation
-    // REASON: substr can throw out_of_range if position is beyond string length
-    // IMPACT: Prevents crashes from invalid string access
-    if (found == std::string::npos) {
-        mac = defMac;
-        return;
-    }
-    
-    std::size_t startPos = found + macId.length();
-    if (startPos + 17 > totalStr.length()) {
-        mac = defMac;
-        return;
-    }
-    
-    mac = totalStr.substr(startPos, 17);
+    mac = totalStr.substr(found + macId.length(), 17);
+    std::string defMac = "00:00:00:00:00:00";
     if (!std::regex_match(mac, re)) {
         mac = defMac;
     }

@@ -236,7 +236,6 @@ namespace WPEFramework {
                 virtual ~SystemServices();
 
                 static SystemServices* _instance;
-                static std::mutex _instanceMutex;
                 virtual const string Initialize(PluginHost::IShell* service) override;
                 virtual void Deinitialize(PluginHost::IShell* service) override;
                 virtual string Information() const override { return {}; }

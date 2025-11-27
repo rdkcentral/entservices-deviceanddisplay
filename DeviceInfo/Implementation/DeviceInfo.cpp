@@ -75,11 +75,11 @@ namespace Plugin {
             // FIX(Coverity): Unsafe API Usage - Validate buffer length before use
             // Reason: param.bufLen could overflow buffer size, need bounds checking
             // Impact: No API signature changes. Added validation to prevent buffer overflow.
-            if ((status == IARM_RESULT_SUCCESS) && param.bufLen > 0 && param.bufLen <= sizeof(param.buffer)) {
+            if ((status == IARM_RESULT_SUCCESS) && param.bufLen > 0 && param.bufLen <= static_cast<int>(sizeof(param.buffer))) {
                 response.assign(param.buffer, param.bufLen);
                 result = Core::ERROR_NONE;
             } else {
-                if (status == IARM_RESULT_SUCCESS && param.bufLen > sizeof(param.buffer)) {
+                if (status == IARM_RESULT_SUCCESS && param.bufLen > static_cast<int>(sizeof(param.buffer))) {
                     TRACE_GLOBAL(Trace::Error, (_T("MFR buffer overflow prevented: bufLen=%d exceeds buffer size"), param.bufLen));
                 } else {
                     TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));

@@ -84,12 +84,6 @@ namespace Plugin {
         _service->Register(_powermanagersNotification.baseInterface<RPC::IRemoteConnection::INotification>());
         _service->Register(_powermanagersNotification.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
         _powerManager = _service->Root<Exchange::IPowerManager>(_connectionId, 5000, _T("PowerManagerImplementation"));
-        
-        if (_powerManager == nullptr) {
-            message = _T("PowerManager could not be instantiated");
-            SYSLOG(Logging::Startup, (_T("PowerManager::Initialize: Failed to create PowerManager instance")));
-            return message;
-        }
 
         if (nullptr != _powerManager) {
             // Register for notifications

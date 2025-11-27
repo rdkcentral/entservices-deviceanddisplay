@@ -422,7 +422,7 @@ namespace WPEFramework
                 if (!curlSetupFailed) {
                     res = curl_easy_perform(curl_handle);
                     curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
-                    LOGWARN("Perfomed curl call : %d http response code: %ld", res, http_code);
+                    LOGWARN("Performed curl call : %d http response code: %ld", res, http_code);
                 } else {
                     LOGERR("Curl setup failed, skipping perform");
                 }

@@ -56,7 +56,6 @@ namespace Plugin {
                         break;
                     }
                 }
-                file.close();
             } else {
                 TRACE_GLOBAL(Trace::Information, (_T("Could not open file: %s"), filename));
             }

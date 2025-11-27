@@ -232,7 +232,6 @@ inline bool searchFilesRec(std::vector<std::string> &pathList, unsigned int curr
         }
         // Ensure directory is always closed before function exit
         closedir(dir);
-        dir = nullptr;
     }
     else
     {

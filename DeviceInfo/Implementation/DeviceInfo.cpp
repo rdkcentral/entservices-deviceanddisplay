@@ -161,15 +161,9 @@ namespace Plugin {
         // Impact: No API signature changes. Improved code clarity and maintainability.
         brand = "Unknown";
         
-        if (Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), brand)) {
-            return Core::ERROR_NONE;
-        }
-        
-        if (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE) {
-            return Core::ERROR_NONE;
-        }
-        
-        return Core::ERROR_GENERAL;
+        return
+            ((Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), brand)) || 
+             (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
     }
 
     Core::hresult DeviceInfoImplementation::DeviceType(string& deviceType) const
@@ -219,7 +213,6 @@ namespace Plugin {
         std::regex pattern(R"((\d+)\.(\d+)[sp])");
         std::smatch match;
         std::string imagename = "";
-        uint32_t result = Core::ERROR_NONE;
         
         if(Core::ERROR_NONE == GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename))
         {
@@ -232,17 +225,15 @@ namespace Plugin {
             {
                 releaseVersion = defaultVersion ;
                 LOGERR("Unable to get releaseVersion of the Image:%s.So default releaseVersion is: %s ",imagename.c_str(),releaseVersion.c_str());
-                result = Core::ERROR_GENERAL;
             }
         }
         else
         {
                 releaseVersion = defaultVersion ;
                 LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",releaseVersion.c_str());
-                result = Core::ERROR_GENERAL;
         }
 
-        return result;
+        return Core::ERROR_NONE;;
     }
 
     uint32_t DeviceInfoImplementation::ChipSet(string& chipset) const

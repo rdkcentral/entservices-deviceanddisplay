@@ -1039,8 +1039,8 @@ TEST_F(PowerManager_L2Test, DeepSleepIgnore)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
-    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID = nullptr;
+    PluginHost::IShell *mController_PowerManager = nullptr;
+    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
@@ -1129,8 +1129,8 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
-    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID = nullptr;
+    PluginHost::IShell *mController_PowerManager = nullptr;
+    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     TEST_LOG("Creating mEngine_PowerManager");
     mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
@@ -1222,8 +1222,8 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
 {
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
     Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
-    PluginHost::IShell *mController_PowerManager;
-    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID = nullptr;
+    PluginHost::IShell *mController_PowerManager = nullptr;
+    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
     uint32_t deepSleepTimeout = 10;
 
     TEST_LOG("Creating mEngine_PowerManager");

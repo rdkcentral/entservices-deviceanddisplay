@@ -460,7 +460,7 @@ namespace WPEFramework
                             }
                             
                             if (!param.name.empty()) {
-                                paramListInfo.push_back(param);
+                                paramListInfo.push_back(std::move(param));
                             }
                         }
                         result = 0;

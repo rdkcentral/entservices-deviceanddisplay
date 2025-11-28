@@ -749,14 +749,15 @@ namespace WPEFramework {
 
         void SystemServices::onPowerModeChanged(const PowerState currentState, const PowerState newState)
         {
-            std::string curPowerState,newPowerState = "";
-
+            std::string curPowerState, newPowerState = "";
             curPowerState = powerModeEnumToString(currentState);
             newPowerState = powerModeEnumToString(newState);
 
-            LOGWARN("IARM Event triggered for PowerStateChange.\
-                    Old State %s, New State: %s\n",
-                    curPowerState.c_str() , newPowerState.c_str());
+            LOGWARN("IARM Event triggered for PowerStateChange. Old State %s, New State: %s\n",
+                    curPowerState.c_str(), newPowerState.c_str());
+
+            static std::mutex powerModeMutex;
+            std::lock_guard<std::mutex> lock(powerModeMutex);
             if (SystemServices::_instance) {
                 SystemServices::_instance->onSystemPowerStateChanged(curPowerState, newPowerState);
             } else {
@@ -1287,7 +1288,13 @@ namespace WPEFramework {
                         response[queryParams.c_str()] = res;
                     }
                 }
-            returnResponse(retAPIStatus);
+            // Check if response contains valid device info before returning success
+            if (!retAPIStatus || response.IsNull() || response.Size() == 0) {
+                populateResponseWithError(SysSrv_MissingKeyValues, response);
+                returnResponse(false);
+            } else {
+                returnResponse(true);
+            }
         }
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
 
@@ -2040,80 +2047,62 @@ namespace WPEFramework {
             if (_instance) {
                 firmwareVersion = _instance->getStbVersionString();
             } else {
-                LOGERR("_instance is NULL.\n");
-            }
-
-            LOGWARN("SystemService firmwareVersion %s\n", firmwareVersion.c_str());
-
-            if (true == findCaseInsensitive(firmwareVersion, "DEV"))
-                env = "DEV";
-            else if (true == findCaseInsensitive(firmwareVersion, "VBN"))
-                env = "VBN";
-            else if (true == findCaseInsensitive(firmwareVersion, "PROD"))
-                env = "PROD";
-            else if (true == findCaseInsensitive(firmwareVersion, "CQA"))
-                env = "CQA";
-
-            std::string response;
-            firmwareUpdate _fwUpdate;
-            
-            _fwUpdate.success = false;
-            _fwUpdate.httpStatus = 0;
-
-            bool bFileExists = false;
-            string xconfOverride; 
-            if(env != "PROD")
-            {
-                xconfOverride = getXconfOverrideUrl(bFileExists);
-                if(bFileExists && xconfOverride.empty())
-                {
-                    // empty /opt/swupdate.conf. Don't initiate FW download
-                    LOGWARN("Empty /opt/swupdate.conf. Skipping FW upgrade check with xconf");
+                auto dispatchFirmwareUpdateEvent = [&](const std::string& version, int httpStatus, bool success, const std::string& fwVersion, const std::string& resp) {
                     if (_instance) {
-                        _instance->reportFirmwareUpdateInfoReceived("",
-                        STATUS_CODE_NO_SWUPDATE_CONF, true, "", response);
+                        _instance->reportFirmwareUpdateInfoReceived(version, httpStatus, success, fwVersion, resp);
+                    } else {
+                        LOGERR("_instance is NULL.\n");
                     }
-                    return;
-                }
-            }
+                };
 
-            v_secure_system("/lib/rdk/xconfImageCheck.sh  >> /opt/logs/wpeframework.log");
-
-            //get xconf http code
-            string httpCodeStr ="";
-            const char* httpCodeFile = "/tmp/xconf_httpcode_thunder.txt";
-            bool httpCodeReadSuccess =  Utils::readFileContent(httpCodeFile, httpCodeStr);
-
-            if(httpCodeReadSuccess)
-            {
-			    LOGINFO("xconf httpCodeStr '%s'\n", httpCodeStr.c_str());
-                try
-                {
-                    _fwUpdate.httpStatus = std::stoi(httpCodeStr);
-                }
-                catch(const std::exception& e)
-                {
-                    LOGERR("exception in converting xconf http code %s", e.what());
-                }
-            }
-
-            LOGINFO("xconf http code %d\n", _fwUpdate.httpStatus);
-
-            const char* responseFile = "/tmp/xconf_response_thunder.txt";
-            bool responseReadSuccess = Utils::readFileContent(responseFile, response);
-
-            if(responseReadSuccess)
-            {
-                JsonObject httpResp;
-                if(httpResp.FromString(response))
-                {
-                    if(httpResp.HasLabel("firmwareVersion"))
-                    {
-                        _fwUpdate.firmwareUpdateVersion = httpResp["firmwareVersion"].String();
-                        LOGWARN("fwVersion: '%s'\n", _fwUpdate.firmwareUpdateVersion.c_str());
-                        _fwUpdate.success = true;
+                if(env != "PROD") {
+                    xconfOverride = getXconfOverrideUrl(bFileExists);
+                    if(bFileExists && xconfOverride.empty()) {
+                        LOGWARN("Empty /opt/swupdate.conf. Skipping FW upgrade check with xconf");
+                        dispatchFirmwareUpdateEvent("", STATUS_CODE_NO_SWUPDATE_CONF, true, "", response);
+                        return;
                     }
-                    else
+                }
+
+                v_secure_system("/lib/rdk/xconfImageCheck.sh  >> /opt/logs/wpeframework.log");
+
+                string httpCodeStr = "";
+                const char* httpCodeFile = "/tmp/xconf_httpcode_thunder.txt";
+                bool httpCodeReadSuccess = Utils::readFileContent(httpCodeFile, httpCodeStr);
+
+                if(httpCodeReadSuccess) {
+                    LOGINFO("xconf httpCodeStr '%s'\n", httpCodeStr.c_str());
+                    try {
+                        _fwUpdate.httpStatus = std::stoi(httpCodeStr);
+                    } catch(const std::exception& e) {
+                        LOGERR("exception in converting xconf http code %s", e.what());
+                    }
+                }
+
+                LOGINFO("xconf http code %d\n", _fwUpdate.httpStatus);
+
+                const char* responseFile = "/tmp/xconf_response_thunder.txt";
+                bool responseReadSuccess = Utils::readFileContent(responseFile, response);
+
+                if(responseReadSuccess) {
+                    JsonObject httpResp;
+                    if(httpResp.FromString(response)) {
+                        if(httpResp.HasLabel("firmwareVersion")) {
+                            _fwUpdate.firmwareUpdateVersion = httpResp["firmwareVersion"].String();
+                            LOGWARN("fwVersion: '%s'\n", _fwUpdate.firmwareUpdateVersion.c_str());
+                            _fwUpdate.success = true;
+                        } else {
+                            LOGERR("Xconf response is not valid json and/or doesn't contain firmwareVersion. '%s'\n", response.c_str());
+                            response = "";
+                        }
+                    } else {
+                        LOGERR("Error in parsing xconf json response");
+                    }
+                } else {
+                    LOGERR("Unable to open xconf response file");
+                }
+
+                dispatchFirmwareUpdateEvent(_fwUpdate.firmwareUpdateVersion, _fwUpdate.httpStatus, _fwUpdate.success, firmwareVersion, response);
                     {
                         LOGERR("Xconf response is not valid json and/or doesn't contain firmwareVersion. '%s'\n", response.c_str());
                         response = "";
@@ -2904,119 +2893,107 @@ namespace WPEFramework {
          * @return		: Core::<StatusCode>
          */
         uint32_t SystemServices::setTimeZoneDST(const JsonObject& parameters,
-                JsonObject& response)
-        {
-            bool resp = true;
-            bool isUniversal = false, isOlson = true;
-
-            if (parameters.HasLabel("timeZone")) {
-                std::string dir = dirnameOf(TZ_FILE);
-                std::string timeZone = "";
-                try {
+                {
+                    bool resp = true;
+                    std::string timeZone = "";
+                    if (!parameters.HasLabel("timeZone")) {
+                        populateResponseWithError(SysSrv_MissingKeyValues, response);
+                        returnResponse(false);
+                    }
                     timeZone = parameters["timeZone"].String();
+                    Utils::String::trim(timeZone);
+
+                    auto isValidTimeZoneFormat = [](const std::string& tz) -> bool {
+                        if (tz == "Universal") return true;
+                        size_t pos = tz.find("/");
+                        return (pos != std::string::npos && pos + 1 < tz.length());
+                    };
+
+                    auto isValidAccuracy = [](const std::string& acc) -> bool {
+                        return acc == TZ_ACCURACY_INITIAL || acc == TZ_ACCURACY_INTERIM || acc == TZ_ACCURACY_FINAL;
+                    };
+
+                    if (!isValidTimeZoneFormat(timeZone)) {
+                        LOGERR("Invalid timezone format received : %s . Timezone should be in either Universal or Olson format Ex : America/New_York . \n", timeZone.c_str());
+                        populateResponseWithError(SysSrv_FileNotPresent, response);
+                        returnResponse(false);
+                    }
+
                     size_t pos = timeZone.find("/");
-                    if (timeZone.empty() || (timeZone == "null")) {
-                        LOGERR("Empty timeZone received.");
+                    std::string path = ZONEINFO_DIR;
+                    path += "/";
+                    std::string country = (pos != std::string::npos) ? timeZone.substr(0, pos) : "";
+                    std::string city = path + timeZone;
+
+                    if (!dirExists(path + country) || !Utils::fileExists(city.c_str())) {
+                        LOGERR("Invalid timeZone %s received. Timezone not supported in TZ Database. \n", timeZone.c_str());
+                        populateResponseWithError(SysSrv_FileNotPresent, response);
+                        returnResponse(false);
                     }
-                    
-                    if( (timeZone.compare("Universal")) == 0) {
-                        isUniversal = true;
-                        isOlson = false;
-                    }
-                    
-                    if(isOlson) {
-                        
-                        if( (pos == string::npos) ||  ( (pos != string::npos) &&  (pos+1 == timeZone.length())  )   )
-                        {
-                            LOGERR("Invalid timezone format received : %s . Timezone should be in either Universal or  Olson format  Ex : America/New_York . \n", timeZone.c_str());
+
+                    if (!dirExists(dir)) {
+                        if (!Core::Directory(dir.c_str()).CreatePath()) {
+                            LOGERR("Error creating dir");
                         }
                     }
-                    
-                    if( (isUniversal == true) || (isOlson == true)) {
-                        std::string path =ZONEINFO_DIR;
-                        path += "/";
-                        std::string country = timeZone.substr(0,pos);
-                        std::string city = path+timeZone;
-                        if( dirExists(path+country)  && Utils::fileExists(city.c_str()) )
-                        {
-                            if (!dirExists(dir)) {
-                                if (Core::Directory(dir.c_str()).CreatePath() == false)
-                                {
-                                    LOGERR("Error creating dir");
-                                }
-                            } else {
-                                //Do nothing//
+
+                    std::string oldTimeZoneDST = getTimeZoneDSTHelper();
+                    if (oldTimeZoneDST != timeZone) {
+                        FILE* f = fopen(TZ_FILE, "w");
+                        if (f) {
+                            if (timeZone.size() != fwrite(timeZone.c_str(), 1, timeZone.size(), f)) {
+                                LOGERR("Failed to write %s", TZ_FILE);
+                                resp = false;
                             }
-                            std::string oldTimeZoneDST = getTimeZoneDSTHelper();
-                            if (oldTimeZoneDST != timeZone) {
-                                FILE *f = fopen(TZ_FILE, "w");
-                                if (f) {
-                                    if (timeZone.size() != fwrite(timeZone.c_str(), 1, timeZone.size(), f))
-                                    {
-                                        LOGERR("Failed to write %s", TZ_FILE);
-                                        resp = false;
-                                    }
-
-                                    fflush(f);
-                                    fsync(fileno(f));
-                                    fclose(f);
-#ifdef ENABLE_LINK_LOCALTIME
-                                    // Now create the linux link back to the zone info file to our writeable localtime
-                                    if (Utils::fileExists(LOCALTIME_FILE)) {
-                                        remove (LOCALTIME_FILE);
-                                    }
-
-                                    LOGWARN("Linux localtime linked to %s\n", city.c_str());
-                                    symlink(city.c_str(), LOCALTIME_FILE);
-#endif
-                                } else {
-                                    LOGERR("Unable to open %s file.\n", TZ_FILE);
-                                    populateResponseWithError(SysSrv_FileAccessFailed, response);
-                                    resp = false;
-                                }
+                            fflush(f);
+                            fsync(fileno(f));
+                            fclose(f);
+        #ifdef ENABLE_LINK_LOCALTIME
+                            if (Utils::fileExists(LOCALTIME_FILE)) {
+                                remove(LOCALTIME_FILE);
                             }
-
-                            std::string oldAccuracy = getTimeZoneAccuracyDSTHelper();
-                            std::string accuracy = oldAccuracy;
-
-                            if (parameters.HasLabel("accuracy")) {
-                                accuracy = parameters["accuracy"].String();
-                                if (accuracy != TZ_ACCURACY_INITIAL && accuracy != TZ_ACCURACY_INTERIM && accuracy != TZ_ACCURACY_FINAL) {
-                                    LOGERR("Wrong TimeZone Accuracy: %s", accuracy.c_str());
-                                    accuracy = oldAccuracy;
-                                }
-                            }
-
-                            if (accuracy != oldAccuracy) {
-                                FILE *f = fopen(TZ_ACCURACY_FILE, "w");
-                                if (f) {
-                                    if (accuracy.size() != fwrite(accuracy.c_str(), 1, accuracy.size(), f))
-                                    {
-                                        LOGERR("Failed to write %s", TZ_ACCURACY_FILE);
-                                        resp = false;
-                                    }
-
-                                    fflush(f);
-                                    fsync(fileno(f));
-                                    fclose(f);
-                                }
-                            }
-
-                            if (SystemServices::_instance && (oldTimeZoneDST != timeZone || oldAccuracy != accuracy))
-                                SystemServices::_instance->onTimeZoneDSTChanged(oldTimeZoneDST,timeZone,oldAccuracy, accuracy);
-
-                        }
-                        else{
-                            LOGERR("Invalid timeZone  %s received. Timezone not supported in TZ Database. \n", timeZone.c_str());
-                            populateResponseWithError(SysSrv_FileNotPresent, response);
+                            LOGWARN("Linux localtime linked to %s\n", city.c_str());
+                            symlink(city.c_str(), LOCALTIME_FILE);
+        #endif
+                        } else {
+                            LOGERR("Unable to open %s file.\n", TZ_FILE);
+                            populateResponseWithError(SysSrv_FileAccessFailed, response);
                             resp = false;
                         }
+                    }
 
-#ifdef DISABLE_GEOGRAPHY_TIMEZONE
-                        std::string tzenv = ":";
-                        tzenv += timeZone;
-                        Core::SystemInfo::SetEnvironment(_T("TZ"), tzenv.c_str());
-#endif
+                    std::string oldAccuracy = getTimeZoneAccuracyDSTHelper();
+                    std::string accuracy = oldAccuracy;
+                    if (parameters.HasLabel("accuracy")) {
+                        std::string paramAcc = parameters["accuracy"].String();
+                        if (isValidAccuracy(paramAcc)) {
+                            accuracy = paramAcc;
+                        } else {
+                            LOGERR("Wrong TimeZone Accuracy: %s", paramAcc.c_str());
+                        }
+                    }
+                    if (accuracy != oldAccuracy) {
+                        FILE* f = fopen(TZ_ACCURACY_FILE, "w");
+                        if (f) {
+                            if (accuracy.size() != fwrite(accuracy.c_str(), 1, accuracy.size(), f)) {
+                                LOGERR("Failed to write %s", TZ_ACCURACY_FILE);
+                                resp = false;
+                            }
+                            fflush(f);
+                            fsync(fileno(f));
+                            fclose(f);
+                        }
+                    }
+                    if (SystemServices::_instance && (oldTimeZoneDST != timeZone || oldAccuracy != accuracy)) {
+                        SystemServices::_instance->onTimeZoneDSTChanged(oldTimeZoneDST, timeZone, oldAccuracy, accuracy);
+                    }
+        #ifdef DISABLE_GEOGRAPHY_TIMEZONE
+                    std::string tzenv = ":";
+                    tzenv += timeZone;
+                    Core::SystemInfo::SetEnvironment(_T("TZ"), tzenv.c_str());
+        #endif
+                    returnResponse(resp);
+                }
                     }
                 } catch (...) {
                     LOGERR("catch block : parameters[\"timeZone\"]...");
@@ -4286,6 +4263,9 @@ namespace WPEFramework {
             } else {
                 populateResponseWithError(SysSrv_MissingKeyValues, response);
             }
+            // NOTE: Power state change may be asynchronous. Proper completion should be handled via notification/event.
+            // For now, return success if request was accepted, but do not assume immediate completion.
+            // TODO: Implement callback or event-based completion notification for power state changes.
             returnResponse(retVal);
         } // end of setPower State
 
@@ -4837,6 +4817,8 @@ namespace WPEFramework {
         void _systemStateChanged(const char *owner, IARM_EventId_t eventId,
                 void *data, size_t len)
         {
+            static std::mutex sysStateMutex;
+            std::lock_guard<std::mutex> lock(sysStateMutex);
             int seconds = 600; /* 10 Minutes to Reboot */
 
             LOGINFO("len = %zu\n", len);

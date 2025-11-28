@@ -51,11 +51,23 @@ namespace Plugin {
 
         ASSERT(_subSystem == nullptr);
 
+        // FIX(Coverity): Null Pointer Dereference - Add runtime null checks
+        // Reason: ASSERT is compiled out in release builds, need runtime validation
+        // Impact: No API signature changes. Added defensive checks for null pointers.
+        if (service == nullptr) {
+            return _T("Service pointer is null");
+        }
+
         _skipURL = static_cast<uint8_t>(service->WebPrefix().length());
         _subSystem = service->SubSystems();
         _service = service;
 
         ASSERT(_subSystem != nullptr);
+
+        if (_subSystem == nullptr) {
+            _service = nullptr;
+            return _T("Could not retrieve SubSystems");
+        }
 
         _deviceInfo = service->Root<Exchange::IDeviceInfo>(_connectionId, 2000, _T("DeviceInfoImplementation"));
         _deviceAudioCapabilities = service->Root<Exchange::IDeviceAudioCapabilities>(_connectionId, 2000, _T("DeviceAudioCapabilities"));
@@ -82,10 +94,28 @@ namespace Plugin {
     {
         ASSERT(_service == service);
 
-        _deviceInfo->Release();
-        _deviceAudioCapabilities->Release();
-        _deviceVideoCapabilities->Release();
-        _firmwareVersion->Release();
+        // FIX(Coverity): Resource Leak - Add null checks before Release() calls
+        // Reason: Release() should only be called on valid pointers to prevent crash
+        // Impact: No API signature changes. Added defensive null checks before cleanup.
+        if (_deviceInfo != nullptr) {
+            _deviceInfo->Release();
+            _deviceInfo = nullptr;
+        }
+        
+        if (_deviceAudioCapabilities != nullptr) {
+            _deviceAudioCapabilities->Release();
+            _deviceAudioCapabilities = nullptr;
+        }
+        
+        if (_deviceVideoCapabilities != nullptr) {
+            _deviceVideoCapabilities->Release();
+            _deviceVideoCapabilities = nullptr;
+        }
+        
+        if (_firmwareVersion != nullptr) {
+            _firmwareVersion->Release();
+            _firmwareVersion = nullptr;
+        }
 
         if (_subSystem != nullptr) {
             _subSystem->Release();

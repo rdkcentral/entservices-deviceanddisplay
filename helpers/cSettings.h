@@ -38,7 +38,10 @@ public:
      * @brief    : Constructor.
      * @return   : nil.
      */
-    cSettings(std::string file)
+    // FIX(Coverity): Inefficient Copy - Use const reference for string parameter
+    // Reason: Passing std::string by value causes unnecessary copy
+    // Impact: No API signature changes (compatible). More efficient parameter passing.
+    cSettings(const std::string& file)
     {
         filename = file;
         if (!readFromFile()) {

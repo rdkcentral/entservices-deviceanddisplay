@@ -71,9 +71,20 @@ public:
             device::Manager::Initialize();
             TRACE(Trace::Information, (_T("device::Manager::Initialize success")));
         }
+        // FIX(Coverity): Memory Safety - Catch specific exceptions
+        // Reason: Catching all exceptions (...) masks errors; catch specific types for better debugging
+        // Impact: No API signature changes. Improved error handling and logging.
+        catch(const device::Exception& err)
+        {
+           TRACE(Trace::Error, (_T("device::Manager::Initialize failed: code=%d, message=%s"), err.getCode(), err.what()));
+        }
+        catch(const std::exception& e)
+        {
+           TRACE(Trace::Error, (_T("device::Manager::Initialize failed: %s"), e.what()));
+        }
         catch(...)
         {
-           TRACE(Trace::Error, (_T("device::Manager::Initialize failed")));
+           TRACE(Trace::Error, (_T("device::Manager::Initialize failed with unknown exception")));
         }
     }
 
@@ -357,6 +368,20 @@ public:
 
     uint32_t EDID (uint16_t& length /* @inout */, uint8_t data[] /* @out @length:length */) const override
     {
+        // FIX(Coverity): Buffer Overflow - Validate buffer size before copy
+        // Reason: Need to ensure data buffer has enough space to receive EDID bytes
+        // Impact: No API signature changes. Added validation to prevent buffer overflow.
+        if (data == nullptr) {
+            LOGERR("EDID: data buffer is null");
+            length = 0;
+            return Core::ERROR_GENERAL;
+        }
+        
+        if (length == 0) {
+            LOGERR("EDID: buffer length is zero");
+            return Core::ERROR_GENERAL;
+        }
+        
         std::vector<uint8_t> edidVec({'u','n','k','n','o','w','n' });
         int ret = Core::ERROR_NONE;
         try

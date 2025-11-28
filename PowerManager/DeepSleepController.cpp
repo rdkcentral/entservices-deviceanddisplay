@@ -59,7 +59,7 @@ uint32_t DeepSleepWakeupSettings::getTZDiffInSec() const
     tzValue value         = tzCST06;
 
     /* Get the Time Zone Pay Load from SysMgr */
-    IARM_Bus_SYSMgr_GetSystemStates_Param_t param;
+    IARM_Bus_SYSMgr_GetSystemStates_Param_t param = {0};
     iResult = IARM_Bus_Call(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_API_GetSystemStates, (void*)&param, sizeof(param));
     if (iResult == IARM_RESULT_SUCCESS) {
         if (param.time_zone_available.error) {

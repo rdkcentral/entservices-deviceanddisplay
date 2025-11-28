@@ -2893,6 +2893,7 @@ namespace WPEFramework {
          * @return		: Core::<StatusCode>
          */
         uint32_t SystemServices::setTimeZoneDST(const JsonObject& parameters,
+                JsonObject& response)
                 {
                     bool resp = true;
                     std::string timeZone = "";

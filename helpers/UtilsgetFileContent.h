@@ -167,6 +167,7 @@ inline bool searchFilesRec(std::vector<std::string> &pathList, unsigned int curr
 
     if (currentPath.find('*') != std::string::npos || currentPath.find('?') != std::string::npos)
     {
+        // Process files and directories in the current directory
         DIR *dir = opendir(inputPath.c_str());
         if (!dir)
         {
@@ -226,7 +227,6 @@ inline bool searchFilesRec(std::vector<std::string> &pathList, unsigned int curr
                 }
             }
         }
-        // Ensure directory is always closed before function exit
         closedir(dir);
     }
     else

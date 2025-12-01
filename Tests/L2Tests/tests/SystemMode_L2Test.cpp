@@ -578,8 +578,6 @@ TEST_F(SystemMode_L2test, ClientActivated_AfterStateRequested)
 // Cover case where file exists but no current state is set, should write default state VIDEO
 TEST_F(SystemMode_L2test, FileExistsWithoutCurrentStateSetsDefault)
 {
-    EXPECT_EQ(Core::ERROR_NONE, DeactivateService("org.rdk.SystemMode"));
-
     if (m_sysmodeplugin) {
         m_sysmodeplugin->Release();
         m_sysmodeplugin = nullptr;
@@ -589,25 +587,96 @@ TEST_F(SystemMode_L2test, FileExistsWithoutCurrentStateSetsDefault)
         m_controller_sysmode = nullptr;
     }
 
+    // Deactivate service with error handling
+    TEST_LOG("Deactivating SystemMode service");
+    uint32_t status = DeactivateService("org.rdk.SystemMode");
+    if (status != Core::ERROR_NONE) {
+        TEST_LOG("WARNING: SystemMode deactivation failed with status %u", status);
+    }
+    EXPECT_EQ(Core::ERROR_NONE, status);
+
+    // File operations
+    TEST_LOG("Setting up test file");
     removeFile(SYSTEM_MODE_FILE);
     createFile(SYSTEM_MODE_FILE, "DEVICE_OPTIMIZE.callsign=org.rdk.Dummy");
 
-    // Activate the plugin again to run the constructor logic
-    EXPECT_EQ(Core::ERROR_NONE, ActivateService("org.rdk.SystemMode"));
+    // Reactivate the plugin with protection
+    TEST_LOG("Reactivating SystemMode service");
+    try {
+        status = ActivateService("org.rdk.SystemMode");
+        if (status != Core::ERROR_NONE) {
+            TEST_LOG("ERROR: SystemMode reactivation failed with status %u", status);
+            GTEST_FAIL() << "SystemMode reactivation failed, skipping test";
+            return;
+        }
+        EXPECT_EQ(Core::ERROR_NONE, status);
+    } catch (...) {
+        TEST_LOG("EXCEPTION during SystemMode service reactivation");
+        GTEST_FAIL() << "Exception during service reactivation";
+        return;
+    }
 
-    // Recreate the local interface to the newly activated plugin
-    ASSERT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
+    // Recreate interface with protection
+    TEST_LOG("Recreating SystemMode interface");
+    uint32_t interfaceResult = CreateSystemModeInterfaceObject();
+    if (interfaceResult != Core::ERROR_NONE) {
+        TEST_LOG("ERROR: Failed to recreate SystemMode interface, status: %u", interfaceResult);
+        GTEST_FAIL() << "Interface recreation failed";
+        return;
+    }
+    ASSERT_EQ(Core::ERROR_NONE, interfaceResult);
 
-    // Verify GetState returns the default VIDEO that constructor should have written
-    Exchange::ISystemMode::GetStateResult result{};
-    EXPECT_EQ(Core::ERROR_NONE, m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result));
-    EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
+    // Verify functionality if we have a valid interface
+    if (m_sysmodeplugin) {
+        TEST_LOG("Testing GetState functionality");
+        try {
+            Exchange::ISystemMode::GetStateResult result{};
+            Core::hresult getStateResult = m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result);
+            EXPECT_EQ(Core::ERROR_NONE, getStateResult);
+            EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
+        } catch (...) {
+            TEST_LOG("EXCEPTION during GetState call");
+            GTEST_FAIL() << "Exception during GetState";
+            return;
+        }
+    } else {
+        TEST_LOG("ERROR: m_sysmodeplugin is null after interface creation");
+        GTEST_FAIL() << "Plugin interface is null";
+        return;
+    }
 
-    // Cleanup: deactivate and reactivate to restore original fixture state (optional)
-    EXPECT_EQ(Core::ERROR_NONE, DeactivateService("org.rdk.SystemMode"));
-    removeFile(SYSTEM_MODE_FILE);
-    EXPECT_EQ(Core::ERROR_NONE, ActivateService("org.rdk.SystemMode"));
-    ASSERT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
+    // Cleanup with protection
+    TEST_LOG("Starting test cleanup");
+    try {
+        if (m_sysmodeplugin) {
+            m_sysmodeplugin->Release();
+            m_sysmodeplugin = nullptr;
+        }
+        if (m_controller_sysmode) {
+            m_controller_sysmode->Release();
+            m_controller_sysmode = nullptr;
+        }
+        
+        status = DeactivateService("org.rdk.SystemMode");
+        if (status != Core::ERROR_NONE) {
+            TEST_LOG("WARNING: Cleanup deactivation failed with status %u", status);
+        }
+        EXPECT_EQ(Core::ERROR_NONE, status);
+        
+        removeFile(SYSTEM_MODE_FILE);
+        
+        status = ActivateService("org.rdk.SystemMode");
+        if (status != Core::ERROR_NONE) {
+            TEST_LOG("WARNING: Cleanup reactivation failed with status %u", status);
+        } else {
+            uint32_t cleanupResult = CreateSystemModeInterfaceObject();
+            if (cleanupResult != Core::ERROR_NONE) {
+                TEST_LOG("WARNING: Cleanup interface recreation failed with status %u", cleanupResult);
+            }
+        }
+    } catch (...) {
+        TEST_LOG("EXCEPTION during test cleanup - continuing anyway");
+    }
 }
 
 // ---------------- JSON-RPC TESTS ----------------

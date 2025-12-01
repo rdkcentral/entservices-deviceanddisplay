@@ -356,21 +356,46 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
     Core::ProxyType<RPC::CommunicatorClient> SystemMode_Client;
 
     TEST_LOG("Creating SystemMode_Engine");
-    SystemMode_Engine = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
-    SystemMode_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(SystemMode_Engine));
+    try {
+        SystemMode_Engine = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+        if (!SystemMode_Engine.IsValid()) {
+            TEST_LOG("ERROR: Failed to create SystemMode_Engine");
+            return Core::ERROR_GENERAL;
+        }
 
+        SystemMode_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(SystemMode_Engine));
+        if (!SystemMode_Client.IsValid()) {
+            TEST_LOG("ERROR: Failed to create SystemMode_Client");
+            return Core::ERROR_GENERAL;
+        }
+        
     TEST_LOG("Creating SystemMode_Engine Announcements");
 #if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
     SystemMode_Engine->Announcements(SystemMode_Client->Announcement());
 #endif
     if (!SystemMode_Client.IsValid()) {
         TEST_LOG("Invalid SystemMode_Client");
+        return Core::ERROR_GENERAL;
     } else {
         m_controller_sysmode = SystemMode_Client->Open<PluginHost::IShell>(_T("org.rdk.SystemMode"), ~0, 3000);
         if (m_controller_sysmode) {
             m_sysmodeplugin = m_controller_sysmode->QueryInterface<Exchange::ISystemMode>();
-            return_value = Core::ERROR_NONE;
+            if (m_sysmodeplugin) {
+                return_value = Core::ERROR_NONE;
+                TEST_LOG("SystemMode plugin interface created successfully");
+                } else {
+                    TEST_LOG("ERROR: Failed to query SystemMode interface");
+                }
+            } else {
+                TEST_LOG("ERROR: Failed to open SystemMode shell interface");
+            }
         }
+    } catch (const std::exception& e) {
+        TEST_LOG("EXCEPTION in CreateSystemModeInterfaceObject: %s", e.what());
+        return Core::ERROR_GENERAL;
+    } catch (...) {
+        TEST_LOG("UNKNOWN EXCEPTION in CreateSystemModeInterfaceObject");
+        return Core::ERROR_GENERAL;    
     }
     return return_value;
 }
@@ -378,7 +403,16 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
 void SystemMode_L2test::SetUp()
 {
     if ((m_sysmodeplugin == nullptr) || (m_controller_sysmode == nullptr)) {
-        EXPECT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
+        TEST_LOG("SystemMode plugin interface not initialized, attempting to create...");
+        uint32_t result = CreateSystemModeInterfaceObject();
+        if (result != Core::ERROR_NONE) {
+            TEST_LOG("WARNING: Failed to create SystemMode interface object, status: %u", result);
+            // Mark the test as failed but don't crash
+            GTEST_FAIL() << "SystemMode interface creation failed, skipping test";
+            return;
+        }
+        EXPECT_EQ(Core::ERROR_NONE, result);
+        TEST_LOG("SystemMode interface created successfully");
     }
 }
 

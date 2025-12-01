@@ -358,11 +358,12 @@ SystemMode_L2test::~SystemMode_L2test()
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    /* Deactivate plugin in destructor */
-    status = DeactivateService("org.rdk.SystemMode");
+    status = DeactivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    status = DeactivateService("org.rdk.DisplaySettings");
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    /* Deactivate plugin in destructor */
+    status = DeactivateService("org.rdk.SystemMode");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
     removeFile("/tmp/pwrmgr_restarted");
@@ -548,7 +549,7 @@ TEST_F(SystemMode_L2test, StateTransition_VIDEO_GAME_VIDEO)
 }
 
 // Client activation / deactivation lifecycle
-TEST_F(SystemMode_L2test, DISABLED_ClientActivationLifecycle)
+TEST_F(SystemMode_L2test, ClientActivationLifecycle)
 {
     ASSERT_TRUE(ValidateInterfaces());
     

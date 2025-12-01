@@ -98,16 +98,6 @@ public:
         const std::chrono::milliseconds& timeout = std::chrono::milliseconds(3000),
         const std::chrono::milliseconds& interval = std::chrono::milliseconds(100));
 
-private:
-    /** @brief Mutex */
-    std::mutex m_mutex;
-
-    /** @brief Condition variable */
-    std::condition_variable m_condition_variable;
-
-    /** @brief Event signalled flag */
-    uint32_t m_event_signalled;
-
     /** @brief Safe interface validation method */
     bool ValidateInterfaces() {
         try {
@@ -127,6 +117,16 @@ private:
             return false;
         }
     }
+
+private:
+    /** @brief Mutex */
+    std::mutex m_mutex;
+
+    /** @brief Condition variable */
+    std::condition_variable m_condition_variable;
+
+    /** @brief Event signalled flag */
+    uint32_t m_event_signalled;
 
 protected:
     /** @brief Pointer to the IShell interface */

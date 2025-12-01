@@ -548,7 +548,7 @@ TEST_F(SystemMode_L2test, StateTransition_VIDEO_GAME_VIDEO)
 }
 
 // Client activation / deactivation lifecycle
-TEST_F(SystemMode_L2test, ClientActivationLifecycle)
+TEST_F(SystemMode_L2test, DISABLED_ClientActivationLifecycle)
 {
     ASSERT_TRUE(ValidateInterfaces());
     

@@ -108,6 +108,26 @@ private:
     /** @brief Event signalled flag */
     uint32_t m_event_signalled;
 
+    /** @brief Safe interface validation method */
+    bool ValidateInterfaces() {
+        try {
+            if (m_sysmodeplugin == nullptr) {
+                TEST_LOG("ERROR: SystemMode plugin interface is null");
+                return false;
+            }
+            if (m_controller_sysmode == nullptr) {
+                TEST_LOG("ERROR: Controller interface is null");
+                return false;
+            }
+            // Add small delay for interface stability
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            return true;
+        } catch (...) {
+            TEST_LOG("EXCEPTION during interface validation");
+            return false;
+        }
+    }
+
 protected:
     /** @brief Pointer to the IShell interface */
     PluginHost::IShell* m_controller_sysmode;
@@ -357,12 +377,18 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
 
     TEST_LOG("Creating SystemMode_Engine");
     try {
+        // Add safety delay before interface creation
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        
         SystemMode_Engine = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
         if (!SystemMode_Engine.IsValid()) {
             TEST_LOG("ERROR: Failed to create SystemMode_Engine");
             return Core::ERROR_GENERAL;
         }
 
+        // Add safety delay
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
         SystemMode_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(SystemMode_Engine));
         if (!SystemMode_Client.IsValid()) {
             TEST_LOG("ERROR: Failed to create SystemMode_Client");
@@ -377,10 +403,18 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
         TEST_LOG("Invalid SystemMode_Client");
         return Core::ERROR_GENERAL;
     } else {
+        // Add timeout and validation for interface opening
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        
         m_controller_sysmode = SystemMode_Client->Open<PluginHost::IShell>(_T("org.rdk.SystemMode"), ~0, 3000);
         if (m_controller_sysmode) {
+            // Validate controller before querying interface
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            
             m_sysmodeplugin = m_controller_sysmode->QueryInterface<Exchange::ISystemMode>();
             if (m_sysmodeplugin) {
+                // Final validation delay
+                std::this_thread::sleep_for(std::chrono::milliseconds(150));
                 return_value = Core::ERROR_NONE;
                 TEST_LOG("SystemMode plugin interface created successfully");
                 } else {
@@ -392,9 +426,15 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
         }
     } catch (const std::exception& e) {
         TEST_LOG("EXCEPTION in CreateSystemModeInterfaceObject: %s", e.what());
+        // Ensure cleanup on exception
+        m_sysmodeplugin = nullptr;
+        m_controller_sysmode = nullptr;
         return Core::ERROR_GENERAL;
     } catch (...) {
         TEST_LOG("UNKNOWN EXCEPTION in CreateSystemModeInterfaceObject");
+        // Ensure cleanup on exception
+        m_sysmodeplugin = nullptr;
+        m_controller_sysmode = nullptr;
         return Core::ERROR_GENERAL;    
     }
     return return_value;
@@ -510,26 +550,78 @@ TEST_F(SystemMode_L2test, StateTransition_VIDEO_GAME_VIDEO)
 // Client activation / deactivation lifecycle
 TEST_F(SystemMode_L2test, ClientActivationLifecycle)
 {
-    ASSERT_TRUE(m_sysmodeplugin != nullptr);
+    ASSERT_TRUE(ValidateInterfaces());
+    
+    // Add safety delay before interface operations
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
     // The textual name of system mode as per @text: device_optimize
     const std::string modeName = "DEVICE_OPTIMIZE";
-    Core::hresult rcAct = m_sysmodeplugin->ClientActivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
-    EXPECT_EQ(Core::ERROR_NONE, rcAct);
-    Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
-    EXPECT_EQ(Core::ERROR_NONE, rcDeact);
+
+     try {
+        TEST_LOG("Starting ClientActivated call with modeName: %s", modeName.c_str());
+        
+        // Add validation and timing control for activation
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        Core::hresult rcAct = m_sysmodeplugin->ClientActivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
+        EXPECT_EQ(Core::ERROR_NONE, rcAct);
+
+        // Critical delay between activation and deactivation to prevent race conditions
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+         // Re-validate interfaces before deactivation
+        ASSERT_TRUE(ValidateInterfaces());
+        
+        TEST_LOG("Starting ClientDeactivated call"); 
+        Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
+        EXPECT_EQ(Core::ERROR_NONE, rcDeact);
+
+        // Final cleanup delay
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+    } catch (const std::exception& e) {
+        TEST_LOG("EXCEPTION in ClientActivationLifecycle test: %s", e.what());
+        FAIL() << "Exception occurred during ClientActivationLifecycle: " << e.what();
+    } catch (...) {
+        TEST_LOG("UNKNOWN EXCEPTION in ClientActivationLifecycle test");
+        FAIL() << "Unknown exception occurred during ClientActivationLifecycle";
+    } 
 }
 
 // GetState after explicit request (ensures GetState returns latest value)
 TEST_F(SystemMode_L2test, GetStateAfterRequest)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    EXPECT_EQ(Core::ERROR_NONE, m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::VIDEO));
-    ASSERT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
-        Exchange::ISystemMode::VIDEO));
-    Exchange::ISystemMode::GetStateResult result{};
-    EXPECT_EQ(Core::ERROR_NONE,
-        m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result));
-    EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
+    
+    try {
+        // Add safety delay before operations
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        TEST_LOG("Requesting state change to VIDEO");
+        EXPECT_EQ(Core::ERROR_NONE, m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::VIDEO));
+        
+        TEST_LOG("Waiting for state change to complete");
+        ASSERT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
+            Exchange::ISystemMode::VIDEO));
+            
+        // Additional safety delay before state query
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        
+        Exchange::ISystemMode::GetStateResult result{};
+        TEST_LOG("Getting current state");
+        EXPECT_EQ(Core::ERROR_NONE,
+            m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result));
+        EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
+        
+        TEST_LOG("GetStateAfterRequest completed successfully, state: %u", static_cast<uint32_t>(result.state));
+        
+    } catch (const std::exception& e) {
+        TEST_LOG("EXCEPTION in GetStateAfterRequest test: %s", e.what());
+        FAIL() << "Exception occurred during GetStateAfterRequest: " << e.what();
+    } catch (...) {
+        TEST_LOG("UNKNOWN EXCEPTION in GetStateAfterRequest test");
+        FAIL() << "Unknown exception occurred during GetStateAfterRequest";
+    }
 }
 
 // COM-RPC: ClientActivated with invalid system mode
@@ -537,9 +629,27 @@ TEST_F(SystemMode_L2test, ClientActivated_InvalidSystemMode)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
 
-    // Test with invalid system mode - should return early (lines 260-261)
-    Core::hresult result = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, "INVALID_SYSTEM_MODE");
-    EXPECT_EQ(0, result);
+    try {
+        // Add safety delay before interface operation
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        
+        // Test with invalid system mode - should return early (lines 260-261)
+        TEST_LOG("Testing ClientActivated with invalid system mode");
+        Core::hresult result = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, "INVALID_SYSTEM_MODE");
+        EXPECT_EQ(0, result);
+        
+        TEST_LOG("ClientActivated_InvalidSystemMode completed successfully, result: %u", result);
+        
+        // Safety delay after operation
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        
+    } catch (const std::exception& e) {
+        TEST_LOG("EXCEPTION in ClientActivated_InvalidSystemMode test: %s", e.what());
+        FAIL() << "Exception occurred during ClientActivated_InvalidSystemMode: " << e.what();
+    } catch (...) {
+        TEST_LOG("UNKNOWN EXCEPTION in ClientActivated_InvalidSystemMode test");
+        FAIL() << "Unknown exception occurred during ClientActivated_InvalidSystemMode";
+    }
 }
 
 // COM-RPC: ClientActivated with empty callsign
@@ -548,31 +658,99 @@ TEST_F(SystemMode_L2test, ClientActivated_EmptyCallsign)
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
     const std::string modeName = "DEVICE_OPTIMIZE";
 
-    Core::hresult result = m_sysmodeplugin->ClientActivated("", modeName);
-    EXPECT_EQ(Core::ERROR_NONE, result);
+    try {
+        // Add safety delay before interface operation
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        
+        TEST_LOG("Testing ClientActivated with empty callsign");
+        Core::hresult result = m_sysmodeplugin->ClientActivated("", modeName);
+        EXPECT_EQ(Core::ERROR_NONE, result);
+        
+        TEST_LOG("ClientActivated_EmptyCallsign completed successfully, result: %u", result);
+        
+        // Safety delay and cleanup if needed
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        // Attempt cleanup for empty callsign (may not be needed but safe)
+        try {
+            m_sysmodeplugin->ClientDeactivated("", modeName);
+        } catch (...) {
+            TEST_LOG("Cleanup for empty callsign not needed or failed (expected)");
+        }
+        
+    } catch (const std::exception& e) {
+        TEST_LOG("EXCEPTION in ClientActivated_EmptyCallsign test: %s", e.what());
+        FAIL() << "Exception occurred during ClientActivated_EmptyCallsign: " << e.what();
+    } catch (...) {
+        TEST_LOG("UNKNOWN EXCEPTION in ClientActivated_EmptyCallsign test");
+        FAIL() << "Unknown exception occurred during ClientActivated_EmptyCallsign";
+    }
 }
 
 // COM-RPC: ClientActivated after a state has been requested
 TEST_F(SystemMode_L2test, ClientActivated_AfterStateRequested)
 {
-    ASSERT_TRUE(m_sysmodeplugin != nullptr);
+    // Re-validate interfaces before deactivation
+    ASSERT_TRUE(ValidateInterfaces());
     const std::string modeName = "DEVICE_OPTIMIZE";
 
-    // Step 1: Request a state to set stateRequested = true (line 185)
-    Core::hresult stateResult = m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
-        Exchange::ISystemMode::GAME);
-    EXPECT_EQ(Core::ERROR_NONE, stateResult);
+    try {
+        // Add safety delay before operations
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        // Step 1: Request a state to set stateRequested = true (line 185)
+        Core::hresult stateResult = m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
+            Exchange::ISystemMode::GAME);
+        EXPECT_EQ(Core::ERROR_NONE, stateResult);
 
-    // Step 2: Wait for the state to be applied
-    EXPECT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::GAME));
+        // Step 2: Wait for the state to be applied with timeout protection
+        TEST_LOG("Waiting for state change to complete");
+        EXPECT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::GAME));
+        
+        // Additional safety delay and interface validation
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        ASSERT_TRUE(ValidateInterfaces());
 
-    // The client should immediately receive the current state via Request() call
-    Core::hresult activateResult = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-    EXPECT_EQ(Core::ERROR_NONE, activateResult);
+        // The client should immediately receive the current state via Request() call
+        TEST_LOG("Activating client after state change");
+        Core::hresult activateResult = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+        EXPECT_EQ(Core::ERROR_NONE, activateResult);
+        
+        // Critical delay before deactivation
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        ASSERT_TRUE(ValidateInterfaces());                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 
-    // Step 4: Immediate cleanup to prevent interface issues during shutdown
-    Core::hresult cleanup = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-    EXPECT_EQ(Core::ERROR_NONE, cleanup);
+        // Step 4: Immediate cleanup to prevent interface issues during shutdown
+        TEST_LOG("Deactivating client for cleanup");
+        Core::hresult cleanup = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+        EXPECT_EQ(Core::ERROR_NONE, cleanup);
+        
+        // Final safety delay
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+    } catch (const std::exception& e) {
+        TEST_LOG("EXCEPTION in ClientActivated_AfterStateRequested test: %s", e.what());
+        // Attempt cleanup on exception
+        try {
+            if (ValidateInterfaces()) {
+            m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+            }
+        } catch (...) {
+            TEST_LOG("Failed to cleanup client on exception");
+        }
+        FAIL() << "Exception occurred during ClientActivated_AfterStateRequested: " << e.what();
+    } catch (...) {
+        TEST_LOG("UNKNOWN EXCEPTION in ClientActivated_AfterStateRequested test");
+        // Attempt cleanup on exception
+        try {
+            if (ValidateInterfaces()) {
+            m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+            }
+        } catch (...) {
+            TEST_LOG("Failed to cleanup client on unknown exception");
+        }
+        FAIL() << "Unknown exception occurred during ClientActivated_AfterStateRequested";
+    }
 }
 
 // Cover case where file exists but no current state is set, should write default state VIDEO

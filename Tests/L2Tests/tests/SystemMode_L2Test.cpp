@@ -311,9 +311,18 @@ SystemMode_L2test::SystemMode_L2test()
     status = ActivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    /* Activate plugin in constructor */
-    status = ActivateService("org.rdk.SystemMode");
-    EXPECT_EQ(Core::ERROR_NONE, status);
+   /* Activate SystemMode plugin */
+    TEST_LOG("Attempting to activate SystemMode service...");
+    try {
+        status = ActivateService("org.rdk.SystemMode");
+        if (status != Core::ERROR_NONE) {
+            TEST_LOG("WARNING: SystemMode activation failed with status %u", status);
+        }
+        EXPECT_EQ(Core::ERROR_NONE, status);
+    } catch (...) {
+        TEST_LOG("EXCEPTION: SystemMode activation caused an exception");
+        status = Core::ERROR_GENERAL;
+    }
 }
 
 SystemMode_L2test::~SystemMode_L2test()

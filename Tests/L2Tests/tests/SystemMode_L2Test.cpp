@@ -98,26 +98,6 @@ public:
         const std::chrono::milliseconds& timeout = std::chrono::milliseconds(3000),
         const std::chrono::milliseconds& interval = std::chrono::milliseconds(100));
 
-    /** @brief Safe interface validation method */
-    bool ValidateInterfaces() {
-        try {
-            if (m_sysmodeplugin == nullptr) {
-                TEST_LOG("ERROR: SystemMode plugin interface is null");
-                return false;
-            }
-            if (m_controller_sysmode == nullptr) {
-                TEST_LOG("ERROR: Controller interface is null");
-                return false;
-            }
-            // Add small delay for interface stability
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            return true;
-        } catch (...) {
-            TEST_LOG("EXCEPTION during interface validation");
-            return false;
-        }
-    }
-
 private:
     /** @brief Mutex */
     std::mutex m_mutex;
@@ -331,34 +311,9 @@ SystemMode_L2test::SystemMode_L2test()
     status = ActivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    // Prepare SystemMode file structure before activation to prevent initialization issues
-    TEST_LOG("Preparing SystemMode file structure");
-    removeFile("/tmp/SystemMode.txt");
-    
-    // Add delay after DisplaySettings activation to ensure stability
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    /* Activate SystemMode plugin with enhanced protection */
-    TEST_LOG("Attempting to activate SystemMode service...");
-    try {
-        // Additional delay before SystemMode activation
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        status = ActivateService("org.rdk.SystemMode");
-        if (status != Core::ERROR_NONE) {
-            TEST_LOG("WARNING: SystemMode activation failed with status %u", status);
-            // Don't fail the test immediately, allow it to proceed
-        } else {
-            TEST_LOG("SystemMode activation succeeded");
-            // Additional delay after successful activation
-            std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        }
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    } catch (...) {
-        TEST_LOG("EXCEPTION: SystemMode activation caused an exception");
-        status = Core::ERROR_GENERAL;
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    }
+    /* Activate plugin in constructor */
+    status = ActivateService("org.rdk.SystemMode");
+    EXPECT_EQ(Core::ERROR_NONE, status);
 }
 
 SystemMode_L2test::~SystemMode_L2test()
@@ -371,39 +326,18 @@ SystemMode_L2test::~SystemMode_L2test()
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_TERM())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
-    // Deactivate SystemMode first with protection
-    try {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        status = DeactivateService("org.rdk.SystemMode");
-        if (status != Core::ERROR_NONE) {
-            TEST_LOG("WARNING: SystemMode deactivation failed with status %u", status);
-        }
-        // Don't expect success here as it might already be crashed
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    } catch (...) {
-        TEST_LOG("Exception during SystemMode deactivation");
-    }
+    status = DeactivateService("org.rdk.PowerManager");
+    EXPECT_EQ(Core::ERROR_NONE, status);
 
-    try {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        status = DeactivateService("org.rdk.PowerManager");
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    } catch (...) {
-        TEST_LOG("Exception during PowerManager deactivation");
-    }
+    /* Deactivate plugin in destructor */
+    status = DeactivateService("org.rdk.SystemMode");
+    EXPECT_EQ(Core::ERROR_NONE, status);
 
-    try {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        status = DeactivateService("org.rdk.DisplaySettings");
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    } catch (...) {
-        TEST_LOG("Exception during DisplaySettings deactivation");
-    }
+    status = DeactivateService("org.rdk.DisplaySettings");
+    EXPECT_EQ(Core::ERROR_NONE, status);
 
-    // Cleanup files
     removeFile("/tmp/pwrmgr_restarted");
     removeFile("/opt/uimgr_settings.bin");
-    removeFile("/tmp/SystemMode.txt");
 }
 
 uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
@@ -413,66 +347,21 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
     Core::ProxyType<RPC::CommunicatorClient> SystemMode_Client;
 
     TEST_LOG("Creating SystemMode_Engine");
-    try {
-        // Add safety delay before interface creation
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        
-        SystemMode_Engine = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
-        if (!SystemMode_Engine.IsValid()) {
-            TEST_LOG("ERROR: Failed to create SystemMode_Engine");
-            return Core::ERROR_GENERAL;
-        }
+    SystemMode_Engine = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+    SystemMode_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(SystemMode_Engine));
 
-        // Add safety delay
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        
-        SystemMode_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(SystemMode_Engine));
-        if (!SystemMode_Client.IsValid()) {
-            TEST_LOG("ERROR: Failed to create SystemMode_Client");
-            return Core::ERROR_GENERAL;
-        }
-        
     TEST_LOG("Creating SystemMode_Engine Announcements");
 #if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
     SystemMode_Engine->Announcements(SystemMode_Client->Announcement());
 #endif
     if (!SystemMode_Client.IsValid()) {
         TEST_LOG("Invalid SystemMode_Client");
-        return Core::ERROR_GENERAL;
     } else {
-        // Add timeout and validation for interface opening
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        
-        m_controller_sysmode = SystemMode_Client->Open<PluginHost::IShell>(_T("org.rdk.SystemMode"), ~0, 5000);
+        m_controller_sysmode = SystemMode_Client->Open<PluginHost::IShell>(_T("org.rdk.SystemMode"), ~0, 3000);
         if (m_controller_sysmode) {
-            // Validate controller before querying interface
-            std::this_thread::sleep_for(std::chrono::milliseconds(300));
-            
             m_sysmodeplugin = m_controller_sysmode->QueryInterface<Exchange::ISystemMode>();
-            if (m_sysmodeplugin) {
-                // Final validation delay
-                std::this_thread::sleep_for(std::chrono::milliseconds(400));
-                return_value = Core::ERROR_NONE;
-                TEST_LOG("SystemMode plugin interface created successfully");
-                } else {
-                    TEST_LOG("ERROR: Failed to query SystemMode interface");
-                }
-            } else {
-                TEST_LOG("ERROR: Failed to open SystemMode shell interface");
-            }
+            return_value = Core::ERROR_NONE;
         }
-    } catch (const std::exception& e) {
-        TEST_LOG("EXCEPTION in CreateSystemModeInterfaceObject: %s", e.what());
-        // Ensure cleanup on exception
-        m_sysmodeplugin = nullptr;
-        m_controller_sysmode = nullptr;
-        return Core::ERROR_GENERAL;
-    } catch (...) {
-        TEST_LOG("UNKNOWN EXCEPTION in CreateSystemModeInterfaceObject");
-        // Ensure cleanup on exception
-        m_sysmodeplugin = nullptr;
-        m_controller_sysmode = nullptr;
-        return Core::ERROR_GENERAL;    
     }
     return return_value;
 }
@@ -480,33 +369,7 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
 void SystemMode_L2test::SetUp()
 {
     if ((m_sysmodeplugin == nullptr) || (m_controller_sysmode == nullptr)) {
-        TEST_LOG("SystemMode plugin interface not initialized, attempting to create...");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        try {
-            uint32_t result = CreateSystemModeInterfaceObject();
-            if (result != Core::ERROR_NONE) {
-                TEST_LOG("WARNING: Failed to create SystemMode interface object, status: %u", result);
-                // Instead of failing immediately, try one more time after a longer delay
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                result = CreateSystemModeInterfaceObject();
-                if (result != Core::ERROR_NONE) {
-                    TEST_LOG("CRITICAL: SystemMode interface creation failed twice, skipping test");
-                    GTEST_SKIP() << "SystemMode interface unavailable, cannot run test";
-                    return;
-                }
-            }
-            EXPECT_EQ(Core::ERROR_NONE, result);
-            
-            // Allow service initialization to complete
-            std::this_thread::sleep_for(std::chrono::milliseconds(300));
-            
-            TEST_LOG("SystemMode interface created successfully");
-        } catch (...) {
-            TEST_LOG("Exception during interface creation - skipping test");
-            GTEST_SKIP() << "Exception during interface creation";
-            return;
-        }
+        EXPECT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
     }
 }
 
@@ -601,146 +464,29 @@ TEST_F(SystemMode_L2test, StateTransition_VIDEO_GAME_VIDEO)
         Exchange::ISystemMode::VIDEO));
 }
 
-// Safe alternative test - only tests basic interface availability
-TEST_F(SystemMode_L2test, DISABLED_BasicInterfaceValidation)
-{
-    // Test that we can at least access the interface safely
-    if (m_sysmodeplugin == nullptr) {
-        GTEST_SKIP() << "SystemMode plugin interface is null";
-        return;
-    }
-    
-    TEST_LOG("Testing basic interface operations");
-    
-    try {
-        // Test GetState as it's safer than ClientActivated
-        Exchange::ISystemMode::GetStateResult result{};
-        Core::hresult getResult = m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result);
-        EXPECT_EQ(Core::ERROR_NONE, getResult);
-        TEST_LOG("GetState completed successfully, current state: %u", static_cast<uint32_t>(result.state));
-        
-        // Test RequestState as it's generally safer
-        Core::hresult requestResult = m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::VIDEO);
-        EXPECT_EQ(Core::ERROR_NONE, requestResult);
-        TEST_LOG("RequestState completed successfully");
-        
-    } catch (const std::exception& e) {
-        TEST_LOG("EXCEPTION in BasicInterfaceValidation test: %s", e.what());
-        FAIL() << "Exception occurred during basic interface validation: " << e.what();
-    } catch (...) {
-        TEST_LOG("UNKNOWN EXCEPTION in BasicInterfaceValidation test");
-        FAIL() << "Unknown exception occurred during basic interface validation";
-    }
-}
-
 // Client activation / deactivation lifecycle
-TEST_F(SystemMode_L2test, DISABLED_ClientActivationLifecycle)
+TEST_F(SystemMode_L2test, ClientActivationLifecycle)
 {
-    // Basic validation first
-    if (m_sysmodeplugin == nullptr) {
-        GTEST_SKIP() << "SystemMode plugin interface is null";
-        return;
-    }
-    
-    if (m_controller_sysmode == nullptr) {
-        GTEST_SKIP() << "Controller interface is null";
-        return;
-    }
-    
-    // Extended safety delay before any interface operations
-    TEST_LOG("Waiting before interface operations to ensure stability");
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    
+    ASSERT_TRUE(m_sysmodeplugin != nullptr);
     // The textual name of system mode as per @text: device_optimize
     const std::string modeName = "DEVICE_OPTIMIZE";
-
-     try {
-        // Double-check interface is still valid
-        if (m_sysmodeplugin == nullptr) {
-            FAIL() << "SystemMode interface became null before ClientActivated";
-            return;
-        }
-        
-        // Add extra delay and try a simple operation first
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        // Try GetState first as it might be safer than ClientActivated
-        Exchange::ISystemMode::GetStateResult testResult{};
-        Core::hresult getResult = m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, testResult);
-        if (getResult != Core::ERROR_NONE) {
-            TEST_LOG("WARNING: GetState failed with result %u, interface may be unstable", getResult);
-            GTEST_SKIP() << "Interface appears unstable, skipping ClientActivated test";
-            return;
-        }
-        
-        TEST_LOG("GetState succeeded, proceeding with ClientActivated");
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        
-        // Now try ClientActivated with maximum caution
-        Core::hresult rcAct = m_sysmodeplugin->ClientActivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
-        TEST_LOG("ClientActivated completed with result: %u", rcAct);
-        EXPECT_EQ(Core::ERROR_NONE, rcAct);
-        
-        // Extended delay between activation and deactivation
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
-        
-        // Re-validate interface before deactivation
-        if (m_sysmodeplugin == nullptr) {
-            FAIL() << "SystemMode interface became null after ClientActivated";
-            return;
-        }
-        
-        TEST_LOG("Starting ClientDeactivated call");
-        Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
-        TEST_LOG("ClientDeactivated completed with result: %u", rcDeact);
-        EXPECT_EQ(Core::ERROR_NONE, rcDeact);
-        
-        // Final safety delay
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        
-    } catch (const std::exception& e) {
-        TEST_LOG("EXCEPTION in ClientActivationLifecycle test: %s", e.what());
-        FAIL() << "Exception occurred during ClientActivationLifecycle: " << e.what();
-    } catch (...) {
-        TEST_LOG("UNKNOWN EXCEPTION in ClientActivationLifecycle test");
-        FAIL() << "Unknown exception occurred during ClientActivationLifecycle";
-    } 
+    Core::hresult rcAct = m_sysmodeplugin->ClientActivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
+    EXPECT_EQ(Core::ERROR_NONE, rcAct);
+    Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
+    EXPECT_EQ(Core::ERROR_NONE, rcDeact);
 }
 
 // GetState after explicit request (ensures GetState returns latest value)
 TEST_F(SystemMode_L2test, GetStateAfterRequest)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    
-    try {
-        // Add safety delay before operations
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        
-        TEST_LOG("Requesting state change to VIDEO");
-        EXPECT_EQ(Core::ERROR_NONE, m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::VIDEO));
-        
-        TEST_LOG("Waiting for state change to complete");
-        ASSERT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
-            Exchange::ISystemMode::VIDEO));
-            
-        // Additional safety delay before state query
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        
-        Exchange::ISystemMode::GetStateResult result{};
-        TEST_LOG("Getting current state");
-        EXPECT_EQ(Core::ERROR_NONE,
-            m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result));
-        EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
-        
-        TEST_LOG("GetStateAfterRequest completed successfully, state: %u", static_cast<uint32_t>(result.state));
-        
-    } catch (const std::exception& e) {
-        TEST_LOG("EXCEPTION in GetStateAfterRequest test: %s", e.what());
-        FAIL() << "Exception occurred during GetStateAfterRequest: " << e.what();
-    } catch (...) {
-        TEST_LOG("UNKNOWN EXCEPTION in GetStateAfterRequest test");
-        FAIL() << "Unknown exception occurred during GetStateAfterRequest";
-    }
+    EXPECT_EQ(Core::ERROR_NONE, m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::VIDEO));
+    ASSERT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
+        Exchange::ISystemMode::VIDEO));
+    Exchange::ISystemMode::GetStateResult result{};
+    EXPECT_EQ(Core::ERROR_NONE,
+        m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result));
+    EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
 }
 
 // COM-RPC: ClientActivated with invalid system mode
@@ -748,154 +494,49 @@ TEST_F(SystemMode_L2test, ClientActivated_InvalidSystemMode)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
 
-    try {
-        // Add safety delay before interface operation
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        
-        // Test with invalid system mode - should return early (lines 260-261)
-        TEST_LOG("Testing ClientActivated with invalid system mode");
-        Core::hresult result = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, "INVALID_SYSTEM_MODE");
-        EXPECT_EQ(0, result);
-        
-        TEST_LOG("ClientActivated_InvalidSystemMode completed successfully, result: %u", result);
-        
-        // Safety delay after operation
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        
-    } catch (const std::exception& e) {
-        TEST_LOG("EXCEPTION in ClientActivated_InvalidSystemMode test: %s", e.what());
-        FAIL() << "Exception occurred during ClientActivated_InvalidSystemMode: " << e.what();
-    } catch (...) {
-        TEST_LOG("UNKNOWN EXCEPTION in ClientActivated_InvalidSystemMode test");
-        FAIL() << "Unknown exception occurred during ClientActivated_InvalidSystemMode";
-    }
+    // Test with invalid system mode - should return early (lines 260-261)
+    Core::hresult result = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, "INVALID_SYSTEM_MODE");
+    EXPECT_EQ(0, result);
 }
 
 // COM-RPC: ClientActivated with empty callsign
-TEST_F(SystemMode_L2test, DISABLED_ClientActivated_EmptyCallsign)
+TEST_F(SystemMode_L2test, ClientActivated_EmptyCallsign)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
     const std::string modeName = "DEVICE_OPTIMIZE";
 
-    try {
-        // Add safety delay before interface operation
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        
-        TEST_LOG("Testing ClientActivated with empty callsign");
-        Core::hresult result = m_sysmodeplugin->ClientActivated("", modeName);
-        EXPECT_EQ(Core::ERROR_NONE, result);
-        
-        TEST_LOG("ClientActivated_EmptyCallsign completed successfully, result: %u", result);
-        
-        // Safety delay and cleanup if needed
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        
-        // Attempt cleanup for empty callsign (may not be needed but safe)
-        try {
-            m_sysmodeplugin->ClientDeactivated("", modeName);
-        } catch (...) {
-            TEST_LOG("Cleanup for empty callsign not needed or failed (expected)");
-        }
-        
-    } catch (const std::exception& e) {
-        TEST_LOG("EXCEPTION in ClientActivated_EmptyCallsign test: %s", e.what());
-        FAIL() << "Exception occurred during ClientActivated_EmptyCallsign: " << e.what();
-    } catch (...) {
-        TEST_LOG("UNKNOWN EXCEPTION in ClientActivated_EmptyCallsign test");
-        FAIL() << "Unknown exception occurred during ClientActivated_EmptyCallsign";
-    }
+    Core::hresult result = m_sysmodeplugin->ClientActivated("", modeName);
+    EXPECT_EQ(Core::ERROR_NONE, result);
 }
 
 // COM-RPC: ClientActivated after a state has been requested
-TEST_F(SystemMode_L2test, DISABLED_ClientActivated_AfterStateRequested)
+TEST_F(SystemMode_L2test, ClientActivated_AfterStateRequested)
 {
-     // Basic validation first
-    if (m_sysmodeplugin == nullptr) {
-        GTEST_SKIP() << "SystemMode plugin interface is null";
-        return;
-    }
-    
+    ASSERT_TRUE(m_sysmodeplugin != nullptr);
     const std::string modeName = "DEVICE_OPTIMIZE";
 
-    try {
-        // Extended safety delay before operations
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        // Step 1: Request a state to set stateRequested = true
-        TEST_LOG("Requesting state change to GAME");
-        Core::hresult stateResult = m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
-            Exchange::ISystemMode::GAME);
-        EXPECT_EQ(Core::ERROR_NONE, stateResult);
+    // Step 1: Request a state to set stateRequested = true (line 185)
+    Core::hresult stateResult = m_sysmodeplugin->RequestState(Exchange::ISystemMode::DEVICE_OPTIMIZE,
+        Exchange::ISystemMode::GAME);
+    EXPECT_EQ(Core::ERROR_NONE, stateResult);
 
-        // Step 2: Wait for the state to be applied with timeout protection
-        TEST_LOG("Waiting for state change to complete");
-        EXPECT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::GAME));
-        
-        // Additional safety delay and interface validation
-        std::this_thread::sleep_for(std::chrono::milliseconds(400));
-        
-        if (m_sysmodeplugin == nullptr) {
-            FAIL() << "Interface became null after state change";
-            return;
-        }
+    // Step 2: Wait for the state to be applied
+    EXPECT_TRUE(WaitForState(Exchange::ISystemMode::DEVICE_OPTIMIZE, Exchange::ISystemMode::GAME));
 
-        // Test GetState first to ensure interface stability
-        Exchange::ISystemMode::GetStateResult testResult{};
-        Core::hresult getResult = m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, testResult);
-        if (getResult != Core::ERROR_NONE) {
-            GTEST_SKIP() << "Interface appears unstable after state change";
-            return;
-        }
+    // The client should immediately receive the current state via Request() call
+    Core::hresult activateResult = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+    EXPECT_EQ(Core::ERROR_NONE, activateResult);
 
-        // The client should immediately receive the current state via Request() call
-        TEST_LOG("Activating client after state change");
-        Core::hresult activateResult = m_sysmodeplugin->ClientActivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-        EXPECT_EQ(Core::ERROR_NONE, activateResult);
-        
-        // Critical delay before deactivation
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        if (m_sysmodeplugin == nullptr) {
-            FAIL() << "Interface became null after ClientActivated";
-            return;
-        }
-
-        // Step 4: Immediate cleanup to prevent interface issues during shutdown
-        TEST_LOG("Deactivating client for cleanup");
-        Core::hresult cleanup = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-        EXPECT_EQ(Core::ERROR_NONE, cleanup);
-        
-        // Final safety delay
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        
-    } catch (const std::exception& e) {
-        TEST_LOG("EXCEPTION in ClientActivated_AfterStateRequested test: %s", e.what());
-        // Attempt cleanup on exception
-        try {
-            if (m_sysmodeplugin != nullptr) {
-                m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-            }
-        } catch (...) {
-            TEST_LOG("Failed to cleanup client on exception");
-        }
-        FAIL() << "Exception occurred during ClientActivated_AfterStateRequested: " << e.what();
-    } catch (...) {
-        TEST_LOG("UNKNOWN EXCEPTION in ClientActivated_AfterStateRequested test");
-        // Attempt cleanup on exception
-        try {
-            if (m_sysmodeplugin != nullptr) {
-                m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
-            }
-        } catch (...) {
-            TEST_LOG("Failed to cleanup client on unknown exception");
-        }
-        FAIL() << "Unknown exception occurred during ClientActivated_AfterStateRequested";
-    }
+    // Step 4: Immediate cleanup to prevent interface issues during shutdown
+    Core::hresult cleanup = m_sysmodeplugin->ClientDeactivated(DISPLAYSETTINGS_CALLSIGN, modeName);
+    EXPECT_EQ(Core::ERROR_NONE, cleanup);
 }
 
 // Cover case where file exists but no current state is set, should write default state VIDEO
 TEST_F(SystemMode_L2test, FileExistsWithoutCurrentStateSetsDefault)
 {
+    EXPECT_EQ(Core::ERROR_NONE, DeactivateService("org.rdk.SystemMode"));
+
     if (m_sysmodeplugin) {
         m_sysmodeplugin->Release();
         m_sysmodeplugin = nullptr;
@@ -905,96 +546,25 @@ TEST_F(SystemMode_L2test, FileExistsWithoutCurrentStateSetsDefault)
         m_controller_sysmode = nullptr;
     }
 
-    // Deactivate service with error handling
-    TEST_LOG("Deactivating SystemMode service");
-    uint32_t status = DeactivateService("org.rdk.SystemMode");
-    if (status != Core::ERROR_NONE) {
-        TEST_LOG("WARNING: SystemMode deactivation failed with status %u", status);
-    }
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
-    // File operations
-    TEST_LOG("Setting up test file");
     removeFile(SYSTEM_MODE_FILE);
     createFile(SYSTEM_MODE_FILE, "DEVICE_OPTIMIZE.callsign=org.rdk.Dummy");
 
-    // Reactivate the plugin with protection
-    TEST_LOG("Reactivating SystemMode service");
-    try {
-        status = ActivateService("org.rdk.SystemMode");
-        if (status != Core::ERROR_NONE) {
-            TEST_LOG("ERROR: SystemMode reactivation failed with status %u", status);
-            GTEST_FAIL() << "SystemMode reactivation failed, skipping test";
-            return;
-        }
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    } catch (...) {
-        TEST_LOG("EXCEPTION during SystemMode service reactivation");
-        GTEST_FAIL() << "Exception during service reactivation";
-        return;
-    }
+    // Activate the plugin again to run the constructor logic
+    EXPECT_EQ(Core::ERROR_NONE, ActivateService("org.rdk.SystemMode"));
 
-    // Recreate interface with protection
-    TEST_LOG("Recreating SystemMode interface");
-    uint32_t interfaceResult = CreateSystemModeInterfaceObject();
-    if (interfaceResult != Core::ERROR_NONE) {
-        TEST_LOG("ERROR: Failed to recreate SystemMode interface, status: %u", interfaceResult);
-        GTEST_FAIL() << "Interface recreation failed";
-        return;
-    }
-    ASSERT_EQ(Core::ERROR_NONE, interfaceResult);
+    // Recreate the local interface to the newly activated plugin
+    ASSERT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
 
-    // Verify functionality if we have a valid interface
-    if (m_sysmodeplugin) {
-        TEST_LOG("Testing GetState functionality");
-        try {
-            Exchange::ISystemMode::GetStateResult result{};
-            Core::hresult getStateResult = m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result);
-            EXPECT_EQ(Core::ERROR_NONE, getStateResult);
-            EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
-        } catch (...) {
-            TEST_LOG("EXCEPTION during GetState call");
-            GTEST_FAIL() << "Exception during GetState";
-            return;
-        }
-    } else {
-        TEST_LOG("ERROR: m_sysmodeplugin is null after interface creation");
-        GTEST_FAIL() << "Plugin interface is null";
-        return;
-    }
+    // Verify GetState returns the default VIDEO that constructor should have written
+    Exchange::ISystemMode::GetStateResult result{};
+    EXPECT_EQ(Core::ERROR_NONE, m_sysmodeplugin->GetState(Exchange::ISystemMode::DEVICE_OPTIMIZE, result));
+    EXPECT_EQ(Exchange::ISystemMode::VIDEO, result.state);
 
-    // Cleanup with protection
-    TEST_LOG("Starting test cleanup");
-    try {
-        if (m_sysmodeplugin) {
-            m_sysmodeplugin->Release();
-            m_sysmodeplugin = nullptr;
-        }
-        if (m_controller_sysmode) {
-            m_controller_sysmode->Release();
-            m_controller_sysmode = nullptr;
-        }
-        
-        status = DeactivateService("org.rdk.SystemMode");
-        if (status != Core::ERROR_NONE) {
-            TEST_LOG("WARNING: Cleanup deactivation failed with status %u", status);
-        }
-        EXPECT_EQ(Core::ERROR_NONE, status);
-        
-        removeFile(SYSTEM_MODE_FILE);
-        
-        status = ActivateService("org.rdk.SystemMode");
-        if (status != Core::ERROR_NONE) {
-            TEST_LOG("WARNING: Cleanup reactivation failed with status %u", status);
-        } else {
-            uint32_t cleanupResult = CreateSystemModeInterfaceObject();
-            if (cleanupResult != Core::ERROR_NONE) {
-                TEST_LOG("WARNING: Cleanup interface recreation failed with status %u", cleanupResult);
-            }
-        }
-    } catch (...) {
-        TEST_LOG("EXCEPTION during test cleanup - continuing anyway");
-    }
+    // Cleanup: deactivate and reactivate to restore original fixture state (optional)
+    EXPECT_EQ(Core::ERROR_NONE, DeactivateService("org.rdk.SystemMode"));
+    removeFile(SYSTEM_MODE_FILE);
+    EXPECT_EQ(Core::ERROR_NONE, ActivateService("org.rdk.SystemMode"));
+    ASSERT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
 }
 
 // ---------------- JSON-RPC TESTS ----------------
@@ -1149,7 +719,7 @@ TEST_F(SystemMode_L2test, JSONRPC_StateTransition_VIDEO_GAME_VIDEO)
 }
 
 // ClientActivated idempotency: activate twice, then deactivate once
-TEST_F(SystemMode_L2test, DISABLED_Interface_ClientActivated_Idempotent)
+TEST_F(SystemMode_L2test, Interface_ClientActivated_Idempotent)
 {
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
     const std::string modeName = "DEVICE_OPTIMIZE";

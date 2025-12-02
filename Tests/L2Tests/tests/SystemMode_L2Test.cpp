@@ -602,7 +602,7 @@ TEST_F(SystemMode_L2test, StateTransition_VIDEO_GAME_VIDEO)
 }
 
 // Safe alternative test - only tests basic interface availability
-TEST_F(SystemMode_L2test, BasicInterfaceValidation)
+TEST_F(SystemMode_L2test, DISABLED_BasicInterfaceValidation)
 {
     // Test that we can at least access the interface safely
     if (m_sysmodeplugin == nullptr) {

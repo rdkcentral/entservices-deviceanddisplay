@@ -192,18 +192,18 @@ namespace Plugin {
                 device_type = deviceTypeInfo.c_str();
                 deviceTypeInfo = (strcmp("mediaclient", device_type) == 0) ? "IpStb" :
                     (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
-
-                static const std::unordered_map<std::string, DeviceTypeInfo> stringToDeviceType = {
-                    {"IpTv",        DEVICE_TYPE_IPTV},
-                    {"IpStb",       DEVICE_TYPE_IPSTB},
-                    {"QamIpStb",    DEVICE_TYPE_QAMIPSTB}
-                };
-
-                auto it = stringToDeviceType.find(deviceTypeInfo);
-                if (it != stringToDeviceType.end()) {
-                    deviceTypeInfos.devicetype = it->second;
-                }
             }
+        }
+
+        static const std::unordered_map<std::string, DeviceTypeInfo> stringToDeviceType = {
+            {"IpTv",        DEVICE_TYPE_IPTV},
+            {"IpStb",       DEVICE_TYPE_IPSTB},
+            {"QamIpStb",    DEVICE_TYPE_QAMIPSTB}
+        };
+
+        auto it = stringToDeviceType.find(deviceTypeInfo);
+        if (it != stringToDeviceType.end()) {
+            deviceTypeInfos.devicetype = it->second;
         }
         return result;
     }

@@ -157,9 +157,8 @@ namespace WPEFramework
         }
 
         void DeviceDiagnosticsImplementation::Dispatch(Event event, const JsonValue params)
-        {   
+        {
             _adminLock.Lock();
-            notificationsCopy = _deviceDiagnosticsNotification;
             std::list<Exchange::IDeviceDiagnostics::INotification*>::const_iterator index(_deviceDiagnosticsNotification.begin());
         
             switch(event)
@@ -176,6 +175,7 @@ namespace WPEFramework
                     LOGWARN("Event[%u] not handled", event);
                     break;
             }
+            _adminLock.Unlock();
         }
     
         /* retrieves most active decoder status from ERM library,

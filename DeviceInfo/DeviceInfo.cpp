@@ -51,23 +51,11 @@ namespace Plugin {
 
         ASSERT(_subSystem == nullptr);
 
-        // FIX(Coverity): Null Pointer Dereference - Add runtime null checks
-        // Reason: ASSERT is compiled out in release builds, need runtime validation
-        // Impact: No API signature changes. Added defensive checks for null pointers.
-        if (service == nullptr) {
-            return _T("Service pointer is null");
-        }
-
         _skipURL = static_cast<uint8_t>(service->WebPrefix().length());
         _subSystem = service->SubSystems();
         _service = service;
 
         ASSERT(_subSystem != nullptr);
-
-        if (_subSystem == nullptr) {
-            _service = nullptr;
-            return _T("Could not retrieve SubSystems");
-        }
 
         _deviceInfo = service->Root<Exchange::IDeviceInfo>(_connectionId, 2000, _T("DeviceInfoImplementation"));
         _deviceAudioCapabilities = service->Root<Exchange::IDeviceAudioCapabilities>(_connectionId, 2000, _T("DeviceAudioCapabilities"));

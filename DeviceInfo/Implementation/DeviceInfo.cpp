@@ -217,6 +217,7 @@ namespace Plugin {
         {
                 releaseVersion = defaultVersion ;
                 LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",releaseVersion.c_str());
+
         }
 
         return Core::ERROR_NONE;

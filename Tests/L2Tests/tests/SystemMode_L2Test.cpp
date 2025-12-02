@@ -336,13 +336,13 @@ SystemMode_L2test::SystemMode_L2test()
     removeFile("/tmp/SystemMode.txt");
     
     // Add delay after DisplaySettings activation to ensure stability
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     /* Activate SystemMode plugin with enhanced protection */
     TEST_LOG("Attempting to activate SystemMode service...");
     try {
         // Additional delay before SystemMode activation
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         
         status = ActivateService("org.rdk.SystemMode");
         if (status != Core::ERROR_NONE) {
@@ -373,7 +373,7 @@ SystemMode_L2test::~SystemMode_L2test()
 
     // Deactivate SystemMode first with protection
     try {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         status = DeactivateService("org.rdk.SystemMode");
         if (status != Core::ERROR_NONE) {
             TEST_LOG("WARNING: SystemMode deactivation failed with status %u", status);
@@ -385,14 +385,15 @@ SystemMode_L2test::~SystemMode_L2test()
     }
 
     try {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         status = DeactivateService("org.rdk.PowerManager");
         EXPECT_EQ(Core::ERROR_NONE, status);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     } catch (...) {
         TEST_LOG("Exception during PowerManager deactivation");
     }
 
     try {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         status = DeactivateService("org.rdk.DisplaySettings");
         EXPECT_EQ(Core::ERROR_NONE, status);
     } catch (...) {
@@ -440,7 +441,7 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
         return Core::ERROR_GENERAL;
     } else {
         // Add timeout and validation for interface opening
-        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         
         m_controller_sysmode = SystemMode_Client->Open<PluginHost::IShell>(_T("org.rdk.SystemMode"), ~0, 5000);
         if (m_controller_sysmode) {

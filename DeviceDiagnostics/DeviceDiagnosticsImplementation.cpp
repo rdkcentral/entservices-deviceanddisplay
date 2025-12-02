@@ -153,7 +153,7 @@ namespace WPEFramework
         void DeviceDiagnosticsImplementation::Dispatch(Event event, const JsonValue params)
         {
             _adminLock.Lock();
-
+		
             std::list<Exchange::IDeviceDiagnostics::INotification*>::const_iterator index(_deviceDiagnosticsNotification.begin());
         
             switch(event)

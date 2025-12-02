@@ -371,14 +371,8 @@ public:
         // FIX(Coverity): Buffer Overflow - Validate buffer size before copy
         // Reason: Need to ensure data buffer has enough space to receive EDID bytes
         // Impact: No API signature changes. Added validation to prevent buffer overflow.
-        if (data == nullptr) {
-            LOGERR("EDID: data buffer is null");
-            length = 0;
-            return Core::ERROR_GENERAL;
-        }
-        
-        if (length == 0) {
-            LOGERR("EDID: buffer length is zero");
+        if (data == nullptr || length == 0) {
+            LOGERR("EDID: data buffer is null or length is zero");
             return Core::ERROR_GENERAL;
         }
         

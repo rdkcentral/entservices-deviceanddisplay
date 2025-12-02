@@ -151,6 +151,7 @@ SystemModeImplementation::~SystemModeImplementation()
 	    }
     }
 
+}
 
 Core::hresult SystemModeImplementation::RequestState(const SystemMode pSystemMode, const State pState ) 
 {

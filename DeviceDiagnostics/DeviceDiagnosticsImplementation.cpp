@@ -50,17 +50,11 @@ namespace WPEFramework
             NULL
         };
 
-        // FIX(Coverity): Security - Callback Issue - Fix callback signature
-        // Reason: CURLOPT_WRITEDATA expects userdata pointer, not by-value string
-        // Impact: No API signature changes. Fixed internal callback to properly receive data pointer.
-        static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, void* userdata)
+        static size_t writeCurlResponse(void *ptr, size_t size, size_t nmemb, std::string stream)
         {
             size_t realsize = size * nmemb;
-            std::string* stream = static_cast<std::string*>(userdata);
-            if (stream) {
-                std::string temp(static_cast<const char*>(ptr), realsize);
-                stream->append(temp);
-            }
+            std::string temp(static_cast<const char*>(ptr), realsize);
+            stream.append(temp);
             return realsize;
         }
 
@@ -159,6 +153,7 @@ namespace WPEFramework
         void DeviceDiagnosticsImplementation::Dispatch(Event event, const JsonValue params)
         {
             _adminLock.Lock();
+
             std::list<Exchange::IDeviceDiagnostics::INotification*>::const_iterator index(_deviceDiagnosticsNotification.begin());
         
             switch(event)
@@ -349,46 +344,25 @@ namespace WPEFramework
 
             if (curl_handle)
             {
-                // FIX(Coverity): Error Handling - Check critical curl options and abort on failure
-                // Reason: Critical curl setup failures should abort the operation, not just warn
-                // Impact: No API signature changes. Better error handling for curl operations.
-                bool curlSetupFailed = false;
-                
-                if(curl_easy_setopt(curl_handle, CURLOPT_URL, "http://127.0.0.1:10999") != CURLE_OK) {
-                    LOGERR("Failed to set curl option: CURLOPT_URL");
-                    curlSetupFailed = true;
-                }
-                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, postData.c_str()) != CURLE_OK) {
-                    LOGERR("Failed to set curl option: CURLOPT_POSTFIELDS");
-                    curlSetupFailed = true;
-                }
-                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, postData.size()) != CURLE_OK) {
-                    LOGERR("Failed to set curl option: CURLOPT_POSTFIELDSIZE");
-                    curlSetupFailed = true;
-                }
-                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK) {
-                    LOGWARN("Failed to set curl option: CURLOPT_FOLLOWLOCATION"); // Non-critical
-                }
-                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK) {
-                    LOGERR("Failed to set curl option: CURLOPT_WRITEFUNCTION");
-                    curlSetupFailed = true;
-                }
-                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK) {
-                    LOGERR("Failed to set curl option: CURLOPT_WRITEDATA");
-                    curlSetupFailed = true;
-                }
-                if(!curlSetupFailed && curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, curlTimeoutInSeconds) != CURLE_OK) {
-                    LOGWARN("Failed to set curl option: CURLOPT_TIMEOUT"); // Non-critical
-                }
+                if(curl_easy_setopt(curl_handle, CURLOPT_URL, "http://127.0.0.1:10999") != CURLE_OK)
+                    LOGWARN("Failed to set curl option: CURLOPT_URL");
+                if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, postData.c_str()) != CURLE_OK)
+                    LOGWARN("Failed to set curl option: CURLOPT_POSTFIELDS");
+                if(curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, postData.size()) != CURLE_OK)
+                    LOGWARN("Failed to set curl option: CURLOPT_POSTFIELDSIZE");
+                if(curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK) //when redirected, follow the redirections
+                    LOGWARN("Failed to set curl option: CURLOPT_FOLLOWLOCATION");
+                if(curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCurlResponse) != CURLE_OK)
+                    LOGWARN("Failed to set curl option: CURLOPT_WRITEFUNCTION");
+                if(curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response) != CURLE_OK)
+                    LOGWARN("Failed to set curl option: CURLOPT_WRITEDATA");
+                if(curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, curlTimeoutInSeconds) != CURLE_OK)
+                    LOGWARN("Failed to set curl option: CURLOPT_TIMEOUT");
 
-                if (!curlSetupFailed) {
-                    res = curl_easy_perform(curl_handle);
-                    curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
-                    LOGWARN("Performed curl call : %d http response code: %ld", res, http_code);
-                } else {
-                    LOGERR("Curl setup failed, skipping perform");
-                }
-                
+                res = curl_easy_perform(curl_handle);
+                curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
+
+                LOGWARN("Perfomed curl call : %d http response code: %ld", res, http_code);
                 curl_easy_cleanup(curl_handle);
             }
             else
@@ -400,40 +374,21 @@ namespace WPEFramework
             {
                 LOGWARN("curl Response: %s", response.c_str());
 
-                // FIX(Coverity): Logic Error - String Parsing - Use proper JSON parser
-                // Reason: Manual string parsing is fragile and error-prone; use existing JSON library
-                // Impact: No API signature changes. More robust JSON parsing using JsonObject/JsonArray.
-                try {
-                    JsonObject jsonResponse;
-                    jsonResponse.FromString(response);
-                    
-                    if (jsonResponse.HasLabel("paramList")) {
-                        JsonArray paramArray = jsonResponse["paramList"].Array();
-                        
-                        for (uint32_t i = 0; i < paramArray.Length(); i++) {
-                            JsonObject paramObj = paramArray[i].Object();
-                            ParamList param;
-                            
-                            if (paramObj.HasLabel("name")) {
-                                param.name = paramObj["name"].String();
-                            }
-                            if (paramObj.HasLabel("value")) {
-                                param.value = paramObj["value"].String();
-                            }
-                            
-                            if (!param.name.empty()) {
-                                paramListInfo.push_back(std::move(param));
-                            }
-                        }
-                        result = 0;
-                    } else {
-                        LOGWARN("Response does not contain paramList");
-                    }
-                } catch (const std::exception& e) {
-                    LOGERR("JSON parsing failed: %s", e.what());
-                } catch (...) {
-                    LOGERR("JSON parsing failed with unknown exception");
+                ParamList param;
+                std::string::size_type start = 0, end = 0;
+                while ((start = response.find("\"name\":", end)) != std::string::npos) 
+                {
+                    start = response.find("\"", start + 6) + 1;
+                    end = response.find("\"", start);
+                    param.name = response.substr(start, end - start);
+
+                    start = response.find("\"value\":", end) + 8;
+                    end = response.find("}", start);
+                    param.value = response.substr(start, end - start);
+
+                    paramListInfo.push_back(param);
                 }
+                result = 0;
             }
             return result;
         }

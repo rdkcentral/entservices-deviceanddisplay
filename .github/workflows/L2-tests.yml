@@ -130,7 +130,7 @@ jobs:
           cmake
           -S "$GITHUB_WORKSPACE/ThunderTools"
           -B build/ThunderTools
-          -DEXCEPTIONS_ENABLE=ONstd::this_thread::sleep_for(std::chrono::milliseconds(500));
+          -DEXCEPTIONS_ENABLE=ON
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DGENERIC_CMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"

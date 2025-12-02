@@ -40,19 +40,13 @@ namespace Plugin {
             // Impact: No API signature changes. Better error handling for file operations.
             std::ifstream file(filename);
             if (file.is_open() && file.good()) {
-                string line;
+                 string line;
                 while (std::getline(file, line)) {
                     std::smatch sm;
                     if (std::regex_match(line, sm, regex)) {
-                        // FIX(Coverity): Logic Error - Replace ASSERT with runtime check
-                        // Reason: ASSERT is compiled out in release builds
-                        // Impact: No API signature changes. Proper runtime validation of regex matches.
-                        if (sm.size() >= 2) {
-                            response = sm[1];
-                            result = Core::ERROR_NONE;
-                        } else {
-                            TRACE_GLOBAL(Trace::Warning, (_T("Regex match found but capture group size is %zu, expected >= 2"), sm.size()));
-                        }
+                        ASSERT(sm.size() == 2);
+                        response = sm[1];
+                        result = Core::ERROR_NONE;
                         break;
                     }
                 }
@@ -156,11 +150,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Brand(string& brand) const
     {
-        // FIX(Coverity): Logic Error - Ternary Expression - Break into separate statements
-        // Reason: Complex nested ternary is difficult to debug and error-prone
-        // Impact: No API signature changes. Improved code clarity and maintainability.
         brand = "Unknown";
-        
         return
             ((Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), brand)) || 
              (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
@@ -206,14 +196,10 @@ namespace Plugin {
 
         Core::hresult DeviceInfoImplementation::ReleaseVersion(string& releaseVersion ) const
     {
-        // FIX(Coverity): Code Quality - Return appropriate error code on failure
-        // Reason: Function should indicate when default value is used due to errors
-        // Impact: No API signature changes. Better error reporting when using fallback value.
         const std::string defaultVersion = "99.99.0.0";
         std::regex pattern(R"((\d+)\.(\d+)[sp])");
         std::smatch match;
         std::string imagename = "";
-        
         if(Core::ERROR_NONE == GetFileRegex(_T("/version.txt"), std::regex("^imagename:([^\\n]+)$"), imagename))
         {
             if (std::regex_search(imagename, match, pattern)) {
@@ -233,7 +219,7 @@ namespace Plugin {
                 LOGERR("Unable to read from /version.txt So default releaseVersion is: %s ",releaseVersion.c_str());
         }
 
-        return Core::ERROR_NONE;;
+        return Core::ERROR_NONE;
     }
 
     uint32_t DeviceInfoImplementation::ChipSet(string& chipset) const

@@ -62,11 +62,6 @@ namespace WPEFramework
                     ON_AVDECODER_STATUSCHANGED
                 };
  
-            // FIX(Coverity): Memory Management - Manual ref counting pattern
-            // Reason: This Job class uses manual AddRef/Release which is correct for this pattern.
-            //         The Job is created and submitted to the worker pool, so it needs to hold a reference.
-            //         Copy/move are explicitly deleted to prevent misuse.
-            // Impact: No API signature changes. Added documentation for the pattern.
             class EXTERNAL Job : public Core::IDispatch {
             protected:
                 Job(DeviceDiagnosticsImplementation* deviceDiagnosticsImplementation, Event event, JsonValue &params)

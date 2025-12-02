@@ -151,16 +151,7 @@ namespace Plugin {
                 // out-of-process code. Which will guard 
                 // that unwilling processes, get shot if
                 // not stopped friendly :-)
-                // FIX(Coverity): Resource Leak - Add exception handling around Terminate()
-                // Reason: Terminate() may throw, need to ensure Release() is still called
-                // Impact: No API signature changes. Better exception safety during cleanup.
-                try {
-                    connection->Terminate();
-                } catch (const std::exception& e) {
-                    TRACE(Trace::Error, (_T("Exception during connection termination: %s"), e.what()));
-                } catch (...) {
-                    TRACE(Trace::Error, (_T("Unknown exception during connection termination")));
-                }
+                connection->Terminate();
                 connection->Release();
             }
         }

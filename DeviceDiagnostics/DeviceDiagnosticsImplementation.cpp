@@ -75,10 +75,6 @@ namespace WPEFramework
             if ((m_EssRMgr = EssRMgrCreate()) == NULL)
             {
                 LOGERR("EssRMgrCreate() failed");
-                // FIX(Coverity): Resource Leak - Clear instance on failure
-                // Reason: If initialization fails, _instance should be null to prevent use of partially constructed object
-                // Impact: No API signature changes. Proper cleanup on initialization failure.
-                DeviceDiagnosticsImplementation::_instance = nullptr;
                 return;
             }
 
@@ -93,13 +89,9 @@ namespace WPEFramework
         DeviceDiagnosticsImplementation::~DeviceDiagnosticsImplementation()
         {
 #ifdef ENABLE_ERM
-            // FIX(Coverity): Concurrency - Thread Safety - Use RAII lock guard
-            // Reason: Manual lock/unlock is error-prone and not exception-safe
-            // Impact: No API signature changes. Better exception safety using RAII.
-            {
-                std::lock_guard<std::mutex> lock(m_AVDecoderStatusLock);
-                m_pollThreadRun = 0;
-            }
+            m_AVDecoderStatusLock.lock();
+            m_pollThreadRun = 0;
+            m_AVDecoderStatusLock.unlock();
             m_avDecoderStatusCv.notify_one();
 			if (m_AVPollThread.joinable())
 			{
@@ -165,26 +157,15 @@ namespace WPEFramework
         }
 
         void DeviceDiagnosticsImplementation::Dispatch(Event event, const JsonValue params)
-        {
-            // FIX(Coverity): Deadlock Potential - Copy notification list before iterating
-            // Reason: Holding lock while calling callbacks can deadlock if callback tries to Register/Unregister
-            // Impact: No API signature changes. Safer notification dispatch by copying list first.
-            std::list<Exchange::IDeviceDiagnostics::INotification*> notificationsCopy;
-            
+        {   
             _adminLock.Lock();
             notificationsCopy = _deviceDiagnosticsNotification;
-            // AddRef each notification while holding lock to ensure they stay valid
-            for (auto* notification : notificationsCopy) {
-                notification->AddRef();
-            }
-            _adminLock.Unlock();
-        
-            std::list<Exchange::IDeviceDiagnostics::INotification*>::const_iterator index(notificationsCopy.begin());
+            std::list<Exchange::IDeviceDiagnostics::INotification*>::const_iterator index(_deviceDiagnosticsNotification.begin());
         
             switch(event)
             {
                 case ON_AVDECODER_STATUSCHANGED:
-                    while (index != notificationsCopy.end()) 
+                    while (index != _deviceDiagnosticsNotification.end()) 
                     {
                         (*index)->OnAVDecoderStatusChanged(params.String());
                         ++index;
@@ -194,11 +175,6 @@ namespace WPEFramework
                 default:
                     LOGWARN("Event[%u] not handled", event);
                     break;
-            }
-            
-            // Release the refs we added
-            for (auto* notification : notificationsCopy) {
-                notification->Release();
             }
         }
     
@@ -224,36 +200,22 @@ namespace WPEFramework
             int lastStatus = EssRMgrRes_idle;
             int status;
             int timeoutInSec = AVDECODERSTATUS_RETRY_INTERVAL;
-            // FIX(Coverity): Null Pointer Dereference - Add null check for _instance
-            // Reason: Static _instance could be null if accessed before initialization or after destruction
-            // Impact: No API signature changes. Added defensive null check.
             DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
-            if (t == nullptr) {
-                LOGERR("AVPollThread: _instance is null, exiting thread");
-                return NULL;
-            }
 
             LOGINFO("AVPollThread started");
             for (;;)
             {
-                int pollThreadRun = 0;
-                // FIX(Coverity): Concurrency - Undefined Behavior - Let lock go out of scope naturally
-                // Reason: Manual unlock can cause issues if exceptions occur; scope-based unlock is safer
-                // Impact: No API signature changes. Better scoping for lock management.
+                std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
+                if (t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec)) != std::cv_status::timeout)
                 {
-                    std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
-                    if (t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec)) != std::cv_status::timeout)
-                    {
-                        LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
-                    }
-
-                    pollThreadRun = t->m_pollThreadRun;
-                    if (pollThreadRun == 0)
-                        break;
-
-                    status = t->getMostActiveDecoderStatus();
+                    LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
                 }
-                // lock is automatically released here
+
+                if (t->m_pollThreadRun == 0)
+                    break;
+
+                status = t->getMostActiveDecoderStatus();
+                lock.unlock();
 
                 if (status == lastStatus)
                     continue;

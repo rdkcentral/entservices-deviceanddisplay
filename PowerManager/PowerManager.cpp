@@ -70,13 +70,6 @@ namespace Plugin {
         ASSERT(nullptr == _powerManager);
         ASSERT(0 == _connectionId);
 
-        // FIX(Coverity): Null Pointer Dereference - Add runtime null checks
-        // Reason: ASSERT is compiled out in release builds, need runtime validation
-        // Impact: No API signature changes. Added defensive checks for null pointers.
-        if (service == nullptr) {
-            return _T("Service pointer is null");
-        }
-
         SYSLOG(Logging::Startup, (_T("PowerManager::Initialize: PID=%u"), getpid()));
 
         _service = service;

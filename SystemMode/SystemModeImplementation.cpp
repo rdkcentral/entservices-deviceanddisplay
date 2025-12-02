@@ -98,13 +98,13 @@ SystemModeImplementation::SystemModeImplementation()
 		Utils::String::getSystemModePropertyValue(systemMode, "callsign", value);	
 		if (value != "")
 		{
-			// Store callsigns for deferred activation after initialization
+			Utils::String::updateSystemModeFile( systemMode, "callsign", "","deleteall") ;			
 			std::vector<std::string> callSignList;
 			Utils::String::split(callSignList, value , "|") ;
-			// TODO: Implement deferred client activation to prevent race conditions
-			// For now, clear stored callsigns to prevent constructor segfaults
-			Utils::String::updateSystemModeFile( systemMode, "callsign", "","deleteall") ;
-			LOGINFO("Deferred client activation for %d callsigns in %s", (int)callSignList.size(), systemMode.c_str());
+			for (const auto& token : callSignList) {
+
+				ClientActivated(token , systemMode);
+			}
 		}
 	    }
     }
@@ -127,55 +127,29 @@ SystemModeImplementation* SystemModeImplementation::instance(SystemModeImplement
 
 SystemModeImplementation::~SystemModeImplementation()
 { 
-	LOGINFO("SystemModeImplementation destructor starting");
-    
-    // Clean up client interfaces with thread safety
-    _adminLock.Lock();
-    for (auto& entry : _clients) {
-	if (entry.second) {  // Check if the pointer is not null
-	    try {
-		entry.second->Release();
-	    } catch (...) {
-		LOGERR("Exception releasing client interface for %s", entry.first.c_str());
-	    }
-	    entry.second = nullptr;
-	}
-    }
-    _clients.clear();
-    _adminLock.Unlock();
-
     if (_controller)
     {
-		 try {
-            _controller->Release();
-        } catch (...) {
-            LOGERR("Exception releasing controller interface");
-        }
-        
+		_controller->Release();
 	    _controller = nullptr;
     }
 
     LOGINFO("Disconnect from the COM-RPC socket\n");
     // Disconnect from the COM-RPC socket
-	if (_communicatorClient.IsValid()) {
-		try {
-            _communicatorClient->Close(RPC::CommunicationTimeOut);
-			_communicatorClient.Release();
-			} catch (...) {
-            LOGERR("Exception closing communicator client");
-        }
-    }
+	_communicatorClient->Close(RPC::CommunicationTimeOut);
+    if (_communicatorClient.IsValid())
+    {
+        _communicatorClient.Release();
+	}
 
     if(_engine.IsValid())
     {
-		try {
-            _engine.Release();
-			} catch (...) {
-            LOGERR("Exception releasing engine");
-        }
+		_engine.Release();
+	}
+	for (auto& entry : _clients) {
+	    if (entry.second) {  // Check if the pointer is not null
+		    entry.second->Release();
+	    }
     }
-	LOGINFO("SystemModeImplementation destructor completed");
-}
 
 
 Core::hresult SystemModeImplementation::RequestState(const SystemMode pSystemMode, const State pState ) 
@@ -197,41 +171,15 @@ Core::hresult SystemModeImplementation::RequestState(const SystemMode pSystemMod
 							     std::string new_state = deviceOptimizeStateMapIterator->second;
 							     std::string old_state = "";
 							     Utils::String::getSystemModePropertyValue(systemMode_str ,"currentstate" , old_state);
-							     // Thread-safe client notification with validation
-						     _adminLock.Lock();
-						     std::vector<Exchange::IDeviceOptimizeStateActivator*> validClients;
-						     
-						     // Collect valid clients while holding lock
-						     for (auto it = _clients.begin(); it != _clients.end();) {
-							     if (it->second) {
-								     // Add reference to prevent destruction during notification
-								     it->second->AddRef();
-								     validClients.push_back(it->second);
-								     ++it;
-							     } else {
-								     // Remove null entries
-								     TRACE(Trace::Information, (_T("Removing null client entry from map")));
-								     it = _clients.erase(it);
+								 for (auto it = _clients.begin(); it != _clients.end(); ++it) {
+								     if (it->second) {  // Check if the pointer is not null
+									     it->second->Request(new_state);  // Call Request() on the object
+								     }
 							     }
-						     }
-						     _adminLock.Unlock();
-
-						     // Notify clients outside of lock to prevent deadlocks
-						     for (auto client : validClients) {
-							     try {
-								     client->Request(new_state);
-							     } catch (const std::exception& e) {
-								     LOGERR("Exception in Request() call: %s", e.what());
-							     } catch (...) {
-								     LOGERR("Unknown exception in Request() call");
-							     }
-							     // Release the reference we added
-							     client->Release();
-						     }
-						     Utils::String::updateSystemModeFile(systemMode_str,"currentstate",new_state,"add");
-						     LOGINFO("SystemMode  state change from %s to new %s" ,old_state.c_str(),new_state.c_str());
-							 stateRequested = true;
-						     result = Core::ERROR_NONE;
+							     Utils::String::updateSystemModeFile(systemMode_str,"currentstate",new_state,"add");
+						         LOGINFO("SystemMode  state change from %s to new %s" ,old_state.c_str(),new_state.c_str());
+							     stateRequested =true;
+							     result = Core::ERROR_NONE;	 
 							 }
 						     else
 						     {
@@ -246,6 +194,7 @@ Core::hresult SystemModeImplementation::RequestState(const SystemMode pSystemMod
 						     result = Core::ERROR_GENERAL;
 						     break;
 					     }
+			
 		}
 	}
 	else

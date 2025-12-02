@@ -130,7 +130,7 @@ jobs:
           cmake
           -S "$GITHUB_WORKSPACE/ThunderTools"
           -B build/ThunderTools
-          -DEXCEPTIONS_ENABLE=ON
+          -DEXCEPTIONS_ENABLE=ONstd::this_thread::sleep_for(std::chrono::milliseconds(500));
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DGENERIC_CMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
@@ -378,12 +378,12 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
-          -DPLUGIN_SYSTEMMODE=ON
           -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
           -DPLUGIN_DISPLAYSETTINGS=ON
           -DPLUGIN_WAREHOUSE=ON
+          -DPLUGIN_SYSTEMMODE=ON
           -DPLUGIN_FRAMERATE=ON
           -DUSE_THUNDER_R4=ON
           -DPLUGIN_L2Tests=ON

@@ -124,9 +124,6 @@ namespace WPEFramework
                // out-of-process code. Which will guard
                // that unwilling processes, get shot if
                // not stopped friendly :-)
-               // FIX(Coverity): Exception Handling - Improve exception handling
-               // Reason: Exception should be logged with more context and cleanup should still proceed
-               // Impact: No API signature changes. Better error handling and logging.
                try
                {
                    connection->Terminate();

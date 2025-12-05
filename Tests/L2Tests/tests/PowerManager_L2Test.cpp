@@ -255,6 +255,10 @@ class PowerManager_L2Test : public L2TestMocks {
  */
 PowerManager_L2Test::PowerManager_L2Test()
         : L2TestMocks()
+        , mNotification()
+        , m_mutex()
+        , m_condition_variable()
+        , m_event_signalled(POWERMANAGERL2TEST_STATE_INVALID)
 {
         uint32_t status = Core::ERROR_GENERAL;
         m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
@@ -331,7 +335,6 @@ PowerManager_L2Test::PowerManager_L2Test()
 PowerManager_L2Test::~PowerManager_L2Test()
 {
     uint32_t status = Core::ERROR_GENERAL;
-    m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
 
     EXPECT_CALL(POWERMANAGER_MOCK, PLAT_TERM())
         .WillOnce(::testing::Return(PWRMGR_SUCCESS));

@@ -98,13 +98,14 @@ SystemModeImplementation::SystemModeImplementation()
 		Utils::String::getSystemModePropertyValue(systemMode, "callsign", value);	
 		if (value != "")
 		{
-			Utils::String::updateSystemModeFile( systemMode, "callsign", "","deleteall") ;			
+			Utils::String::updateSystemModeFile( systemMode, "callsign", "","deleteall") ;
 			std::vector<std::string> callSignList;
 			Utils::String::split(callSignList, value , "|") ;
 			for (const auto& token : callSignList) {
 
 				ClientActivated(token , systemMode);
 			}
+
 		}
 	    }
     }
@@ -129,29 +130,31 @@ SystemModeImplementation::~SystemModeImplementation()
 { 
     if (_controller)
     {
-		_controller->Release();
-	    _controller = nullptr;
+        _controller->Release();
+	 _controller = nullptr;
     }
 
     LOGINFO("Disconnect from the COM-RPC socket\n");
     // Disconnect from the COM-RPC socket
-	_communicatorClient->Close(RPC::CommunicationTimeOut);
+    _communicatorClient->Close(RPC::CommunicationTimeOut);
     if (_communicatorClient.IsValid())
     {
         _communicatorClient.Release();
-	}
+    }
 
     if(_engine.IsValid())
     {
-		_engine.Release();
-	}
-	for (auto& entry : _clients) {
+        _engine.Release();
+    }
+
+    for (auto& entry : _clients) {
 	    if (entry.second) {  // Check if the pointer is not null
 		    entry.second->Release();
 	    }
     }
 
 }
+
 
 Core::hresult SystemModeImplementation::RequestState(const SystemMode pSystemMode, const State pState ) 
 {
@@ -172,16 +175,16 @@ Core::hresult SystemModeImplementation::RequestState(const SystemMode pSystemMod
 							     std::string new_state = deviceOptimizeStateMapIterator->second;
 							     std::string old_state = "";
 							     Utils::String::getSystemModePropertyValue(systemMode_str ,"currentstate" , old_state);
-								 for (auto it = _clients.begin(); it != _clients.end(); ++it) {
+							     for (auto it = _clients.begin(); it != _clients.end(); ++it) {
 								     if (it->second) {  // Check if the pointer is not null
 									     it->second->Request(new_state);  // Call Request() on the object
 								     }
 							     }
 							     Utils::String::updateSystemModeFile(systemMode_str,"currentstate",new_state,"add");
-						         LOGINFO("SystemMode  state change from %s to new %s" ,old_state.c_str(),new_state.c_str());
+							     LOGINFO("SystemMode  state change from %s to new %s" ,old_state.c_str(),new_state.c_str());
 							     stateRequested =true;
-							     result = Core::ERROR_NONE;	 
-							 }
+							     result = Core::ERROR_NONE;
+						     }
 						     else
 						     {
 							     LOGERR("Invalid state %d for systemMode %s" ,pState,systemMode_str.c_str());
@@ -195,7 +198,7 @@ Core::hresult SystemModeImplementation::RequestState(const SystemMode pSystemMod
 						     result = Core::ERROR_GENERAL;
 						     break;
 					     }
-			
+
 		}
 	}
 	else

@@ -35,9 +35,12 @@ namespace Plugin {
         {
             uint32_t result = Core::ERROR_GENERAL;
 
+            // FIX(Coverity): Resource Leak - Add explicit file open check
+            // Reason: Verify file was successfully opened before attempting operations
+            // Impact: No API signature changes. Better error handling for file operations.
             std::ifstream file(filename);
-            if (file) {
-                string line;
+            if (file.is_open() && file.good()) {
+                 string line;
                 while (std::getline(file, line)) {
                     std::smatch sm;
                     if (std::regex_match(line, sm, regex)) {
@@ -47,6 +50,8 @@ namespace Plugin {
                         break;
                     }
                 }
+            } else {
+                TRACE_GLOBAL(Trace::Information, (_T("Could not open file: %s"), filename));
             }
 
             return result;
@@ -61,11 +66,18 @@ namespace Plugin {
             param.type = type;
             auto status = IARM_Bus_Call(
                 IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
-            if ((status == IARM_RESULT_SUCCESS) && param.bufLen) {
+            // FIX(Coverity): Unsafe API Usage - Validate buffer length before use
+            // Reason: param.bufLen could overflow buffer size, need bounds checking
+            // Impact: No API signature changes. Added validation to prevent buffer overflow.
+            if ((status == IARM_RESULT_SUCCESS) && param.bufLen > 0 && param.bufLen <= static_cast<int>(sizeof(param.buffer))) {
                 response.assign(param.buffer, param.bufLen);
                 result = Core::ERROR_NONE;
             } else {
-                TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
+                if (status == IARM_RESULT_SUCCESS && param.bufLen > static_cast<int>(sizeof(param.buffer))) {
+                    TRACE_GLOBAL(Trace::Error, (_T("MFR buffer overflow prevented: bufLen=%d exceeds buffer size"), param.bufLen));
+                } else {
+                    TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
+                }
             }
 
             return result;

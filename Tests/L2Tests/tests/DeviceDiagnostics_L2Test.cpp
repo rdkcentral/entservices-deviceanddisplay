@@ -220,9 +220,6 @@ uint32_t DeviceDiagnostics_L2test::CreateDeviceDiagnosticsInterfaceObject()
     DeviceDiagnostics_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(DeviceDiagnostics_Engine));
 
     TEST_LOG("Creating DeviceDiagnostics_Engine Announcements");
-#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
-    DeviceDiagnostics_Engine->Announcements(mDeviceDiagnostics_Client->Announcement());
-#endif
     if (!DeviceDiagnostics_Client.IsValid()) {
         TEST_LOG("Invalid DeviceDiagnostics_Client");
     } else {

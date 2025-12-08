@@ -296,14 +296,16 @@ namespace Plugin {
         DeviceSerialNo deviceSerial;
         struct timespec currentTime{};
 
-        PluginHost::ISubSystem* _subSystem;
+        PluginHost::ISubSystem* _subSystem = nullptr;
         _subSystem = _service->SubSystems();
         ASSERT(_subSystem != nullptr);
         SerialNumber(deviceSerial);
         Core::SystemInfo& singleton(Core::SystemInfo::Instance());
         clock_gettime(CLOCK_REALTIME, &currentTime);
         systemInfo.time = Core::Time(currentTime).ToRFC1123(true);
-        systemInfo.version = _subSystem->Version() + _T("#") + _subSystem->BuildTreeHash();
+        if (_subSystem != nullptr) {
+            systemInfo.version = _subSystem->Version() + _T("#") + _subSystem->BuildTreeHash();
+        }
         systemInfo.uptime = singleton.GetUpTime();
         systemInfo.freeram = singleton.GetFreeRam();
         systemInfo.totalram = singleton.GetTotalRam();
@@ -323,7 +325,9 @@ namespace Plugin {
             }
         }
 
-        _subSystem->Release();
+        if (_subSystem != nullptr) {
+            _subSystem->Release();
+        }
 
         return Core::ERROR_NONE;
     }

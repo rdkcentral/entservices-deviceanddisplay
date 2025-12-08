@@ -175,7 +175,7 @@ namespace WPEFramework
 
     string DeviceInfo::Information() const
     {
-        return string();
+        return "The DeviceInfo plugin allows retrieving of various device-related information.";
     }
 
     void DeviceInfo::Deactivated(RPC::IRemoteConnection* connection)

@@ -367,15 +367,7 @@ public:
     }
 
     uint32_t EDID (uint16_t& length /* @inout */, uint8_t data[] /* @out @length:length */) const override
-    {
-        // FIX(Coverity): Buffer Overflow - Validate buffer size before copy
-        // Reason: Need to ensure data buffer has enough space to receive EDID bytes
-        // Impact: No API signature changes. Added validation to prevent buffer overflow.
-        if (data == nullptr || length == 0) {
-            LOGERR("EDID: data buffer is null or length is zero");
-            return Core::ERROR_GENERAL;
-        }
-        
+    {   
         std::vector<uint8_t> edidVec({'u','n','k','n','o','w','n' });
         int ret = Core::ERROR_NONE;
         try

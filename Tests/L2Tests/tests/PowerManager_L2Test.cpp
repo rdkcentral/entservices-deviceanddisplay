@@ -742,6 +742,13 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                             *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_HIGH;
                             *wifiTemperature = 25;
                             return mfrERR_NONE;
+                        }))
+                    .WillRepeatedly(::testing::Invoke(
+                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
+                            *curTemperature  = 60; // safe temperature after first read
+                            *curState        = (mfrTemperatureState_t)0;
+                            *wifiTemperature = 25;
+                            return mfrERR_NONE;
                         }));
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3,POWERMANAGERL2TEST_THERMALSTATE_CHANGED);

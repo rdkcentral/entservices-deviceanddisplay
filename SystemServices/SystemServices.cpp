@@ -495,9 +495,6 @@ namespace WPEFramework {
                     &SystemServices::getFirmwareUpdateInfo, this);
             registerMethod("setDeepSleepTimer", &SystemServices::setDeepSleepTimer,
                     this);
-            registerMethod("getPreferredStandbyMode",
-                    &SystemServices::getPreferredStandbyMode, this);
-            registerMethod("getXconfParams", &SystemServices::getXconfParams, this);
             registerMethod("getSerialNumber", &SystemServices::getSerialNumber,
                     this);
             registerMethod("getDownloadedFirmwareInfo",
@@ -512,7 +509,6 @@ namespace WPEFramework {
             registerMethod("getSystemVersions", &SystemServices::getSystemVersions, this);
             registerMethod("setNetworkStandbyMode", &SystemServices::setNetworkStandbyMode, this);
             registerMethod("getNetworkStandbyMode", &SystemServices::getNetworkStandbyMode, this);
-            registerMethod("getPowerStateIsManagedByDevice", &SystemServices::getPowerStateIsManagedByDevice, this);
     	    registerMethod("setTerritory", &SystemServices::setTerritory, this);
 	    registerMethod("getTerritory", &SystemServices::getTerritory, this);
 
@@ -532,12 +528,8 @@ namespace WPEFramework {
             registerMethod("setOptOutTelemetry", &SystemServices::setOptOutTelemetry, this);
             registerMethod("isOptOutTelemetry", &SystemServices::isOptOutTelemetry, this);
             registerMethod("setFirmwareAutoReboot", &SystemServices::setFirmwareAutoReboot, this);
-#ifdef ENABLE_SYSTEM_GET_STORE_DEMO_LINK
-            registerMethod("getStoreDemoLink", &SystemServices::getStoreDemoLink, this);
-#endif
 	    registerMethod("getFriendlyName", &SystemServices::getFriendlyName, this);
             registerMethod("setFriendlyName", &SystemServices::setFriendlyName, this);
-
             registerMethod("setFSRFlag", &SystemServices::setFSRFlag, this);
             registerMethod("getFSRFlag", &SystemServices::getFSRFlag, this);
             registerMethod("setBlocklistFlag", &SystemServices::setBlocklistFlag, this);
@@ -553,6 +545,13 @@ namespace WPEFramework {
             GetHandler(2)->Register<JsonObject, PlatformCaps>("getPlatformConfiguration",
                 &SystemServices::getPlatformConfiguration, this);
 #if 0
+            registerMethod("getXconfParams", &SystemServices::getXconfParams, this);
+            registerMethod("getPreferredStandbyMode",
+                    &SystemServices::getPreferredStandbyMode, this);
+#ifdef ENABLE_SYSTEM_GET_STORE_DEMO_LINK
+            registerMethod("getStoreDemoLink", &SystemServices::getStoreDemoLink, this);
+#endif
+            registerMethod("getPowerStateIsManagedByDevice", &SystemServices::getPowerStateIsManagedByDevice, this);
             registerMethod("setFirmwareRebootDelay", &SystemServices::setFirmwareRebootDelay, this);
 	        registerMethod("getWakeupSrcConfiguration", &SystemServices::getWakeupSrcConfiguration, this);
             registerMethod("getPreviousRebootInfo",
@@ -2314,7 +2313,6 @@ namespace WPEFramework {
         }
         returnResponse(status);
         }
-#endif
 
         /***
          * @brief Returns the preferred standby mode.
@@ -2340,6 +2338,7 @@ namespace WPEFramework {
             }
             returnResponse(status);
         }
+#endif
 
 #ifdef ENABLE_DEEP_SLEEP
         /***
@@ -2489,7 +2488,6 @@ namespace WPEFramework {
             response["supportedStandbyModes"] = standbyModes;
             returnResponse(status);
         }
-#endif
 
         /***
          * @brief This will return configuration parameters such as firmware version, Mac, Model etc.
@@ -2525,6 +2523,7 @@ namespace WPEFramework {
             response["xconfParams"] = rConf;
             returnResponse(true);
         }
+#endif
 
         /***
          * @brief : Populates device serial number from TR069 Support/Query.
@@ -4263,15 +4262,9 @@ namespace WPEFramework {
                 LOGINFO("SystemServices::setDevicePowerState state: %s, reason: %s\n", state.c_str(), reason.c_str());
 
                 if (state == "LIGHT_SLEEP" || state == "DEEP_SLEEP") {
-                    if (SystemServices::_instance) {
-                        SystemServices::_instance->getPreferredStandbyMode(paramIn, paramOut);
-
-                        /* parse and get the sleepMode from paramOut */
-                        sleepMode = paramOut["preferredStandbyMode"].String();
-                        LOGWARN("Output of preferredStandbyMode: '%s'", sleepMode.c_str());
-                    } else {
-                        LOGWARN("SystemServices::_instance is NULL.\n");
-                    }
+                    const device::SleepMode &mode = device::Host::getInstance().getPreferredSleepMode();
+                    sleepMode = mode.toString();
+                    LOGWARN("Output of getPreferredSleepMode: '%s'", sleepMode.c_str());
 
                     if (convert("DEEP_SLEEP", sleepMode)) {
                         retVal = setPowerState(sleepMode);
@@ -4631,6 +4624,7 @@ namespace WPEFramework {
             returnResponse(status);
         }
 
+#if 0
         /***
          * @brief : To retrieve is power state is managed by device
          * @param1[in] : {"params":{}}
@@ -4654,7 +4648,7 @@ namespace WPEFramework {
             status = true;
             returnResponse(status);
         }
-
+#endif
         /***
          * @brief : To retrieve Device Power State before reboot.
          * @param1[in] : {"params":{}}
@@ -5147,6 +5141,7 @@ namespace WPEFramework {
             returnResponse(true);
         } //end of isOptOutTelemetry
 
+#if 0
         uint32_t SystemServices::getStoreDemoLink(const JsonObject& parameters, JsonObject& response)
         {
             bool result = false;
@@ -5159,7 +5154,6 @@ namespace WPEFramework {
             returnResponse(result);
         }
 
-#if 0
         /***
          * @brief : Deletes persistent path associated with a callsign
          *

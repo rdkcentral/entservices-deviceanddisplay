@@ -114,7 +114,7 @@ void RebootController::heartbeatMsg()
 
 int RebootController::fetchRFCValueInt(const char* key)
 {
-    RFC_ParamData_t param;
+    RFC_ParamData_t param = {0};
     char rfcVal[MAX_RFC_LEN + 1] = { 0 };
     int len = 0;
 
@@ -141,7 +141,7 @@ int RebootController::fetchRFCValueInt(const char* key)
 
 bool RebootController::isStandbyRebootEnabled()
 {
-    RFC_ParamData_t rfcParam;
+    RFC_ParamData_t rfcParam = {0};
     const char* key = STANDBY_REBOOT_ENABLE;
     if (WDMP_SUCCESS == getRFCParameter((char*)"PwrMgr", key, &rfcParam)) {
         return (strncasecmp(rfcParam.value, "true", 4) == 0);

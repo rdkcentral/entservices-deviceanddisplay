@@ -222,7 +222,22 @@ Settings Settings::Load(const std::string& path)
         close(fd);
     }
 
+    if (path == kRamSettingsFilePath) {
+        settings.printDetails("RAM Settings Loaded");
+        return settings;
+    }
+    // updating powerStateBeforeReboot
     settings._powerStateBeforeReboot = settings._powerState;
+    if (0 != access(kRamSettingsFilePath, F_OK)) {
+        LOGINFO("Creating RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
+        settings.Save(kRamSettingsFilePath);
+    }
+    else {
+        LOGINFO("Using RAM persistence for powerStateBeforeReboot from %s", kRamSettingsFilePath);
+        Settings ramSettings = Settings::Load(kRamSettingsFilePath);
+        // Seems PowerManager starting again so using RAM value
+        settings._powerStateBeforeReboot = ramSettings._powerState;
+    }
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
@@ -230,8 +245,7 @@ Settings Settings::Load(const std::string& path)
         LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
     }
 #endif
-
-    LOGINFO("Final settings: %s", settings.str().c_str());
+    settings.printDetails("Final Settings from opt");
     return settings;
 }
 
@@ -257,16 +271,14 @@ bool Settings::Save(const std::string& path)
     return ok;
 }
 
-std::string Settings::str() const
+void Settings::printDetails(const std::string& prefix) const
 {
-    std::stringstream ss;
-
-    ss << "magic: " << std::hex << _magic << std::dec
-       << "\n\tversion: " << _version
-       << "\n\tpowerState: " << util::str(_powerState)
-       << "\n\tpowerStateBeforeReboot " << util::str(_powerStateBeforeReboot)
-       << "\n\tdeepsleep timeout sec: " << _deepSleepTimeout
-       << "\n\tnwStandbyMode: " << (_nwStandbyMode ? "enabled" : "disabled");
-
-    return ss.str();
+    LOGINFO("====================[%s]====================", prefix.c_str());
+    LOGINFO("Magic: 0x%X", _magic);
+    LOGINFO("Version: %u", _version);
+    LOGINFO("Power State: %s", util::str(_powerState));
+    LOGINFO("Power State Before Reboot: %s", util::str(_powerStateBeforeReboot));
+    LOGINFO("Deep Sleep Timeout (sec): %u", _deepSleepTimeout);
+    LOGINFO("Network Standby Mode: %s", _nwStandbyMode ? "Enabled" : "Disabled");
+    LOGINFO("==================================================");
 }

@@ -1281,7 +1281,9 @@ namespace WPEFramework {
                         else
                             modeString.append(mode.toString());
                     }
-                    else if((aPort.getType().getId() == device::AudioOutputPortType::kARC) || (aPort.getType().getId() == device::AudioOutputPortType::kSPDIF)){
+                    else if((aPort.getType().getId() == device::AudioOutputPortType::kARC)
+                        || (aPort.getType().getId() == device::AudioOutputPortType::kSPDIF)
+                        || (aPort.getType().getId() == device::AudioOutputPortType::kHEADPHONE)) {
                         if (aPort.getStereoAuto()) {
                             LOGINFO("%s output mode Auto", audioPort.c_str());
                             modeString.append("AUTO");
@@ -1435,8 +1437,6 @@ namespace WPEFramework {
                             aPort.setStereoMode(mode.toString(), persist);
                         }
 			else if (aPort.getType().getId() == device::AudioOutputPortType::kARC) {
-
-
 		            if(((mode == device::AudioStereoMode::kSurround) || (mode == device::AudioStereoMode::kPassThru) || (mode == device::AudioStereoMode::kStereo)) && (stereoAuto == false)) {
 				    aPort.setStereoAuto(false, persist);
 
@@ -1478,7 +1478,7 @@ namespace WPEFramework {
 				}
 			   }
 			}
-                        else if (aPort.getType().getId() == device::AudioOutputPortType::kSPDIF)
+                        else if ((aPort.getType().getId() == device::AudioOutputPortType::kSPDIF) || (aPort.getType().getId() == device::AudioOutputPortType::kHEADPHONE))
                         {
 			    if(stereoAuto == false) {
                                 aPort.setStereoAuto(false, persist);
@@ -5438,6 +5438,8 @@ void DisplaySettings::sendMsgThread()
                 name = "IDLR0";
             else if (Utils::String::stringContains(name,"SPEAKER"))
                 name = "SPEAKER0";
+            else if (Utils::String::stringContains(name,"HEADPHONE"))
+                name = "HEADPHONE0";
             else if (!name.empty()) // Empty is allowed
                 return false;
 
@@ -5662,7 +5664,6 @@ void DisplaySettings::sendMsgThread()
 				if (isDisplayConnected(strVideoPort))
 				{
 					bool enable = (newState == "GAME") ? true : false;
-					vPort.getDisplay().setAllmEnabled(enable);
 					if(enable){ // Game mode
 					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_GAME);
 					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_UNDERSCAN);
@@ -5670,6 +5671,7 @@ void DisplaySettings::sendMsgThread()
 					    vPort.getDisplay().setAVIContentType(dsAVICONTENT_TYPE_NOT_SIGNALLED);
 					    vPort.getDisplay().setAVIScanInformation(dsAVI_SCAN_TYPE_NO_DATA);
 					}
+					vPort.getDisplay().setAllmEnabled(enable);
 				}
 				else
 				{

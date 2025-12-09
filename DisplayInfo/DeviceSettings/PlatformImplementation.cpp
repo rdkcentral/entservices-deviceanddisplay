@@ -367,7 +367,7 @@ public:
     }
 
     uint32_t EDID (uint16_t& length /* @inout */, uint8_t data[] /* @out @length:length */) const override
-    {   
+    {
         std::vector<uint8_t> edidVec({'u','n','k','n','o','w','n' });
         int ret = Core::ERROR_NONE;
         try

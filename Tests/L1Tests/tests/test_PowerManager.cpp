@@ -478,7 +478,7 @@ TEST_F(TestPowerManager, GetCoreTemperature)
     EXPECT_EQ(status, Core::ERROR_NONE);
 }
 
-TEST_F(TestPowerManager, DISABLED_PowerModePreChangeAck)
+TEST_F(TestPowerManager, PowerModePreChangeAck)
 {
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(

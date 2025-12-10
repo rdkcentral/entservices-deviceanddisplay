@@ -794,9 +794,6 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
 
-                // Allow thermal monitoring thread to stabilize before cleanup
-                sleep(1);
-
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -877,9 +874,6 @@ TEST_F(PowerManager_L2Test,PowerManagerComRpc)
                 Test_WakeupSrcConfig(PowerManagerPlugin);
                 Test_PerformReboot(PowerManagerPlugin);
                 Test_NetworkStandbyMode(PowerManagerPlugin);
-
-                // Allow thermal monitoring thread to stabilize before cleanup
-                sleep(1);
 
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
@@ -981,9 +975,6 @@ TEST_F(PowerManager_L2Test,DeepSleepFailure)
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
 
-                // Allow thermal monitoring thread to stabilize before cleanup
-                sleep(1);
-
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -1061,9 +1052,6 @@ TEST_F(PowerManager_L2Test, DeepSleepIgnore)
                 status = PowerManagerPlugin->GetPowerState(newState, prevState);
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_NE(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
-
-                // Allow thermal monitoring thread to stabilize before cleanup
-                sleep(1);
                 
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
@@ -1147,9 +1135,6 @@ TEST_F(PowerManager_L2Test, NetworkStandby)
                 uint32_t status = PowerManagerPlugin->GetNetworkStandbyMode(standbyMode);
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_EQ(standbyMode, false);
-
-                // Allow thermal monitoring thread to stabilize before cleanup
-                sleep(1);
 
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
@@ -1268,9 +1253,6 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
 
-                // Allow thermal monitoring thread to stabilize before cleanup
-                sleep(1);
-
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -1357,9 +1339,6 @@ TEST_F(PowerManager_L2Test, PowerModePreChangeAckTimeout)
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_EQ(currentState, PowerState::POWER_STATE_ON);
                 EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY);
-
-                // Allow thermal monitoring thread to stabilize before cleanup
-                sleep(1);
 
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());

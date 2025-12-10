@@ -122,7 +122,6 @@ SystemMode_L2test::SystemMode_L2test()
     , m_sysmodeplugin(nullptr)
 {
     uint32_t status = Core::ERROR_GENERAL;
-    TEST_LOG("Inside constructor");
 
     // PowerManager Mocks
     createFile("/tmp/pwrmgr_restarted", "2");
@@ -314,11 +313,9 @@ SystemMode_L2test::SystemMode_L2test()
     status = ActivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    TEST_LOG("Inside constructor before plugin activation");
     /* Activate plugin in constructor */
     status = ActivateService("org.rdk.SystemMode");
     EXPECT_EQ(Core::ERROR_NONE, status);
-    TEST_LOG("Inside constructor after plugin activation");
 }
 
 SystemMode_L2test::~SystemMode_L2test()
@@ -332,7 +329,6 @@ SystemMode_L2test::~SystemMode_L2test()
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_TERM())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
-    TEST_LOG("Inside destructor before plugin deactivation");
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
@@ -342,7 +338,6 @@ SystemMode_L2test::~SystemMode_L2test()
 
     status = DeactivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
-    TEST_LOG("Inside destructor after plugin deactivation");
 
     removeFile("/tmp/pwrmgr_restarted");
     removeFile("/opt/uimgr_settings.bin");

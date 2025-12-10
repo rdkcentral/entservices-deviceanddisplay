@@ -118,6 +118,8 @@ protected:
 
 SystemMode_L2test::SystemMode_L2test()
     : L2TestMocks()
+    , m_controller_sysmode(nullptr)
+    , m_sysmodeplugin(nullptr)
 {
     uint32_t status = Core::ERROR_GENERAL;
     TEST_LOG("Inside constructor");
@@ -374,13 +376,13 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
 
 void SystemMode_L2test::SetUp()
 {
-    TEST_LOG("Inside setup ");
-    EXPECT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
+    if ((m_sysmodeplugin == nullptr) || (m_controller_sysmode == nullptr)) {
+        EXPECT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
+    }
 }
 
 void SystemMode_L2test::TearDown()
 {
-    TEST_LOG("Inside Teardown before release ");
     if (m_sysmodeplugin) {
         m_sysmodeplugin->Release();
         m_sysmodeplugin = nullptr;
@@ -389,7 +391,6 @@ void SystemMode_L2test::TearDown()
         m_controller_sysmode->Release();
         m_controller_sysmode = nullptr;
     }
-    TEST_LOG("Inside Teardown after release ");
 }
 
 bool SystemMode_L2test::WaitForState(const ISystemMode::SystemMode systemMode,
@@ -474,18 +475,13 @@ TEST_F(SystemMode_L2test, StateTransition_VIDEO_GAME_VIDEO)
 // Client activation / deactivation lifecycle
 TEST_F(SystemMode_L2test, ClientActivationLifecycle)
 {
-    TEST_LOG("Inside Testcase before Assert check ");
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
-    TEST_LOG("Inside Testcase before Assert check ");
     // The textual name of system mode as per @text: device_optimize
     const std::string modeName = "DEVICE_OPTIMIZE";
-    TEST_LOG("Inside Testcase before m_systemmose clientActivate check ");
     Core::hresult rcAct = m_sysmodeplugin->ClientActivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcAct);
-    TEST_LOG("Inside Testcase after m_systemmose clientActivate check ");
     Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcDeact);
-    TEST_LOG("Inside Testcase after m_systemmose clientDeactivate check ");
 }
 
 // GetState after explicit request (ensures GetState returns latest value)

@@ -321,6 +321,7 @@ SystemMode_L2test::SystemMode_L2test()
 SystemMode_L2test::~SystemMode_L2test()
 {
     uint32_t status = Core::ERROR_GENERAL;
+
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_TERM())
         .WillOnce(::testing::Return(PWRMGR_SUCCESS));
 

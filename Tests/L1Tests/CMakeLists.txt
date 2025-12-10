@@ -129,8 +129,8 @@ set (USERPREFERENCES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/Use
 add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USERPREFERENCES_INC}" "${NAMESPACE}UserPreferences")
 
 # PLUGIN_SYSTEMSERVICES
-#set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-#add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
+set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
+add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
 
 # PLUGIN_POWERMANAGER
 set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerManager ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)

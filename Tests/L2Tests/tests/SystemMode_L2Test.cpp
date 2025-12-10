@@ -478,12 +478,16 @@ TEST_F(SystemMode_L2test, ClientActivationLifecycle)
 {
     TEST_LOG("Inside Testcase before Assert check ");
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
+    TEST_LOG("Inside Testcase before Assert check ");
     // The textual name of system mode as per @text: device_optimize
     const std::string modeName = "DEVICE_OPTIMIZE";
+    TEST_LOG("Inside Testcase before m_systemmose clientActivate check ");
     Core::hresult rcAct = m_sysmodeplugin->ClientActivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcAct);
+    TEST_LOG("Inside Testcase after m_systemmose clientActivate check ");
     Core::hresult rcDeact = m_sysmodeplugin->ClientDeactivated(SYSTEMMODEL2TEST_CALLSIGN, modeName);
     EXPECT_EQ(Core::ERROR_NONE, rcDeact);
+    TEST_LOG("Inside Testcase after m_systemmose clientDeactivate check ");
 }
 
 // GetState after explicit request (ensures GetState returns latest value)

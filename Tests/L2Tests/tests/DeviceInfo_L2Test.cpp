@@ -88,71 +88,6 @@ DeviceInfo_L2test::DeviceInfo_L2test()
     partnerIdFile << "TestPartnerID\n";
     partnerIdFile.close();
 
-
-//    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
-//         .WillByDefault(
-//             [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-//                 EXPECT_EQ(string(ownerName), string(_T(IARM_BUS_MFRLIB_NAME)));
-//                 EXPECT_EQ(string(methodName), string(_T(IARM_BUS_MFRLIB_API_GetSerializedData)));
-//                 auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
-//                 const char* str = "5678";
-//                 param->bufLen = strlen(str);
-//                 strncpy(param->buffer, str, sizeof(param->buffer));
-//                 param->type =  mfrSERIALIZED_TYPE_SERIALNUMBER;
-//                 return IARM_RESULT_SUCCESS;
-//             });
-
-
-    // ON_CALL(*p_iarmBusImplMock, IARM_Bus_Init(::testing::_))
-    //     .WillByDefault(::testing::Return(IARM_RESULT_SUCCESS));
-
-    // ON_CALL(*p_iarmBusImplMock, IARM_Bus_Connect())
-    //     .WillByDefault(::testing::Return(IARM_RESULT_SUCCESS));
-
-    // ON_CALL(*p_iarmBusImplMock, IARM_Bus_IsConnected(::testing::_, ::testing::_))
-    //     .WillByDefault(::testing::Invoke(
-    //         [](const char* memberName, int* isRegistered) {
-    //             *isRegistered = 1;  // Return connected
-    //             return IARM_RESULT_SUCCESS;
-    //         }));
-
-    // Setup IARM Bus expectations
-    // ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-    //     .WillByDefault(::testing::Invoke(
-    //         [&](const char* ownerName, const char* methodName, void* arg, size_t argLen) -> IARM_Result_t {
-    //             TEST_LOG("IARM_Bus_Call invoked: owner=%s, method=%s", ownerName, methodName);
-                
-    //             if (strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
-    //                 IARM_Bus_MFRLib_GetSerializedData_Param_t* param = 
-    //                     static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
-                    
-    //                 switch(param->type) {
-    //                     case mfrSERIALIZED_TYPE_SERIALNUMBER:
-    //                         strcpy(param->buffer, "TEST123456789");
-    //                         param->bufLen = strlen(param->buffer);
-    //                         break;
-    //                     case mfrSERIALIZED_TYPE_MODELNAME:
-    //                         strcpy(param->buffer, "TestModel");
-    //                         param->bufLen = strlen(param->buffer);
-    //                         break;
-    //                     case mfrSERIALIZED_TYPE_MANUFACTURER:
-    //                         strcpy(param->buffer, "TestManufacturer");
-    //                         param->bufLen = strlen(param->buffer);
-    //                         break;
-    //                     case mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME:
-    //                         strcpy(param->buffer, "TestProvisionedModel");
-    //                         param->bufLen = strlen(param->buffer);
-    //                         break;
-    //                     default:
-    //                         param->bufLen = 0;
-    //                         return IARM_RESULT_INVALID_PARAM;
-    //                 }
-    //                 return IARM_RESULT_SUCCESS;
-    //             }
-                
-    //             return IARM_RESULT_SUCCESS;
-    //         }));
-
     // Setup RFC API mock expectations
     ON_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
         .WillByDefault(::testing::Invoke(
@@ -174,18 +109,6 @@ DeviceInfo_L2test::DeviceInfo_L2test()
                 pstParamData->value[0] = '\0';
                 return WDMP_FAILURE;
             }));
-
-
-    // ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-    //     .WillByDefault(::testing::Return(std::string("HDMI0")));
-    
-    // ON_CALL(*p_hostImplMock,    // ON_CALL(*p_hostImplMock, getDefaultVideoPortName())
-    //     .WillByDefault(::testing::Return(std::string("HDMI0")));
-    
-    // ON_CALL(*p_hostImplMock, getDefaultAudioPortName())
-    //     .WillByDefault(::testing::Return(std::string("HDMI0"))); getDefaultAudioPortName())
-    //     .WillByDefault(::testing::Return(std::string("HDMI0")));
-
 
     /* Activate plugin in constructor */
     status = ActivateService("DeviceInfo");
@@ -233,14 +156,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "defaultresolution", params, result);
          EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (status == Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("defaultResolution"));
-        //     string resolution = result["defaultResolution"].String();
-        //     EXPECT_EQ(resolution, "1080p");
-        //     TEST_LOG("defaultresolution: %s\n", resolution.c_str());
-        // } else {
-        //     TEST_LOG("defaultresolution test skipped\n");
-        // }
     }
 
     /****************** supportedresolutions ******************/
@@ -272,12 +187,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedresolutions", params, result);
          EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (status == Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("supportedResolutions"));
-        //     TEST_LOG("supportedresolutions test passed\n");
-        // } else {
-        //     TEST_LOG("supportedresolutions test skipped\n");
-        // }
     }
 
     /****************** supportedhdcp ******************/
@@ -298,15 +207,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedhdcp", params, result);
          EXPECT_EQ(Core::ERROR_NONE, status);
-        //  EXPECT_EQ(hdcpVersion, "2.2");
-        // if (status == Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("supportedHDCPVersion"));
-        //     string hdcpVersion = result["supportedHDCPVersion"].String();
-        //     EXPECT_EQ(hdcpVersion, "2.2");
-        //     TEST_LOG("supportedhdcp: %s\n", hdcpVersion.c_str());
-        // } else {
-        //     TEST_LOG("supportedhdcp test skipped\n");
-        // }
     }
 
     /****************** audiocapabilities ******************/
@@ -332,12 +232,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "audiocapabilities", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (status == Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("AudioCapabilities"));
-        //     TEST_LOG("audiocapabilities test passed\n");
-        // } else {
-        //     TEST_LOG("audiocapabilities test skipped\n");
-        // }
     }
 
     /****************** ms12capabilities ******************/
@@ -363,12 +257,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "ms12capabilities", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (status == Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("MS12Capabilities"));
-        //     TEST_LOG("ms12capabilities test passed\n");
-        // } else {
-        //     TEST_LOG("ms12capabilities test skipped\n");
-        // }
     }
 
     /****************** supportedms12audioprofiles ******************/
@@ -390,12 +278,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedms12audioprofiles", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (status == Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("supportedMS12AudioProfiles"));
-        //     TEST_LOG("supportedms12audioprofiles test passed\n");
-        // } else {
-        //     TEST_LOG("supportedms12audioprofiles test skipped\n");
-        // }
     }
 
     TEST_LOG("DeviceInfo L2 Method Tests completed\n");
@@ -428,22 +310,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "systeminfo@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
-
-        // JsonObject result, params;
-        // status = InvokeServiceMethod("DeviceInfo.1", "systeminfo@", params, result);
-        // EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (status == Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("version"));
-        //     EXPECT_TRUE(result.HasLabel("uptime"));
-        //     EXPECT_TRUE(result.HasLabel("totalram"));
-        //     EXPECT_TRUE(result.HasLabel("freeram"));
-        //     EXPECT_TRUE(result.HasLabel("totalswap"));
-        //     EXPECT_TRUE(result.HasLabel("freeswap"));
-        //     EXPECT_TRUE(result.HasLabel("devicename"));
-        //     EXPECT_TRUE(result.HasLabel("cpuload"));
-        //     EXPECT_TRUE(result.HasLabel("serialnumber"));
-        //     TEST_LOG("systeminfo test passed\n");
-        // }
     }
 
     /****************** addresses ******************/
@@ -555,89 +421,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         EXPECT_EQ(Core::ERROR_NONE, getResult);
     }
 
-    /****************** distributorid ******************/
-    // {
-    //     TEST_LOG("Testing distributorid property\n");
+    {
+        TEST_LOG("Testing distributorid from file\n");
+        JsonObject getResults;
+        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "distributorid@0", getResults);
+        EXPECT_EQ(Core::ERROR_GENERAL, getResult);
+    }
 
-    //     system("mkdir -p /opt/www/authService");
-    //     std::ofstream partnerIdFile("/opt/www/authService/partnerId3.dat");
-    //     partnerIdFile << "TestPartnerID\n";
-    //     partnerIdFile.close();
-
-    //     // NOW expect RFC to be called exactly once
-    //     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
-    //         .Times(1)
-    //         .WillOnce(::testing::Invoke(
-    //             [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
-    //                 EXPECT_EQ(string(pcParameterName), 
-    //                         string("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"));
-    //                 strcpy(pstParamData->value, "TestPartnerID");
-    //                 return WDMP_SUCCESS;
-    //             }));
-
-    //     JsonObject getResults;
-    //     uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "distributorid@0", getResults);
-    //     EXPECT_EQ(Core::ERROR_GENERAL, getResult);
-
-    //     if (getResult == Core::ERROR_NONE) {
-    //     EXPECT_TRUE(getResults.HasLabel("distributorid"));
-    //     string distributorId = getResults["distributorid"].String();
-    //     EXPECT_EQ(distributorId, "comcast");
-    //     TEST_LOG("distributorid from RFC: %s\n", distributorId.c_str());
-    //     }
-
-    // }
-
-{
-    TEST_LOG("Testing distributorid from file\n");
-
-    // system("mkdir -p /opt/www/authService");
-    // std::ofstream partnerIdFile("/opt/www/authService/partnerId3.dat");
-    // partnerIdFile << "distributorId=comcast\n";
-    // partnerIdFile.close();
-
-    JsonObject getResults;
-    uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "distributorid@0", getResults);
-    EXPECT_EQ(Core::ERROR_GENERAL, getResult);
-
-    // if (getResult == Core::ERROR_NONE) {
-    //     EXPECT_TRUE(getResults.HasLabel("distributorid"));
-    //     string distributorId = getResults["distributorid"].String();
-    //     EXPECT_EQ(distributorId, "comcast");
-    //     TEST_LOG("distributorid from file: %s\n", distributorId.c_str());
-    // }
-}
-
-/****************** distributorid - RFC fallback ******************/
-// {
-//     TEST_LOG("Testing distributorid RFC fallback\n");
-
-//     // Remove file to force RFC fallback
-//     system("rm -f /opt/www/authService/partnerId3.dat");
-
-//     // NOW expect RFC to be called exactly once
-//     // EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
-//     //     .Times(1)
-//     //     .WillOnce(::testing::Invoke(
-//     //         [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
-//     //             EXPECT_EQ(string(pcParameterName), 
-//     //                      string("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"));
-//     //             strcpy(pstParamData->value, "TestPartnerID");
-//     //             return WDMP_SUCCESS;
-//     //         }));
-
-//     JsonObject getResults;
-//     uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "distributorid@0", getResults);
-//     EXPECT_EQ(Core::ERROR_NONE, getResult);
-//     // EXPECT_EQ(distributorId, "TestPartnerID");
-
-//     // if (getResult == Core::ERROR_NONE) {
-//     //     EXPECT_TRUE(getResults.HasLabel("distributorid"));
-//     //     string distributorId = getResults["distributorid"].String();
-//     //     EXPECT_EQ(distributorId, "TestPartnerID");  // From RFC
-//     //     TEST_LOG("distributorid from RFC: %s\n", distributorId.c_str());
-//     // }
-// }
 
     /****************** releaseversion ******************/
     {
@@ -645,14 +435,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "releaseversion@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
-
-        // JsonObject result, params;
-        // status = InvokeServiceMethod("DeviceInfo.1", "releaseversion", params, result);
-        //  EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (getResult== Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("releaseversion"));
-        //     TEST_LOG("releaseversion test passed\n");
-        // }
     }
 
     /****************** chipset ******************/
@@ -689,13 +471,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
 
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "supportedaudioports@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
-
-        // status = InvokeServiceMethod("DeviceInfo.1", "supportedaudioports", params, result);
-        //  EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (getResult== Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("supportedAudioPorts"));
-        //     TEST_LOG("supportedaudioports test passed\n");
-        // }
     }
 
     /****************** supportedvideodisplays ******************/
@@ -714,13 +489,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "supportedvideodisplays@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
-
-        // status = InvokeServiceMethod("DeviceInfo.1", "supportedvideodisplays", params, result);
-        //  EXPECT_EQ(Core::ERROR_NONE, status);
-        // if (getResult== Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("supportedVideoDisplays"));
-        //     TEST_LOG("supportedvideodisplays test passed\n");
-        // }
     }
 
     /****************** hostedid ******************/
@@ -737,10 +505,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "hostedid@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
-        // if (getResult== Core::ERROR_NONE) {
-        //     EXPECT_TRUE(result.HasLabel("EDID"));
-        //     TEST_LOG("hostedid test passed\n");
-        // }
     }
 
     TEST_LOG("DeviceInfo L2 Property Tests completed\n");

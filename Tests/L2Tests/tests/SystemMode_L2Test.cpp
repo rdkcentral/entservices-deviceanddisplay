@@ -375,9 +375,7 @@ uint32_t SystemMode_L2test::CreateSystemModeInterfaceObject()
 void SystemMode_L2test::SetUp()
 {
     TEST_LOG("Inside setup ");
-    if ((m_sysmodeplugin == nullptr) || (m_controller_sysmode == nullptr)) {
-        EXPECT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
-    }
+    EXPECT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
 }
 
 void SystemMode_L2test::TearDown()

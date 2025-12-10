@@ -736,17 +736,10 @@ TEST_F(PowerManager_L2Test, deepSleepOnThermalChange)
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
-                    .WillOnce(::testing::Invoke(
+                    .WillRepeatedly(::testing::Invoke(
                         [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                             *curTemperature  = 120; // high temperature
                             *curState        = (mfrTemperatureState_t)mfrTEMPERATURE_HIGH;
-                            *wifiTemperature = 25;
-                            return mfrERR_NONE;
-                        }))
-                    .WillRepeatedly(::testing::Invoke(
-                        [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
-                            *curTemperature  = 60; // safe temperature after first read
-                            *curState        = (mfrTemperatureState_t)0;
                             *wifiTemperature = 25;
                             return mfrERR_NONE;
                         }));

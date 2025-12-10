@@ -322,6 +322,7 @@ namespace WPEFramework {
 	    m_subscribed = false; //HdmiCecSink event subscription
 	    m_hdmiInAudioDeviceConnected = false;// Tells about the device connection state, for eArc will be updated on audio device power status event handler after tinymix command and incase of ARC will be true after ARC Initiation
 	    m_arcEarcAudioEnabled = false; // Arc routing enabled/disabled
+            m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED; // Arc connection/disconnection UI notified flag
 	    m_hdmiCecAudioDeviceDetected = false;// Audio device detected through cec ping
             m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;// Power state of AVR
 	    m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED; // Maintains the ARC state
@@ -768,6 +769,7 @@ namespace WPEFramework {
 			m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
 			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UNKNOWN;
 			DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+			m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
 			LOGINFO("[HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n");
 			sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
 		    }
@@ -3942,7 +3944,7 @@ namespace WPEFramework {
 			    {
 			       if(m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_eARC)
 			       {  // EARC case
-				  if(m_arcEarcAudioEnabled == false) 
+				  if(m_arcEarcAudioEnabled == false)
 				  {
 				     LOGINFO("DisplaySettings::setEnableAudioPort Enable eARC !!!");
                                      aPort.enableARC(dsAUDIOARCSUPPORT_eARC, true);
@@ -3953,7 +3955,7 @@ namespace WPEFramework {
 			       }/* EARC case end */
 			       else if (m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC) 
 			       {
-				   if(m_arcEarcAudioEnabled == false ) 
+				   if(m_arcEarcAudioEnabled == false )
 			 	   {
                                         LOGINFO("%s: Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n", __FUNCTION__);
                                         sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
@@ -3962,7 +3964,7 @@ namespace WPEFramework {
 					{
 					  {
 					    /* Take actions according to SAD udpate state */
-                        int currentSADState = getAudioDeviceSADState();
+					    int currentSADState = getAudioDeviceSADState();
 					    switch(currentSADState)
 					    {
 						case  AUDIO_DEVICE_SAD_UPDATED: 						   
@@ -4041,7 +4043,7 @@ namespace WPEFramework {
 			}/* End of pEnable = true */			
 			else
 			{   //pEnable == false
-			    if(m_arcEarcAudioEnabled == true ) 
+			    if(m_arcEarcAudioEnabled == true )
 			    {
 				/* stop ARC/eARC */
 				if(m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_eARC)
@@ -4057,7 +4059,7 @@ namespace WPEFramework {
 				else if (m_hdmiInAudioDeviceType == dsAUDIOARCSUPPORT_ARC)
 				{				   
 					aPort.enableARC(dsAUDIOARCSUPPORT_ARC, false);
-					m_arcEarcAudioEnabled = false;	
+					m_arcEarcAudioEnabled = false;
 					LOGINFO("Disable ARC \n");
 	                                if (m_hdmiInAudioDeviceConnected == false) {
 					   /* Update Arctype only when device is disconnected */
@@ -4284,6 +4286,7 @@ namespace WPEFramework {
                         if(DisplaySettings::_instance->m_hdmiInAudioDeviceConnected !=  false) {
                             DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
                 DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+		m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
                 DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
              }
                     
@@ -4544,11 +4547,12 @@ void DisplaySettings::sendMsgThread()
                     {
 			if(m_hdmiInAudioDeviceConnected ==  false) {
                             m_hdmiInAudioDeviceConnected = true;
-			    if (m_arcEarcAudioEnabled == false) {
+			    if (m_ArcEarcConnectionNotifiedToUI == ARC_EARC_DISCONNECTED) {
 				LOGINFO("Arc Initiation sucess, Notify UI\n");
 			        connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, true);
+				m_ArcEarcConnectionNotifiedToUI = ARC_EARC_CONNECTED;
 			    } else {
-				    LOGINFO("not notified to UI since m_arcEarcAudioEnabled =%d\n",m_arcEarcAudioEnabled);
+				    LOGINFO("not notified to UI since m_ArcEarcConnectionNotifiedToUI =%d\n", m_ArcEarcConnectionNotifiedToUI);
 			    }
 			}
 			else {
@@ -4605,10 +4609,11 @@ void DisplaySettings::sendMsgThread()
 		        {
 			    if(m_hdmiInAudioDeviceConnected ==  true) {
 				m_hdmiInAudioDeviceConnected = false;
-				if (m_arcEarcAudioEnabled == true) {
+				if (m_ArcEarcConnectionNotifiedToUI == ARC_EARC_CONNECTED) {
                                     connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+				    m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
 				} else {
-				    LOGINFO("Not notifying UI since m_arcEarcAudioEnabled = %d", m_arcEarcAudioEnabled);
+				    LOGINFO("Not notifying UI since m_ArcEarcConnectionNotifiedToUI = %d", m_ArcEarcConnectionNotifiedToUI);
                                 }
 			    }
 			    else {
@@ -4684,7 +4689,7 @@ void DisplaySettings::sendMsgThread()
 				LOGINFO("%s: Routing the audio since m_arcEarcAudioEnabled = %d\n", __FUNCTION__, m_arcEarcAudioEnabled);
 				LOGINFO("%s: Enable ARC... \n",__FUNCTION__);
 				aPort.enableARC(dsAUDIOARCSUPPORT_ARC, true);
-                        	m_arcEarcAudioEnabled = true;
+				m_arcEarcAudioEnabled = true;
 			    } else if (m_arcEarcAudioEnabled == true) { /*setEnableAudioPort is called,Timer started and Expired, arc is routed -- or for both wasSADTimerActive == true/false*/
 				LOGINFO("%s: Updating SAD since audio is already routed and ARC is initiated\n", __FUNCTION__);
 				setAudioDeviceSADState(AUDIO_DEVICE_SAD_UPDATED);
@@ -4742,11 +4747,12 @@ void DisplaySettings::sendMsgThread()
    		        if(m_hdmiInAudioDeviceConnected == true) {
 			    LOGINFO("SystemAudio mode off disable Arc\n");
 			    m_hdmiInAudioDeviceConnected = false;
-			    if (m_arcEarcAudioEnabled == true) {
-				LOGINFO("System Audio mode is off and arc Enable is %d, Notify UI to disbale Arc", m_arcEarcAudioEnabled);
+			    if (m_ArcEarcConnectionNotifiedToUI == ARC_EARC_CONNECTED) {
+				LOGINFO("System Audio mode is off and m_ArcEarcConnectionNotifiedToUI %d, Notify UI to disbale Arc", m_ArcEarcConnectionNotifiedToUI);
 		            	connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+				m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
 			    } else {
-				    LOGINFO("Not notifying UI since m_arcEarcAudioEnabled =%d\n", m_arcEarcAudioEnabled);
+				LOGINFO("Not notifying UI since m_ArcEarcConnectionNotifiedToUI =%d\n", m_ArcEarcConnectionNotifiedToUI);
 			    }
                             {
 			      // Arc termination happens from HdmiCecSink plugin so just update the state here
@@ -4805,6 +4811,7 @@ void DisplaySettings::sendMsgThread()
                     m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
 		    m_requestSadRetrigger = false;
 				    connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+				    m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
 			    }
 		        if (m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED && m_AudioDeviceSADState != AUDIO_DEVICE_SAD_UNKNOWN) {
 		            LOGINFO("%s: Clearing Audio device SAD previous state= %d current state = %d\n", __FUNCTION__, m_AudioDeviceSADState, AUDIO_DEVICE_SAD_CLEARED);
@@ -4874,12 +4881,13 @@ void DisplaySettings::sendMsgThread()
 			    LOGINFO("%s: Audio device is eArc m_hdmiInAudioDeviceConnected =%d",__FUNCTION__,m_hdmiInAudioDeviceConnected);
                         m_hdmiInAudioDeviceConnected = true;
 			m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_eARC;
-			if (m_arcEarcAudioEnabled == false) {
+			if (m_ArcEarcConnectionNotifiedToUI == ARC_EARC_DISCONNECTED) {
 			    // Notify UI that Audio device is connected and is in ON state
                             LOGINFO("Triggered from HPD: eARC audio device power on: Notify UI !!! \n");
                             connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, true);
+			    m_ArcEarcConnectionNotifiedToUI = ARC_EARC_CONNECTED;
 			} else {
-				LOGINFO("arc already enabled m_arcEarcAudioEnabled =%d", m_arcEarcAudioEnabled);
+				LOGINFO("eARC connection notification is already sent m_ArcEarcConnectionNotifiedToUI =%d", m_ArcEarcConnectionNotifiedToUI);
 			}
                     } else {
 			if ((m_hdmiInAudioDeviceConnected == false) && !(m_ArcDetectionTimer.isActive())) {
@@ -4918,9 +4926,10 @@ void DisplaySettings::sendMsgThread()
 	       if((types & dsAUDIOARCSUPPORT_eARC) && (m_hdmiInAudioDeviceConnected == false)) {
                    m_hdmiInAudioDeviceConnected = true;
 		   m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_eARC;
-		   if (m_arcEarcAudioEnabled == false) {
+		   if (m_ArcEarcConnectionNotifiedToUI == ARC_EARC_DISCONNECTED) {
                        LOGINFO("Triggered from HPD: eARC audio device power on: Notify UI !!! \n");
                        connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, true);
+		       m_ArcEarcConnectionNotifiedToUI = ARC_EARC_CONNECTED;
 		   } else {
 		       LOGINFO("Arc enabled already m_arcEarcAudioEnabled =%d", m_arcEarcAudioEnabled);
 		   }
@@ -4980,6 +4989,7 @@ void DisplaySettings::sendMsgThread()
                         if(m_hdmiInAudioDeviceConnected ==  true) {
                             m_hdmiInAudioDeviceConnected = false;
                             connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+			    m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
                             m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
                         }
                         else {
@@ -5729,6 +5739,13 @@ void DisplaySettings::sendMsgThread()
             if(DisplaySettings::_instance)
             {
                 DisplaySettings::_instance->connectedAudioPortUpdated((int)portType, isPortConnected);
+		if (portType == dsAUDIOPORT_TYPE_HDMI_ARC) {
+		   if(isPortConnected) {
+			m_ArcEarcConnectionNotifiedToUI = ARC_EARC_CONNECTED;
+		   } else {
+			m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
+		   }
+		}
             }
             else
             {
@@ -5846,6 +5863,7 @@ void DisplaySettings::sendMsgThread()
                             //if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) // commenting out for the AVR HPD 0 and 1 events instantly for TV standby in/out case
                             {
                                 DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, hdmiin_hotplug_conn);
+				m_ArcEarcConnectionNotifiedToUI = ARC_EARC_DISCONNECTED;
                                 LOGINFO("Received OnHdmiInEventHotPlug  HDMI_ARC Port disconnected. Notify UI !!! ");
                             }
                         }

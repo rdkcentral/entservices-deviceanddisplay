@@ -45,6 +45,7 @@ using ::testing::NiceMock;
 using ::testing::_;
 using ::testing::Return;
 using ::testing::Invoke;
+using ::testing::ReturnRef;
 
 namespace {
 const string webPrefix = _T("/Service/DeviceInfo");

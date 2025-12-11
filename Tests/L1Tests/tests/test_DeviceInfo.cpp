@@ -1480,6 +1480,8 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_MultiplePortTypes)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedaudioports"), _T(""), response));
     EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
     EXPECT_TRUE(response.find("\"SPDIF\"") != string::npos);
+    EXPECT_TRUE(response.find("\"SPEAKER\"") != string::npos);
+}
 TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
 {
     device::List<device::AudioOutputPort> audioPorts;
@@ -1496,9 +1498,6 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
         }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedaudioports"), _T(""), response));
-    EXPECT_TRUE(response.find("\"supportedAudioPorts\":[") != string::npos);
-    EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
-}   EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedaudioports"), _T(""), response));
     EXPECT_TRUE(response.find("\"supportedAudioPorts\":[") != string::npos);
     EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
 }

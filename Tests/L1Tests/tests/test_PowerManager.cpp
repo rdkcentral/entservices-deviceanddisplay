@@ -507,10 +507,14 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 transaction_id = transactionId;
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
-
-                // Delay power mode change by 10 seconds
-                auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
-                EXPECT_EQ(status, Core::ERROR_NONE);
+                
+                // Test invalid parameters FIRST before modifying state
+                // Acknowledge - Change Complete with invalid transactionId
+                auto status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId + 10);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+                // Acknowledge - Change Complete with invalid clientId
+                status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
                 // Delay Change with invalid clientId
                 status = powerManagerImpl->DelayPowerModeChangeBy(clientId + 10, transactionId, 10);
@@ -518,16 +522,15 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId + 10, 10);
                 EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
-                // delay by smaller value
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 5);
+                // Now set valid delays
+                // Delay power mode change by 10 seconds
+                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
-                // Acknowledge - Change Complete with invalid transactionId
-                status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId + 10);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-                // Acknowledge - Change Complete with invalid clientId
-                status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+                // delay by larger value (extends the timeout)
+                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 30);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
 
                 wg.Done();
             }));

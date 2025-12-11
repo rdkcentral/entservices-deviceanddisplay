@@ -118,6 +118,8 @@ protected:
 
 SystemMode_L2test::SystemMode_L2test()
     : L2TestMocks()
+    , m_controller_sysmode(nullptr)
+    , m_sysmodeplugin(nullptr)
 {
     uint32_t status = Core::ERROR_GENERAL;
 

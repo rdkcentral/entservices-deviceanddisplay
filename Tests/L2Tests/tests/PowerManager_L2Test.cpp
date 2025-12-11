@@ -1045,7 +1045,7 @@ TEST_F(PowerManager_L2Test, DeepSleepIgnore)
                 status = PowerManagerPlugin->GetPowerState(newState, prevState);
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 EXPECT_NE(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
-                
+
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
                 PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());

@@ -345,13 +345,6 @@ TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
     uint32_t signalled = DeviceDiagnostics_StateInvalid;
     JsonObject expected_status;
 
-    /* Register for onAVDecoderStatusChanged event. */
-    status = jsonrpc.Subscribe<JsonObject>(AV_POLL_TIMEOUT,
-        _T("onAVDecoderStatusChanged"),
-        &AsyncHandlerMock_DevDiag::onAVDecoderStatusChanged,
-        &async_handler);
-    EXPECT_EQ(Core::ERROR_NONE, status);
-
     // Change the AVDecoderstatus from IDLE to ACTIVE
     EXPECT_CALL(*p_essRMgrMock, EssRMgrGetAVState(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::DoAll(
@@ -362,6 +355,13 @@ TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
     expected_status.FromString(message);
     EXPECT_CALL(async_handler, onAVDecoderStatusChanged(MatchRequestStatus(expected_status)))
     .WillRepeatedly(Invoke(this, &DeviceDiagnostics_L2test::onAVDecoderStatusChanged));
+
+    /* Register for onAVDecoderStatusChanged event. */
+    status = jsonrpc.Subscribe<JsonObject>(AV_POLL_TIMEOUT,
+        _T("onAVDecoderStatusChanged"),
+        &AsyncHandlerMock_DevDiag::onAVDecoderStatusChanged,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
 
     JsonObject param, result;
     param["avDecoderStatus"] = "";

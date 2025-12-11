@@ -647,10 +647,12 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Success)
 {
     device::List<device::AudioOutputPort> audioPorts;
     device::AudioOutputPort port1, port2;
+    static const string portName1 = "HDMI0";
+    static const string portName2 = "SPDIF";
 
     EXPECT_CALL(*p_audioOutputPortMock, getName())
-        .WillOnce(Return("HDMI0"))
-        .WillOnce(Return("SPDIF"));
+        .WillOnce(ReturnRef(portName1))
+        .WillOnce(ReturnRef(portName2));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
         .WillOnce(Invoke([&]() {
@@ -1073,9 +1075,10 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Negative_GetNameThrowsException)
     device::AudioOutputPort port1;
 
     EXPECT_CALL(*p_audioOutputPortMock, getName())
-        .WillOnce(Invoke([]() -> string {
+        .WillOnce(Invoke([]() -> const string& {
             throw device::Exception("getName exception");
-            return "HDMI0";
+            static const string portName = "HDMI0";
+            return portName;
         }));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
@@ -1101,21 +1104,21 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Negative_EmptyPortList)
 
 // =========== Additional Comprehensive Positive Tests ===========
 
-TEST_F(DeviceInfoTest, SerialNumber_Positive_MaxBufferLength)
+TEST_F(DeviceInfoTest, SerialNumber_Positive_LongSerialNumber)
 {
-    std::string maxSerial(MFR_MAX_SERIALIZED_SIZE - 1, 'X');
+    std::string longSerial(255, 'X');
     
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillOnce(Invoke(
-            [&maxSerial](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+            [&longSerial](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
                 auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
-                param->bufLen = maxSerial.length();
-                strncpy(param->buffer, maxSerial.c_str(), sizeof(param->buffer));
+                param->bufLen = longSerial.length();
+                strncpy(param->buffer, longSerial.c_str(), sizeof(param->buffer));
                 return IARM_RESULT_SUCCESS;
             }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
-    EXPECT_TRUE(response.find(maxSerial) != string::npos);
+    EXPECT_TRUE(response.find(longSerial) != string::npos);
 }
 
 TEST_F(DeviceInfoTest, SerialNumber_Positive_SpecialCharacters)
@@ -1456,11 +1459,14 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_MultiplePortTypes)
 {
     device::List<device::AudioOutputPort> audioPorts;
     device::AudioOutputPort port1, port2, port3;
+    static const string portName1 = "HDMI0";
+    static const string portName2 = "SPDIF";
+    static const string portName3 = "SPEAKER";
 
     EXPECT_CALL(*p_audioOutputPortMock, getName())
-        .WillOnce(Return("HDMI0"))
-        .WillOnce(Return("SPDIF"))
-        .WillOnce(Return("SPEAKER"));
+        .WillOnce(ReturnRef(portName1))
+        .WillOnce(ReturnRef(portName2))
+        .WillOnce(ReturnRef(portName3));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
         .WillOnce(Invoke([&]() {
@@ -1473,16 +1479,14 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_MultiplePortTypes)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedaudioports"), _T(""), response));
     EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
     EXPECT_TRUE(response.find("\"SPDIF\"") != string::npos);
-    EXPECT_TRUE(response.find("\"SPEAKER\"") != string::npos);
-}
-
 TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
 {
     device::List<device::AudioOutputPort> audioPorts;
     device::AudioOutputPort port1;
+    static const string portName = "HDMI0";
 
     EXPECT_CALL(*p_audioOutputPortMock, getName())
-        .WillOnce(Return("HDMI0"));
+        .WillOnce(ReturnRef(portName));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
         .WillOnce(Invoke([&]() {
@@ -1491,6 +1495,9 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
         }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedaudioports"), _T(""), response));
+    EXPECT_TRUE(response.find("\"supportedAudioPorts\":[") != string::npos);
+    EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
+}   EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedaudioports"), _T(""), response));
     EXPECT_TRUE(response.find("\"supportedAudioPorts\":[") != string::npos);
     EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
 }

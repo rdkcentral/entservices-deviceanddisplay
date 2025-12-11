@@ -1224,6 +1224,9 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
                             return DeepSleep_Return_Status_t(-1);
                         }));
 
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
+                    .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
+
                 int keyCode = 0;
                 status      = PowerManagerPlugin->SetPowerState(keyCode, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "l2-test");
                 EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1233,9 +1236,6 @@ TEST_F(PowerManager_L2Test,DeepSleepInvalidWakeup)
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 15, POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
                 EXPECT_TRUE(signalled & POWERMANAGERL2TEST_DEEP_SLEEP_TIMEOUT);
-
-                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
-                    .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
 
                 sleep(3);
 

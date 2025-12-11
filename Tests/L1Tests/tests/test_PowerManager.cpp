@@ -507,6 +507,13 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 transaction_id = transactionId;
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
+                
+                // Acknowledge - Change Complete with invalid transactionId
+                status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId + 10);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
+                // Acknowledge - Change Complete with invalid clientId
+                status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
+                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
                 // Delay power mode change by 10 seconds
                 auto status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);
@@ -519,15 +526,9 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
                 // delay by smaller value
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 5);
+                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 30);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
-                // Acknowledge - Change Complete with invalid transactionId
-                status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId + 10);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-                // Acknowledge - Change Complete with invalid clientId
-                status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
                 wg.Done();
             }));

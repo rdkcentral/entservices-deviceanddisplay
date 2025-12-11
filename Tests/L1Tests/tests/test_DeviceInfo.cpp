@@ -21,6 +21,8 @@
 
 #include "DeviceInfo.h"
 #include "DeviceInfoImplementation.h"
+#include "DeviceAudioCapabilities.h"
+#include "DeviceVideoCapabilities.h"
 
 #include "AudioOutputPortMock.h"
 #include "HostMock.h"
@@ -32,6 +34,7 @@
 #include "VideoOutputPortTypeMock.h"
 #include "VideoResolutionMock.h"
 #include "RfcApiMock.h"
+#include "COMLinkMock.h"
 //#include "ISubSystemMock.h"
 
 #include "SystemInfo.h"
@@ -54,6 +57,9 @@ const string webPrefix = _T("/Service/DeviceInfo");
 class DeviceInfoTest : public ::testing::Test {
 protected:
     Core::ProxyType<Plugin::DeviceInfo> plugin;
+    Core::ProxyType<Plugin::DeviceInfoImplementation> deviceInfoImplementation;
+    Core::ProxyType<Plugin::DeviceAudioCapabilities> deviceAudioCapabilities;
+    Core::ProxyType<Plugin::DeviceVideoCapabilities> deviceVideoCapabilities;
     Core::JSONRPC::Handler& handler;
     DECL_CORE_JSONRPC_CONX connection;
     string response;
@@ -68,6 +74,7 @@ protected:
     VideoOutputPortTypeMock* p_videoOutputPortTypeMock = nullptr;
     RfcApiImplMock* p_rfcApiImplMock = nullptr;
     NiceMock<ServiceMock> service;
+    NiceMock<COMLinkMock> comLinkMock;
    // Core::Sink<NiceMock<SystemInfo>> subSystem;
 
     DeviceInfoTest()
@@ -102,10 +109,44 @@ protected:
         p_rfcApiImplMock = new NiceMock<RfcApiImplMock>;
         RfcApi::setImpl(p_rfcApiImplMock);
 
+        deviceInfoImplementation = Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
+        deviceAudioCapabilities = Core::ProxyType<Plugin::DeviceAudioCapabilities>::Create();
+        deviceVideoCapabilities = Core::ProxyType<Plugin::DeviceVideoCapabilities>::Create();
+
         ON_CALL(service, ConfigLine())
             .WillByDefault(Return("{\"root\":{\"mode\":\"Off\"}}"));
         ON_CALL(service, WebPrefix())
             .WillByDefault(Return(webPrefix));
+        ON_CALL(service, COMLink())
+            .WillByDefault(Return(&comLinkMock));
+
+#ifdef USE_THUNDER_R4
+        ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](const RPC::Object& object, const uint32_t waitTime, uint32_t& connectionId) -> void* {
+                    if (object.ClassName() == _T("DeviceInfoImplementation")) {
+                        return &deviceInfoImplementation;
+                    } else if (object.ClassName() == _T("DeviceAudioCapabilities")) {
+                        return &deviceAudioCapabilities;
+                    } else if (object.ClassName() == _T("DeviceVideoCapabilities")) {
+                        return &deviceVideoCapabilities;
+                    }
+                    return nullptr;
+                }));
+#else
+        ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [&](const uint32_t waitTime, const string& className, const uint32_t interfaceId, const uint32_t version, uint32_t& connectionId) -> void* {
+                    if (className == _T("DeviceInfoImplementation")) {
+                        return &deviceInfoImplementation;
+                    } else if (className == _T("DeviceAudioCapabilities")) {
+                        return &deviceAudioCapabilities;
+                    } else if (className == _T("DeviceVideoCapabilities")) {
+                        return &deviceVideoCapabilities;
+                    }
+                    return nullptr;
+                }));
+#endif
 #if 0
         ON_CALL(service, SubSystems())
             .WillByDefault(Invoke(

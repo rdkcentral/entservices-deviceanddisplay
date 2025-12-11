@@ -54,6 +54,10 @@ if(PLUGIN_FRAMERATE)
     set(SRC_FILES ${SRC_FILES} tests/FrameRate_L2Test.cpp)
 endif()
 
+if(PLUGIN_DEVICEINFO)
+    set(SRC_FILES ${SRC_FILES} tests/DeviceInfo_L2Test.cpp)
+endif()
+
 add_library(${MODULE_NAME} SHARED ${SRC_FILES})
 
 set_target_properties(${MODULE_NAME} PROPERTIES

@@ -19,12 +19,8 @@
 
 #pragma once
 
-#include "../Module.h"
-#ifdef USE_THUNDER_R4
+#include "Module.h"
 #include <interfaces/IDeviceInfo.h>
-#else
-#include <interfaces/IDeviceInfo2.h>
-#endif /* USE_THUNDER_R4 */
 
 namespace WPEFramework {
 namespace Plugin {
@@ -42,11 +38,11 @@ namespace Plugin {
 
     private:
         // IDeviceVideoCapabilities interface
-        Core::hresult SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays) const override;
-        Core::hresult HostEDID(string& edid) const override;
-        Core::hresult DefaultResolution(const string& videoDisplay, string& defaultResolution) const override;
-        Core::hresult SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions) const override;
-        Core::hresult SupportedHdcp(const string& videoDisplay, Exchange::IDeviceVideoCapabilities::CopyProtection& supportedHDCPVersion) const override;
+        Core::hresult SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays, bool& success) const override;
+        Core::hresult HostEDID(HostEdid& hostEdid) const override;
+        Core::hresult DefaultResolution(const string& videoDisplay, DefaultResln& defaultResln) const override;
+        Core::hresult SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions, bool& success) const override;
+        Core::hresult SupportedHdcp(const string& videoDisplay, SupportedHDCPVer& supportedHDCPVer) const override;
     };
 }
 }

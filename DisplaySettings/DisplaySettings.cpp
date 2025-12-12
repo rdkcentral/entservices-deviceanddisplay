@@ -36,7 +36,7 @@
 #include "list.hpp"
 #include "dsDisplay.h"
 #include "UtilsSynchro.hpp"
-
+#include <map>
 #include "tr181api.h"
 
 #include "tracing/Logging.h"
@@ -90,6 +90,9 @@ static int retryPowerRequestCount = 0;
 static int  hdmiArcVolumeLevel = 0;
 bool audioPortInitActive = false;
 std::vector<int> sad_list;
+
+static std::map<std::string, bool> audioPortEnableStatusMap;
+
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 #ifdef USE_IARM
@@ -332,6 +335,13 @@ namespace WPEFramework {
 	    isResCacheUpdated = false;
             isDisplayConnectedCacheUpdated = false;
             isStbHDRcapabilitiesCache = false;
+	    audioPortEnableStatusMap["IDLR0"]= false;
+	    audioPortEnableStatusMap["HDMI0"]= false;
+	    audioPortEnableStatusMap["SPDIF0"]= false;
+	    audioPortEnableStatusMap["SPEAKER0"]= false;
+	    audioPortEnableStatusMap["HDMI_ARC0"]= false;
+	    audioPortEnableStatusMap["HEADPHONE0"]= false;
+
 	   // m_AudioSentPoweronmsg = false;
         }
 
@@ -341,6 +351,7 @@ namespace WPEFramework {
             isResCacheUpdated = false;
             isDisplayConnectedCacheUpdated = false;
             isStbHDRcapabilitiesCache = false;
+	    audioPortEnableStatusMap.clear();
         }
 
         void DisplaySettings::AudioPortsReInitialize()
@@ -4081,6 +4092,16 @@ namespace WPEFramework {
             {
                 LOG_DEVICE_EXCEPTION1(audioPort);
                 success = false;
+            }
+	    LOGWARN(" Amit cache value: %d  pEnable: %d: \n",audioPortEnableStatusMap[audioPort], pEnable);
+	    if(audioPortEnableStatusMap[audioPort] != pEnable)
+            {
+                JsonObject params;
+		LOGWARN(" Amit notify audioPortEnableStatusChanged ");
+                audioPortEnableStatusMap[audioPort] = pEnable;
+		params["audioPort"] = audioPort;
+                params["enable"] = pEnable;
+                sendNotify("audioPortEnableStatusChanged", params);
             }
             returnResponse(success);
         }

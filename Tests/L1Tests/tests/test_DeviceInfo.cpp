@@ -35,6 +35,7 @@
 #include "VideoResolutionMock.h"
 #include "RfcApiMock.h"
 #include "COMLinkMock.h"
+#include "DeviceInfoMock.h"
 //#include "ISubSystemMock.h"
 
 #include "SystemInfo.h"

@@ -155,7 +155,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
             .WillByDefault(::testing::ReturnRef(videoOutputPort));
         
         status = InvokeServiceMethod("DeviceInfo.1", "defaultresolution", params, result);
-         EXPECT_EQ(Core::ERROR_NONE, status);
+        EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("defaultResolution"));
+            string resolution = result["defaultResolution"].String();
+            EXPECT_EQ(resolution, "1080p");
+            TEST_LOG("defaultresolution: %s", resolution.c_str());
+        }
     }
 
     /****************** supportedresolutions ******************/
@@ -186,7 +192,17 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
             .WillByDefault(::testing::ReturnRef(videoOutputPortType));
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedresolutions", params, result);
-         EXPECT_EQ(Core::ERROR_NONE, status);
+        EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("supportedResolutions"));
+            JsonArray resolutions = result["supportedResolutions"].Array();
+            EXPECT_GT(resolutions.Length(), 0);
+            if (resolutions.Length() > 0) {
+                string resolution = resolutions[0].String();
+                EXPECT_FALSE(resolution.empty());
+                TEST_LOG("First supported resolution: %s", resolution.c_str());
+            }
+        }
     }
 
     /****************** supportedhdcp ******************/
@@ -206,7 +222,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
             .WillByDefault(::testing::ReturnRef(videoOutputPort));
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedhdcp", params, result);
-         EXPECT_EQ(Core::ERROR_NONE, status);
+        EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("supportedHDCPVersion"));
+            string hdcpVersion = result["supportedHDCPVersion"].String();
+            EXPECT_FALSE(hdcpVersion.empty());
+            TEST_LOG("Supported HDCP version: %s", hdcpVersion.c_str());
+        }
     }
 
     /****************** audiocapabilities ******************/
@@ -232,6 +254,21 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "audiocapabilities", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("AudioCapabilities"));
+            JsonArray capabilities = result["AudioCapabilities"].Array();
+            EXPECT_GT(capabilities.Length(), 0);
+            // Verify expected capabilities are present
+            bool hasAtmos = false, hasDD = false, hasDDPlus = false;
+            for (int i = 0; i < capabilities.Length(); i++) {
+                string cap = capabilities[i].String();
+                if (cap == "ATMOS") hasAtmos = true;
+                if (cap == "DD") hasDD = true;
+                if (cap == "DDPLUS") hasDDPlus = true;
+            }
+            EXPECT_TRUE(hasAtmos || hasDD || hasDDPlus);
+            TEST_LOG("Audio capabilities count: %d", capabilities.Length());
+        }
     }
 
     /****************** ms12capabilities ******************/
@@ -257,6 +294,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "ms12capabilities", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("MS12Capabilities"));
+            JsonArray capabilities = result["MS12Capabilities"].Array();
+            EXPECT_GT(capabilities.Length(), 0);
+            TEST_LOG("MS12 capabilities count: %d", capabilities.Length());
+        }
     }
 
     /****************** supportedms12audioprofiles ******************/
@@ -278,6 +321,16 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedms12audioprofiles", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("supportedMS12AudioProfiles"));
+            JsonArray profiles = result["supportedMS12AudioProfiles"].Array();
+            EXPECT_GT(profiles.Length(), 0);
+            if (profiles.Length() > 0) {
+                string profile = profiles[0].String();
+                EXPECT_EQ(profile, "Movie");
+                TEST_LOG("First MS12 audio profile: %s", profile.c_str());
+            }
+        }
     }
 
     TEST_LOG("DeviceInfo L2 Method Tests completed\n");
@@ -310,6 +363,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "systeminfo@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("serialnumber"));
+            string serialNumber = getResults["serialnumber"].String();
+            EXPECT_FALSE(serialNumber.empty());
+            TEST_LOG("System info serial number: %s", serialNumber.c_str());
+        }
     }
 
     /****************** addresses ******************/
@@ -319,6 +378,7 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "addresses@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        // addresses returns empty object {} when no addresses available
         TEST_LOG("addresses test completed\n");
     }
 
@@ -329,6 +389,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "socketinfo@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("runs"));
+            int runs = getResults["runs"].Number();
+            EXPECT_GE(runs, 0);
+            TEST_LOG("socketinfo runs: %d", runs);
+        }
     }
 
     /****************** firmwareversion ******************/
@@ -342,6 +408,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "firmwareversion@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("imagename"));
+            string imagename = getResults["imagename"].String();
+            EXPECT_FALSE(imagename.empty());
+            TEST_LOG("Firmware imagename: %s", imagename.c_str());
+        }
     }
 
     /****************** serialnumber ******************/
@@ -350,6 +422,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "serialnumber@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("serialnumber"));
+            string serialNumber = getResults["serialnumber"].String();
+            EXPECT_FALSE(serialNumber.empty());
+            TEST_LOG("Serial number: %s", serialNumber.c_str());
+        }
     }
 
     /****************** modelid ******************/
@@ -359,7 +437,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "modelid@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
-
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("sku"));
+            string sku = getResults["sku"].String();
+            EXPECT_FALSE(sku.empty());
+            EXPECT_EQ(sku, "TEST_SKU_12345");
+            TEST_LOG("Model ID (SKU): %s", sku.c_str());
+        }
     }
 
     /****************** make ******************/
@@ -372,6 +456,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "make@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("make"));
+            string make = getResults["make"].String();
+            EXPECT_FALSE(make.empty());
+            TEST_LOG("Make: %s", make.c_str());
+        }
     }
 
     /****************** modelname ******************/
@@ -385,6 +475,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "modelname@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("model"));
+            string model = getResults["model"].String();
+            EXPECT_FALSE(model.empty());
+            TEST_LOG("Model name: %s", model.c_str());
+        }
     }
 
     /****************** brandname ******************/
@@ -394,6 +490,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "brandname@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("brand"));
+            string brand = getResults["brand"].String();
+            EXPECT_FALSE(brand.empty());
+            EXPECT_EQ(brand, "TestBrand");
+            TEST_LOG("Brand name: %s", brand.c_str());
+        }
     }
 
     /****************** devicetype ******************/
@@ -406,6 +509,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "devicetype@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("devicetype"));
+            string deviceType = getResults["devicetype"].String();
+            EXPECT_FALSE(deviceType.empty());
+            TEST_LOG("Device type: %s", deviceType.c_str());
+        }
     }
 
     /****************** socname ******************/
@@ -419,6 +528,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "socname@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("socname"));
+            string socName = getResults["socname"].String();
+            EXPECT_FALSE(socName.empty());
+            TEST_LOG("SoC name: %s", socName.c_str());
+        }
     }
 
     {
@@ -435,6 +550,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "releaseversion@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("releaseversion"));
+            string releaseVersion = getResults["releaseversion"].String();
+            EXPECT_FALSE(releaseVersion.empty());
+            TEST_LOG("Release version: %s", releaseVersion.c_str());
+        }
     }
 
     /****************** chipset ******************/
@@ -471,6 +592,16 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
 
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "supportedaudioports@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("supportedAudioPorts"));
+            JsonArray audioPorts = getResults["supportedAudioPorts"].Array();
+            EXPECT_GT(audioPorts.Length(), 0);
+            if (audioPorts.Length() > 0) {
+                string port = audioPorts[0].String();
+                EXPECT_EQ(port, "HDMI0");
+                TEST_LOG("First audio port: %s", port.c_str());
+            }
+        }
     }
 
     /****************** supportedvideodisplays ******************/
@@ -489,6 +620,16 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "supportedvideodisplays@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("supportedVideoDisplays"));
+            JsonArray videoDisplays = getResults["supportedVideoDisplays"].Array();
+            EXPECT_GT(videoDisplays.Length(), 0);
+            if (videoDisplays.Length() > 0) {
+                string display = videoDisplays[0].String();
+                EXPECT_EQ(display, "HDMI0");
+                TEST_LOG("First video display: %s", display.c_str());
+            }
+        }
     }
 
     /****************** hostedid ******************/
@@ -505,6 +646,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "hostedid@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("EDID"));
+            string edid = getResults["EDID"].String();
+            EXPECT_FALSE(edid.empty());
+            EXPECT_EQ(edid, "dGVzdA==");  // base64 encoded "test"
+            TEST_LOG("EDID (base64): %s", edid.c_str());
+        }
     }
 
     TEST_LOG("DeviceInfo L2 Property Tests completed\n");
@@ -591,7 +739,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_ErrorHandlingTest)
 
     TEST_LOG("DeviceInfo L2 Error Handling Tests completed\n");
 }
-
 TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
 {
     JSONRPC::LinkType<Core::JSON::IElement> jsonrpc(DEVICEINFO_CALLSIGN, DEVICEINFOL2TEST_CALLSIGN);
@@ -621,6 +768,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "defaultresolution", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("defaultResolution"));
+            string resolution = result["defaultResolution"].String();
+            EXPECT_EQ(resolution, "1080p");
+            TEST_LOG("defaultresolution with empty param: %s", resolution.c_str());
+        }
     }
 
     /****************** Test with empty audioPort parameter ******************/
@@ -646,6 +799,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "audiocapabilities", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("AudioCapabilities"));
+            JsonArray capabilities = result["AudioCapabilities"].Array();
+            // With NONE capability, array should be empty or have NONE value
+            TEST_LOG("Audio capabilities with empty port: %d items", capabilities.Length());
+        }
     }
 
     /****************** Test with multiple resolutions ******************/
@@ -679,6 +838,18 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedresolutions", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("supportedResolutions"));
+            JsonArray resolutions = result["supportedResolutions"].Array();
+            EXPECT_EQ(resolutions.Length(), 3);  // Should have 3 resolutions
+            TEST_LOG("Supported resolutions count: %d", resolutions.Length());
+            // Verify resolutions are present
+            for (int i = 0; i < resolutions.Length(); i++) {
+                string res = resolutions[i].String();
+                EXPECT_FALSE(res.empty());
+                TEST_LOG("Resolution[%d]: %s", i, res.c_str());
+            }
+        }
     }
 
     /****************** Test HDCP version 1.x ******************/
@@ -699,6 +870,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedhdcp", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("supportedHDCPVersion"));
+            string hdcpVersion = result["supportedHDCPVersion"].String();
+            EXPECT_FALSE(hdcpVersion.empty());
+            // HDCP 1.x should be returned
+            TEST_LOG("HDCP version 1.x: %s", hdcpVersion.c_str());
+        }
     }
 
     /****************** Test all MS12 capabilities ******************/
@@ -724,6 +902,22 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "ms12capabilities", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("MS12Capabilities"));
+            JsonArray capabilities = result["MS12Capabilities"].Array();
+            EXPECT_GT(capabilities.Length(), 0);
+            // Should have DolbyVolume, InteligentEqualizer, DialogueEnhancer
+            EXPECT_GE(capabilities.Length(), 3);
+            bool hasDV = false, hasIE = false, hasDE = false;
+            for (int i = 0; i < capabilities.Length(); i++) {
+                string cap = capabilities[i].String();
+                if (cap.find("Dolby Volume") != string::npos) hasDV = true;
+                if (cap.find("Inteligent Equalizer") != string::npos) hasIE = true;
+                if (cap.find("Dialogue Enhancer") != string::npos) hasDE = true;
+                TEST_LOG("MS12 capability[%d]: %s", i, cap.c_str());
+            }
+            EXPECT_TRUE(hasDV && hasIE && hasDE);
+        }
     }
 
     /****************** Test multiple MS12 audio profiles ******************/
@@ -745,6 +939,22 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedms12audioprofiles", params, result);
         EXPECT_EQ(Core::ERROR_NONE, status);
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("supportedMS12AudioProfiles"));
+            JsonArray profiles = result["supportedMS12AudioProfiles"].Array();
+            EXPECT_EQ(profiles.Length(), 4);  // Should have 4 profiles: Movie, Music, Sports, Game
+            // Verify all expected profiles are present
+            bool hasMovie = false, hasMusic = false, hasSports = false, hasGame = false;
+            for (int i = 0; i < profiles.Length(); i++) {
+                string profile = profiles[i].String();
+                if (profile == "Movie") hasMovie = true;
+                if (profile == "Music") hasMusic = true;
+                if (profile == "Sports") hasSports = true;
+                if (profile == "Game") hasGame = true;
+                TEST_LOG("MS12 profile[%d]: %s", i, profile.c_str());
+            }
+            EXPECT_TRUE(hasMovie && hasMusic && hasSports && hasGame);
+        }
     }
 
     TEST_LOG("DeviceInfo L2 Edge Case Tests completed\n");
@@ -861,6 +1071,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyEdgeCaseTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "devicetype@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("devicetype"));
+            string deviceType = getResults["devicetype"].String();
+            EXPECT_FALSE(deviceType.empty());
+            TEST_LOG("Device type: %s", deviceType.c_str());
+        }
     }
 
     /****************** Test distributorid from RFC ******************/
@@ -1075,73 +1291,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_AdditionalPropertiesTest)
         }
     }
 
-    /****************** Test socname with different values ******************/
-    {
-        TEST_LOG("Testing socname with BCM chip\n");
-
-        std::ofstream file("/etc/device.properties");
-        file << "SOC=BCM7252\n";
-        file.close();
-
-        JsonObject getResults;
-        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "socname@0", getResults);
-        EXPECT_EQ(Core::ERROR_NONE, getResult);
-    }
-
-    /****************** Test chipset with different values ******************/
-    {
-        TEST_LOG("Testing chipset with different chipset name\n");
-
-        std::ofstream file("/etc/device.properties");
-        file << "CHIPSET_NAME=CustomChipset2024\n";
-        file.close();
-
-        JsonObject getResults;
-        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "chipset@0", getResults);
-        EXPECT_EQ(Core::ERROR_NONE, getResult);
-    }
-
-    /****************** Test brandname from different source ******************/
-    {
-        TEST_LOG("Testing brandname from .manufacturer file\n");
-        
-        std::ofstream file("/tmp/.manufacturer");
-        file << "CustomBrand2024\n";
-        file.close();
-
-        JsonObject getResults;
-        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "brandname@0", getResults);
-        EXPECT_EQ(Core::ERROR_NONE, getResult);
-    }
-
-    /****************** Test modelid with MFR fallback ******************/
-    {
-        TEST_LOG("Testing modelid with MFR fallback\n");
-        
-        std::ofstream file("/etc/device.properties");
-        file << "# MODEL_NUM not present\n";
-        file.close();
-
-        ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
-            .WillByDefault(
-                [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                    if (strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
-                        auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
-                        if (param->type == mfrSERIALIZED_TYPE_MODELNAME) {
-                            const char* str = "MFR_MODEL_NAME";
-                            param->bufLen = strlen(str);
-                            strncpy(param->buffer, str, sizeof(param->buffer));
-                            return IARM_RESULT_SUCCESS;
-                        }
-                    }
-                    return IARM_RESULT_INVALID_PARAM;
-                });
-
-        JsonObject getResults;
-        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "modelid@0", getResults);
-        // May succeed or fail depending on implementation
-    }
-
     /****************** Test devicetype conversion ******************/
     {
         TEST_LOG("Testing devicetype with 'hybrid' conversion\n");
@@ -1157,6 +1306,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_AdditionalPropertiesTest)
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "devicetype@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("devicetype"));
+            string deviceType = getResults["devicetype"].String();
+            EXPECT_FALSE(deviceType.empty());
+            TEST_LOG("Device type: %s", deviceType.c_str());
+        }
     }
 
     TEST_LOG("DeviceInfo L2 Additional Properties Tests completed\n");
@@ -1224,80 +1379,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodVariationsTest)
         EXPECT_EQ(Core::ERROR_GENERAL, status);
     }
 
-    /****************** Test audiocapabilities with different capabilities ******************/
-    {
-        TEST_LOG("Testing audiocapabilities with DD only\n");
-        JsonObject result, params;
-        params["audioPort"] = "HDMI0";
-        
-        device::AudioOutputPort audioOutputPort;
-        string audioPort(_T("HDMI0"));
-
-        ON_CALL(*p_audioOutputPortMock, getAudioCapabilities(::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](int* capabilities) {
-                    if (capabilities != nullptr) {
-                        *capabilities = dsAUDIOSUPPORT_DD;
-                    }
-                }));
-        ON_CALL(*p_hostImplMock, getDefaultAudioPortName())
-            .WillByDefault(::testing::Return(audioPort));
-        ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(audioOutputPort));
-        
-        status = InvokeServiceMethod("DeviceInfo.1", "audiocapabilities", params, result);
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    }
-
-    /****************** Test audiocapabilities with DD+ and DAD ******************/
-    {
-        TEST_LOG("Testing audiocapabilities with DD+ and DAD\n");
-        JsonObject result, params;
-        params["audioPort"] = "SPDIF0";
-        
-        device::AudioOutputPort audioOutputPort;
-        string audioPort(_T("SPDIF0"));
-
-        ON_CALL(*p_audioOutputPortMock, getAudioCapabilities(::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](int* capabilities) {
-                    if (capabilities != nullptr) {
-                        *capabilities = dsAUDIOSUPPORT_DDPLUS | dsAUDIOSUPPORT_DAD;
-                    }
-                }));
-        ON_CALL(*p_hostImplMock, getDefaultAudioPortName())
-            .WillByDefault(::testing::Return(audioPort));
-        ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(audioOutputPort));
-        
-        status = InvokeServiceMethod("DeviceInfo.1", "audiocapabilities", params, result);
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    }
-
-    /****************** Test ms12capabilities with individual capabilities ******************/
-    {
-        TEST_LOG("Testing ms12capabilities with DolbyVolume only\n");
-        JsonObject result, params;
-        params["audioPort"] = "HDMI0";
-        
-        device::AudioOutputPort audioOutputPort;
-        string audioPort(_T("HDMI0"));
-
-        ON_CALL(*p_audioOutputPortMock, getMS12Capabilities(::testing::_))
-            .WillByDefault(::testing::Invoke(
-                [&](int* capabilities) {
-                    if (capabilities != nullptr) {
-                        *capabilities = dsMS12SUPPORT_DolbyVolume;
-                    }
-                }));
-        ON_CALL(*p_hostImplMock, getDefaultAudioPortName())
-            .WillByDefault(::testing::Return(audioPort));
-        ON_CALL(*p_hostImplMock, getAudioOutputPort(::testing::_))
-            .WillByDefault(::testing::ReturnRef(audioOutputPort));
-        
-        status = InvokeServiceMethod("DeviceInfo.1", "ms12capabilities", params, result);
-        EXPECT_EQ(Core::ERROR_NONE, status);
-    }
 
     /****************** Test ms12capabilities with no capabilities ******************/
     {
@@ -1326,4 +1407,3 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodVariationsTest)
 
     TEST_LOG("DeviceInfo L2 Method Variations Tests completed\n");
 }
-

@@ -335,12 +335,12 @@ namespace WPEFramework {
 	    isResCacheUpdated = false;
             isDisplayConnectedCacheUpdated = false;
             isStbHDRcapabilitiesCache = false;
-	    audioPortEnableStatusMap["IDLR0"]= false;
-	    audioPortEnableStatusMap["HDMI0"]= false;
-	    audioPortEnableStatusMap["SPDIF0"]= false;
-	    audioPortEnableStatusMap["SPEAKER0"]= false;
-	    audioPortEnableStatusMap["HDMI_ARC0"]= false;
-	    audioPortEnableStatusMap["HEADPHONE0"]= false;
+	    audioPortEnableStatusMap["IDLR0"] = false;
+	    audioPortEnableStatusMap["HDMI0"] = false;
+	    audioPortEnableStatusMap["SPDIF0"] = false;
+	    audioPortEnableStatusMap["SPEAKER0"] = false;
+	    audioPortEnableStatusMap["HDMI_ARC0"] = false;
+	    audioPortEnableStatusMap["HEADPHONE0"] = false;
 
 	   // m_AudioSentPoweronmsg = false;
         }

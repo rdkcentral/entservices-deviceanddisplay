@@ -531,6 +531,9 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 30);
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
+                // valid PowerModePreChangeComplete
+                status = powerManagerImpl->PowerModePreChangeComplete(clientId, transaction_id);
+                EXPECT_EQ(status, Core::ERROR_NONE);
 
                 wg.Done();
             }));
@@ -542,10 +545,6 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     wg.Wait();
-
-    // valid PowerModePreChangeComplete
-    status = powerManagerImpl->PowerModePreChangeComplete(clientId, transaction_id);
-    EXPECT_EQ(status, Core::ERROR_NONE);
 
     // some delay to destroy AckController after IModeChanged notification
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

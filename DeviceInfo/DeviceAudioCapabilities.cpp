@@ -44,35 +44,7 @@ namespace Plugin {
         }
     }
 
-    Core::hresult DeviceAudioCapabilities::SupportedAudioPorts(RPC::IStringIterator*& supportedAudioPorts) const
-    {
-        uint32_t result = Core::ERROR_NONE;
-
-        std::list<string> list;
-
-        try {
-            const auto& aPorts = device::Host::getInstance().getAudioOutputPorts();
-            for (size_t i = 0; i < aPorts.size(); i++) {
-                list.emplace_back(aPorts.at(i).getName());
-            }
-        } catch (const device::Exception& e) {
-            TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
-            result = Core::ERROR_GENERAL;
-        } catch (const std::exception& e) {
-            TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
-            result = Core::ERROR_GENERAL;
-        } catch (...) {
-            result = Core::ERROR_GENERAL;
-        }
-
-        if (result == Core::ERROR_NONE) {
-            supportedAudioPorts = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
-        }
-
-        return result;
-    }
-
-    Core::hresult DeviceAudioCapabilities::AudioCapabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities) const
+    Core::hresult DeviceAudioCapabilities::AudioCapabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities, bool& success) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -111,12 +83,13 @@ namespace Plugin {
 
         if (result == Core::ERROR_NONE) {
             audioCapabilities = (Core::Service<RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator>>::Create<Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator>(list));
+            success = true;
         }
 
         return result;
     }
 
-    Core::hresult DeviceAudioCapabilities::MS12Capabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities) const
+    Core::hresult DeviceAudioCapabilities::MS12Capabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities, bool& success) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -149,12 +122,13 @@ namespace Plugin {
 
         if (result == Core::ERROR_NONE) {
             ms12Capabilities = (Core::Service<RPC::IteratorType<Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator>>::Create<Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator>(list));
+            success = true;
         }
 
         return result;
     }
 
-    Core::hresult DeviceAudioCapabilities::SupportedMS12AudioProfiles(const string& audioPort, RPC::IStringIterator*& supportedMS12AudioProfiles) const
+    Core::hresult DeviceAudioCapabilities::SupportedMS12AudioProfiles(const string& audioPort, RPC::IStringIterator*& supportedMS12AudioProfiles, bool& success) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -179,6 +153,7 @@ namespace Plugin {
 
         if (result == Core::ERROR_NONE) {
             supportedMS12AudioProfiles = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
+            success = true;
         }
 
         return result;

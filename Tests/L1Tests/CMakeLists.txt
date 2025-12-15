@@ -153,8 +153,6 @@ set (DEVICEINFO_INC
     ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceInfo/Implementation
     ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers
 )
-set (DEVICEINFO_SRC 
-    tests/test_FirmwareVersion.cpp)
 set (DEVICEINFO_LIBS 
     ${NAMESPACE}DeviceInfo 
  

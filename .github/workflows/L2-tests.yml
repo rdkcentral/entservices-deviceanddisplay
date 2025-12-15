@@ -622,6 +622,7 @@ jobs:
           lcov -c
           -o coverage.info
           -d build/entservices-deviceanddisplay
+          --rc geninfo_adjust_src_path="/DeviceInfo/Implementation => /DeviceInfo"
           &&
           lcov
           -r coverage.info
@@ -640,8 +641,6 @@ jobs:
           genhtml
           -o coverage
           -t "entservices-deviceanddisplay coverage"
-          --prefix $GITHUB_WORKSPACE/entservices-deviceanddisplay
-          --no-prefix
           filtered_coverage.info
 
       - name: Upload artifacts

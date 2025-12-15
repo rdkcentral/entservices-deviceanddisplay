@@ -379,14 +379,14 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
-          -DPLUGIN_SYSTEMMODE=ON
-          -DPLUGIN_SYSTEMSERVICES=ON
-          -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_DEVICEDIAGNOSTICS=ON
-          -DPLUGIN_DISPLAYSETTINGS=ON
-          -DPLUGIN_WAREHOUSE=ON
+          -DPLUGIN_SYSTEMMODE=OFF
+          -DPLUGIN_SYSTEMSERVICES=OFF
+          -DPLUGIN_POWERMANAGER=OFF
+          -DPLUGIN_DEVICEDIAGNOSTICS=OFF
+          -DPLUGIN_DISPLAYSETTINGS=OFF
+          -DPLUGIN_WAREHOUSE=OFF
           -DPLUGIN_DEVICEINFO=ON
-          -DPLUGIN_FRAMERATE=ON
+          -DPLUGIN_FRAMERATE=OFF
           -DUSE_THUNDER_R4=ON
           -DPLUGIN_L2Tests=ON
           -DRDK_SERVICE_L2_TEST=ON
@@ -640,7 +640,7 @@ jobs:
           genhtml
           -o coverage
           -t "entservices-deviceanddisplay coverage"
-          --prefix $GITHUB_WORKSPACE/entservices-infra
+          --prefix $GITHUB_WORKSPACE/entservices-deviceanddisplay
           --no-prefix
           filtered_coverage.info
 

@@ -640,6 +640,8 @@ jobs:
           genhtml
           -o coverage
           -t "entservices-deviceanddisplay coverage"
+          --prefix $GITHUB_WORKSPACE/entservices-infra
+          --no-prefix
           filtered_coverage.info
 
       - name: Upload artifacts

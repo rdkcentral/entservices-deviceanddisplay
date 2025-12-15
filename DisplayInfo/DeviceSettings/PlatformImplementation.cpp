@@ -71,9 +71,20 @@ public:
             device::Manager::Initialize();
             TRACE(Trace::Information, (_T("device::Manager::Initialize success")));
         }
+        // FIX(Coverity): Memory Safety - Catch specific exceptions
+        // Reason: Catching all exceptions (...) masks errors; catch specific types for better debugging
+        // Impact: No API signature changes. Improved error handling and logging.
+        catch(const device::Exception& err)
+        {
+           TRACE(Trace::Error, (_T("device::Manager::Initialize failed: code=%d, message=%s"), err.getCode(), err.what()));
+        }
+        catch(const std::exception& e)
+        {
+           TRACE(Trace::Error, (_T("device::Manager::Initialize failed: %s"), e.what()));
+        }
         catch(...)
         {
-           TRACE(Trace::Error, (_T("device::Manager::Initialize failed")));
+           TRACE(Trace::Error, (_T("device::Manager::Initialize failed with unknown exception")));
         }
     }
 

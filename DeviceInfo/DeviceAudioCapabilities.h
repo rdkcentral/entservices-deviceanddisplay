@@ -19,12 +19,8 @@
 
 #pragma once
 
-#include "../Module.h"
-#ifdef USE_THUNDER_R4
+#include "Module.h"
 #include <interfaces/IDeviceInfo.h>
-#else
-#include <interfaces/IDeviceInfo2.h>
-#endif /* USE_THUNDER_R4 */
 
 namespace WPEFramework {
 namespace Plugin {
@@ -42,10 +38,9 @@ namespace Plugin {
 
     private:
         // IDeviceAudioCapabilities interface
-        Core::hresult SupportedAudioPorts(RPC::IStringIterator*& supportedAudioPorts) const override;
-        Core::hresult AudioCapabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities) const override;
-        Core::hresult MS12Capabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities) const override;
-        Core::hresult SupportedMS12AudioProfiles(const string& audioPort, RPC::IStringIterator*& supportedMS12AudioProfiles) const override;
+        Core::hresult AudioCapabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& audioCapabilities, bool& success) const override;
+        Core::hresult MS12Capabilities(const string& audioPort, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& ms12Capabilities, bool& success) const override;
+        Core::hresult SupportedMS12AudioProfiles(const string& audioPort, RPC::IStringIterator*& supportedMS12AudioProfiles, bool& success) const override;
     };
 }
 }

@@ -150,7 +150,7 @@ add_plugin_test_ex(PLUGIN_DISPLAYINFO "${DISPLAYINFO_SRC}" "${DISPLAYINFO_INC}" 
 # PLUGIN_DEVICEINFO
 set (DEVICEINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 set (DEVICEINFO_LIBS ${NAMESPACE}DeviceInfo ${NAMESPACE}DeviceInfoImplementation)
-add_plugin_test_ex(PLUGIN_DeviceInfo tests/test_DeviceInfo.cpp "${DEVICEINFO_INC}" "${DEVICEINFO_LIBS}")
+add_plugin_test_ex(PLUGIN_DEVICEINFO tests/test_DeviceInfo.cpp "${DEVICEINFO_INC}" "${DEVICEINFO_LIBS}")
 
 add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 

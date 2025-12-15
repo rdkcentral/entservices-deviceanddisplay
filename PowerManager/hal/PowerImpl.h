@@ -19,6 +19,7 @@
 #pragma once
 
 #include <cstdint>
+#include <unistd.h>
 
 #include "plat_power.h"
 
@@ -203,7 +204,7 @@ class PowerImpl : public hal::power::IPlatform {
         }
     }
 
-    uint32_t SetWakeupSrc(WakeupSrcType wakeSrcType, bool enabled, bool& supported)
+    uint32_t SetWakeupSrc(WakeupSrcType wakeSrcType, bool enabled, bool& supported) override
     {
         pmStatus_t result = PLAT_API_SetWakeupSrc(conv(wakeSrcType), enabled);
 
@@ -217,7 +218,7 @@ class PowerImpl : public hal::power::IPlatform {
         return retCode;
     }
 
-    uint32_t GetWakeupSrc(WakeupSrcType wakeSrcType, bool& enabled, bool& supported) const
+    uint32_t GetWakeupSrc(WakeupSrcType wakeSrcType, bool& enabled, bool& supported) const override
     {
         pmStatus_t result = PLAT_API_GetWakeupSrc(conv(wakeSrcType), &enabled);
 
@@ -230,16 +231,39 @@ class PowerImpl : public hal::power::IPlatform {
 
         return retCode;
     }
+private:
+    bool m_isPlatformInitialized;
 
 public:
     PowerImpl()
-        : _powerMode(0)
     {
-        // Initialize the platform
-        pmStatus_t result = PLAT_INIT();
-        if (PWRMGR_SUCCESS != result) {
-            LOGERR("Failed to initialize power manager: %s", str(result));
+        pmStatus_t result = PWRMGR_SUCCESS;
+        unsigned int retryCount = 1;
+        m_isPlatformInitialized = false;
+        do {
+            try{
+                // Initialize the platform
+                result = PLAT_INIT();
+                if (PWRMGR_SUCCESS != result) {
+                    LOGERR("Failed to initialize power manager:[%s]", str(result));
+                } else {
+                    m_isPlatformInitialized = true;
+                    LOGINFO("PowerManager initialized successfully.");
+                }
+            }
+            catch (const std::exception& e) {
+                LOGERR("Exception occurred during PLAT_INIT:[%s]", e.what());
+            }
+            catch (...) {
+                LOGERR("Unknown exception occurred during PLAT_INIT");
+            }
+
+            if (!m_isPlatformInitialized) {
+                LOGINFO("Retrying power manager PLAT_INIT... (%d/35)", retryCount);
+                usleep(100000); // Sleep for 100ms before retrying
+            }
         }
+        while ((!m_isPlatformInitialized) && (retryCount++ < 35));
     }
 
     virtual ~PowerImpl()
@@ -282,67 +306,4 @@ public:
 
         return retCode;
     }
-
-    virtual uint32_t SetWakeupSrcConfig(const int powerMode, const int wakeSrcMasks, int config) override
-    {
-        bool failed = false;
-
-        _powerMode = powerMode;
-
-        for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
-            WakeupSrcType wakeupSrc = (WakeupSrcType)mask;
-            bool supported = false;
-
-            if (wakeupSrc & wakeSrcMasks) {
-                int result = SetWakeupSrc(wakeupSrc, bool(config & wakeupSrc), supported);
-                if (WPEFramework::Core::ERROR_NONE != result && supported) {
-                    // latch failed status
-                    failed = true;
-                }
-            }
-        }
-
-        uint32_t retCode = failed ? WPEFramework::Core::ERROR_GENERAL : WPEFramework::Core::ERROR_NONE;
-
-        LOGINFO("PowerMode: %d, config: %d, src: %d, retCode: %d", powerMode, config, wakeSrcMasks, retCode);
-        return retCode;
-    }
-
-    virtual uint32_t GetWakeupSrcConfig(int& powerMode, int& wakeupSrcMasks, int& config) const override
-    {
-        bool failed = false;
-
-        for (int mask = WakeupSrcType::WAKEUP_SRC_VOICE; mask < WakeupSrcType::WAKEUP_SRC_MAX; mask <<= 1) {
-            WakeupSrcType wakeupSrc = (WakeupSrcType)mask;
-
-            bool supported = false, enabled = false;
-            uint32_t result = GetWakeupSrc(wakeupSrc, enabled, supported);
-            if (WPEFramework::Core::ERROR_NONE == result) {
-                // success
-                wakeupSrcMasks |= wakeupSrc;
-                if (enabled) {
-                    // enabled
-                    config |= wakeupSrc;
-                } else {
-                    // disabled
-                    config &= ~wakeupSrc;
-                }
-            } else if (!supported) {
-                // not supported
-                wakeupSrcMasks &= ~wakeupSrc;
-            } else {
-                // failed, latch failed status
-                failed = true;
-            }
-        }
-        powerMode = _powerMode;
-        uint32_t retCode = failed ? WPEFramework::Core::ERROR_GENERAL : WPEFramework::Core::ERROR_NONE;
-
-        LOGINFO("PowerMode: %d, config: %d, src: %d, retCode: %d", powerMode, config, wakeupSrcMasks, retCode);
-
-        return retCode;
-    }
-
-private:
-    int _powerMode;
 };

@@ -1,225 +1,189 @@
 /*
- * If not stated otherwise in this file or this component's LICENSE file the
- * following copyright and licenses apply:
- *
- * Copyright 2020 RDK Management
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* If not stated otherwise in this file or this component's LICENSE file the
+* following copyright and licenses apply:
+*
+* Copyright 2025 RDK Management
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
 #include "DeviceInfo.h"
-#include <time.h>
 
 #define API_VERSION_NUMBER_MAJOR 1
-#define API_VERSION_NUMBER_MINOR 1
+#define API_VERSION_NUMBER_MINOR 0
 #define API_VERSION_NUMBER_PATCH 0
 
-namespace WPEFramework {
-namespace {
-    static Plugin::Metadata<Plugin::DeviceInfo> metadata(
-        // Version (Major, Minor, Patch)
-        API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
-        // Preconditions
-        {},
-        // Terminations
-        {},
-        // Controls
-        {}
-    );
-}
+namespace WPEFramework
+{
 
-namespace Plugin {
+    namespace {
 
-    SERVICE_REGISTRATION(DeviceInfo, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
+        static Plugin::Metadata<Plugin::DeviceInfo> metadata(
+            // Version (Major, Minor, Patch)
+            API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
+            // Preconditions
+            {},
+            // Terminations
+            {},
+            // Controls
+            {}
+        );
+    }
 
-    static Core::ProxyPoolType<Web::JSONBodyType<DeviceInfo::Data>> jsonResponseFactory(4);
-
-    /* virtual */ const string DeviceInfo::Initialize(PluginHost::IShell* service)
+    namespace Plugin
     {
-        ASSERT(_service == nullptr);
-        ASSERT(service != nullptr);
 
-        ASSERT(_subSystem == nullptr);
+        /*
+         *Register DeviceInfo module as wpeframework plugin
+         **/
+        SERVICE_REGISTRATION(DeviceInfo, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
-        _skipURL = static_cast<uint8_t>(service->WebPrefix().length());
-        _subSystem = service->SubSystems();
+    DeviceInfo::DeviceInfo() : _service(nullptr), _connectionId(0), _deviceInfo(nullptr), _deviceAudioCapabilities(nullptr), _deviceVideoCapabilities(nullptr), configure(nullptr)
+    {
+        SYSLOG(Logging::Startup, (_T("DeviceInfo Constructor")));
+    }
+
+    DeviceInfo::~DeviceInfo()
+    {
+        SYSLOG(Logging::Shutdown, (string(_T("DeviceInfo Destructor"))));
+    }
+
+    const string DeviceInfo::Initialize(PluginHost::IShell* service)
+    {
+        string message ="";
+        ASSERT(nullptr != service);
+        ASSERT(nullptr == _service);
+        ASSERT(nullptr == _deviceInfo);
+        ASSERT(0 == _connectionId);
+
+        SYSLOG(Logging::Startup, (_T("DeviceInfo::Initialize: PID=%u"), getpid()));
+
         _service = service;
+        _service->AddRef();
 
-        ASSERT(_subSystem != nullptr);
-
-        _deviceInfo = service->Root<Exchange::IDeviceInfo>(_connectionId, 2000, _T("DeviceInfoImplementation"));
+        _deviceInfo = _service->Root<Exchange::IDeviceInfo>(_connectionId, 2000, _T("DeviceInfoImplementation"));
         _deviceAudioCapabilities = service->Root<Exchange::IDeviceAudioCapabilities>(_connectionId, 2000, _T("DeviceAudioCapabilities"));
         _deviceVideoCapabilities = service->Root<Exchange::IDeviceVideoCapabilities>(_connectionId, 2000, _T("DeviceVideoCapabilities"));
-        _firmwareVersion = service->Root<Exchange::IFirmwareVersion>(_connectionId, 2000, _T("FirmwareVersion"));
 
         ASSERT(_deviceInfo != nullptr);
         ASSERT(_deviceAudioCapabilities != nullptr);
         ASSERT(_deviceVideoCapabilities != nullptr);
-        ASSERT(_firmwareVersion != nullptr);
 
-        // On success return empty, to indicate there is no error text.
-
-        return ((_subSystem != nullptr)
-                   && (_deviceInfo != nullptr)
-                   && (_deviceAudioCapabilities != nullptr)
-                   && (_deviceVideoCapabilities != nullptr)
-                   && (_firmwareVersion != nullptr))
-            ? EMPTY_STRING
-            : _T("Could not retrieve System Information.");
-    }
-
-    /* virtual */ void DeviceInfo::Deinitialize(PluginHost::IShell* service)
-    {
-        ASSERT(_service == service);
-
-        _deviceInfo->Release();
-        _deviceAudioCapabilities->Release();
-        _deviceVideoCapabilities->Release();
-        _firmwareVersion->Release();
-
-        if (_subSystem != nullptr) {
-            _subSystem->Release();
-            _subSystem = nullptr;
-        }
-
-        _service = nullptr;
-    }
-
-    /* virtual */ string DeviceInfo::Information() const
-    {
-        // No additional info to report.
-        return (string());
-    }
-
-    /* virtual */ void DeviceInfo::Inbound(Web::Request& /* request */)
-    {
-    }
-
-    /* virtual */ Core::ProxyType<Web::Response> DeviceInfo::Process(const Web::Request& request)
-    {
-        ASSERT(_skipURL <= request.Path.length());
-
-        Core::ProxyType<Web::Response> result(PluginHost::IFactories::Instance().Response());
-
-        // By default, we assume everything works..
-        result->ErrorCode = Web::STATUS_OK;
-        result->Message = "OK";
-
-        // <GET> - currently, only the GET command is supported, returning system info
-        if (request.Verb == Web::Request::HTTP_GET) {
-
-            Core::ProxyType<Web::JSONBodyType<Data>> response(jsonResponseFactory.Element());
-
-            Core::TextSegmentIterator index(Core::TextFragment(request.Path, _skipURL, static_cast<uint32_t>(request.Path.length()) - _skipURL), false, '/');
-
-            // Always skip the first one, it is an empty part because we start with a '/' if there are more parameters.
-            index.Next();
-
-            if (index.Next() == false) {
-                AddressInfo(response->Addresses);
-                SysInfo(response->SystemInfo);
-                SocketPortInfo(response->Sockets);
-            } else if (index.Current() == "Adresses") {
-                AddressInfo(response->Addresses);
-            } else if (index.Current() == "System") {
-                SysInfo(response->SystemInfo);
-            } else if (index.Current() == "Sockets") {
-                SocketPortInfo(response->Sockets);
-            }
-            // TODO RB: I guess we should do something here to return other info (e.g. time) as well.
-
-            result->ContentType = Web::MIMETypes::MIME_JSON;
-#ifndef USE_THUNDER_R4
-            result->Body(Core::proxy_cast<Web::IBody>(response));
-#else
-            result->Body(Core::ProxyType<Web::IBody>(response));
-#endif /* USE_THUNDER_R4 */
-        } else {
-            result->ErrorCode = Web::STATUS_BAD_REQUEST;
-            result->Message = _T("Unsupported request for the [DeviceInfo] service.");
-        }
-
-        return result;
-    }
-
-    void DeviceInfo::SysInfo(JsonData::DeviceInfo::SysteminfoData& systemInfo) const
-    {
-        string serialNumber;
-	struct timespec currentTime{};
-
-        Core::SystemInfo& singleton(Core::SystemInfo::Instance());
-	
-	clock_gettime(CLOCK_REALTIME, &currentTime);
-	systemInfo.Time = Core::Time(currentTime).ToRFC1123(true);
-
-#if ((THUNDER_VERSION >= 4) && (THUNDER_VERSION_MINOR >= 4))
-	systemInfo.Version = _subSystem->Version() + _T("#") + _subSystem->BuildTreeHash();
-#else
-	systemInfo.Version = _service->Version() + _T("#") + _subSystem->BuildTreeHash();
-#endif
-        systemInfo.Uptime = singleton.GetUpTime();
-        systemInfo.Freeram = singleton.GetFreeRam();
-        systemInfo.Totalram = singleton.GetTotalRam();
-        systemInfo.Totalswap = singleton.GetTotalSwap();
-        systemInfo.Freeswap = singleton.GetFreeSwap();
-        systemInfo.Devicename = singleton.GetHostName();
-        systemInfo.Cpuload = Core::NumberType<uint32_t>(static_cast<uint32_t>(singleton.GetCpuLoad())).Text();
-
-        auto result = _deviceInfo->SerialNumber(serialNumber);
-        if (result == Core::ERROR_NONE) {
-            systemInfo.Serialnumber = serialNumber;
-        }
-
-        auto cpuloadavg = singleton.GetCpuLoadAvg();
-        if (cpuloadavg != nullptr) {
-            systemInfo.Cpuloadavg.Avg1min = *(cpuloadavg);
-            if (++cpuloadavg != nullptr) {
-                systemInfo.Cpuloadavg.Avg5min = *(cpuloadavg);
-                if (++cpuloadavg != nullptr) {
-                    systemInfo.Cpuloadavg.Avg15min = *(cpuloadavg);
+        if(nullptr != _deviceInfo && nullptr != _deviceAudioCapabilities && nullptr != _deviceVideoCapabilities)
+        {
+            configure = _deviceInfo->QueryInterface<Exchange::IConfiguration>();
+            if (configure != nullptr)
+            {
+                uint32_t result = configure->Configure(_service);
+                if(result != Core::ERROR_NONE)
+                {
+                    message = _T("DeviceInfo could not be configured");
                 }
             }
+            else
+            {
+                message = _T("DeviceInfo implementation did not provide a configuration interface");
+            }
+            // Invoking Plugin API register to wpeframework
+            Exchange::JDeviceInfo::Register(*this, _deviceInfo);
+            Exchange::JDeviceAudioCapabilities::Register(*this, _deviceAudioCapabilities);
+            Exchange::JDeviceVideoCapabilities::Register(*this, _deviceVideoCapabilities);
         }
+        else
+        {
+            SYSLOG(Logging::Startup, (_T("DeviceInfo::Initialize: Failed to initialise DeviceInfo plugin")));
+            message = _T("DeviceInfo plugin could not be initialised");
+        }
+
+        // On success return empty, to indicate there is no error text.
+        return message;
     }
 
-    void DeviceInfo::AddressInfo(Core::JSON::ArrayType<JsonData::DeviceInfo::AddressesData>& addressInfo) const
+    void DeviceInfo::Deinitialize(PluginHost::IShell* service)
     {
-        // Get the point of entry on WPEFramework..
-        Core::AdapterIterator interfaces;
+        ASSERT(_service == service);
+        ASSERT(_deviceInfo != nullptr);
+        ASSERT(_deviceAudioCapabilities != nullptr);
+        ASSERT(_deviceVideoCapabilities != nullptr);
 
-        while (interfaces.Next() == true) {
+        SYSLOG(Logging::Shutdown, (string(_T("DeviceInfo::Deinitialize"))));
 
-            JsonData::DeviceInfo::AddressesData newElement;
-            newElement.Name = interfaces.Name();
-            newElement.Mac = interfaces.MACAddress(':');
-            JsonData::DeviceInfo::AddressesData& element(addressInfo.Add(newElement));
+        if (nullptr != _deviceInfo && nullptr != _deviceAudioCapabilities && nullptr != _deviceVideoCapabilities)
+        {
+            Exchange::JDeviceAudioCapabilities::Unregister(*this);
+            _deviceAudioCapabilities->Release();
+            _deviceAudioCapabilities = nullptr;
 
-            // get an interface with a public IP address, then we will have a proper MAC address..
-            Core::IPV4AddressIterator selectedNode(interfaces.IPV4Addresses());
+            Exchange::JDeviceVideoCapabilities::Unregister(*this);
+            _deviceVideoCapabilities->Release();
+            _deviceVideoCapabilities = nullptr;
 
-            while (selectedNode.Next() == true) {
-                Core::JSON::String nodeName;
-                nodeName = selectedNode.Address().HostAddress();
+            Exchange::JDeviceInfo::Unregister(*this);
 
-                element.Ip.Add(nodeName);
+            configure->Release();
+
+            // Stop processing:
+            RPC::IRemoteConnection* connection = service->RemoteConnection(_connectionId);
+            VARIABLE_IS_NOT_USED uint32_t result = _deviceInfo->Release();
+
+            _deviceInfo = nullptr;
+
+            // It should have been the last reference we are releasing,
+            // so it should endup in a DESTRUCTION_SUCCEEDED, if not we
+            // are leaking...
+            ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
+
+            // If this was running in a (container) process...
+            if (nullptr != connection)
+            {
+                // Lets trigger the cleanup sequence for
+                // out-of-process code. Which will guard
+                // that unwilling processes, get shot if
+                // not stopped friendly :-)
+                try
+                {
+                    connection->Terminate();
+                    // Log success if needed
+                    LOGWARN("Connection terminated successfully.");
+                }
+                catch (const std::exception& e)
+                {
+                    std::string errorMessage = "Failed to terminate connection: ";
+                    errorMessage += e.what();
+                    LOGWARN("%s",errorMessage.c_str());
+               }
+
+               connection->Release();
             }
         }
+
+        _connectionId = 0;
+        _service->Release();
+        _service = nullptr;
+        SYSLOG(Logging::Shutdown, (string(_T("Deviceinfo de-initialised"))));
     }
 
-    void DeviceInfo::SocketPortInfo(JsonData::DeviceInfo::SocketinfoData& socketPortInfo) const
+    string DeviceInfo::Information() const
     {
-        socketPortInfo.Runs = Core::ResourceMonitor::Instance().Runs();
+        return "The DeviceInfo plugin allows retrieving of various device-related information.";
     }
 
+    void DeviceInfo::Deactivated(RPC::IRemoteConnection* connection)
+    {
+        if (connection->Id() == _connectionId) {
+            ASSERT(nullptr != _service);
+            Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
+        }
+    }
 } // namespace Plugin
 } // namespace WPEFramework

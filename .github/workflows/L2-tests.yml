@@ -228,6 +228,9 @@ jobs:
           rdk/ds/manager.hpp
           rdk/ds/dsTypes.h
           rdk/ds/dsUtl.h
+          rdk/ds/audioOutputPortType.hpp
+          rdk/ds/audioOutputPortConfig.hpp
+          rdk/ds/pixelResolution.hpp
           rdk/iarmbus/libIARM.h
           rdk/iarmbus/libIBus.h
           rdk/iarmbus/libIBusDaemon.h
@@ -239,12 +242,15 @@ jobs:
           rbus.h
           libudev.h
           libusb.h
+          drm.h
+          drm_mode.h
           essos-resmgr.h
           systemservices/proc/readproc.h
           systemservices/secure_wrapper.h
           systemaudioplatform.h
           maintenanceMGR.h
           pkg.h
+          edid-parser.hpp
           btmgr.h
           tvError.h
           tvTypes.h
@@ -260,7 +266,7 @@ jobs:
           rdk/ds/VideoDFC.hpp
           dsRpc.h
           &&
-          cp -r /usr/include/gstreamer-1.0/gst /usr/include/glib-2.0/* /usr/lib/x86_64-linux-gnu/glib-2.0/include/* /usr/local/include/trower-base64/base64.h .
+          cp -r /usr/include/gstreamer-1.0/gst /usr/include/glib-2.0/* /usr/lib/x86_64-linux-gnu/glib-2.0/include/* /usr/local/include/trower-base64/base64.h /usr/include/libdrm/drm.h /usr/include/libdrm/drm_mode.h /usr/include/xf86drm.h .
 
       - name: Set clang toolchain
         if: ${{ matrix.compiler == 'clang' }}
@@ -335,6 +341,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
           -I $GITHUB_WORKSPACE/entservices-deviceanddisplay/helpers
           -I $GITHUB_WORKSPACE/install/usr/include
+          -I ./usr/include/libdrm
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
@@ -371,6 +378,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_Udev=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
+          -DPLUGIN_SYSTEMMODE=ON
           -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_DEVICEDIAGNOSTICS=ON
@@ -383,7 +391,7 @@ jobs:
           -DDS_FOUND=ON
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           &&
-          cmake --build build/entservices-deviceanddisplay -j8
+          cmake --build build/entservices-deviceanddisplay
           &&
           cmake --install build/entservices-deviceanddisplay
 
@@ -415,6 +423,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/systemservices/proc
           -I $GITHUB_WORKSPACE/entservices-deviceanddisplay/helpers
           -I $GITHUB_WORKSPACE/install/usr/include
+          -I ./usr/include/libdrm
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h

@@ -110,6 +110,10 @@ DeviceInfo_L2test::DeviceInfo_L2test()
                 return WDMP_FAILURE;
             }));
 
+    EXPECT_CALL(*p_managerImplMock, Initialize())
+        .Times(::testing::AnyNumber())
+        .WillRepeatedly(::testing::Return());
+
     /* Activate plugin in constructor */
     status = ActivateService("DeviceInfo");
     EXPECT_EQ(Core::ERROR_NONE, status);

@@ -56,8 +56,8 @@ const string webPrefix = _T("/Service/DeviceInfo");
 static void removeFile(const char* fileName)
 {
     // Use sudo for protected files
-    if (strcmp(fileName, "/etc/device.properties") == 0 || strcmp(fileName, "/etc/authService.conf") == 0 || strcmp(fileName, "/opt/www/authService/partnerId3.dat") == 0 \
-        strcmp(fileName, "/tmp/.manufacturer") == 0 || strcmp(fileName, "/version.txt") == 0) {
+    if (strcmp(fileName, "/etc/device.properties") == 0 || strcmp(fileName, "/etc/authService.conf") == 0 || strcmp(fileName, "/opt/www/authService/partnerId3.dat") == 0 || \
+    strcmp(fileName, "/tmp/.manufacturer") == 0 || strcmp(fileName, "/version.txt") == 0) {
         char cmd[256];
         snprintf(cmd, sizeof(cmd), "sudo rm -f %s", fileName);
         int ret = system(cmd);

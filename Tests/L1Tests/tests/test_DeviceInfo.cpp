@@ -48,8 +48,8 @@ using namespace WPEFramework;
 using ::testing::NiceMock;
 using ::testing::_;
 using ::testing::Return;
-using ::testing::Invoke;
 using ::testing::ReturnRef;
+using ::testing::Invoke;
 
 namespace {
 const string webPrefix = _T("/Service/DeviceInfo");
@@ -76,7 +76,18 @@ protected:
     RfcApiImplMock* p_rfcApiImplMock = nullptr;
     NiceMock<ServiceMock> service;
     NiceMock<COMLinkMock> comLinkMock;
-   // Core::Sink<NiceMock<SystemInfo>> subSystem;
+    //Core::Sink<NiceMock<SystemInfo>> subSystem;
+
+    void TearDown() override
+    {
+        // Clean up files created during the test
+        // Ignore errors if files don't exist
+        remove("/etc/device.properties");
+        remove("/etc/authService.conf");
+        remove("/tmp/.manufacturer");
+        remove("/version.txt");
+        remove("/opt/www/authService/partnerId3.dat");
+    }
 
     DeviceInfoTest()
         : plugin(Core::ProxyType<Plugin::DeviceInfo>::Create())
@@ -110,6 +121,7 @@ protected:
         p_rfcApiImplMock = new NiceMock<RfcApiImplMock>;
         RfcApi::setImpl(p_rfcApiImplMock);
 
+        // Create implementation objects
         deviceInfoImplementation = Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
         deviceAudioCapabilities = Core::ProxyType<Plugin::DeviceAudioCapabilities>::Create();
         deviceVideoCapabilities = Core::ProxyType<Plugin::DeviceVideoCapabilities>::Create();
@@ -118,6 +130,15 @@ protected:
             .WillByDefault(Return("{\"root\":{\"mode\":\"Off\"}}"));
         ON_CALL(service, WebPrefix())
             .WillByDefault(Return(webPrefix));
+#if 0
+        ON_CALL(service, SubSystems())
+            .WillByDefault(Invoke(
+                [&]() {
+                    PluginHost::ISubSystem* result = (&subSystem);
+                    result->AddRef();
+                    return result;
+                }));
+#endif
         ON_CALL(service, COMLink())
             .WillByDefault(Return(&comLinkMock));
 
@@ -148,15 +169,7 @@ protected:
                     return nullptr;
                 }));
 #endif
-#if 0
-        ON_CALL(service, SubSystems())
-            .WillByDefault(Invoke(
-                [&]() {
-                    PluginHost::ISubSystem* result = (&subSystem);
-                    result->AddRef();
-                    return result;
-                }));
-#endif
+
         EXPECT_EQ(string(""), plugin->Initialize(&service));
     }
 
@@ -289,13 +302,10 @@ TEST_F(DeviceInfoTest, Sku_Success_FromFile)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"sku\":\"SKU-TEST-001\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Sku_Success_FromMFR)
 {
-    remove("/etc/device.properties");
     SetUpMFRCall("MFR-SKU-002", mfrSERIALIZED_TYPE_MODELNAME);
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
@@ -304,7 +314,6 @@ TEST_F(DeviceInfoTest, Sku_Success_FromMFR)
 
 TEST_F(DeviceInfoTest, Sku_Success_FromRFC)
 {
-    remove("/etc/device.properties");
     ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
     
@@ -316,7 +325,6 @@ TEST_F(DeviceInfoTest, Sku_Success_FromRFC)
 
 TEST_F(DeviceInfoTest, Sku_Failure_AllSourcesFail)
 {
-    remove("/etc/device.properties");
     ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
     
@@ -345,13 +353,10 @@ TEST_F(DeviceInfoTest, Make_Success_FromFile)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("make"), _T(""), response));
     EXPECT_EQ(response, _T("{\"make\":\"FileManufacturer\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Make_Failure_BothSourcesFail)
 {
-    remove("/etc/device.properties");
     ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
 
@@ -366,8 +371,6 @@ TEST_F(DeviceInfoTest, Model_Success_FromFile)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"model\":\"TestModel123\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Model_Success_WithQuotes)
@@ -378,13 +381,10 @@ TEST_F(DeviceInfoTest, Model_Success_WithQuotes)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"model\":\"Test Model 456\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Model_Failure_FileNotFound)
 {
-    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelname"), _T(""), response));
 }
@@ -397,8 +397,6 @@ TEST_F(DeviceInfoTest, DeviceType_Success_IpTv)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpTv\"}"));
-
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Success_IpStb)
@@ -410,7 +408,6 @@ TEST_F(DeviceInfoTest, DeviceType_Success_IpStb)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpStb\"}"));
 
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Success_QamIpStb)
@@ -421,13 +418,10 @@ TEST_F(DeviceInfoTest, DeviceType_Success_QamIpStb)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"QamIpStb\"}"));
-
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_MediaClient)
 {
-    remove("/etc/authService.conf");
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=mediaclient\n";
     file.close();
@@ -435,39 +429,30 @@ TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_MediaClient)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpStb\"}"));
 
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Hybrid)
 {
-    remove("/etc/authService.conf");
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=hybrid\n";
     file.close();
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"QamIpStb\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Other)
 {
-    remove("/etc/authService.conf");
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=other\n";
     file.close();
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpTv\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Failure_BothFilesNotFound)
 {
-    remove("/etc/authService.conf");
-    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("devicetype"), _T(""), response));
 }
@@ -480,13 +465,10 @@ TEST_F(DeviceInfoTest, SocName_Success)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("socname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"socname\":\"BCM7218\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, SocName_Failure_FileNotFound)
 {
-    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("socname"), _T(""), response));
 }
@@ -499,13 +481,10 @@ TEST_F(DeviceInfoTest, DistributorId_Success_FromFile)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"distributorid\":\"PARTNER123\"}"));
-
-    remove("/opt/www/authService/partnerId3.dat");
 }
 
 TEST_F(DeviceInfoTest, DistributorId_Success_FromRFC)
 {
-    remove("/opt/www/authService/partnerId3.dat");
     SetUpRFCCall("RFCPARTNER456", "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId");
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
@@ -514,7 +493,6 @@ TEST_F(DeviceInfoTest, DistributorId_Success_FromRFC)
 
 TEST_F(DeviceInfoTest, DistributorId_Failure_BothSourcesFail)
 {
-    remove("/opt/www/authService/partnerId3.dat");
     ON_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
         .WillByDefault(Return(WDMP_FAILURE));
 
@@ -529,13 +507,10 @@ TEST_F(DeviceInfoTest, Brand_Success_FromTmpFile)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"brand\":\"TestBrand\"}"));
-
-    remove("/tmp/.manufacturer");
 }
 
 TEST_F(DeviceInfoTest, Brand_Success_FromMFR)
 {
-    remove("/tmp/.manufacturer");
     SetUpMFRCall("MFRBrand", mfrSERIALIZED_TYPE_MANUFACTURER);
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
@@ -544,7 +519,6 @@ TEST_F(DeviceInfoTest, Brand_Success_FromMFR)
 
 TEST_F(DeviceInfoTest, Brand_Failure_BothSourcesFail)
 {
-    remove("/tmp/.manufacturer");
     ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
 
@@ -559,8 +533,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Success_ValidPattern)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"22.3.0.0\"}"));
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, ReleaseVersion_Success_AnotherValidPattern)
@@ -571,8 +543,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Success_AnotherValidPattern)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"18.5.0.0\"}"));
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, ReleaseVersion_DefaultVersion_InvalidPattern)
@@ -584,12 +554,10 @@ TEST_F(DeviceInfoTest, ReleaseVersion_DefaultVersion_InvalidPattern)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
 
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, ReleaseVersion_DefaultVersion_FileNotFound)
 {
-    remove("/version.txt");
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
@@ -603,13 +571,10 @@ TEST_F(DeviceInfoTest, ChipSet_Success)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("chipset"), _T(""), response));
     EXPECT_EQ(response, _T("{\"chipset\":\"BCM7252S\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, ChipSet_Failure_FileNotFound)
 {
-    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("chipset"), _T(""), response));
 }
@@ -627,8 +592,6 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Success_AllFields)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"imagename\":\"TEST_IMAGE_V1\",\"sdk\":\"18.4\",\"mediarite\":\"9.0.1\",\"yocto\":\"dunfell\",\"pdri\":\"PDRI_1.2.3\"}"));
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Success_MissingOptionalFields)
@@ -642,8 +605,6 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Success_MissingOptionalFields)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"imagename\":\"TEST_IMAGE_V2\",\"sdk\":\"\",\"mediarite\":\"\",\"yocto\":\"\",\"pdri\":\"\"}"));
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Failure_ImageNameNotFound)
@@ -653,13 +614,10 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Failure_ImageNameNotFound)
     file.close();
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Failure_FileNotFound)
 {
-    remove("/version.txt");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
 }
@@ -790,7 +748,6 @@ TEST_F(DeviceInfoTest, SerialNumber_Negative_EmptyBuffer)
 
 TEST_F(DeviceInfoTest, Sku_Negative_FileReadException)
 {
-    remove("/etc/device.properties");
 
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillOnce(Invoke(
@@ -818,8 +775,6 @@ TEST_F(DeviceInfoTest, Sku_Negative_InvalidFileFormat)
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_TRUE(response.empty());
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Make_Negative_MFRThrowsException)
@@ -847,8 +802,6 @@ TEST_F(DeviceInfoTest, Make_Negative_InvalidFileFormat)
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("make"), _T(""), response));
     EXPECT_TRUE(response.empty());
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Model_Negative_EmptyFriendlyId)
@@ -859,13 +812,10 @@ TEST_F(DeviceInfoTest, Model_Negative_EmptyFriendlyId)
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_TRUE(response.empty());
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Model_Negative_FileAccessException)
 {
-    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_TRUE(response.empty());
@@ -879,7 +829,6 @@ TEST_F(DeviceInfoTest, DeviceType_Negative_InvalidDeviceType)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
 
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Negative_EmptyDeviceType)
@@ -890,7 +839,6 @@ TEST_F(DeviceInfoTest, DeviceType_Negative_EmptyDeviceType)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
 
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Negative_MalformedFile)
@@ -900,12 +848,9 @@ TEST_F(DeviceInfoTest, DeviceType_Negative_MalformedFile)
     file << "NO EQUAL SIGN\n";
     file.close();
 
-    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_TRUE(response.empty());
-
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, SocName_Negative_EmptySocValue)
@@ -917,7 +862,6 @@ TEST_F(DeviceInfoTest, SocName_Negative_EmptySocValue)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("socname"), _T(""), response));
     EXPECT_TRUE(response.empty());
 
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, SocName_Negative_MalformedFile)
@@ -930,7 +874,6 @@ TEST_F(DeviceInfoTest, SocName_Negative_MalformedFile)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("socname"), _T(""), response));
     EXPECT_TRUE(response.empty());
 
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, DistributorId_Negative_EmptyFile)
@@ -944,13 +887,10 @@ TEST_F(DeviceInfoTest, DistributorId_Negative_EmptyFile)
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("distributorid"), _T(""), response));
     EXPECT_TRUE(response.empty());
-
-    remove("/opt/www/authService/partnerId3.dat");
 }
 
 TEST_F(DeviceInfoTest, DistributorId_Negative_RFCThrowsException)
 {
-    remove("/opt/www/authService/partnerId3.dat");
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
         .WillOnce(Invoke(
@@ -974,13 +914,10 @@ TEST_F(DeviceInfoTest, Brand_Negative_BothSourcesEmpty)
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_TRUE(response.empty());
-
-    remove("/tmp/.manufacturer");
 }
 
 TEST_F(DeviceInfoTest, Brand_Negative_MFRThrowsException)
 {
-    remove("/tmp/.manufacturer");
 
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillOnce(Invoke(
@@ -1002,7 +939,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Negative_MalformedImageName)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
 
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, ReleaseVersion_Negative_SpecialCharacters)
@@ -1014,7 +950,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Negative_SpecialCharacters)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
 
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, ChipSet_Negative_EmptyChipsetValue)
@@ -1026,7 +961,6 @@ TEST_F(DeviceInfoTest, ChipSet_Negative_EmptyChipsetValue)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("chipset"), _T(""), response));
     EXPECT_TRUE(response.empty());
 
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, ChipSet_Negative_MalformedFile)
@@ -1039,7 +973,6 @@ TEST_F(DeviceInfoTest, ChipSet_Negative_MalformedFile)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("chipset"), _T(""), response));
     EXPECT_TRUE(response.empty());
 
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Negative_EmptyImageName)
@@ -1052,7 +985,6 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Negative_EmptyImageName)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_TRUE(response.empty());
 
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Negative_PDRICallThrowsException)
@@ -1071,7 +1003,6 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Negative_PDRICallThrowsException)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_TRUE(response.empty());
 
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Negative_MalformedVersionFile)
@@ -1084,7 +1015,6 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Negative_MalformedVersionFile)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_TRUE(response.empty());
 
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, DISABLE_SystemInfo_Negative_SerialNumberFails)
@@ -1188,8 +1118,6 @@ TEST_F(DeviceInfoTest, Sku_Positive_FileWithSpaces)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_TRUE(response.find("SKU WITH SPACES") != string::npos);
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Sku_Positive_FileWithQuotes)
@@ -1200,8 +1128,6 @@ TEST_F(DeviceInfoTest, Sku_Positive_FileWithQuotes)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_TRUE(response.find("QUOTED-SKU-001") != string::npos);
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Sku_Positive_MultipleLines)
@@ -1214,8 +1140,6 @@ TEST_F(DeviceInfoTest, Sku_Positive_MultipleLines)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"sku\":\"CORRECT_SKU\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Make_Positive_SpecialCharacters)
@@ -1251,8 +1175,6 @@ TEST_F(DeviceInfoTest, Model_Positive_MultiWordModel)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"model\":\"Ultra HD Smart TV 2024\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Model_Positive_AlphanumericWithDash)
@@ -1263,8 +1185,6 @@ TEST_F(DeviceInfoTest, Model_Positive_AlphanumericWithDash)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"model\":\"STB-X1-2024\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Positive_AllValidTypes)
@@ -1275,7 +1195,6 @@ TEST_F(DeviceInfoTest, DeviceType_Positive_AllValidTypes)
     file1.close();
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpTv\"}"));
-    remove("/etc/authService.conf");
 
     // Test IpStb
     std::ofstream file2("/etc/authService.conf");
@@ -1283,7 +1202,6 @@ TEST_F(DeviceInfoTest, DeviceType_Positive_AllValidTypes)
     file2.close();
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpStb\"}"));
-    remove("/etc/authService.conf");
 
     // Test QamIpStb
     std::ofstream file3("/etc/authService.conf");
@@ -1291,12 +1209,10 @@ TEST_F(DeviceInfoTest, DeviceType_Positive_AllValidTypes)
     file3.close();
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"QamIpStb\"}"));
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, DeviceType_Positive_FallbackToDeviceProperties)
 {
-    remove("/etc/authService.conf");
     
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=mediaclient\n";
@@ -1305,7 +1221,6 @@ TEST_F(DeviceInfoTest, DeviceType_Positive_FallbackToDeviceProperties)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpStb\"}"));
 
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, SocName_Positive_AlphanumericSoC)
@@ -1316,8 +1231,6 @@ TEST_F(DeviceInfoTest, SocName_Positive_AlphanumericSoC)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("socname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"socname\":\"BCM7218_V30\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, SocName_Positive_WithSpaces)
@@ -1328,8 +1241,6 @@ TEST_F(DeviceInfoTest, SocName_Positive_WithSpaces)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("socname"), _T(""), response));
     EXPECT_TRUE(response.find("BCM7271") != string::npos);
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, DistributorId_Positive_AlphanumericId)
@@ -1340,13 +1251,10 @@ TEST_F(DeviceInfoTest, DistributorId_Positive_AlphanumericId)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"distributorid\":\"PARTNER-123-XYZ\"}"));
-
-    remove("/opt/www/authService/partnerId3.dat");
 }
 
 TEST_F(DeviceInfoTest, DistributorId_Positive_RFCWithSpecialChars)
 {
-    remove("/opt/www/authService/partnerId3.dat");
     SetUpRFCCall("RFC_DIST_ID.001", "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId");
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
@@ -1361,13 +1269,10 @@ TEST_F(DeviceInfoTest, Brand_Positive_FileWithWhitespace)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_TRUE(response.find("BrandName") != string::npos);
-
-    remove("/tmp/.manufacturer");
 }
 
 TEST_F(DeviceInfoTest, Brand_Positive_MFRFallback)
 {
-    remove("/tmp/.manufacturer");
     SetUpMFRCall("FallbackBrand", mfrSERIALIZED_TYPE_MANUFACTURER);
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
@@ -1382,7 +1287,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Positive_VariousPatterns)
     file1.close();
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"22.1.0.0\"}"));
-    remove("/version.txt");
 
     // Test pattern 2: YYMM with 's'
     std::ofstream file2("/version.txt");
@@ -1390,7 +1294,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Positive_VariousPatterns)
     file2.close();
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"19.12.0.0\"}"));
-    remove("/version.txt");
 
     // Test pattern 3: Single digit month
     std::ofstream file3("/version.txt");
@@ -1398,7 +1301,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Positive_VariousPatterns)
     file3.close();
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"23.5.0.0\"}"));
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, ReleaseVersion_Positive_DefaultVersion)
@@ -1410,7 +1312,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_Positive_DefaultVersion)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
 
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, ChipSet_Positive_AlphanumericChipset)
@@ -1421,8 +1322,6 @@ TEST_F(DeviceInfoTest, ChipSet_Positive_AlphanumericChipset)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("chipset"), _T(""), response));
     EXPECT_EQ(response, _T("{\"chipset\":\"BCM7252S-B0\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, ChipSet_Positive_WithQuotes)
@@ -1433,8 +1332,6 @@ TEST_F(DeviceInfoTest, ChipSet_Positive_WithQuotes)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("chipset"), _T(""), response));
     EXPECT_TRUE(response.find("BCM7271T") != string::npos);
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Positive_PartialFields)
@@ -1451,8 +1348,6 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Positive_PartialFields)
     EXPECT_TRUE(response.find("\"imagename\":\"PARTIAL_IMAGE\"") != string::npos);
     EXPECT_TRUE(response.find("\"sdk\":\"20.1\"") != string::npos);
     EXPECT_TRUE(response.find("\"mediarite\":\"\"") != string::npos);
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Positive_AllOptionalFields)
@@ -1472,8 +1367,6 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Positive_AllOptionalFields)
     EXPECT_TRUE(response.find("\"mediarite\":\"10.1.5\"") != string::npos);
     EXPECT_TRUE(response.find("\"yocto\":\"kirkstone\"") != string::npos);
     EXPECT_TRUE(response.find("\"pdri\":\"PDRI_2.3.4\"") != string::npos);
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, DISABLE_SystemInfo_Positive_AllFieldsPresent)
@@ -1524,6 +1417,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_MultiplePortTypes)
     EXPECT_TRUE(response.find("\"SPDIF\"") != string::npos);
     EXPECT_TRUE(response.find("\"SPEAKER\"") != string::npos);
 }
+
 TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
 {
     device::List<device::AudioOutputPort> audioPorts;
@@ -1567,8 +1461,6 @@ TEST_F(DeviceInfoTest, Boundary_Sku_EmptyModelNum)
         .WillByDefault(Return(WDMP_FAILURE));
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelid"), _T(""), response));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Boundary_Make_SingleCharacter)
@@ -1588,8 +1480,6 @@ TEST_F(DeviceInfoTest, Boundary_Model_VeryLongName)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_TRUE(response.find(longModel) != string::npos);
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, Boundary_ChipSet_SingleCharacter)
@@ -1600,13 +1490,10 @@ TEST_F(DeviceInfoTest, Boundary_ChipSet_SingleCharacter)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("chipset"), _T(""), response));
     EXPECT_EQ(response, _T("{\"chipset\":\"A\"}"));
-
-    remove("/etc/device.properties");
 }
 
 TEST_F(DeviceInfoTest, EdgeCase_ReleaseVersion_MissingFile)
 {
-    remove("/version.txt");
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
@@ -1627,8 +1514,6 @@ TEST_F(DeviceInfoTest, EdgeCase_FirmwareVersion_OnlyImageName)
     EXPECT_TRUE(response.find("\"mediarite\":\"\"") != string::npos);
     EXPECT_TRUE(response.find("\"yocto\":\"\"") != string::npos);
     EXPECT_TRUE(response.find("\"pdri\":\"\"") != string::npos);
-
-    remove("/version.txt");
 }
 
 TEST_F(DeviceInfoTest, EdgeCase_DeviceType_CaseSensitivity)
@@ -1640,7 +1525,6 @@ TEST_F(DeviceInfoTest, EdgeCase_DeviceType_CaseSensitivity)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_EQ(response, _T("{\"devicetype\":\"IpStb\"}"));
 
-    remove("/etc/authService.conf");
 }
 
 TEST_F(DeviceInfoTest, EdgeCase_MultipleIARMCallsSequential)
@@ -1655,7 +1539,6 @@ TEST_F(DeviceInfoTest, EdgeCase_MultipleIARMCallsSequential)
     EXPECT_EQ(response, _T("{\"make\":\"MAKE001\"}"));
 
     SetUpMFRCall("BRAND001", mfrSERIALIZED_TYPE_MANUFACTURER);
-    remove("/tmp/.manufacturer");
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"brand\":\"BRAND001\"}"));
 }

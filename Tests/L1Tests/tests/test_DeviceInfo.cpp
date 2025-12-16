@@ -231,42 +231,24 @@ protected:
             p_iarmBusImplMock = nullptr;
         }
     }
-
-    void SetUpMFRCall(const char* expectedData, mfrSerializedType_t type)
-    {
-        ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-            .WillByDefault(Invoke(
-                [expectedData, type](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                    if (string(ownerName) == string(_T(IARM_BUS_MFRLIB_NAME)) &&
-                        string(methodName) == string(_T(IARM_BUS_MFRLIB_API_GetSerializedData))) {
-                        auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
-                        if (param->type == type) {
-                            param->bufLen = strlen(expectedData);
-                            strncpy(param->buffer, expectedData, sizeof(param->buffer));
-                            return IARM_RESULT_SUCCESS;
-                        }
-                    }
-                    return IARM_RESULT_INVALID_PARAM;
-                }));
-    }
-
-    void SetUpRFCCall(const char* expectedValue, const char* paramName)
-    {
-        ON_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
-            .WillByDefault(Invoke(
-                [expectedValue, paramName](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
-                    if (string(pcParameterName) == string(paramName)) {
-                        strncpy(pstParamData->value, expectedValue, sizeof(pstParamData->value));
-                        return WDMP_SUCCESS;
-                    }
-                    return WDMP_FAILURE;
-                }));
-    }
 };
 
 TEST_F(DeviceInfoTest, SerialNumber_Success_FromMFR)
 {
-    SetUpMFRCall("TEST12345", mfrSERIALIZED_TYPE_SERIALNUMBER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_SERIALNUMBER) {
+                        strncpy(param->buffer, "TEST12345", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
     EXPECT_EQ(response, _T("{\"serialnumber\":\"TEST12345\"}"));
@@ -274,10 +256,18 @@ TEST_F(DeviceInfoTest, SerialNumber_Success_FromMFR)
 
 TEST_F(DeviceInfoTest, SerialNumber_Success_FromRFC)
 {
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
     
-    SetUpRFCCall("RFC12345", "Device.DeviceInfo.SerialNumber");
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
+        .WillRepeatedly(Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                if (string(pcParameterName) == string("Device.DeviceInfo.SerialNumber")) {
+                    strncpy(pstParamData->value, "RFC12345", sizeof(pstParamData->value));
+                    return WDMP_SUCCESS;
+                }
+                return WDMP_FAILURE;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
     EXPECT_EQ(response, _T("{\"serialnumber\":\"RFC12345\"}"));
@@ -285,11 +275,11 @@ TEST_F(DeviceInfoTest, SerialNumber_Success_FromRFC)
 
 TEST_F(DeviceInfoTest, SerialNumber_Failure_BothSourcesFail)
 {
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
     
-    ON_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
-        .WillByDefault(Return(WDMP_FAILURE));
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
+        .WillRepeatedly(Return(WDMP_FAILURE));
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
 }
@@ -306,7 +296,23 @@ TEST_F(DeviceInfoTest, Sku_Success_FromFile)
 
 TEST_F(DeviceInfoTest, Sku_Success_FromMFR)
 {
-    SetUpMFRCall("MFR-SKU-002", mfrSERIALIZED_TYPE_MODELNAME);
+    // Ensure file doesn't exist before calling implementation
+    remove("/etc/device.properties");
+    
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (string(ownerName) == string(_T(IARM_BUS_MFRLIB_NAME)) &&
+                    string(methodName) == string(_T(IARM_BUS_MFRLIB_API_GetSerializedData))) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MODELNAME) {
+                        param->bufLen = strlen("MFR-SKU-002");
+                        strncpy(param->buffer, "MFR-SKU-002", sizeof(param->buffer));
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"sku\":\"MFR-SKU-002\"}"));
@@ -314,10 +320,21 @@ TEST_F(DeviceInfoTest, Sku_Success_FromMFR)
 
 TEST_F(DeviceInfoTest, Sku_Success_FromRFC)
 {
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    // Ensure file doesn't exist before calling implementation
+    remove("/etc/device.properties");
     
-    SetUpRFCCall("RFC-SKU-003", "Device.DeviceInfo.ModelName");
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
+    
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
+        .WillRepeatedly(Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                if (string(pcParameterName) == string("Device.DeviceInfo.ModelName")) {
+                    strncpy(pstParamData->value, "RFC-SKU-003", sizeof(pstParamData->value));
+                    return WDMP_SUCCESS;
+                }
+                return WDMP_FAILURE;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"sku\":\"RFC-SKU-003\"}"));
@@ -325,18 +342,33 @@ TEST_F(DeviceInfoTest, Sku_Success_FromRFC)
 
 TEST_F(DeviceInfoTest, Sku_Failure_AllSourcesFail)
 {
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    remove("/etc/device.properties");
     
-    ON_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
-        .WillByDefault(Return(WDMP_FAILURE));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
+    
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
+        .WillRepeatedly(Return(WDMP_FAILURE));
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelid"), _T(""), response));
 }
 
 TEST_F(DeviceInfoTest, Make_Success_FromMFR)
 {
-    SetUpMFRCall("TestManufacturer", mfrSERIALIZED_TYPE_MANUFACTURER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
+                        strncpy(param->buffer, "TestManufacturer", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("make"), _T(""), response));
     EXPECT_EQ(response, _T("{\"make\":\"TestManufacturer\"}"));
@@ -344,8 +376,8 @@ TEST_F(DeviceInfoTest, Make_Success_FromMFR)
 
 TEST_F(DeviceInfoTest, Make_Success_FromFile)
 {
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     std::ofstream file("/etc/device.properties");
     file << "MFG_NAME=FileManufacturer\n";
@@ -357,8 +389,10 @@ TEST_F(DeviceInfoTest, Make_Success_FromFile)
 
 TEST_F(DeviceInfoTest, Make_Failure_BothSourcesFail)
 {
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    remove("/etc/device.properties");
+    
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("make"), _T(""), response));
 }
@@ -385,6 +419,7 @@ TEST_F(DeviceInfoTest, Model_Success_WithQuotes)
 
 TEST_F(DeviceInfoTest, Model_Failure_FileNotFound)
 {
+    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelname"), _T(""), response));
 }
@@ -422,6 +457,8 @@ TEST_F(DeviceInfoTest, DeviceType_Success_QamIpStb)
 
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_MediaClient)
 {
+    remove("/etc/authService.conf");
+    
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=mediaclient\n";
     file.close();
@@ -433,6 +470,8 @@ TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_MediaClient)
 
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Hybrid)
 {
+    remove("/etc/authService.conf");
+    
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=hybrid\n";
     file.close();
@@ -443,6 +482,8 @@ TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Hybrid)
 
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Other)
 {
+    remove("/etc/authService.conf");
+    
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=other\n";
     file.close();
@@ -453,6 +494,8 @@ TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Other)
 
 TEST_F(DeviceInfoTest, DeviceType_Failure_BothFilesNotFound)
 {
+    remove("/etc/authService.conf");
+    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("devicetype"), _T(""), response));
 }
@@ -469,6 +512,7 @@ TEST_F(DeviceInfoTest, SocName_Success)
 
 TEST_F(DeviceInfoTest, SocName_Failure_FileNotFound)
 {
+    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("socname"), _T(""), response));
 }
@@ -485,7 +529,16 @@ TEST_F(DeviceInfoTest, DistributorId_Success_FromFile)
 
 TEST_F(DeviceInfoTest, DistributorId_Success_FromRFC)
 {
-    SetUpRFCCall("RFCPARTNER456", "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId");
+    remove("/opt/www/authService/partnerId3.dat");
+    
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, StrEq("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), _))
+        .WillRepeatedly(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                strncpy(pstParamData->value, "RFCPARTNER456", sizeof(pstParamData->value) - 1);
+                pstParamData->value[sizeof(pstParamData->value) - 1] = '\0';
+                pstParamData->type = WDMP_STRING;
+                return WDMP_SUCCESS;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"distributorid\":\"RFCPARTNER456\"}"));
@@ -493,8 +546,10 @@ TEST_F(DeviceInfoTest, DistributorId_Success_FromRFC)
 
 TEST_F(DeviceInfoTest, DistributorId_Failure_BothSourcesFail)
 {
-    ON_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
-        .WillByDefault(Return(WDMP_FAILURE));
+    remove("/opt/www/authService/partnerId3.dat");
+    
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
+        .WillRepeatedly(Return(WDMP_FAILURE));
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("distributorid"), _T(""), response));
 }
@@ -511,7 +566,22 @@ TEST_F(DeviceInfoTest, Brand_Success_FromTmpFile)
 
 TEST_F(DeviceInfoTest, Brand_Success_FromMFR)
 {
-    SetUpMFRCall("MFRBrand", mfrSERIALIZED_TYPE_MANUFACTURER);
+    remove("/tmp/.manufacturer");
+    
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
+                        strncpy(param->buffer, "MFRBrand", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"brand\":\"MFRBrand\"}"));
@@ -519,8 +589,10 @@ TEST_F(DeviceInfoTest, Brand_Success_FromMFR)
 
 TEST_F(DeviceInfoTest, Brand_Failure_BothSourcesFail)
 {
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    remove("/tmp/.manufacturer");
+    
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("brandname"), _T(""), response));
 }
@@ -558,6 +630,7 @@ TEST_F(DeviceInfoTest, ReleaseVersion_DefaultVersion_InvalidPattern)
 
 TEST_F(DeviceInfoTest, ReleaseVersion_DefaultVersion_FileNotFound)
 {
+    remove("/version.txt");
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
@@ -575,6 +648,7 @@ TEST_F(DeviceInfoTest, ChipSet_Success)
 
 TEST_F(DeviceInfoTest, ChipSet_Failure_FileNotFound)
 {
+    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("chipset"), _T(""), response));
 }
@@ -588,7 +662,20 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Success_AllFields)
     file << "YOCTO_VERSION=dunfell\n";
     file.close();
 
-    SetUpMFRCall("PDRI_1.2.3", mfrSERIALIZED_TYPE_PDRIVERSION);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_PDRIVERSION) {
+                        strncpy(param->buffer, "PDRI_1.2.3", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"imagename\":\"TEST_IMAGE_V1\",\"sdk\":\"18.4\",\"mediarite\":\"9.0.1\",\"yocto\":\"dunfell\",\"pdri\":\"PDRI_1.2.3\"}"));
@@ -600,8 +687,8 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Success_MissingOptionalFields)
     file << "imagename:TEST_IMAGE_V2\n";
     file.close();
 
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"imagename\":\"TEST_IMAGE_V2\",\"sdk\":\"\",\"mediarite\":\"\",\"yocto\":\"\",\"pdri\":\"\"}"));
@@ -618,13 +705,27 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Failure_ImageNameNotFound)
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Failure_FileNotFound)
 {
+    remove("/version.txt");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
 }
 
 TEST_F(DeviceInfoTest, DISABLE_SystemInfo_Success)
 {
-    SetUpMFRCall("SYSTEMSERIAL123", mfrSERIALIZED_TYPE_SERIALNUMBER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_SERIALNUMBER) {
+                        strncpy(param->buffer, "SYSTEMSERIAL123", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("systeminfo"), _T(""), response));
     EXPECT_TRUE(response.find("\"version\":") != string::npos);
@@ -748,6 +849,7 @@ TEST_F(DeviceInfoTest, SerialNumber_Negative_EmptyBuffer)
 
 TEST_F(DeviceInfoTest, Sku_Negative_FileReadException)
 {
+    remove("/etc/device.properties");
 
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillOnce(Invoke(
@@ -816,6 +918,7 @@ TEST_F(DeviceInfoTest, Model_Negative_EmptyFriendlyId)
 
 TEST_F(DeviceInfoTest, Model_Negative_FileAccessException)
 {
+    remove("/etc/device.properties");
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_TRUE(response.empty());
@@ -843,11 +946,12 @@ TEST_F(DeviceInfoTest, DeviceType_Negative_EmptyDeviceType)
 
 TEST_F(DeviceInfoTest, DeviceType_Negative_MalformedFile)
 {
+    remove("/etc/device.properties");
+    
     std::ofstream file("/etc/authService.conf");
     file << "INVALID LINE FORMAT\n";
     file << "NO EQUAL SIGN\n";
     file.close();
-
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("devicetype"), _T(""), response));
     EXPECT_TRUE(response.empty());
@@ -891,6 +995,7 @@ TEST_F(DeviceInfoTest, DistributorId_Negative_EmptyFile)
 
 TEST_F(DeviceInfoTest, DistributorId_Negative_RFCThrowsException)
 {
+    remove("/opt/www/authService/partnerId3.dat");
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
         .WillOnce(Invoke(
@@ -918,6 +1023,7 @@ TEST_F(DeviceInfoTest, Brand_Negative_BothSourcesEmpty)
 
 TEST_F(DeviceInfoTest, Brand_Negative_MFRThrowsException)
 {
+    remove("/tmp/.manufacturer");
 
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillOnce(Invoke(
@@ -1096,7 +1202,20 @@ TEST_F(DeviceInfoTest, SerialNumber_Positive_LongSerialNumber)
 
 TEST_F(DeviceInfoTest, SerialNumber_Positive_SpecialCharacters)
 {
-    SetUpMFRCall("SN-123_ABC.DEF#456", mfrSERIALIZED_TYPE_SERIALNUMBER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_SERIALNUMBER) {
+                        strncpy(param->buffer, "SN-123_ABC.DEF#456", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
     EXPECT_EQ(response, _T("{\"serialnumber\":\"SN-123_ABC.DEF#456\"}"));
@@ -1104,7 +1223,20 @@ TEST_F(DeviceInfoTest, SerialNumber_Positive_SpecialCharacters)
 
 TEST_F(DeviceInfoTest, SerialNumber_Positive_NumericOnly)
 {
-    SetUpMFRCall("1234567890", mfrSERIALIZED_TYPE_SERIALNUMBER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_SERIALNUMBER) {
+                        strncpy(param->buffer, "1234567890", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
     EXPECT_EQ(response, _T("{\"serialnumber\":\"1234567890\"}"));
@@ -1144,7 +1276,20 @@ TEST_F(DeviceInfoTest, Sku_Positive_MultipleLines)
 
 TEST_F(DeviceInfoTest, Make_Positive_SpecialCharacters)
 {
-    SetUpMFRCall("ACME & Co.", mfrSERIALIZED_TYPE_MANUFACTURER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
+                        strncpy(param->buffer, "ACME & Co.", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("make"), _T(""), response));
     EXPECT_EQ(response, _T("{\"make\":\"ACME & Co.\"}"));
@@ -1213,6 +1358,7 @@ TEST_F(DeviceInfoTest, DeviceType_Positive_AllValidTypes)
 
 TEST_F(DeviceInfoTest, DeviceType_Positive_FallbackToDeviceProperties)
 {
+    remove("/etc/authService.conf");
     
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=mediaclient\n";
@@ -1255,7 +1401,16 @@ TEST_F(DeviceInfoTest, DistributorId_Positive_AlphanumericId)
 
 TEST_F(DeviceInfoTest, DistributorId_Positive_RFCWithSpecialChars)
 {
-    SetUpRFCCall("RFC_DIST_ID.001", "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId");
+    remove("/opt/www/authService/partnerId3.dat");
+    
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, StrEq("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), _))
+        .WillRepeatedly(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                strncpy(pstParamData->value, "RFC_DIST_ID.001", sizeof(pstParamData->value) - 1);
+                pstParamData->value[sizeof(pstParamData->value) - 1] = '\0';
+                pstParamData->type = WDMP_STRING;
+                return WDMP_SUCCESS;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"distributorid\":\"RFC_DIST_ID.001\"}"));
@@ -1273,7 +1428,22 @@ TEST_F(DeviceInfoTest, Brand_Positive_FileWithWhitespace)
 
 TEST_F(DeviceInfoTest, Brand_Positive_MFRFallback)
 {
-    SetUpMFRCall("FallbackBrand", mfrSERIALIZED_TYPE_MANUFACTURER);
+    remove("/tmp/.manufacturer");
+    
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
+                        strncpy(param->buffer, "FallbackBrand", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"brand\":\"FallbackBrand\"}"));
@@ -1341,8 +1511,8 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Positive_PartialFields)
     file << "SDK_VERSION=20.1\n";
     file.close();
 
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_TRUE(response.find("\"imagename\":\"PARTIAL_IMAGE\"") != string::npos);
@@ -1359,7 +1529,20 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Positive_AllOptionalFields)
     file << "YOCTO_VERSION=kirkstone\n";
     file.close();
 
-    SetUpMFRCall("PDRI_2.3.4", mfrSERIALIZED_TYPE_PDRIVERSION);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_PDRIVERSION) {
+                        strncpy(param->buffer, "PDRI_2.3.4", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_TRUE(response.find("\"imagename\":\"FULL_IMAGE_V3\"") != string::npos);
@@ -1371,7 +1554,20 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Positive_AllOptionalFields)
 
 TEST_F(DeviceInfoTest, DISABLE_SystemInfo_Positive_AllFieldsPresent)
 {
-    SetUpMFRCall("SYSSERIAL999", mfrSERIALIZED_TYPE_SERIALNUMBER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_SERIALNUMBER) {
+                        strncpy(param->buffer, "SYSSERIAL999", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("systeminfo"), _T(""), response));
     EXPECT_TRUE(response.find("\"version\":") != string::npos);
@@ -1442,7 +1638,20 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
 
 TEST_F(DeviceInfoTest, Boundary_SerialNumber_MinLength)
 {
-    SetUpMFRCall("A", mfrSERIALIZED_TYPE_SERIALNUMBER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_SERIALNUMBER) {
+                        strncpy(param->buffer, "A", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
     EXPECT_EQ(response, _T("{\"serialnumber\":\"A\"}"));
@@ -1454,18 +1663,31 @@ TEST_F(DeviceInfoTest, Boundary_Sku_EmptyModelNum)
     file << "MODEL_NUM=\n";
     file.close();
 
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
-    ON_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
-        .WillByDefault(Return(WDMP_FAILURE));
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, _, _))
+        .WillRepeatedly(Return(WDMP_FAILURE));
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("modelid"), _T(""), response));
 }
 
 TEST_F(DeviceInfoTest, Boundary_Make_SingleCharacter)
 {
-    SetUpMFRCall("X", mfrSERIALIZED_TYPE_MANUFACTURER);
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
+                        strncpy(param->buffer, "X", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("make"), _T(""), response));
     EXPECT_EQ(response, _T("{\"make\":\"X\"}"));
@@ -1494,6 +1716,7 @@ TEST_F(DeviceInfoTest, Boundary_ChipSet_SingleCharacter)
 
 TEST_F(DeviceInfoTest, EdgeCase_ReleaseVersion_MissingFile)
 {
+    remove("/version.txt");
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("releaseversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"releaseversion\":\"99.99.0.0\"}"));
@@ -1505,8 +1728,8 @@ TEST_F(DeviceInfoTest, EdgeCase_FirmwareVersion_OnlyImageName)
     file << "imagename:MINIMAL_IMAGE\n";
     file.close();
 
-    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillByDefault(Return(IARM_RESULT_INVALID_PARAM));
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_TRUE(response.find("\"imagename\":\"MINIMAL_IMAGE\"") != string::npos);
@@ -1529,16 +1752,56 @@ TEST_F(DeviceInfoTest, EdgeCase_DeviceType_CaseSensitivity)
 
 TEST_F(DeviceInfoTest, EdgeCase_MultipleIARMCallsSequential)
 {
-    // Test multiple sequential MFR calls
-    SetUpMFRCall("SERIAL001", mfrSERIALIZED_TYPE_SERIALNUMBER);
+    // Test multiple sequential MFR calls - each call gets its own specific expectation
+    
+    // First call: serialnumber
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillOnce(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_SERIALNUMBER) {
+                        strncpy(param->buffer, "SERIAL001", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
+                        strncpy(param->buffer, "MAKE001", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
+                        strncpy(param->buffer, "BRAND001", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
+                        param->bufLen = strlen(param->buffer);
+                        return IARM_RESULT_SUCCESS;
+                    }
+                }
+                return IARM_RESULT_INVALID_PARAM;
+            }));
+    
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("serialnumber"), _T(""), response));
     EXPECT_EQ(response, _T("{\"serialnumber\":\"SERIAL001\"}"));
 
-    SetUpMFRCall("MAKE001", mfrSERIALIZED_TYPE_MANUFACTURER);
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("make"), _T(""), response));
     EXPECT_EQ(response, _T("{\"make\":\"MAKE001\"}"));
 
-    SetUpMFRCall("BRAND001", mfrSERIALIZED_TYPE_MANUFACTURER);
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"brand\":\"BRAND001\"}"));
 }

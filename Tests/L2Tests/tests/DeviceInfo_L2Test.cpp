@@ -63,6 +63,7 @@ DeviceInfo_L2test::DeviceInfo_L2test()
     versionFile << "SDK_VERSION=17.3\n";
     versionFile << "MEDIARITE=8.3.53\n";
     versionFile << "YOCTO_VERSION=dunfell\n";
+    versionFile.flush();
     versionFile.close();
 
     std::ofstream devicePropsFile("/etc/device.properties");
@@ -72,20 +73,24 @@ DeviceInfo_L2test::DeviceInfo_L2test()
     // devicePropsFile << "SOC=TestSOC\n";
     devicePropsFile << "CHIPSET_NAME=TestChipset\n";
     devicePropsFile << "DEVICE_TYPE=IpStb\n";
+    devicePropsFile.flush();
     devicePropsFile.close();
 
     std::ofstream authServiceFile("/etc/authService.conf");
     authServiceFile << "deviceType=IpStb\n";
+    authServiceFile.flush();
     authServiceFile.close();
 
     std::ofstream manufacturerFile("/tmp/.manufacturer");
     manufacturerFile << "TestBrand\n";
+    manufacturerFile.flush();
     manufacturerFile.close();
 
     // Create partnerId file with directory
     system("mkdir -p /opt/www/authService");
     std::ofstream partnerIdFile("/opt/www/authService/partnerId3.dat");
     partnerIdFile << "TestPartnerID\n";
+    partnerIdFile.flush();
     partnerIdFile.close();
 
     // Setup RFC API mock expectations

@@ -83,7 +83,7 @@ std::string formatIARMResult(IARM_Result_t result)
 }
 bool isFileExistsAndOlderThen(const char* pFileName, long age = -1)
 {
-    struct stat fileStat;
+    struct stat fileStat{};
     int res = stat(pFileName, &fileStat);
     if (0 != res)
         return false;

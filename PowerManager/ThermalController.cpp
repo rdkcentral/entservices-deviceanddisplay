@@ -199,8 +199,8 @@ void ThermalController::logThermalShutdownReason()
 
 void ThermalController::rebootIfNeeded()
 {
-    static struct timeval monitorTime;
-    struct timeval tv;
+    static struct timeval monitorTime{};
+    struct timeval tv{};
     long difftime = 0;
 
     if (rebootThreshold.graceInterval == 0) {
@@ -244,9 +244,9 @@ void ThermalController::rebootIfNeeded()
 
 void ThermalController::deepSleepIfNeeded()
 {
-    struct timeval tv;
+    struct timeval tv{};
     long difftime = 0;
-    static struct timeval monitorTime;
+    static struct timeval monitorTime{};
     static bool deepSleepZone = false;
 
     if (deepsleepThreshold.graceInterval == 0) {
@@ -293,9 +293,9 @@ void ThermalController::deepSleepIfNeeded()
 void ThermalController::declockIfNeeded()
 {
 #ifndef DISABLE_DECLOCKING_LOGIC
-    struct timeval tv;
+    struct timeval tv{};
     long difftime = 0;
-    static struct timeval monitorTime;
+    static struct timeval monitorTime{};
 
     if (declockThreshold.graceInterval == 0) {
         /* This check is disable */

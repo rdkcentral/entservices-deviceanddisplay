@@ -141,6 +141,16 @@ protected:
             delete p_wrapsImplMock;
             p_wrapsImplMock = nullptr;
         }
+
+        if (p_serviceMock != nullptr) {
+            delete p_serviceMock;
+            p_serviceMock = nullptr;
+        }
+
+        if (p_warehouseMock != nullptr) {
+            delete p_warehouseMock;
+            p_warehouseMock = nullptr;
+        }
     }
 };
 

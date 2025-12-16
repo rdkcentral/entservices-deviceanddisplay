@@ -234,6 +234,12 @@ namespace WPEFramework
         {
 	    LOGINFO("");
 
+	    if (names == nullptr) {
+	        LOGERR("names iterator is null");
+	        success = false;
+	        return Core::ERROR_BAD_REQUEST;
+	    }
+
 	    std::string entry;
             JsonObject requestParams;
             JsonArray namePairs;

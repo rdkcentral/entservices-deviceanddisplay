@@ -744,12 +744,17 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::SetWakeupSourceConfig(IWakeupSourceConfigIterator* wakeupSources)
     {
+        LOGINFO(">>");
+
+        if (wakeupSources == nullptr) {
+            LOGERR("wakeupSources iterator is null");
+            return Core::ERROR_BAD_REQUEST;
+        }
+
         uint32_t errorCode = Core::ERROR_NONE;
         WakeupSourceConfig config{ WakeupSrcType::WAKEUP_SRC_UNKNOWN, false };
 
         std::list<WakeupSourceConfig> configs;
-
-        LOGINFO(">>");
 
         // create std::list from Thunder iterator
         while (wakeupSources->Next(config)) {

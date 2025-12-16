@@ -217,11 +217,14 @@ void WSEndpoint<Role, MessagingInterface, PingPong, Encryption>::onFail(Connecti
     LOGINFO("Connection attempt failure.");
 
     const auto& connection = getConnection(handler);
-    const auto& connectionEc = connection->get_ec();
-    if (connectionEc)
+    if (connection)
     {
-        LOGINFO("Connection error: %s. Category: %s. Value: %d", connectionEc.message().c_str(),
-            connectionEc.category().name(), connectionEc.value());
+        const auto& connectionEc = connection->get_ec();
+        if (connectionEc)
+        {
+            LOGINFO("Connection error: %s. Category: %s. Value: %d", connectionEc.message().c_str(),
+                connectionEc.category().name(), connectionEc.value());
+        }
     }
 
     ConnectionInitializationResult result(false);

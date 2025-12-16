@@ -31,7 +31,7 @@ git clone --branch  R4.4.3 https://github.com/rdkcentral/ThunderTools.git
 
 git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
 
-git clone --branch feature/RDKEMW-9783 https://github.com/rdkcentral/entservices-apis.git
+git clone --branch develop https://github.com/rdkcentral/entservices-apis.git
 
 git clone --branch topic/RDKEMW-DeviceInfo-Test https://$GITHUB_TOKEN@github.com/rdkcentral/entservices-testframework.git
 

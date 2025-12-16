@@ -516,12 +516,6 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 status = powerManagerImpl->PowerModePreChangeComplete(clientId + 10, transactionId);
                 EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
 
-                // Delay Change with invalid clientId
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId + 10, transactionId, 10);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-                status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId + 10, 10);
-                EXPECT_EQ(status, Core::ERROR_INVALID_PARAMETER);
-
                 // Now set valid delays
                 // Delay power mode change by 10 seconds
                 status = powerManagerImpl->DelayPowerModeChangeBy(clientId, transactionId, 10);

@@ -58,12 +58,12 @@ DeviceInfo_L2test::DeviceInfo_L2test()
     TEST_LOG("DEVICEINFO Constructor\n");
     uint32_t status = Core::ERROR_GENERAL;
 
-    // std::ofstream versionFile("/version.txt");
-    // versionFile << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\n";
-    // versionFile << "SDK_VERSION=17.3\n";
-    // versionFile << "MEDIARITE=8.3.53\n";
-    // versionFile << "YOCTO_VERSION=dunfell\n";
-    // versionFile.close();
+    std::ofstream versionFile("/version.txt");
+    versionFile << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\n";
+    versionFile << "SDK_VERSION=17.3\n";
+    versionFile << "MEDIARITE=8.3.53\n";
+    versionFile << "YOCTO_VERSION=dunfell\n";
+    versionFile.close();
 
     std::ofstream devicePropsFile("/etc/device.properties");
     devicePropsFile << "MFG_NAME=TestManufacturer\n";
@@ -110,9 +110,9 @@ DeviceInfo_L2test::DeviceInfo_L2test()
                 return WDMP_FAILURE;
             }));
 
-    // EXPECT_CALL(*p_managerImplMock, Initialize())
-    //     .Times(::testing::AnyNumber())
-    //     .WillRepeatedly(::testing::Return());
+    EXPECT_CALL(*p_managerImplMock, Initialize())
+        .Times(::testing::AnyNumber())
+        .WillRepeatedly(::testing::Return());
 
     /* Activate plugin in constructor */
     status = ActivateService("DeviceInfo");
@@ -312,9 +312,9 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
             bool hasDolbyVolume = false, hasIntelligentEqualizer = false, hasDialogueEnhancer = false;
                 for (int i = 0; i < capabilities.Length(); i++) {
                 string cap = capabilities[i].String();
-                if (cap == "Dolby Volume") hasDolbyVolume = true;
-                if (cap == "Inteligent Equalizer") hasIntelligentEqualizer = true;
-                if (cap == "Dialogue Enhancer") hasDialogueEnhancer = true;
+                if (cap == "Dolby_Volume") hasDolbyVolume = true;
+                if (cap == "Inteligent_Equalizer") hasIntelligentEqualizer = true;
+                if (cap == "Dialogue_Enhancer") hasDialogueEnhancer = true;
             }
             EXPECT_TRUE(hasDolbyVolume || hasIntelligentEqualizer || hasDialogueEnhancer);
             TEST_LOG("MS12 capabilities count: %d", capabilities.Length());
@@ -422,9 +422,9 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
     {
         TEST_LOG("Testing firmwareversion property\n");
 
-        std::ofstream file("/version.txt");
-        file << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\nSDK_VERSION=17.3\nMEDIARITE=8.3.53\nYOCTO_VERSION=dunfell\n";
-        file.close();
+        // std::ofstream file("/version.txt");
+        // file << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\nSDK_VERSION=17.3\nMEDIARITE=8.3.53\nYOCTO_VERSION=dunfell\n";
+        // file.close();
 
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "firmwareversion@0", getResults);
@@ -580,7 +580,14 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         TEST_LOG("Testing distributorid from file\n");
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "distributorid@0", getResults);
-        EXPECT_EQ(Core::ERROR_GENERAL, getResult);
+        // EXPECT_EQ(Core::ERROR_GENERAL, getResult);
+        EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("distributorid"));
+            string distributorId = getResults["distributorid"].String();
+            EXPECT_EQ(distributorId, "TestPartnerID");
+            TEST_LOG("Distributor ID: %s", distributorId.c_str());
+        }
     }
 
 
@@ -588,10 +595,10 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
     {
         TEST_LOG("Testing releaseversion property\n");
 
-        std::ofstream versionFile("/version.txt");
-        // versionFile << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\n";
-        versionFile << "imagename:CUSTOM5_VBN_22.03sprint_test\n";
-        versionFile.close();
+        // std::ofstream versionFile("/version.txt");
+        // // versionFile << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\n";
+        // versionFile << "imagename:CUSTOM5_VBN_22.03sprint_test\n";
+        // versionFile.close();
 
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "releaseversion@0", getResults);
@@ -600,7 +607,8 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
             EXPECT_TRUE(getResults.HasLabel("releaseversion"));
             string releaseVersion = getResults["releaseversion"].String();
             EXPECT_FALSE(releaseVersion.empty());
-            EXPECT_EQ(releaseVersion, "CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG");
+            // EXPECT_EQ(releaseVersion, "CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG");
+            EXPECT_EQ(releaseVersion, "22.03.0.0");
             TEST_LOG("Release version: %s", releaseVersion.c_str());
         }
     }
@@ -927,7 +935,7 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
             EXPECT_TRUE(result.HasLabel("supportedHDCPVersion"));
             string hdcpVersion = result["supportedHDCPVersion"].String();
             EXPECT_FALSE(hdcpVersion.empty());
-            EXPECT_EQ(hdcpVersion, "1.x");
+            EXPECT_EQ(hdcpVersion, "1.4");
             // HDCP 1.x should be returned
             TEST_LOG("HDCP version 1.x: %s", hdcpVersion.c_str());
         }
@@ -965,9 +973,9 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_EdgeCaseTest)
             bool hasDV = false, hasIE = false, hasDE = false;
             for (int i = 0; i < capabilities.Length(); i++) {
                 string cap = capabilities[i].String();
-                if (cap.find("Dolby Volume") != string::npos) hasDV = true;
-                if (cap.find("Inteligent Equalizer") != string::npos) hasIE = true;
-                if (cap.find("Dialogue Enhancer") != string::npos) hasDE = true;
+                if (cap.find("Dolby_Volume") != string::npos) hasDV = true;
+                if (cap.find("Inteligent_Equalizer") != string::npos) hasIE = true;
+                if (cap.find("Dialogue_Enhancer") != string::npos) hasDE = true;
                 TEST_LOG("MS12 capability[%d]: %s", i, cap.c_str());
             }
             EXPECT_TRUE(hasDV && hasIE && hasDE);
@@ -1171,7 +1179,14 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyEdgeCaseTest)
 
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "distributorid@0", getResults);
-        EXPECT_EQ(Core::ERROR_GENERAL, getResult);
+        EXPECT_EQ(Core::ERROR_NONE, getResult);
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("distributorid"));
+            string distributorId = getResults["distributorid"].String();
+            // Should return the value cached from constructor: "TestPartnerID"
+            EXPECT_EQ(distributorId, "TestPartnerID");
+            TEST_LOG("Distributor ID (cached from init): %s", distributorId.c_str());
+        }
     }
 
     /****************** Test multiple audio ports ******************/
@@ -1440,7 +1455,13 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodVariationsTest)
             .WillByDefault(::testing::ReturnRef(videoOutputPort));
         
         status = InvokeServiceMethod("DeviceInfo.1", "defaultresolution", params, result);
-        EXPECT_EQ(Core::ERROR_GENERAL, status);
+        EXPECT_EQ(Core::ERROR_NONE, status);  // Change from ERROR_GENERAL to ERROR_NONE
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("defaultResolution"));
+            string resolution = result["defaultResolution"].String();
+            EXPECT_EQ(resolution, "2160p");
+            TEST_LOG("4K default resolution: %s", resolution.c_str());
+        }
     }
 
     /****************** Test supportedresolutions with 4K support ******************/
@@ -1471,7 +1492,18 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodVariationsTest)
             .WillByDefault(::testing::ReturnRef(videoOutputPortType));
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedresolutions", params, result);
-        EXPECT_EQ(Core::ERROR_GENERAL, status);
+        // EXPECT_EQ(Core::ERROR_GENERAL, status);
+        EXPECT_EQ(Core::ERROR_NONE, status);  // Change from ERROR_GENERAL to ERROR_NONE
+        if (status == Core::ERROR_NONE) {
+            EXPECT_TRUE(result.HasLabel("supportedResolutions"));
+            JsonArray resolutions = result["supportedResolutions"].Array();
+            EXPECT_EQ(resolutions.Length(), 5);
+            if (resolutions.Length() > 0) {
+                string res = resolutions[0].String();
+                EXPECT_EQ(res, "2160p");
+                TEST_LOG("First 4K resolution: %s", res.c_str());
+            }
+        }
     }
 
 

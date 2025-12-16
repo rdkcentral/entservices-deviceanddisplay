@@ -4494,7 +4494,7 @@ void DisplaySettings::sendMsgThread()
                                         LOGINFO(" Send Mute code ");
                                         result = DisplaySettings::_instance->sendUserControlPressCommand(67);
                                 }
-
+                                break;
 				case SEND_DEVICE_AUDIO_STATUS:
                                 {
                                         LOGINFO(" Send Device Audio Status message");

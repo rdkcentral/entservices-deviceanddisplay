@@ -531,7 +531,7 @@ TEST_F(DeviceInfoTest, DistributorId_Success_FromRFC)
 {
     remove("/opt/www/authService/partnerId3.dat");
     
-    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, StrEq("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), _))
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, ::testing::StrEq("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), _))
         .WillRepeatedly(::testing::Invoke(
             [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
                 strncpy(pstParamData->value, "RFCPARTNER456", sizeof(pstParamData->value) - 1);
@@ -1403,7 +1403,7 @@ TEST_F(DeviceInfoTest, DistributorId_Positive_RFCWithSpecialChars)
 {
     remove("/opt/www/authService/partnerId3.dat");
     
-    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, StrEq("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), _))
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(_, ::testing::StrEq("Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.PartnerId"), _))
         .WillRepeatedly(::testing::Invoke(
             [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
                 strncpy(pstParamData->value, "RFC_DIST_ID.001", sizeof(pstParamData->value) - 1);

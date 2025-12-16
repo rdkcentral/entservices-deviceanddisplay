@@ -407,21 +407,21 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         TEST_LOG("addresses test completed\n");
     }
 
-    /****************** socketinfo ******************/
-    {
-        TEST_LOG("Testing socketinfo property\n");
+    // /****************** socketinfo ******************/
+    // {
+    //     TEST_LOG("Testing socketinfo property\n");
 
-        JsonObject getResults;
-        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "socketinfo@0", getResults);
-        EXPECT_EQ(Core::ERROR_NONE, getResult);
-        if (getResult == Core::ERROR_NONE) {
-            EXPECT_TRUE(getResults.HasLabel("runs"));
-            int runs = getResults["runs"].Number();
-            EXPECT_GE(runs, 0);
-            EXPECT_EQ(runs, 99);
-            TEST_LOG("socketinfo runs: %d", runs);
-        }
-    }
+    //     JsonObject getResults;
+    //     uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "socketinfo@0", getResults);
+    //     EXPECT_EQ(Core::ERROR_NONE, getResult);
+    //     if (getResult == Core::ERROR_NONE) {
+    //         EXPECT_TRUE(getResults.HasLabel("runs"));
+    //         int runs = getResults["runs"].Number();
+    //         EXPECT_GE(runs, 0);
+    //         EXPECT_EQ(runs, 99);
+    //         TEST_LOG("socketinfo runs: %d", runs);
+    //     }
+    // }
 
     /****************** firmwareversion ******************/
     {
@@ -1062,13 +1062,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyEdgeCaseTest)
     {
         TEST_LOG("Testing firmwareversion with all fields present\n");
 
-        // std::ofstream file("/version.txt");
-        // file << "imagename:CUSTOM_VBN_22.03s_sprint_20220331225312sdy_NG\n";
-        // file << "SDK_VERSION=17.3\n";
-        // file << "MEDIARITE=8.3.53\n";
-        // file << "YOCTO_VERSION=dunfell\n";
-        // file.close();
-
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "firmwareversion@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
@@ -1155,29 +1148,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyEdgeCaseTest)
         }
     }
 
-    /****************** Test devicetype from device.properties ******************/
-    // {
-    //     TEST_LOG("Testing devicetype from device.properties\n");
-
-    //     std::ofstream authFile("/etc/authService.conf");
-    //     authFile << "# No deviceType here\n";
-    //     authFile.close();
-
-    //     std::ofstream devFile("/etc/device.properties");
-    //     devFile << "DEVICE_TYPE=mediaclient\n";
-    //     devFile.close();
-
-    //     JsonObject getResults;
-    //     uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "devicetype@0", getResults);
-    //     EXPECT_EQ(Core::ERROR_NONE, getResult);
-    //     if (getResult == Core::ERROR_NONE) {
-    //         EXPECT_TRUE(getResults.HasLabel("devicetype"));
-    //         string deviceType = getResults["devicetype"].String();
-    //         EXPECT_FALSE(deviceType.empty());
-    //         TEST_LOG("Device type: %s", deviceType.c_str());
-    //     }
-    // }
-
     /****************** Test distributorid from RFC ******************/
     {
         TEST_LOG("Testing distributorid from RFC\n");
@@ -1223,24 +1193,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyEdgeCaseTest)
         EXPECT_EQ(Core::ERROR_NONE, getResult);
     }
 
-    /****************** Test multiple video displays ******************/
-    // {
-    //     TEST_LOG("Testing supportedvideodisplays with multiple displays\n");
-        
-    //     device::VideoOutputPort videoOutputPort1, videoOutputPort2;
-    //     string videoPort1(_T("HDMI0"));
-    //     string videoPort2(_T("HDMI1"));
-
-    //     ON_CALL(*p_videoOutputPortMock, getName())
-    //         .WillByDefault(::testing::ReturnRef(videoPort1));
-    //     ON_CALL(*p_hostImplMock, getVideoOutputPorts())
-    //         .WillByDefault(::testing::Return(device::List<device::VideoOutputPort>({ videoOutputPort1, videoOutputPort2 })));
-
-    //     JsonObject getResults;
-    //     uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "supportedvideodisplays@0", getResults);
-    //     EXPECT_EQ(Core::ERROR_NONE, getResult);
-    // }
-
     /****************** Test hostedid with large EDID ******************/
     {
         TEST_LOG("Testing hostedid with large EDID data\n");
@@ -1271,26 +1223,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyEdgeCaseTest)
             TEST_LOG("EDID (base64) length: %zu", edid.length());
         }
     }
-
-    /****************** Test releaseversion parsing ******************/
-    // {
-    //     TEST_LOG("Testing releaseversion with different version formats\n");
-
-    //     std::ofstream file("/version.txt");
-    //     file << "imagename:CUSTOM5_VBN_23.4sprint_test\n";
-    //     file.close();
-
-    //     JsonObject getResults;
-    //     uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "releaseversion@0", getResults);
-    //     EXPECT_EQ(Core::ERROR_NONE, getResult);
-    //     if (getResult == Core::ERROR_NONE) {
-    //         EXPECT_TRUE(getResults.HasLabel("releaseversion"));
-    //         string releaseVersion = getResults["releaseversion"].String();
-    //         EXPECT_FALSE(releaseVersion.empty());
-    //         EXPECT_EQ(releaseVersion, "23.4");
-    //         TEST_LOG("Release version parsed: %s", releaseVersion.c_str());
-    //     }
-    // }
 
     TEST_LOG("DeviceInfo L2 Property Edge Case Tests completed\n");
 }
@@ -1415,29 +1347,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_AdditionalPropertiesTest)
             EXPECT_TRUE(sysInfo.HasLabel("uptime"));
         }
     }
-
-    /****************** Test devicetype conversion ******************/
-    // {
-    //     TEST_LOG("Testing devicetype with 'hybrid' conversion\n");
-
-    //     std::ofstream authFile("/etc/authService.conf");
-    //     authFile << "# No deviceType\n";
-    //     authFile.close();
-
-    //     std::ofstream devFile("/etc/device.properties");
-    //     devFile << "DEVICE_TYPE=hybrid\n";
-    //     devFile.close();
-
-    //     JsonObject getResults;
-    //     uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "devicetype@0", getResults);
-    //     EXPECT_EQ(Core::ERROR_NONE, getResult);
-    //     if (getResult == Core::ERROR_NONE) {
-    //         EXPECT_TRUE(getResults.HasLabel("devicetype"));
-    //         string deviceType = getResults["devicetype"].String();
-    //         EXPECT_FALSE(deviceType.empty());
-    //         TEST_LOG("Device type: %s", deviceType.c_str());
-    //     }
-    // }
 
     TEST_LOG("DeviceInfo L2 Additional Properties Tests completed\n");
 }

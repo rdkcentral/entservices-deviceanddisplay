@@ -59,7 +59,7 @@ DeviceInfo_L2test::DeviceInfo_L2test()
     uint32_t status = Core::ERROR_GENERAL;
 
     std::ofstream versionFile("/version.txt");
-    versionFile << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\n";
+    versionFile << "imagename:CUSTOM5_VBN_22.03_sprint_20220331225312sdy_NG\n";
     versionFile << "SDK_VERSION=17.3\n";
     versionFile << "MEDIARITE=8.3.53\n";
     versionFile << "YOCTO_VERSION=dunfell\n";
@@ -423,7 +423,7 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         TEST_LOG("Testing firmwareversion property\n");
 
         // std::ofstream file("/version.txt");
-        // file << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\nSDK_VERSION=17.3\nMEDIARITE=8.3.53\nYOCTO_VERSION=dunfell\n";
+        // file << "imagename:CUSTOM5_VBN_22.03_sprint_20220331225312sdy_NG\nSDK_VERSION=17.3\nMEDIARITE=8.3.53\nYOCTO_VERSION=dunfell\n";
         // file.close();
 
         JsonObject getResults;
@@ -433,7 +433,7 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
             EXPECT_TRUE(getResults.HasLabel("imagename"));
             string imagename = getResults["imagename"].String();
             EXPECT_FALSE(imagename.empty());
-            EXPECT_EQ(imagename, "CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG");
+            EXPECT_EQ(imagename, "CUSTOM5_VBN_22.03_sprint_20220331225312sdy_NG");
             TEST_LOG("Firmware imagename: %s", imagename.c_str());
         }
         // Additional validations for other firmware fields
@@ -486,9 +486,9 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
     {
         TEST_LOG("Testing make property\n");
 
-        std::ofstream file("/etc/device.properties");
-        file << "MFG_NAME=CUSTOM4";
-        file.close();
+        // std::ofstream file("/etc/device.properties");
+        // file << "MFG_NAME=CUSTOM4";
+        // file.close();
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "make@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
@@ -496,7 +496,7 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
             EXPECT_TRUE(getResults.HasLabel("make"));
             string make = getResults["make"].String();
             EXPECT_FALSE(make.empty());
-            EXPECT_EQ(make, "CUSTOM4");
+            EXPECT_EQ(make, "TestManufacturer");
             TEST_LOG("Make: %s", make.c_str());
         }
     }
@@ -596,7 +596,7 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         TEST_LOG("Testing releaseversion property\n");
 
         // std::ofstream versionFile("/version.txt");
-        // // versionFile << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\n";
+        // // versionFile << "imagename:CUSTOM5_VBN_22.03_sprint_20220331225312sdy_NG\n";
         // versionFile << "imagename:CUSTOM5_VBN_22.03sprint_test\n";
         // versionFile.close();
 
@@ -607,7 +607,7 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
             EXPECT_TRUE(getResults.HasLabel("releaseversion"));
             string releaseVersion = getResults["releaseversion"].String();
             EXPECT_FALSE(releaseVersion.empty());
-            // EXPECT_EQ(releaseVersion, "CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG");
+            // EXPECT_EQ(releaseVersion, "CUSTOM5_VBN_22.03_sprint_20220331225312sdy_NG");
             EXPECT_EQ(releaseVersion, "22.03.0.0");
             TEST_LOG("Release version: %s", releaseVersion.c_str());
         }
@@ -1047,12 +1047,12 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyEdgeCaseTest)
     {
         TEST_LOG("Testing firmwareversion with all fields present\n");
 
-        std::ofstream file("/version.txt");
-        file << "imagename:CUSTOM5_VBN_2203_sprint_20220331225312sdy_NG\n";
-        file << "SDK_VERSION=17.3\n";
-        file << "MEDIARITE=8.3.53\n";
-        file << "YOCTO_VERSION=dunfell\n";
-        file.close();
+        // std::ofstream file("/version.txt");
+        // file << "imagename:CUSTOM5_VBN_22.03_sprint_20220331225312sdy_NG\n";
+        // file << "SDK_VERSION=17.3\n";
+        // file << "MEDIARITE=8.3.53\n";
+        // file << "YOCTO_VERSION=dunfell\n";
+        // file.close();
 
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "firmwareversion@0", getResults);

@@ -314,8 +314,8 @@ PowerManager_L2Test::PowerManager_L2Test()
                  return PWRMGR_SUCCESS;
              }));
 
-          EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
-              .WillRepeatedly(::testing::Invoke(
+          ON_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+              .WillByDefault(::testing::Invoke(
                   [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                       *curTemperature  = 60; // safe temperature
                       *curState        = (mfrTemperatureState_t)0;

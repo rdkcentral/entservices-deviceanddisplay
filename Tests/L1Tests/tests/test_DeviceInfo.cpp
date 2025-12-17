@@ -105,11 +105,11 @@ protected:
     {
         // Clean up files created during the test
         // Ignore errors if files don't exist
-        removeFile("/etc/device.properties");
-        removeFile("/etc/authService.conf");
-        removeFile("/tmp/.manufacturer");
-        removeFile("/version.txt");
-        removeFile("/opt/www/authService/partnerId3.dat");
+       // removeFile("/etc/device.properties");
+       // removeFile("/etc/authService.conf");
+       // removeFile("/tmp/.manufacturer");
+       // removeFile("/version.txt");
+       // removeFile("/opt/www/authService/partnerId3.dat");
     }
 
     DeviceInfoTest()
@@ -320,7 +320,7 @@ TEST_F(DeviceInfoTest, Sku_Success_FromFile)
 TEST_F(DeviceInfoTest, Sku_Success_FromMFR)
 {
     // Ensure file doesn't exist before calling implementation
-    remove("/etc/device.properties");
+    removeFile("/etc/device.properties");
     
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillRepeatedly(Invoke(
@@ -344,7 +344,7 @@ TEST_F(DeviceInfoTest, Sku_Success_FromMFR)
 TEST_F(DeviceInfoTest, Sku_Success_FromRFC)
 {
     // Ensure file doesn't exist before calling implementation
-    remove("/etc/device.properties");
+    removeFile("/etc/device.properties");
     
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
@@ -365,7 +365,7 @@ TEST_F(DeviceInfoTest, Sku_Success_FromRFC)
 
 TEST_F(DeviceInfoTest, Sku_Failure_AllSourcesFail)
 {
-    remove("/etc/device.properties");
+    removeFile("/etc/device.properties");
     
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));

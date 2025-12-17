@@ -428,8 +428,6 @@ TEST_F(DeviceInfoTest, Model_Success_FromFile)
 
 TEST_F(DeviceInfoTest, ReleaseVersion_Success)
 {
-    removeFile("/version.txt");
-
     std::ofstream file("/version.txt");
     file << "imagename:CUSTOM_VBN_22.03s_sprint_20220331225312sdy_NG\n";
     file.close();

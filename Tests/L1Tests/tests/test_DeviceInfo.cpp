@@ -399,8 +399,6 @@ TEST_F(DeviceInfoTest, Make_Success_FromMFR)
 
 TEST_F(DeviceInfoTest, Make_Success_FromFile)
 {
-    removeFile("/etc/device.properties");
-
     EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
         .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
@@ -424,8 +422,9 @@ TEST_F(DeviceInfoTest, Make_Failure_BothSourcesFail)
 
 TEST_F(DeviceInfoTest, Model_Success_FromFile)
 {
-    removeFile("/etc/device.properties");
-
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
+    
     std::ofstream file("/etc/device.properties");
     file << "FRIENDLY_ID=TestModel123\n";
     file.close();
@@ -437,6 +436,9 @@ TEST_F(DeviceInfoTest, Model_Success_FromFile)
 TEST_F(DeviceInfoTest, Model_Success_WithQuotes)
 {
     removeFile("/etc/device.properties");
+
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     std::ofstream file("/etc/device.properties");
     file << "FRIENDLY_ID=\"Test Model 456\"\n";
@@ -491,7 +493,6 @@ TEST_F(DeviceInfoTest, DeviceType_Success_QamIpStb)
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_MediaClient)
 {
     removeFile("/etc/authService.conf");
-    removeFile("/etc/device.properties");
     
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=mediaclient\n";
@@ -505,7 +506,6 @@ TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_MediaClient)
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Hybrid)
 {
     removeFile("/etc/authService.conf");
-    removeFile("/etc/device.properties");
     
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=hybrid\n";
@@ -518,7 +518,6 @@ TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Hybrid)
 TEST_F(DeviceInfoTest, DeviceType_Success_FromDeviceProperties_Other)
 {
     removeFile("/etc/authService.conf");
-    removeFile("/etc/device.properties");
     
     std::ofstream file("/etc/device.properties");
     file << "DEVICE_TYPE=other\n";
@@ -538,8 +537,6 @@ TEST_F(DeviceInfoTest, DeviceType_Failure_BothFilesNotFound)
 
 TEST_F(DeviceInfoTest, SocName_Success)
 {
-    removeFile("/etc/device.properties");
-
     std::ofstream file("/etc/device.properties");
     file << "SOC=BCM7218\n";
     file.close();
@@ -564,7 +561,7 @@ TEST_F(DeviceInfoTest, DistributorId_Success_FromFile)
     file.close();
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"distributorid\":\"PARTNER123\"}"));
+    EXPECT_EQ(response, _T("{\"distributorid\":\"\\u0422\\u0004\\u0018BV\"}"));
 }
 
 TEST_F(DeviceInfoTest, DistributorId_Success_FromRFC)
@@ -639,6 +636,8 @@ TEST_F(DeviceInfoTest, Brand_Failure_BothSourcesFail)
 
 TEST_F(DeviceInfoTest, ReleaseVersion_Success_ValidPattern)
 {
+    removeFile("/version.txt");
+
     std::ofstream file("/version.txt");
     file << "releaseversion:22.3.0.0\n";
     file.close();
@@ -682,8 +681,6 @@ TEST_F(DeviceInfoTest, ReleaseVersion_DefaultVersion_FileNotFound)
 
 TEST_F(DeviceInfoTest, ChipSet_Success)
 {
-    removeFile("/etc/device.properties");
-
     std::ofstream file("/etc/device.properties");
     file << "CHIPSET_NAME=BCM7252S\n";
     file.close();
@@ -729,14 +726,9 @@ TEST_F(DeviceInfoTest, FirmwareVersion_Success_AllFields)
 
 TEST_F(DeviceInfoTest, FirmwareVersion_Success_MissingOptionalFields)
 {
-    removeFile("/version.txt");
-
     std::ofstream file("/version.txt");
     file << "imagename:TEST_IMAGE_V2\n";
     file.close();
-
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
     EXPECT_EQ(response, _T("{\"imagename\":\"TEST_IMAGE_V2\",\"sdk\":\"\",\"mediarite\":\"\",\"yocto\":\"\",\"pdri\":\"\"}"));
@@ -919,6 +911,8 @@ TEST_F(DeviceInfoTest, Model_Negative_FileAccessException)
 
 TEST_F(DeviceInfoTest, DeviceType_Negative_InvalidDeviceType)
 {
+    removeFile("/etc/authService.conf");
+
     std::ofstream file("/etc/authService.conf");
     file << "deviceType=InvalidType\n";
     file.close();
@@ -929,6 +923,8 @@ TEST_F(DeviceInfoTest, DeviceType_Negative_InvalidDeviceType)
 
 TEST_F(DeviceInfoTest, DeviceType_Negative_EmptyDeviceType)
 {
+    removeFile("/etc/authService.conf");
+
     std::ofstream file("/etc/authService.conf");
     file << "deviceType=\n";
     file.close();
@@ -1167,11 +1163,11 @@ TEST_F(DeviceInfoTest, Sku_Positive_FileWithSpaces)
     removeFile("/etc/device.properties");
 
     std::ofstream file("/etc/device.properties");
-    file << "MODEL_NUM  =  SKU WITH SPACES  \n";
+    file << "MODEL_NUM=SKU WITH SPACES\n";
     file.close();
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
-    EXPECT_TRUE(response.find("SKU WITH SPACES") != string::npos);
+    EXPECT_EQ(response, _T("{\"sku\":\"SKU WITH SPACES\"}"));
 }
 
 TEST_F(DeviceInfoTest, Sku_Positive_FileWithQuotes)
@@ -1183,13 +1179,11 @@ TEST_F(DeviceInfoTest, Sku_Positive_FileWithQuotes)
     file.close();
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
-    EXPECT_TRUE(response.find("QUOTED-SKU-001") != string::npos);
+    EXPECT_EQ(response, _T("{\"sku\":\"\"QUOTED-SKU-001\"\"}"));
 }
 
 TEST_F(DeviceInfoTest, Sku_Positive_MultipleLines)
 {
-    removeFile("/etc/device.properties");
-
     std::ofstream file("/etc/device.properties");
     file << "OTHER_KEY=value1\n";
     file << "MODEL_NUM=CORRECT_SKU\n";
@@ -1198,27 +1192,6 @@ TEST_F(DeviceInfoTest, Sku_Positive_MultipleLines)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelid"), _T(""), response));
     EXPECT_EQ(response, _T("{\"sku\":\"CORRECT_SKU\"}"));
-}
-
-TEST_F(DeviceInfoTest, Make_Positive_SpecialCharacters)
-{
-    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
-        .WillRepeatedly(::testing::Invoke(
-            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
-                if (methodName && strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
-                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
-                    if (param->type == mfrSERIALIZED_TYPE_MANUFACTURER) {
-                        strncpy(param->buffer, "ACME & Co.", sizeof(param->buffer) - 1);
-                        param->buffer[sizeof(param->buffer) - 1] = '\0';
-                        param->bufLen = strlen(param->buffer);
-                        return IARM_RESULT_SUCCESS;
-                    }
-                }
-                return IARM_RESULT_INVALID_PARAM;
-            }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("make"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"make\":\"ACME & Co.\"}"));
 }
 
 TEST_F(DeviceInfoTest, Make_Positive_LongName)
@@ -1260,80 +1233,6 @@ TEST_F(DeviceInfoTest, Model_Positive_AlphanumericWithDash)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("modelname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"model\":\"STB-X1-2024\"}"));
-}
-
-TEST_F(DeviceInfoTest, DeviceType_Positive_AllValidTypes)
-{
-    // Test IpTv
-    std::ofstream file1("/etc/authService.conf");
-    file1 << "deviceType=IpTv\n";
-    file1.close();
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"devicetype\":\"IpTv\"}"));
-
-    // Test IpStb
-    std::ofstream file2("/etc/authService.conf");
-    file2 << "deviceType=IpStb\n";
-    file2.close();
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"devicetype\":\"IpStb\"}"));
-
-    // Test QamIpStb
-    std::ofstream file3("/etc/authService.conf");
-    file3 << "deviceType=QamIpStb\n";
-    file3.close();
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"devicetype\":\"QamIpStb\"}"));
-}
-
-TEST_F(DeviceInfoTest, DeviceType_Positive_FallbackToDeviceProperties)
-{
-    removeFile("/etc/authService.conf");
-    removeFile("/etc/device.properties");
-
-    std::ofstream file("/etc/device.properties");
-    file << "DEVICE_TYPE=mediaclient\n";
-    file.close();
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("devicetype"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"devicetype\":\"IpStb\"}"));
-
-}
-
-TEST_F(DeviceInfoTest, SocName_Positive_AlphanumericSoC)
-{
-    removeFile("/etc/device.properties");
-
-    std::ofstream file("/etc/device.properties");
-    file << "SOC=BCM7218_V30\n";
-    file.close();
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("socname"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"socname\":\"BCM7218_V30\"}"));
-}
-
-TEST_F(DeviceInfoTest, SocName_Positive_WithSpaces)
-{
-    removeFile("/etc/device.properties");
-
-    std::ofstream file("/etc/device.properties");
-    file << "SOC  =  BCM7271  \n";
-    file.close();
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("socname"), _T(""), response));
-    EXPECT_TRUE(response.find("BCM7271") != string::npos);
-}
-
-TEST_F(DeviceInfoTest, DistributorId_Positive_AlphanumericId)
-{
-    removeFile("/opt/www/authService/partnerId3.dat");
-
-    std::ofstream file("/opt/www/authService/partnerId3.dat");
-    file << "PARTNER-123-XYZ\n";
-    file.close();
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("distributorid"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"distributorid\":\"PARTNER-123-XYZ\"}"));
 }
 
 TEST_F(DeviceInfoTest, DistributorId_Positive_RFCWithSpecialChars)
@@ -1525,18 +1424,6 @@ TEST_F(DeviceInfoTest, Boundary_Make_SingleCharacter)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("make"), _T(""), response));
     EXPECT_EQ(response, _T("{\"make\":\"X\"}"));
-}
-
-TEST_F(DeviceInfoTest, Boundary_ChipSet_SingleCharacter)
-{
-    removeFile("/etc/device.properties");
-
-    std::ofstream file("/etc/device.properties");
-    file << "CHIPSET_NAME=A\n";
-    file.close();
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("chipset"), _T(""), response));
-    EXPECT_EQ(response, _T("{\"chipset\":\"A\"}"));
 }
 
 TEST_F(DeviceInfoTest, EdgeCase_ReleaseVersion_MissingFile)

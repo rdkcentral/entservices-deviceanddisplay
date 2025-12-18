@@ -25,6 +25,7 @@
 #include "MfrMock.h"
 #include "IarmBusMock.h"
 #include "SystemInfo.h"
+#include <interfaces/IDeviceInfo.h>
 
 #include <mutex>
 #include <condition_variable>
@@ -47,6 +48,16 @@ protected:
         
 public:
     DeviceInfo_L2test();
+    uint32_t CreateDeviceInfoInterfaceObject();
+    void SetUp() override;
+    void TearDown() override;
+
+protected:
+    /** @brief Pointer to the IShell interface */
+    PluginHost::IShell* m_controller_deviceinfo;
+
+    /** @brief Pointer to the IDeviceInfo interface */
+    Exchange::IDeviceInfo* m_deviceinfoplugin;
 };
 
 /**
@@ -54,6 +65,8 @@ public:
 */
 DeviceInfo_L2test::DeviceInfo_L2test()
         : L2TestMocks()
+        , m_controller_deviceinfo(nullptr)
+        , m_deviceinfoplugin(nullptr)
 {
     TEST_LOG("DEVICEINFO Constructor\n");
     uint32_t status = Core::ERROR_GENERAL;
@@ -115,9 +128,6 @@ DeviceInfo_L2test::DeviceInfo_L2test()
                 return WDMP_FAILURE;
             }));
 
-    EXPECT_CALL(*p_managerImplMock, Initialize())
-        .Times(::testing::AnyNumber())
-        .WillRepeatedly(::testing::Return());
 
     /* Activate plugin in constructor */
     status = ActivateService("DeviceInfo");
@@ -132,8 +142,58 @@ DeviceInfo_L2test::~DeviceInfo_L2test()
     TEST_LOG("DEVICEINFO Destructor\n");
     uint32_t status = Core::ERROR_GENERAL;
 
+    if (m_deviceinfoplugin) {
+        m_deviceinfoplugin->Release();
+        m_deviceinfoplugin = nullptr;
+    }
+    if (m_controller_deviceinfo) {
+        m_controller_deviceinfo->Release();
+        m_controller_deviceinfo = nullptr;
+    }
+
     status = DeactivateService("DeviceInfo");
     EXPECT_EQ(Core::ERROR_NONE, status);
+}
+
+uint32_t DeviceInfo_L2test::CreateDeviceInfoInterfaceObject()
+{
+    uint32_t return_value = Core::ERROR_GENERAL;
+    Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> DeviceInfo_Engine;
+    Core::ProxyType<RPC::CommunicatorClient> DeviceInfo_Client;
+
+    TEST_LOG("Creating DeviceInfo_Engine");
+    DeviceInfo_Engine = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+    DeviceInfo_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(DeviceInfo_Engine));
+
+    if (!DeviceInfo_Client.IsValid()) {
+        TEST_LOG("Invalid DeviceInfo_Client");
+    } else {
+        m_controller_deviceinfo = DeviceInfo_Client->Open<PluginHost::IShell>(_T("DeviceInfo"), ~0, 3000);
+        if (m_controller_deviceinfo) {
+            m_deviceinfoplugin = m_controller_deviceinfo->QueryInterface<Exchange::IDeviceInfo>();
+            return_value = Core::ERROR_NONE;
+        }
+    }
+    return return_value;
+}
+
+void DeviceInfo_L2test::SetUp()
+{
+    if ((m_deviceinfoplugin == nullptr) || (m_controller_deviceinfo == nullptr)) {
+        EXPECT_EQ(Core::ERROR_NONE, CreateDeviceInfoInterfaceObject());
+    }
+}
+
+void DeviceInfo_L2test::TearDown()
+{
+    if (m_deviceinfoplugin) {
+        m_deviceinfoplugin->Release();
+        m_deviceinfoplugin = nullptr;
+    }
+    if (m_controller_deviceinfo) {
+        m_controller_deviceinfo->Release();
+        m_controller_deviceinfo = nullptr;
+    }
 }
 
 TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
@@ -1457,4 +1517,602 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodVariationsTest)
     }
 
     TEST_LOG("DeviceInfo L2 Method Variations Tests completed\n");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_JsonRpc_MacAddressesAndIp)
+{
+
+    TEST_LOG("Starting DeviceInfo L2 JsonRpc MAC Addresses and IP Tests\n");
+
+    ON_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [](const char* type, const char* command, va_list args) -> FILE* {
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256];
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                
+                const char* valueToReturn = nullptr;
+                
+                if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read eth_mac") == 0) {
+                    valueToReturn = "AA:BB:CC:DD:EE:FF";
+                } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read estb_mac") == 0) {
+                    valueToReturn = "11:22:33:44:55:66";
+                } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read wifi_mac") == 0) {
+                    valueToReturn = "00:11:22:33:44:55";
+                } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read estb_ip") == 0) {
+                    valueToReturn = "192.168.1.100";
+                }
+                
+                if (valueToReturn != nullptr) {
+                    char buffer[1024];
+                    memset(buffer, 0, sizeof(buffer));
+                    strncpy(buffer, valueToReturn, sizeof(buffer) - 1);
+                    FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
+                    return pipe;
+                }
+                
+                return nullptr;
+            }));
+
+    /****************** ethmac ******************/
+    {
+        TEST_LOG("Testing ethmac property\n");
+
+        JsonObject getResults;
+        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "ethmac@0", getResults);
+        EXPECT_EQ(Core::ERROR_NONE, getResult);
+        
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("eth_mac"));
+            string ethmac = getResults["eth_mac"].String();
+            EXPECT_FALSE(ethmac.empty());
+            EXPECT_EQ(ethmac, "AA:BB:CC:DD:EE:FF");
+            TEST_LOG("Ethernet MAC: %s", ethmac.c_str());
+        }
+    }
+
+    /****************** estbmac ******************/
+    {
+        TEST_LOG("Testing estbmac property\n");
+
+        JsonObject getResults;
+        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbmac@0", getResults);
+        EXPECT_EQ(Core::ERROR_NONE, getResult);
+        
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("estb_mac"));
+            string estbmac = getResults["estb_mac"].String();
+            EXPECT_FALSE(estbmac.empty());
+            EXPECT_EQ(estbmac, "11:22:33:44:55:66");
+            TEST_LOG("STB MAC: %s", estbmac.c_str());
+        }
+    }
+
+    /****************** wifimac ******************/
+    {
+        TEST_LOG("Testing wifimac property\n");
+
+        JsonObject getResults;
+        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "wifimac@0", getResults);
+        EXPECT_EQ(Core::ERROR_NONE, getResult);
+        
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("wifi_mac"));
+            string wifimac = getResults["wifi_mac"].String();
+            EXPECT_FALSE(wifimac.empty());
+            EXPECT_EQ(wifimac, "00:11:22:33:44:55");
+            TEST_LOG("WiFi MAC: %s", wifimac.c_str());
+        }
+    }
+
+    /****************** estbip ******************/
+    {
+        TEST_LOG("Testing estbip property\n");
+
+        JsonObject getResults;
+        uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbip@0", getResults);
+        EXPECT_EQ(Core::ERROR_NONE, getResult);
+        
+        if (getResult == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults.HasLabel("estb_ip"));
+            string estbip = getResults["estb_ip"].String();
+            EXPECT_FALSE(estbip.empty());
+            EXPECT_EQ(estbip, "192.168.1.100");
+            TEST_LOG("STB IP: %s", estbip.c_str());
+        }
+    }
+
+    TEST_LOG("DeviceInfo L2 JsonRpc MAC Addresses and IP Tests completed\n");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_JsonRpc_MacAddressesAndIp_Negative)
+{
+    TEST_LOG("Starting DeviceInfo L2 JsonRpc MAC Addresses and IP Negative Tests\n");
+
+    /****************** Test with v_secure_popen returning nullptr ******************/
+    {
+        TEST_LOG("Testing MAC/IP properties with v_secure_popen failure\n");
+        
+        ON_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Return(nullptr));
+
+        // Test ethmac
+        JsonObject getResults1;
+        uint32_t getResult1 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "ethmac@0", getResults1);
+        EXPECT_EQ(Core::ERROR_GENERAL, getResult1);
+        TEST_LOG("ethmac with popen failure: PASS\n");
+
+        // Test estbmac
+        JsonObject getResults2;
+        uint32_t getResult2 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbmac@0", getResults2);
+        EXPECT_EQ(Core::ERROR_GENERAL, getResult2);
+        TEST_LOG("estbmac with popen failure: PASS\n");
+
+        // Test wifimac
+        JsonObject getResults3;
+        uint32_t getResult3 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "wifimac@0", getResults3);
+        EXPECT_EQ(Core::ERROR_GENERAL, getResult3);
+        TEST_LOG("wifimac with popen failure: PASS\n");
+
+        // Test estbip
+        JsonObject getResults4;
+        uint32_t getResult4 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbip@0", getResults4);
+        EXPECT_EQ(Core::ERROR_GENERAL, getResult4);
+        TEST_LOG("estbip with popen failure: PASS\n");
+    }
+
+    /****************** Test with empty responses ******************/
+    {
+        TEST_LOG("Testing MAC/IP properties with empty responses\n");
+        
+        ON_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](const char* type, const char* command, va_list args) -> FILE* {
+                    const char* emptyData = "";
+                    return fmemopen(strdup(emptyData), strlen(emptyData), "r");
+                }));
+
+        // Test ethmac with empty response
+        JsonObject getResults1;
+        uint32_t getResult1 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "ethmac@0", getResults1);
+        EXPECT_EQ(Core::ERROR_NONE, getResult1);
+        if (getResult1 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults1.HasLabel("eth_mac"));
+            string ethMac = getResults1["eth_mac"].String();
+            EXPECT_TRUE(ethMac.empty());
+            TEST_LOG("ethmac empty response: %s\n", ethMac.empty() ? "empty" : ethMac.c_str());
+        }
+
+        // Test estbmac with empty response
+        JsonObject getResults2;
+        uint32_t getResult2 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbmac@0", getResults2);
+        EXPECT_EQ(Core::ERROR_NONE, getResult2);
+        if (getResult2 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults2.HasLabel("estb_mac"));
+            string estbMac = getResults2["estb_mac"].String();
+            EXPECT_TRUE(estbMac.empty());
+            TEST_LOG("estbmac empty response: %s\n", estbMac.empty() ? "empty" : estbMac.c_str());
+        }
+
+        // Test wifimac with empty response
+        JsonObject getResults3;
+        uint32_t getResult3 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "wifimac@0", getResults3);
+        EXPECT_EQ(Core::ERROR_NONE, getResult3);
+        if (getResult3 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults3.HasLabel("wifi_mac"));
+            string wifiMac = getResults3["wifi_mac"].String();
+            EXPECT_TRUE(wifiMac.empty());
+            TEST_LOG("wifimac empty response: %s\n", wifiMac.empty() ? "empty" : wifiMac.c_str());
+        }
+
+        // Test estbip with empty response
+        JsonObject getResults4;
+        uint32_t getResult4 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbip@0", getResults4);
+        EXPECT_EQ(Core::ERROR_NONE, getResult4);
+        if (getResult4 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults4.HasLabel("estb_ip"));
+            string estbIp = getResults4["estb_ip"].String();
+            EXPECT_TRUE(estbIp.empty());
+            TEST_LOG("estbip empty response: %s\n", estbIp.empty() ? "empty" : estbIp.c_str());
+        }
+    }
+
+    /****************** Test with malformed data ******************/
+    {
+        TEST_LOG("Testing MAC/IP properties with malformed data\n");
+        
+        ON_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](const char* type, const char* command, va_list args) -> FILE* {
+                    char buffer[256];
+                    vsnprintf(buffer, sizeof(buffer), command, args);
+                    std::string cmd(buffer);
+
+                    const char* data = nullptr;
+                    if (cmd.find("read eth_mac") != std::string::npos) {
+                        data = "INVALID_MAC_FORMAT\n";
+                    } else if (cmd.find("read estb_mac") != std::string::npos) {
+                        data = "ZZ:YY:XX:WW:VV:UU\n";
+                    } else if (cmd.find("read wifi_mac") != std::string::npos) {
+                        data = "NOT_A_MAC\n";
+                    } else if (cmd.find("read estb_ip") != std::string::npos) {
+                        data = "999.999.999.999\n";
+                    } else {
+                        data = "\n";
+                    }
+                    
+                    return fmemopen(strdup(data), strlen(data), "r");
+                }));
+
+        // Test ethmac with invalid format
+        JsonObject getResults1;
+        uint32_t getResult1 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "ethmac@0", getResults1);
+        EXPECT_EQ(Core::ERROR_NONE, getResult1);
+        if (getResult1 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults1.HasLabel("eth_mac"));
+            string ethMac = getResults1["eth_mac"].String();
+            EXPECT_EQ(ethMac, "INVALID_MAC_FORMAT");
+            TEST_LOG("ethmac malformed: %s\n", ethMac.c_str());
+        }
+
+        // Test estbmac with invalid format
+        JsonObject getResults2;
+        uint32_t getResult2 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbmac@0", getResults2);
+        EXPECT_EQ(Core::ERROR_NONE, getResult2);
+        if (getResult2 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults2.HasLabel("estb_mac"));
+            string estbMac = getResults2["estb_mac"].String();
+            EXPECT_EQ(estbMac, "ZZ:YY:XX:WW:VV:UU");
+            TEST_LOG("estbmac malformed: %s\n", estbMac.c_str());
+        }
+
+        // Test wifimac with invalid format
+        JsonObject getResults3;
+        uint32_t getResult3 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "wifimac@0", getResults3);
+        EXPECT_EQ(Core::ERROR_NONE, getResult3);
+        if (getResult3 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults3.HasLabel("wifi_mac"));
+            string wifiMac = getResults3["wifi_mac"].String();
+            EXPECT_EQ(wifiMac, "NOT_A_MAC");
+            TEST_LOG("wifimac malformed: %s\n", wifiMac.c_str());
+        }
+
+        // Test estbip with invalid format
+        JsonObject getResults4;
+        uint32_t getResult4 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbip@0", getResults4);
+        EXPECT_EQ(Core::ERROR_NONE, getResult4);
+        if (getResult4 == Core::ERROR_NONE) {
+            EXPECT_TRUE(getResults4.HasLabel("estb_ip"));
+            string estbIp = getResults4["estb_ip"].String();
+            EXPECT_EQ(estbIp, "999.999.999.999");
+            TEST_LOG("estbip malformed: %s\n", estbIp.c_str());
+        }
+    }
+
+    /****************** Test with only newline character ******************/
+    {
+        TEST_LOG("Testing MAC/IP properties with only newline\n");
+        
+        ON_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(
+                [](const char* type, const char* command, va_list args) -> FILE* {
+                    const char* data = "\n";
+                    return fmemopen(strdup(data), strlen(data), "r");
+                }));
+
+        // Test all properties with only newline
+        JsonObject getResults1;
+        uint32_t getResult1 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "ethmac@0", getResults1);
+        EXPECT_EQ(Core::ERROR_NONE, getResult1);
+        if (getResult1 == Core::ERROR_NONE) {
+            string ethMac = getResults1["eth_mac"].String();
+            EXPECT_TRUE(ethMac.empty());
+        }
+
+        JsonObject getResults2;
+        uint32_t getResult2 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbmac@0", getResults2);
+        EXPECT_EQ(Core::ERROR_NONE, getResult2);
+
+        JsonObject getResults3;
+        uint32_t getResult3 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "wifimac@0", getResults3);
+        EXPECT_EQ(Core::ERROR_NONE, getResult3);
+
+        JsonObject getResults4;
+        uint32_t getResult4 = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "estbip@0", getResults4);
+        EXPECT_EQ(Core::ERROR_NONE, getResult4);
+
+        TEST_LOG("All properties with only newline: PASS\n");
+    }
+
+    TEST_LOG("DeviceInfo L2 JsonRpc MAC Addresses and IP Negative Tests completed\n");
+}
+
+// ======================= COM-RPC TESTS =======================
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_SerialNumber)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::DeviceSerialNo serialNumber;
+    Core::hresult rc = m_deviceinfoplugin->SerialNumber(serialNumber);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(serialNumber.serialnumber.empty());
+    EXPECT_EQ(serialNumber.serialnumber, "RFC_TEST_SERIAL");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_Sku)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::DeviceModelNo modelNo;
+    Core::hresult rc = m_deviceinfoplugin->Sku(modelNo);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(modelNo.sku.empty());
+    EXPECT_EQ(modelNo.sku, "TEST_SKU_12345");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_Make)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
+        .WillByDefault(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (strcmp(methodName, IARM_BUS_MFRLIB_API_GetSerializedData) == 0) {
+                    auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
+                    strcpy(param->buffer, "TestManufacturer");
+                    return IARM_RESULT_SUCCESS;
+                }
+                return IARM_RESULT_SUCCESS;
+            });
+
+    Exchange::IDeviceInfo::DeviceMake make;
+    Core::hresult rc = m_deviceinfoplugin->Make(make);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(make.make.empty());
+    EXPECT_EQ(make.make, "TestManufacturer");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_Model)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::DeviceModel model;
+    Core::hresult rc = m_deviceinfoplugin->Model(model);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(model.model.empty());
+    EXPECT_EQ(model.model, "TestModel");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_DeviceType)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    std::ofstream file("/etc/authService.conf");
+    file << "deviceType=IpStb";
+    file.close();
+
+    Exchange::IDeviceInfo::DeviceTypeInfos deviceType;
+    Core::hresult rc = m_deviceinfoplugin->DeviceType(deviceType);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_NE(deviceType.devicetype, 0);
+    EXPECT_EQ(deviceType.devicetype, Exchange::IDeviceInfo::DEVICE_TYPE_IPSTB);
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_SocName)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    std::ofstream file("/etc/device.properties");
+    file << "SOC=NVIDIA\n";
+    file.close();
+
+    Exchange::IDeviceInfo::DeviceSoc socName;
+    Core::hresult rc = m_deviceinfoplugin->SocName(socName);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(socName.socname.empty());
+    EXPECT_EQ(socName.socname, "NVIDIA");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_DistributorId)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::DeviceDistId distributorId;
+    Core::hresult rc = m_deviceinfoplugin->DistributorId(distributorId);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_EQ(distributorId.distributorid, "TestPartnerID");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_Brand)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::DeviceBrand brand;
+    Core::hresult rc = m_deviceinfoplugin->Brand(brand);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(brand.brand.empty());
+    EXPECT_EQ(brand.brand, "TestBrand");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_ReleaseVersion)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::DeviceReleaseVer releaseVersion;
+    Core::hresult rc = m_deviceinfoplugin->ReleaseVersion(releaseVersion);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(releaseVersion.releaseversion.empty());
+    EXPECT_EQ(releaseVersion.releaseversion, "22.03.0.0");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_ChipSet)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    std::ofstream file("/etc/device.properties");
+    file << "CHIPSET_NAME=TestChipset\n";
+    file.close();
+
+    Exchange::IDeviceInfo::DeviceChip chipset;
+    Core::hresult rc = m_deviceinfoplugin->ChipSet(chipset);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(chipset.chipset.empty());
+    EXPECT_EQ(chipset.chipset, "TestChipset");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_FirmwareVersion)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::FirmwareversionInfo firmwareVersion;
+    Core::hresult rc = m_deviceinfoplugin->FirmwareVersion(firmwareVersion);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(firmwareVersion.imagename.empty());
+    EXPECT_EQ(firmwareVersion.imagename, "CUSTOM_VBN_22.03s_sprint_20220331225312sdy_NG");
+    EXPECT_EQ(firmwareVersion.sdk, "17.3");
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_SystemInfo)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    ON_CALL(*p_iarmBusImplMock, IARM_Bus_Call)
+        .WillByDefault(
+            [](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
+                if (strcmp(methodName, IARM_BUS_SYSMGR_API_GetSystemStates) == 0) {
+                    auto* param = static_cast<IARM_Bus_SYSMgr_GetSystemStates_Param_t*>(arg);
+                    param->channel_map.state = 2;
+                    return IARM_RESULT_SUCCESS;
+                }
+                return IARM_RESULT_SUCCESS;
+            });
+
+    Exchange::IDeviceInfo::SystemInfos systemInfo;
+    Core::hresult rc = m_deviceinfoplugin->SystemInfo(systemInfo);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_FALSE(systemInfo.version.empty());
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_Addresses)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::IAddressesInfoIterator* addressesInfo = nullptr;
+    Core::hresult rc = m_deviceinfoplugin->Addresses(addressesInfo);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    ASSERT_TRUE(addressesInfo != nullptr);
+
+    Exchange::IDeviceInfo::AddressesInfo address;
+    uint32_t count = 0;
+    while (addressesInfo->Next(address)) {
+        count++;
+        EXPECT_FALSE(address.name.empty());
+        EXPECT_FALSE(address.mac.empty());
+    }
+
+    addressesInfo->Release();
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_SupportedAudioPorts)
+{
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    device::AudioOutputPort audioOutputPort;
+    string audioPort(_T("HDMI0"));
+
+    ON_CALL(*p_audioOutputPortMock, getName())
+        .WillByDefault(::testing::ReturnRef(audioPort));
+    ON_CALL(*p_hostImplMock, getAudioOutputPorts())
+        .WillByDefault(::testing::Return(device::List<device::AudioOutputPort>({ audioOutputPort })));
+
+    RPC::IStringIterator* portIterator = nullptr;
+    bool success = false;
+    Core::hresult rc = m_deviceinfoplugin->SupportedAudioPorts(portIterator, success);
+    EXPECT_EQ(Core::ERROR_NONE, rc);
+    EXPECT_TRUE(success);
+    ASSERT_TRUE(portIterator != nullptr);
+
+    string port;
+    uint32_t count = 0;
+    while (portIterator->Next(port)) {
+        count++;
+        EXPECT_FALSE(port.empty());
+        EXPECT_EQ(port, "HDMI0");
+    }
+    EXPECT_GT(count, 0u);
+
+    portIterator->Release();
+}
+
+TEST_F(DeviceInfo_L2test, DeviceInfo_COMRPC_MacAddressesAndIp)
+{
+
+    // Setup v_secure_popen mock for MAC addresses and IP
+    ON_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke(
+            [](const char* type, const char* command, va_list args) -> FILE* {
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256];
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                
+                const char* valueToReturn = nullptr;
+                
+                if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read eth_mac") == 0) {
+                    valueToReturn = "AA:BB:CC:DD:EE:FF";
+                } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read estb_mac") == 0) {
+                    valueToReturn = "11:22:33:44:55:66";
+                } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read wifi_mac") == 0) {
+                    valueToReturn = "00:11:22:33:44:55";
+                } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read estb_ip") == 0) {
+                    valueToReturn = "192.168.1.100";
+                }
+                
+                if (valueToReturn != nullptr) {
+                    char buffer[1024];
+                    memset(buffer, 0, sizeof(buffer));
+                    strncpy(buffer, valueToReturn, sizeof(buffer) - 1);
+                    FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
+                    return pipe;
+                }
+                
+                return nullptr;
+            }));
+
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::EthernetMac ethMac;
+    Core::hresult rc1 = m_deviceinfoplugin->EthMac(ethMac);
+    EXPECT_EQ(Core::ERROR_NONE, rc1);
+    EXPECT_FALSE(ethMac.ethMac.empty());
+    EXPECT_EQ(ethMac.ethMac, "AA:BB:CC:DD:EE:FF");
+
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::StbMac stbMac;
+    Core::hresult rc2 = m_deviceinfoplugin->EstbMac(stbMac);
+    EXPECT_EQ(Core::ERROR_NONE, rc2);
+    EXPECT_FALSE(stbMac.estbMac.empty());
+    EXPECT_EQ(stbMac.estbMac, "11:22:33:44:55:66");
+
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::WiFiMac wifiMac;
+    Core::hresult rc3 = m_deviceinfoplugin->WifiMac(wifiMac);
+    EXPECT_EQ(Core::ERROR_NONE, rc3);
+    EXPECT_FALSE(wifiMac.wifiMac.empty());
+    EXPECT_EQ(wifiMac.wifiMac, "00:11:22:33:44:55");
+
+    ASSERT_TRUE(m_deviceinfoplugin != nullptr);
+
+    Exchange::IDeviceInfo::StbIp stbIp;
+    Core::hresult rc4 = m_deviceinfoplugin->EstbIp(stbIp);
+    EXPECT_EQ(Core::ERROR_NONE, rc4);
+    EXPECT_FALSE(stbIp.estbIp.empty());
+    EXPECT_EQ(stbIp.estbIp, "192.168.1.100");
+
 }

@@ -42,6 +42,7 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     : _platform(std::move(platform))
     , _powerStateBeforeReboot(PowerState::POWER_STATE_UNKNOWN)
     , _lastKnownPowerState(PowerState::POWER_STATE_ON)
+    , _settings(Settings::Load(m_settingsFile))
     , _deepSleepWakeupSettings(_settings)
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _deepSleep(deepSleep)
@@ -50,15 +51,14 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 #endif
 {
     ASSERT(nullptr != _platform);
+    bool isRamPersistenceAvailable = ( 0 == access(m_RamSettingsFile.c_str(), F_OK));
 
-    _settings = Settings::Load(m_settingsFile);
-    if (0 != access(kRamSettingsFilePath, F_OK)) {
-        LOGINFO("Creating RAM persistence[%s] for powerStateBeforeReboot", kRamSettingsFilePath);
-        _settings.Save(kRamSettingsFilePath);
+    LOGINFO("RAM persistence[%s] '%s' for PowerStateBeforeReboot", m_RamSettingsFile.c_str(), isRamPersistenceAvailable ? "Available" : "Not Available");
+    if (!isRamPersistenceAvailable) {
+        _settings.Save(m_RamSettingsFile);
     }
     else {
-        LOGINFO("Using RAM persistence[%s] for powerStateBeforeReboot", kRamSettingsFilePath);
-        Settings ramSettings = Settings::Load(kRamSettingsFilePath);
+        Settings ramSettings = Settings::Load(m_RamSettingsFile);
         // Seems PowerManager starting again so using RAM value
         _settings._powerStateBeforeReboot = ramSettings._powerState;
     }

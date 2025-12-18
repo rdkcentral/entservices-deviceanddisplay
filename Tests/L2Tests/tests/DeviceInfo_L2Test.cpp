@@ -267,7 +267,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
             EXPECT_GT(resolutions.Length(), 0);
             if (resolutions.Length() > 0) {
                 string resolution = resolutions[0].String();
-                // EXPECT_FALSE(resolution.empty());
                 EXPECT_EQ(resolution, "1080p");
                 TEST_LOG("First supported resolution: %s", resolution.c_str());
             }

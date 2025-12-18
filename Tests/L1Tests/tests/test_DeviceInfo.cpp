@@ -60,32 +60,8 @@ namespace {
             std::ofstream(fileName, std::ios::trunc);
         } 
     }
-}
 
-class DeviceInfoTest : public ::testing::Test {
-protected:
-    Core::ProxyType<Plugin::DeviceInfo> plugin;
-    Core::ProxyType<Plugin::DeviceInfoImplementation> deviceInfoImplementation;
-    Core::ProxyType<Plugin::DeviceAudioCapabilities> deviceAudioCapabilities;
-    Core::ProxyType<Plugin::DeviceVideoCapabilities> deviceVideoCapabilities;
-    Core::JSONRPC::Handler& handler;
-    DECL_CORE_JSONRPC_CONX connection;
-    string response;
-
-    IarmBusImplMock* p_iarmBusImplMock = nullptr;
-    ManagerImplMock* p_managerImplMock = nullptr;
-    HostImplMock* p_hostImplMock = nullptr;
-    AudioOutputPortMock* p_audioOutputPortMock = nullptr;
-    VideoResolutionMock* p_videoResolutionMock = nullptr;
-    VideoOutputPortMock* p_videoOutputPortMock = nullptr;
-    VideoOutputPortConfigImplMock* p_videoOutputPortConfigImplMock = nullptr;
-    VideoOutputPortTypeMock* p_videoOutputPortTypeMock = nullptr;
-    RfcApiImplMock* p_rfcApiImplMock = nullptr;
-    NiceMock<ServiceMock> service;
-    NiceMock<COMLinkMock> comLinkMock;
-    //Core::Sink<NiceMock<SystemInfo>> subSystem;
-
-    void SetUp() override
+    static void createNetworkFile()
     {
         // Create the directory for the script
         system("mkdir -p /lib/rdk");
@@ -119,23 +95,33 @@ protected:
         scriptFile << "esac\n\n";
         scriptFile << "exit 0\n";
         scriptFile.close();
-        
-        // Make the script executable
-        system("chmod +x /lib/rdk/getDeviceDetails.sh");
 
         system("mkdir -p /opt/www/authService");
     }
+}
 
-    void TearDown() override
-    {
-        // Clean up files created during the test
-        // Ignore errors if files don't exist
-       // removeFile("/etc/device.properties");
-       // removeFile("/etc/authService.conf");
-       // removeFile("/tmp/.manufacturer");
-       // removeFile("/version.txt");
-       // removeFile("/opt/www/authService/partnerId3.dat");
-    }
+class DeviceInfoTest : public ::testing::Test {
+protected:
+    Core::ProxyType<Plugin::DeviceInfo> plugin;
+    Core::ProxyType<Plugin::DeviceInfoImplementation> deviceInfoImplementation;
+    Core::ProxyType<Plugin::DeviceAudioCapabilities> deviceAudioCapabilities;
+    Core::ProxyType<Plugin::DeviceVideoCapabilities> deviceVideoCapabilities;
+    Core::JSONRPC::Handler& handler;
+    DECL_CORE_JSONRPC_CONX connection;
+    string response;
+
+    IarmBusImplMock* p_iarmBusImplMock = nullptr;
+    ManagerImplMock* p_managerImplMock = nullptr;
+    HostImplMock* p_hostImplMock = nullptr;
+    AudioOutputPortMock* p_audioOutputPortMock = nullptr;
+    VideoResolutionMock* p_videoResolutionMock = nullptr;
+    VideoOutputPortMock* p_videoOutputPortMock = nullptr;
+    VideoOutputPortConfigImplMock* p_videoOutputPortConfigImplMock = nullptr;
+    VideoOutputPortTypeMock* p_videoOutputPortTypeMock = nullptr;
+    RfcApiImplMock* p_rfcApiImplMock = nullptr;
+    NiceMock<ServiceMock> service;
+    NiceMock<COMLinkMock> comLinkMock;
+    //Core::Sink<NiceMock<SystemInfo>> subSystem;
 
     DeviceInfoTest()
         : plugin(Core::ProxyType<Plugin::DeviceInfo>::Create())
@@ -219,6 +205,8 @@ protected:
 #endif
 
         EXPECT_EQ(string(""), plugin->Initialize(&service));
+
+        createNetworkFile();
     }
 
     virtual ~DeviceInfoTest()

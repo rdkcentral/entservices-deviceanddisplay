@@ -507,7 +507,6 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
                 transaction_id = transactionId;
                 EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
-                
                 // Test invalid parameters FIRST before modifying state
                 // Acknowledge - Change Complete with invalid transactionId
                 auto status = powerManagerImpl->PowerModePreChangeComplete(clientId, transactionId + 10);

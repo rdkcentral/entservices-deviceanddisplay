@@ -83,7 +83,6 @@ DeviceInfo_L2test::DeviceInfo_L2test()
     devicePropsFile << "MFG_NAME=TestManufacturer\n";
     devicePropsFile << "FRIENDLY_ID=\"TestModel\"\n";
     devicePropsFile << "MODEL_NUM=TEST_SKU_12345\n";
-    // devicePropsFile << "SOC=TestSOC\n";
     devicePropsFile << "CHIPSET_NAME=TestChipset\n";
     devicePropsFile << "DEVICE_TYPE=IpStb\n";
     devicePropsFile.flush();
@@ -373,7 +372,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodTest)
             JsonArray capabilities = result["MS12Capabilities"].Array();
             EXPECT_GT(capabilities.Length(), 0);
             // Verify expected capabilities are present
-            // bool hasDolbyVolume = false, hasIntelligentEqualizer = false, hasDialogue
             bool hasDolbyVolume = false, hasIntelligentEqualizer = false, hasDialogueEnhancer = false;
                 for (int i = 0; i < capabilities.Length(); i++) {
                 string cap = capabilities[i].String();
@@ -486,10 +484,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
     /****************** firmwareversion ******************/
     {
         TEST_LOG("Testing firmwareversion property\n");
-
-        // std::ofstream file("/version.txt");
-        // file << "imagename:CUSTOM_VBN_22.03s_sprint_20220331225312sdy_NG\nSDK_VERSION=17.3\nMEDIARITE=8.3.53\nYOCTO_VERSION=dunfell\n";
-        // file.close();
 
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "firmwareversion@0", getResults);
@@ -655,7 +649,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
         TEST_LOG("Testing distributorid from file\n");
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "distributorid@0", getResults);
-        // EXPECT_EQ(Core::ERROR_GENERAL, getResult);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
         if (getResult == Core::ERROR_NONE) {
             EXPECT_TRUE(getResults.HasLabel("distributorid"));
@@ -670,11 +663,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
     {
         TEST_LOG("Testing releaseversion property\n");
 
-        // std::ofstream versionFile("/version.txt");
-        // // versionFile << "imagename:CUSTOM_VBN_22.03s_sprint_20220331225312sdy_NG\n";
-        // versionFile << "imagename:CUSTOM5_VBN_22.03sprint_test\n";
-        // versionFile.close();
-
         JsonObject getResults;
         uint32_t getResult = InvokeServiceMethod(DEVICEINFO_CALLSIGN, "releaseversion@0", getResults);
         EXPECT_EQ(Core::ERROR_NONE, getResult);
@@ -682,7 +670,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_PropertyTest)
             EXPECT_TRUE(getResults.HasLabel("releaseversion"));
             string releaseVersion = getResults["releaseversion"].String();
             EXPECT_FALSE(releaseVersion.empty());
-            // EXPECT_EQ(releaseVersion, "CUSTOM_VBN_22.03s_sprint_20220331225312sdy_NG");
             EXPECT_EQ(releaseVersion, "22.03.0.0");
             TEST_LOG("Release version: %s", releaseVersion.c_str());
         }
@@ -1476,7 +1463,6 @@ TEST_F(DeviceInfo_L2test, DeviceInfo_L2_MethodVariationsTest)
             .WillByDefault(::testing::ReturnRef(videoOutputPortType));
         
         status = InvokeServiceMethod("DeviceInfo.1", "supportedresolutions", params, result);
-        // EXPECT_EQ(Core::ERROR_GENERAL, status);
         EXPECT_EQ(Core::ERROR_NONE, status);  // Change from ERROR_GENERAL to ERROR_NONE
         if (status == Core::ERROR_NONE) {
             EXPECT_TRUE(result.HasLabel("supportedResolutions"));

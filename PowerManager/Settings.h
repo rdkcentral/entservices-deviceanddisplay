@@ -81,6 +81,7 @@ public:
 
     inline void SetDeepSleepTimeout(uint32_t timeout) { _deepSleepTimeout = timeout; }
     inline void SetNwStandbyMode(bool mode) { _nwStandbyMode = mode; }
+    inline void SetPowerStateBeforeReboot(const PowerState powerState) { _powerStateBeforeReboot = powerState; }
 
     inline uint32_t magic() const { return _magic; }
     inline uint32_t version() const { return _version; }

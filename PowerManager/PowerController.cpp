@@ -62,9 +62,9 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     else {
         Settings ramSettings = Settings::Load(m_RamSettingsFile);
         // Seems PowerManager starting again so using RAM value
-        _settings._powerStateBeforeReboot = ramSettings._powerStateBeforeReboot;
+        _settings.SetPowerStateBeforeReboot(ramSettings.powerStateBeforeReboot());
     }
-    LOGINFO("PowerStateBeforeReboot is [%s]", util::str(_settings._powerStateBeforeReboot));
+    LOGINFO("PowerStateBeforeReboot is [%s]", util::str(_settings.powerStateBeforeReboot()));
 
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};

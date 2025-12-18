@@ -52,30 +52,14 @@ using ::testing::ReturnRef;
 using ::testing::Invoke;
 
 namespace {
-const string webPrefix = _T("/Service/DeviceInfo");
-static void removeFile(const char* fileName)
-{
-    // Use sudo for protected files
-    if (strcmp(fileName, "/etc/device.properties") == 0 || strcmp(fileName, "/etc/authService.conf") == 0 || strcmp(fileName, "/opt/www/authService/partnerId3.dat") == 0 || \
-    strcmp(fileName, "/tmp/.manufacturer") == 0 || strcmp(fileName, "/version.txt") == 0) {
-        char cmd[256];
-        snprintf(cmd, sizeof(cmd), "sudo rm -f %s", fileName);
-        int ret = system(cmd);
-        if (ret != 0) {
-            printf("File %s failed to remove with sudo\n", fileName);
-            perror("Error deleting file");
-        } else {
-            printf("File %s successfully deleted with sudo\n", fileName);
-        }
-    } else {
-        if (std::remove(fileName) != 0) {
-            printf("File %s failed to remove\n", fileName);
-            perror("Error deleting file");
-        } else {
-            printf("File %s successfully deleted\n", fileName);
-        }
+    const string webPrefix = _T("/Service/DeviceInfo");
+    static void removeFile(const char* fileName)
+    {
+        if (strcmp(fileName, "/etc/device.properties") == 0 || strcmp(fileName, "/etc/authService.conf") == 0 || strcmp(fileName, "/opt/www/authService/partnerId3.dat") == 0 || \
+            strcmp(fileName, "/tmp/.manufacturer") == 0 || strcmp(fileName, "/version.txt") == 0) {
+            std::ofstream(fileName, std::ios::trunc);
+        } 
     }
-}
 }
 
 class DeviceInfoTest : public ::testing::Test {

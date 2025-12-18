@@ -42,7 +42,6 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     : _platform(std::move(platform))
     , _powerStateBeforeReboot(PowerState::POWER_STATE_UNKNOWN)
     , _lastKnownPowerState(PowerState::POWER_STATE_ON)
-    , _settings(Settings::Load(m_settingsFile))
     , _deepSleepWakeupSettings(_settings)
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _deepSleep(deepSleep)
@@ -51,6 +50,27 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 #endif
 {
     ASSERT(nullptr != _platform);
+
+    _settings = Settings::Load(m_settingsFile);
+    if (0 != access(kRamSettingsFilePath, F_OK)) {
+        LOGINFO("Creating RAM persistence[%s] for powerStateBeforeReboot", kRamSettingsFilePath);
+        _settings.Save(kRamSettingsFilePath);
+    }
+    else {
+        LOGINFO("Using RAM persistence[%s] for powerStateBeforeReboot", kRamSettingsFilePath);
+        Settings ramSettings = Settings::Load(kRamSettingsFilePath);
+        // Seems PowerManager starting again so using RAM value
+        _settings._powerStateBeforeReboot = ramSettings._powerState;
+    }
+    LOGINFO("PowerStateBeforeReboot is [%s]", util::str(_settings._powerStateBeforeReboot));
+
+#ifdef PLATCO_BOOTTO_STANDBY
+    struct stat buf = {};
+    if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
+        _settings._powerState = PowerState::POWER_STATE_STANDBY;
+        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
+    }
+#endif
 
     // Settings initialization will never fail
     // It will either be deserialized from file or initialized to default values

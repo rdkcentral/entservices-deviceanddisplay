@@ -55,7 +55,7 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     bool isRamPersistenceAvailable = (0 == access(m_ramSettingsFile.c_str(), F_OK));
 
     if (!isRamPersistenceAvailable) {
-        // '_settings' having valid "PowerStateBeforeReboot", so saving it to RAM file for next restart if any
+        // Save current settings to RAM file to preserve power state across PowerManager restarts within the same boot cycle
         bool isSettingsSaved = _settings.Save(m_ramSettingsFile);
         if (!isSettingsSaved) {
             LOGERR("Failed to create RAM persistence file for PowerStateBeforeReboot");

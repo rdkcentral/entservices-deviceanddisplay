@@ -19,6 +19,7 @@
 
 #include <functional> // for function
 #include <unistd.h>   // for access, F_OK
+#include <sys/stat.h> // for stat
 
 #include <core/IAction.h>    // for IDispatch
 #include <core/Time.h>       // for Time
@@ -51,24 +52,25 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 #endif
 {
     ASSERT(nullptr != _platform);
-    bool isRamPersistenceAvailable = ( 0 == access(m_RamSettingsFile.c_str(), F_OK));
+    bool isRamPersistenceAvailable = (0 == access(m_RamSettingsFile.c_str(), F_OK));
 
-    LOGINFO("RAM persistence[%s] '%s' for PowerStateBeforeReboot", m_RamSettingsFile.c_str(), isRamPersistenceAvailable ? "Available" : "Not Available");
+    LOGINFO("RAM persistence[%s] %s for PowerStateBeforeReboot", m_RamSettingsFile.c_str(), isRamPersistenceAvailable ? "Available" : "Not Available");
     if (!isRamPersistenceAvailable) {
+        // '_settings' having valid "PowerStateBeforeReboot", so saving it to RAM file for next restart if any
         _settings.Save(m_RamSettingsFile);
     }
     else {
         Settings ramSettings = Settings::Load(m_RamSettingsFile);
         // Seems PowerManager starting again so using RAM value
-        _settings._powerStateBeforeReboot = ramSettings._powerState;
+        _settings._powerStateBeforeReboot = ramSettings._powerStateBeforeReboot;
     }
     LOGINFO("PowerStateBeforeReboot is [%s]", util::str(_settings._powerStateBeforeReboot));
 
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-        _settings._powerState = PowerState::POWER_STATE_STANDBY;
-        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
+        _settings.SetPowerState(PowerState::POWER_STATE_STANDBY);
+        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY");
     }
 #endif
 

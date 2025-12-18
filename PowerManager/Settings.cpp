@@ -226,7 +226,9 @@ Settings Settings::Load(const std::string& path)
         settings.initDefaults();
     }
     settings._powerStateBeforeReboot = settings._powerState;
-    settings.printDetails("PowerSettings retrieved from [%s]", path.c_str());
+    std::ostringstream prefixStream;
+    prefixStream << "PowerSettings retrieved from [" << path << "]";
+    settings.printDetails(prefixStream.str());
     return settings;
 }
 

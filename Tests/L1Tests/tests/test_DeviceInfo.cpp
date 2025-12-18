@@ -85,6 +85,47 @@ protected:
     NiceMock<COMLinkMock> comLinkMock;
     //Core::Sink<NiceMock<SystemInfo>> subSystem;
 
+    void SetUp() override
+    {
+        // Create the directory for the script
+        system("mkdir -p /lib/rdk");
+        
+        // Create the getDeviceDetails.sh script
+        std::ofstream scriptFile("/lib/rdk/getDeviceDetails.sh");
+        scriptFile << "#!/bin/bash\n\n";
+        scriptFile << "# Mock script for returning device details\n";
+        scriptFile << "# Usage: /lib/rdk/getDeviceDetails.sh read <parameter>\n\n";
+        scriptFile << "if [ \"$1\" != \"read\" ]; then\n";
+        scriptFile << "    echo \"Usage: $0 read <parameter>\"\n";
+        scriptFile << "    exit 1\n";
+        scriptFile << "fi\n\n";
+        scriptFile << "case \"$2\" in\n";
+        scriptFile << "    eth_mac)\n";
+        scriptFile << "        echo \"AA:BB:CC:DD:EE:FF\"\n";
+        scriptFile << "        ;;\n";
+        scriptFile << "    estb_mac)\n";
+        scriptFile << "        echo \"11:22:33:44:55:66\"\n";
+        scriptFile << "        ;;\n";
+        scriptFile << "    wifi_mac)\n";
+        scriptFile << "        echo \"00:11:22:33:44:55\"\n";
+        scriptFile << "        ;;\n";
+        scriptFile << "    estb_ip)\n";
+        scriptFile << "        echo \"192.168.1.100\"\n";
+        scriptFile << "        ;;\n";
+        scriptFile << "    *)\n";
+        scriptFile << "        echo \"Unknown parameter: $2\"\n";
+        scriptFile << "        exit 1\n";
+        scriptFile << "        ;;\n";
+        scriptFile << "esac\n\n";
+        scriptFile << "exit 0\n";
+        scriptFile.close();
+        
+        // Make the script executable
+        system("chmod +x /lib/rdk/getDeviceDetails.sh");
+
+        system("mkdir -p /opt/www/authService");
+    }
+
     void TearDown() override
     {
         // Clean up files created during the test
@@ -178,7 +219,6 @@ protected:
 #endif
 
         EXPECT_EQ(string(""), plugin->Initialize(&service));
-        system("mkdir -p /opt/www/authService");
     }
 
     virtual ~DeviceInfoTest()
@@ -1353,4 +1393,36 @@ TEST_F(DeviceInfoTest, EdgeCase_MultipleIARMCallsSequential)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("brandname"), _T(""), response));
     EXPECT_EQ(response, _T("{\"brand\":\"BRAND001\"}"));
+}
+
+TEST_F(DeviceInfoTest, EthMac_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ethmac"), _T(""), response));
+    EXPECT_TRUE(response.find("\"ethmac\":") != string::npos);
+    EXPECT_TRUE(response.find("{") != string::npos);
+    EXPECT_TRUE(response.find("}") != string::npos);
+}
+
+TEST_F(DeviceInfoTest, EstbMac_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbmac"), _T(""), response));
+    EXPECT_TRUE(response.find("\"estbmac\":") != string::npos);
+    EXPECT_TRUE(response.find("{") != string::npos);
+    EXPECT_TRUE(response.find("}") != string::npos);
+}
+
+TEST_F(DeviceInfoTest, WifiMac_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("wifimac"), _T(""), response));
+    EXPECT_TRUE(response.find("\"wifimac\":") != string::npos);
+    EXPECT_TRUE(response.find("{") != string::npos);
+    EXPECT_TRUE(response.find("}") != string::npos);
+}
+
+TEST_F(DeviceInfoTest, EstbIp_Success)
+{
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbip"), _T(""), response));
+    EXPECT_TRUE(response.find("\"estbip\":") != string::npos);
+    EXPECT_TRUE(response.find("{") != string::npos);
+    EXPECT_TRUE(response.find("}") != string::npos);
 }

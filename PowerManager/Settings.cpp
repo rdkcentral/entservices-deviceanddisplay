@@ -257,11 +257,11 @@ bool Settings::Save(const std::string& path)
 void Settings::printDetails(const std::string& prefix) const
 {
     LOGINFO("====================[%s]====================", prefix.c_str());
-    LOGINFO("Magic: 0x%X", _magic);
+    LOGINFO("Magic: 0x%08X", _magic);
     LOGINFO("Version: %u", _version);
     LOGINFO("Power State: %s", util::str(_powerState));
     LOGINFO("Power State Before Reboot: %s", util::str(_powerStateBeforeReboot));
     LOGINFO("Deep Sleep Timeout (sec): %u", _deepSleepTimeout);
     LOGINFO("Network Standby Mode: %s", _nwStandbyMode ? "Enabled" : "Disabled");
-    LOGINFO("==================================================");
+    LOGINFO("============================================");
 }

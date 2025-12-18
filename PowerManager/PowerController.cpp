@@ -52,23 +52,29 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 #endif
 {
     ASSERT(nullptr != _platform);
-    bool isRamPersistenceAvailable = (0 == access(m_RamSettingsFile.c_str(), F_OK));
+    bool isRamPersistenceAvailable = (0 == access(m_ramSettingsFile.c_str(), F_OK));
 
-    LOGINFO("RAM persistence[%s] %s for PowerStateBeforeReboot", m_RamSettingsFile.c_str(), isRamPersistenceAvailable ? "Available" : "Not Available");
     if (!isRamPersistenceAvailable) {
         // '_settings' having valid "PowerStateBeforeReboot", so saving it to RAM file for next restart if any
-        _settings.Save(m_RamSettingsFile);
+        bool isSettingsSaved = _settings.Save(m_ramSettingsFile);
+        if (!isSettingsSaved) {
+            LOGERR("Failed to create RAM persistence file for PowerStateBeforeReboot");
+        }
+        else {
+            LOGINFO("RAM persistence file created for PowerStateBeforeReboot");
+        }
     }
     else {
-        Settings ramSettings = Settings::Load(m_RamSettingsFile);
-        // Seems PowerManager starting again so using RAM value
+        // RAM persistence file already exists, indicating PowerManager has restarted for some reason, So load PowerStateBeforeReboot from RAM file
+        Settings ramSettings = Settings::Load(m_ramSettingsFile);
         _settings.SetPowerStateBeforeReboot(ramSettings.powerStateBeforeReboot());
     }
-    LOGINFO("PowerStateBeforeReboot is [%s]", util::str(_settings.powerStateBeforeReboot()));
+    LOGINFO("RAM persistence[%s] %s, PowerStateBeforeReboot is [%s]", m_ramSettingsFile.c_str(), isRamPersistenceAvailable ? "Available" : "Not Available", util::str(_settings.powerStateBeforeReboot()));
 
 #ifdef PLATCO_BOOTTO_STANDBY
     struct stat buf = {};
     if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
+        // First boot after power cycle, set default powerstate to STANDBY based on PLATCO_BOOTTO_STANDBY
         _settings.SetPowerState(PowerState::POWER_STATE_STANDBY);
         LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY");
     }

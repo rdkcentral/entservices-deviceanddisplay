@@ -36,6 +36,7 @@
 #include "RfcApiMock.h"
 #include "COMLinkMock.h"
 #include "DeviceInfoMock.h"
+#include "WrapsMock.h"
 //#include "ISubSystemMock.h"
 
 #include "SystemInfo.h"
@@ -60,45 +61,6 @@ namespace {
             std::ofstream(fileName, std::ios::trunc);
         } 
     }
-
-    static void createNetworkFile()
-    {
-        // Create the directory for the script
-        system("mkdir -p /lib/rdk");
-        
-        // Create the getDeviceDetails.sh script
-        std::ofstream scriptFile("/lib/rdk/getDeviceDetails.sh");
-        scriptFile << "#!/bin/bash\n\n";
-        scriptFile << "# Mock script for returning device details\n";
-        scriptFile << "# Usage: /lib/rdk/getDeviceDetails.sh read <parameter>\n\n";
-        scriptFile << "if [ \"$1\" != \"read\" ]; then\n";
-        scriptFile << "    echo \"Usage: $0 read <parameter>\"\n";
-        scriptFile << "    exit 1\n";
-        scriptFile << "fi\n\n";
-        scriptFile << "case \"$2\" in\n";
-        scriptFile << "    eth_mac)\n";
-        scriptFile << "        echo \"AA:BB:CC:DD:EE:FF\"\n";
-        scriptFile << "        ;;\n";
-        scriptFile << "    estb_mac)\n";
-        scriptFile << "        echo \"11:22:33:44:55:66\"\n";
-        scriptFile << "        ;;\n";
-        scriptFile << "    wifi_mac)\n";
-        scriptFile << "        echo \"00:11:22:33:44:55\"\n";
-        scriptFile << "        ;;\n";
-        scriptFile << "    estb_ip)\n";
-        scriptFile << "        echo \"192.168.1.100\"\n";
-        scriptFile << "        ;;\n";
-        scriptFile << "    *)\n";
-        scriptFile << "        echo \"Unknown parameter: $2\"\n";
-        scriptFile << "        exit 1\n";
-        scriptFile << "        ;;\n";
-        scriptFile << "esac\n\n";
-        scriptFile << "exit 0\n";
-        scriptFile.close();
-
-        system("mkdir -p /opt/www/authService");
-        printf("File getDeviceDetails successfully created\n");
-    }
 }
 
 class DeviceInfoTest : public ::testing::Test {
@@ -122,6 +84,7 @@ protected:
     RfcApiImplMock* p_rfcApiImplMock = nullptr;
     NiceMock<ServiceMock> service;
     NiceMock<COMLinkMock> comLinkMock;
+    WrapsImplMock* p_wrapsImplMock = nullptr;
     //Core::Sink<NiceMock<SystemInfo>> subSystem;
 
     DeviceInfoTest()
@@ -155,6 +118,9 @@ protected:
 
         p_rfcApiImplMock = new NiceMock<RfcApiImplMock>;
         RfcApi::setImpl(p_rfcApiImplMock);
+
+        p_wrapsImplMock = new NiceMock<WrapsImplMock>;
+        Wraps::setImpl(p_wrapsImplMock);
 
         // Create implementation objects
         deviceInfoImplementation = Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
@@ -207,7 +173,7 @@ protected:
 
         EXPECT_EQ(string(""), plugin->Initialize(&service));
 
-        createNetworkFile();
+        system("mkdir -p /opt/www/authService");
     }
 
     virtual ~DeviceInfoTest()
@@ -218,6 +184,12 @@ protected:
         if (p_rfcApiImplMock != nullptr) {
             delete p_rfcApiImplMock;
             p_rfcApiImplMock = nullptr;
+        }
+
+        Wraps::setImpl(nullptr);
+        if (p_wrapsImplMock != nullptr) {
+            delete p_wrapsImplMock;
+            p_wrapsImplMock = nullptr;
         }
 
         device::VideoOutputPortType::setImpl(nullptr);
@@ -1386,20 +1358,251 @@ TEST_F(DeviceInfoTest, EdgeCase_MultipleIARMCallsSequential)
 
 TEST_F(DeviceInfoTest, EthMac_Success)
 {
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256];
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read eth_mac"));
+                
+                const char mac[] = "AA:BB:CC:DD:EE:FF\n";
+                char buffer[256];
+                memset(buffer, 0, sizeof(buffer));
+                strncpy(buffer, mac, sizeof(buffer) - 1);
+                FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
+                return pipe;
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ethmac"), _T(""), response));
+    EXPECT_EQ(response, string("{\"ethmac\":\"AA:BB:CC:DD:EE:FF\"}"));
+}
+
+TEST_F(DeviceInfoTest, EthMac_Failure_PopenReturnsNull)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(nullptr));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("ethmac"), _T(""), response));
+}
+
+TEST_F(DeviceInfoTest, EthMac_Success_NewlineStripped)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                const char mac[] = "11:22:33:44:55:66\n";
+                char buffer[256];
+                strncpy(buffer, mac, sizeof(buffer) - 1);
+                return fmemopen(buffer, strlen(buffer), "r");
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ethmac"), _T(""), response));
+    // Verify newline is stripped - should not end with \n in JSON
+    EXPECT_EQ(response, string("{\"ethmac\":\"11:22:33:44:55:66\"}"));
+}
+
+TEST_F(DeviceInfoTest, EthMac_Success_EmptyOutput)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                char buffer[1] = {0};
+                return fmemopen(buffer, 0, "r");
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ethmac"), _T(""), response));
+    EXPECT_EQ(response, string("{\"ethmac\":\"\"}"));
 }
 
 TEST_F(DeviceInfoTest, EstbMac_Success)
 {
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256];
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read estb_mac"));
+                
+                const char mac[] = "11:22:33:44:55:66\n";
+                char buffer[256];
+                memset(buffer, 0, sizeof(buffer));
+                strncpy(buffer, mac, sizeof(buffer) - 1);
+                FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
+                return pipe;
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbmac"), _T(""), response));
+    EXPECT_EQ(response, string("{\"estbmac\":\"11:22:33:44:55:66\"}"));
+}
+
+TEST_F(DeviceInfoTest, EstbMac_Failure_PopenReturnsNull)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(nullptr));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("estbmac"), _T(""), response));
+}
+
+TEST_F(DeviceInfoTest, EstbMac_Success_NewlineStripped)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                const char mac[] = "AA:11:BB:22:CC:33\n";
+                char buffer[256];
+                strncpy(buffer, mac, sizeof(buffer) - 1);
+                return fmemopen(buffer, strlen(buffer), "r");
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbmac"), _T(""), response));
+    EXPECT_EQ(response, string("{\"estbmac\":\"AA:11:BB:22:CC:33\"}"));
 }
 
 TEST_F(DeviceInfoTest, WifiMac_Success)
 {
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256];
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read wifi_mac"));
+                
+                const char mac[] = "00:11:22:33:44:55\n";
+                char buffer[256];
+                memset(buffer, 0, sizeof(buffer));
+                strncpy(buffer, mac, sizeof(buffer) - 1);
+                FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
+                return pipe;
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("wifimac"), _T(""), response));
+    EXPECT_EQ(response, string("{\"wifimac\":\"00:11:22:33:44:55\"}"));
+}
+
+TEST_F(DeviceInfoTest, WifiMac_Failure_PopenReturnsNull)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(nullptr));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("wifimac"), _T(""), response));
+}
+
+TEST_F(DeviceInfoTest, WifiMac_Success_NewlineStripped)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                const char mac[] = "FF:EE:DD:CC:BB:AA\n";
+                char buffer[256];
+                strncpy(buffer, mac, sizeof(buffer) - 1);
+                return fmemopen(buffer, strlen(buffer), "r");
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("wifimac"), _T(""), response));
+    EXPECT_EQ(response, string("{\"wifimac\":\"FF:EE:DD:CC:BB:AA\"}"));
 }
 
 TEST_F(DeviceInfoTest, EstbIp_Success)
 {
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                va_list args2;
+                va_copy(args2, args);
+                char strFmt[256];
+                vsnprintf(strFmt, sizeof(strFmt), command, args2);
+                va_end(args2);
+                EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read estb_ip"));
+                
+                const char ip[] = "192.168.1.100\n";
+                char buffer[256];
+                memset(buffer, 0, sizeof(buffer));
+                strncpy(buffer, ip, sizeof(buffer) - 1);
+                FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
+                return pipe;
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbip"), _T(""), response));
+    EXPECT_EQ(response, string("{\"estbip\":\"192.168.1.100\"}"));
+}
+
+TEST_F(DeviceInfoTest, EstbIp_Failure_PopenReturnsNull)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(nullptr));
+
+    EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("estbip"), _T(""), response));
+}
+
+TEST_F(DeviceInfoTest, EstbIp_Success_NewlineStripped)
+{
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_popen(::testing::_, ::testing::_, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke(
+            [&](const char* direction, const char* command, va_list args) {
+                const char ip[] = "10.0.0.1\n";
+                char buffer[256];
+                strncpy(buffer, ip, sizeof(buffer) - 1);
+                return fmemopen(buffer, strlen(buffer), "r");
+            }));
+
+    EXPECT_CALL(*p_wrapsImplMock, v_secure_pclose(::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(0));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbip"), _T(""), response));
+    EXPECT_EQ(response, string("{\"estbip\":\"10.0.0.1\"}"));
 }

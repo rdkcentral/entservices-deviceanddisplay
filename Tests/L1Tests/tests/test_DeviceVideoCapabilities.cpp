@@ -1093,10 +1093,14 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_VariousResolution
     device::VideoOutputPort videoOutputPort;
     device::VideoResolution videoResolution;
     string portName = "HDMI0";
+    static const string res1080p = "1080p";
+    static const string res720p = "720p";
+    static const string res2160p = "2160p";
+    static const string res480i = "480i";
 
     // Test 1080p
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"));
+        .WillOnce(ReturnRef(res1080p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
@@ -1106,7 +1110,7 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_VariousResolution
 
     // Test 720p
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("720p"));
+        .WillOnce(ReturnRef(res720p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
@@ -1116,7 +1120,7 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_VariousResolution
 
     // Test 4K
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("2160p"));
+        .WillOnce(ReturnRef(res2160p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
@@ -1126,7 +1130,7 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_VariousResolution
 
     // Test 480i
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("480i"));
+        .WillOnce(ReturnRef(res480i));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
@@ -1139,11 +1143,14 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_VariousPortNames)
 {
     device::VideoOutputPort videoOutputPort;
     device::VideoResolution videoResolution;
+    static const string res1080p = "1080p";
+    static const string res720p = "720p";
+    static const string res480i = "480i";
 
     // Test HDMI0
     string port1 = "HDMI0";
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"));
+        .WillOnce(ReturnRef(res1080p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port1))
@@ -1154,7 +1161,7 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_VariousPortNames)
     // Test HDMI1
     string port2 = "HDMI1";
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("720p"));
+        .WillOnce(ReturnRef(res720p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port2))
@@ -1165,7 +1172,7 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_VariousPortNames)
     // Test Component
     string port3 = "Component";
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("480i"));
+        .WillOnce(ReturnRef(res480i));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port3))
@@ -1179,9 +1186,10 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_DefaultPortUsed)
     device::VideoOutputPort videoOutputPort;
     device::VideoResolution videoResolution;
     string defaultPort = "HDMI1";
+    static const string res1080p = "1080p";
 
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"));
+        .WillOnce(ReturnRef(res1080p));
 
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
@@ -1204,15 +1212,18 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_MultipleResolu
     device::VideoResolution resolution1, resolution2, resolution3;
     device::List<device::VideoResolution> resolutions;
     string portName = "HDMI0";
+    static const string res1080p = "1080p";
+    static const string res720p = "720p";
+    static const string res480p = "480p";
 
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"))
-        .WillOnce(Return("720p"))
-        .WillOnce(Return("480p"));
+        .WillOnce(ReturnRef(res1080p))
+        .WillOnce(ReturnRef(res720p))
+        .WillOnce(ReturnRef(res480p));
 
-    resolutions.push_back(&resolution1);
-    resolutions.push_back(&resolution2);
-    resolutions.push_back(&resolution3);
+    resolutions.push_back(resolution1);
+    resolutions.push_back(resolution2);
+    resolutions.push_back(resolution3);
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
         .WillOnce(ReturnRef(resolutions));
@@ -1237,11 +1248,12 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_SingleResoluti
     device::VideoResolution resolution1;
     device::List<device::VideoResolution> resolutions;
     string portName = "HDMI0";
+    static const string res1080p = "1080p";
 
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"));
+        .WillOnce(ReturnRef(res1080p));
 
-    resolutions.push_back(&resolution1);
+    resolutions.push_back(resolution1);
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
         .WillOnce(ReturnRef(resolutions));
@@ -1264,23 +1276,30 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_LargeResolutio
     device::VideoResolution res1, res2, res3, res4, res5, res6, res7;
     device::List<device::VideoResolution> resolutions;
     string portName = "HDMI0";
+    static const string res2160p = "2160p";
+    static const string res1080p = "1080p";
+    static const string res1080i = "1080i";
+    static const string res720p = "720p";
+    static const string res576p = "576p";
+    static const string res480p = "480p";
+    static const string res480i = "480i";
 
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("2160p"))
-        .WillOnce(Return("1080p"))
-        .WillOnce(Return("1080i"))
-        .WillOnce(Return("720p"))
-        .WillOnce(Return("576p"))
-        .WillOnce(Return("480p"))
-        .WillOnce(Return("480i"));
+        .WillOnce(ReturnRef(res2160p))
+        .WillOnce(ReturnRef(res1080p))
+        .WillOnce(ReturnRef(res1080i))
+        .WillOnce(ReturnRef(res720p))
+        .WillOnce(ReturnRef(res576p))
+        .WillOnce(ReturnRef(res480p))
+        .WillOnce(ReturnRef(res480i));
 
-    resolutions.push_back(&res1);
-    resolutions.push_back(&res2);
-    resolutions.push_back(&res3);
-    resolutions.push_back(&res4);
-    resolutions.push_back(&res5);
-    resolutions.push_back(&res6);
-    resolutions.push_back(&res7);
+    resolutions.push_back(res1);
+    resolutions.push_back(res2);
+    resolutions.push_back(res3);
+    resolutions.push_back(res4);
+    resolutions.push_back(res5);
+    resolutions.push_back(res6);
+    resolutions.push_back(res7);
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
         .WillOnce(ReturnRef(resolutions));
@@ -1307,14 +1326,17 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_VariousPortNam
     device::VideoOutputPortType videoOutputPortType;
     device::VideoResolution resolution1, resolution2;
     device::List<device::VideoResolution> resolutions;
+    static const string res1080p = "1080p";
+    static const string res720p = "720p";
+    static const string res480i = "480i";
 
     // Test HDMI0
     string port1 = "HDMI0";
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"))
-        .WillOnce(Return("720p"));
-    resolutions.push_back(&resolution1);
-    resolutions.push_back(&resolution2);
+        .WillOnce(ReturnRef(res1080p))
+        .WillOnce(ReturnRef(res720p));
+    resolutions.push_back(resolution1);
+    resolutions.push_back(resolution2);
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
         .WillOnce(ReturnRef(resolutions));
     EXPECT_CALL(*p_videoOutputPortMock, getType())
@@ -1328,8 +1350,8 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_VariousPortNam
     resolutions.clear();
     string port2 = "Component";
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("480i"));
-    resolutions.push_back(&resolution1);
+        .WillOnce(ReturnRef(res480i));
+    resolutions.push_back(resolution1);
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
         .WillOnce(ReturnRef(resolutions));
     EXPECT_CALL(*p_videoOutputPortMock, getType())
@@ -1347,11 +1369,12 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_DefaultPortUse
     device::VideoResolution resolution1;
     device::List<device::VideoResolution> resolutions;
     string defaultPort = "HDMI1";
+    static const string res1080p = "1080p";
 
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"));
+        .WillOnce(ReturnRef(res1080p));
 
-    resolutions.push_back(&resolution1);
+    resolutions.push_back(resolution1);
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
         .WillOnce(ReturnRef(resolutions));
@@ -1483,10 +1506,11 @@ TEST_F(DeviceVideoCapabilitiesTest, EdgeCase_SequentialCallsSamePort)
     device::VideoOutputPort videoOutputPort;
     device::VideoResolution videoResolution;
     string portName = "HDMI0";
+    static const string res1080p = "1080p";
 
     // First call - defaultresolution
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"));
+        .WillOnce(ReturnRef(res1080p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
@@ -1507,11 +1531,14 @@ TEST_F(DeviceVideoCapabilitiesTest, EdgeCase_AlternatingPortCalls)
 {
     device::VideoOutputPort videoOutputPort;
     device::VideoResolution videoResolution;
+    static const string res1080p = "1080p";
+    static const string res720p = "720p";
+    static const string res2160p = "2160p";
 
     // Call for HDMI0
     string port1 = "HDMI0";
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("1080p"));
+        .WillOnce(ReturnRef(res1080p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port1))
@@ -1521,7 +1548,7 @@ TEST_F(DeviceVideoCapabilitiesTest, EdgeCase_AlternatingPortCalls)
     // Call for HDMI1
     string port2 = "HDMI1";
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("720p"));
+        .WillOnce(ReturnRef(res720p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port2))
@@ -1530,7 +1557,7 @@ TEST_F(DeviceVideoCapabilitiesTest, EdgeCase_AlternatingPortCalls)
 
     // Call for HDMI0 again
     EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(Return("2160p"));
+        .WillOnce(ReturnRef(res2160p));
     EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
         .WillOnce(ReturnRef(videoResolution));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port1))

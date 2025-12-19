@@ -684,6 +684,19 @@ TEST_F(DeviceInfoTest, ChipSet_Failure_FileNotFound)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("chipset"), _T(""), response));
 }
 
+TEST_F(DeviceInfoTest, FirmwareVersion_Success_MissingOptionalFields)
+{
+    std::ofstream file("/version.txt");
+    file << "imagename:TEST_IMAGE_V2\n";
+    file.close();
+
+    EXPECT_CALL(*p_iarmBusImplMock, IARM_Bus_Call(_, _, _, _))
+        .WillRepeatedly(Return(IARM_RESULT_INVALID_PARAM));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("firmwareversion"), _T(""), response));
+    EXPECT_EQ(response, _T("{\"imagename\":\"TEST_IMAGE_V2\",\"sdk\":\"\",\"mediarite\":\"\",\"yocto\":\"\",\"pdri\":\"\"}"));
+}
+
 TEST_F(DeviceInfoTest, FirmwareVersion_Failure_ImageNameNotFound)
 {
     removeFile("/version.txt");

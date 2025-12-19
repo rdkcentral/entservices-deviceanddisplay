@@ -381,9 +381,9 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Success_4KResolution)
 
 TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Failure_DeviceException)
 {
-    static const string portName = "HDMI0";
+    string portName = "HDMI0";
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
-        .WillOnce(ReturnRef(portName));
+        .WillOnce(Return(portName));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(_))
         .WillOnce(Invoke([](const std::string&) -> device::VideoOutputPort& {
@@ -395,9 +395,9 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Failure_DeviceException)
 
 TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Failure_StdException)
 {
-    static const string portName = "HDMI0";
+    string portName = "HDMI0";
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
-        .WillOnce(ReturnRef(portName));
+        .WillOnce(Return(portName));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(_))
         .WillOnce(Invoke([](const std::string&) -> device::VideoOutputPort& {
@@ -531,9 +531,9 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Success_EmptyList)
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Failure_DeviceException)
 {
-    static const string portName = "HDMI0";
+    string portName = "HDMI0";
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
-        .WillOnce(ReturnRef(portName));
+        .WillOnce(Return(portName));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(_))
         .WillOnce(Invoke([](const std::string&) -> device::VideoOutputPort& {
@@ -545,9 +545,9 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Failure_DeviceException
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Failure_StdException)
 {
-    static const string portName = "HDMI0";
+    string portName = "HDMI0";
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
-        .WillOnce(ReturnRef(portName));
+        .WillOnce(Return(portName));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(_))
         .WillOnce(Invoke([](const std::string&) -> device::VideoOutputPort& {
@@ -649,9 +649,9 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Failure_InvalidProtocol)
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Failure_DeviceException)
 {
-    static const string portName = "HDMI0";
+    string portName = "HDMI0";
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
-        .WillOnce(ReturnRef(portName));
+        .WillOnce(Return(portName));
 
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(_))
         .WillOnce(Invoke([](const std::string&) -> device::VideoOutputPort& {
@@ -663,9 +663,9 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Failure_DeviceException)
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Failure_StdException)
 {
-    static const string portName = "HDMI0";
+    string portName = "HDMI0";
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
-        .WillOnce(ReturnRef(portName));
+        .WillOnce(Return(portName));
 
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(_))
         .WillOnce(Invoke([](const std::string&) -> device::VideoOutputPort& {

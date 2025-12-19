@@ -1382,7 +1382,7 @@ TEST_F(DeviceInfoTest, EthMac_Success)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ethmac"), _T(""), response));
-    EXPECT_EQ(response, string("{\"ethmac\":\"AA:BB:CC:DD:EE:FF\"}"));
+    EXPECT_EQ(response, string("{\"eth_mac\":\"AA:BB:CC:DD:EE:FF\"}"));
 }
 
 TEST_F(DeviceInfoTest, EthMac_Failure_PopenReturnsNull)
@@ -1412,7 +1412,7 @@ TEST_F(DeviceInfoTest, EthMac_Success_NewlineStripped)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ethmac"), _T(""), response));
     // Verify newline is stripped - should not end with \n in JSON
-    EXPECT_EQ(response, string("{\"ethmac\":\"11:22:33:44:55:66\"}"));
+    EXPECT_EQ(response, string("{\"eth_mac\":\"11:22:33:44:55:66\"}"));
 }
 
 TEST_F(DeviceInfoTest, EthMac_Success_EmptyOutput)
@@ -1430,7 +1430,7 @@ TEST_F(DeviceInfoTest, EthMac_Success_EmptyOutput)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ethmac"), _T(""), response));
-    EXPECT_EQ(response, string("{\"ethmac\":\"\"}"));
+    EXPECT_EQ(response, string("{\"eth_mac\":\"\"}"));
 }
 
 TEST_F(DeviceInfoTest, EstbMac_Success)
@@ -1459,7 +1459,7 @@ TEST_F(DeviceInfoTest, EstbMac_Success)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbmac"), _T(""), response));
-    EXPECT_EQ(response, string("{\"estbmac\":\"11:22:33:44:55:66\"}"));
+    EXPECT_EQ(response, string("{\"estb_mac\":\"11:22:33:44:55:66\"}"));
 }
 
 TEST_F(DeviceInfoTest, EstbMac_Failure_PopenReturnsNull)
@@ -1488,7 +1488,7 @@ TEST_F(DeviceInfoTest, EstbMac_Success_NewlineStripped)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbmac"), _T(""), response));
-    EXPECT_EQ(response, string("{\"estbmac\":\"AA:11:BB:22:CC:33\"}"));
+    EXPECT_EQ(response, string("{\"estb_mac\":\"AA:11:BB:22:CC:33\"}"));
 }
 
 TEST_F(DeviceInfoTest, WifiMac_Success)
@@ -1517,7 +1517,7 @@ TEST_F(DeviceInfoTest, WifiMac_Success)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("wifimac"), _T(""), response));
-    EXPECT_EQ(response, string("{\"wifimac\":\"00:11:22:33:44:55\"}"));
+    EXPECT_EQ(response, string("{\"wifi_mac\":\"00:11:22:33:44:55\"}"));
 }
 
 TEST_F(DeviceInfoTest, WifiMac_Failure_PopenReturnsNull)
@@ -1546,7 +1546,7 @@ TEST_F(DeviceInfoTest, WifiMac_Success_NewlineStripped)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("wifimac"), _T(""), response));
-    EXPECT_EQ(response, string("{\"wifimac\":\"FF:EE:DD:CC:BB:AA\"}"));
+    EXPECT_EQ(response, string("{\"wifi_mac\":\"FF:EE:DD:CC:BB:AA\"}"));
 }
 
 TEST_F(DeviceInfoTest, EstbIp_Success)
@@ -1575,7 +1575,7 @@ TEST_F(DeviceInfoTest, EstbIp_Success)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbip"), _T(""), response));
-    EXPECT_EQ(response, string("{\"estbip\":\"192.168.1.100\"}"));
+    EXPECT_EQ(response, string("{\"estb_ip\":\"192.168.1.100\"}"));
 }
 
 TEST_F(DeviceInfoTest, EstbIp_Failure_PopenReturnsNull)
@@ -1604,5 +1604,5 @@ TEST_F(DeviceInfoTest, EstbIp_Success_NewlineStripped)
         .WillOnce(::testing::Return(0));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbip"), _T(""), response));
-    EXPECT_EQ(response, string("{\"estbip\":\"10.0.0.1\"}"));
+    EXPECT_EQ(response, string("{\"estb_ip\":\"10.0.0.1\"}"));
 }

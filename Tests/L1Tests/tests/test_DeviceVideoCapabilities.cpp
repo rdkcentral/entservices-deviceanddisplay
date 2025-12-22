@@ -1542,7 +1542,6 @@ TEST_F(DeviceVideoCapabilitiesTest, Constructor_HandlesDeviceException_ManagerIn
 
     // Verify that the plugin is still functional despite the exception
     Core::JSONRPC::Handler& testHandler = *testPlugin;
-    DECL_CORE_JSONRPC_CONX testConnection(1, 0);
     string testResponse;
 
     device::VideoOutputPort videoOutputPort;
@@ -1559,7 +1558,7 @@ TEST_F(DeviceVideoCapabilitiesTest, Constructor_HandlesDeviceException_ManagerIn
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
         .WillOnce(ReturnRef(videoOutputPort));
 
-    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(testConnection, _T("defaultresolution"), _T("{\"videoDisplay\":\"HDMI0\"}"), testResponse));
+    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(connection, _T("defaultresolution"), _T("{\"videoDisplay\":\"HDMI0\"}"), testResponse));
 
     testPlugin->Deinitialize(&testService);
     device::Manager::setImpl(p_managerImplMock);
@@ -1589,7 +1588,6 @@ TEST_F(DeviceVideoCapabilitiesTest, Constructor_HandlesStdException_ManagerIniti
 
     // Verify that the plugin is still functional
     Core::JSONRPC::Handler& testHandler = *testPlugin;
-    DECL_CORE_JSONRPC_CONX testConnection(1, 0);
     string testResponse;
 
     device::VideoOutputPort videoOutputPort;
@@ -1604,7 +1602,7 @@ TEST_F(DeviceVideoCapabilitiesTest, Constructor_HandlesStdException_ManagerIniti
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(_))
         .WillOnce(ReturnRef(videoOutputPort));
 
-    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(testConnection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"\"}"), testResponse));
+    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"\"}"), testResponse));
 
     testPlugin->Deinitialize(&testService);
     device::Manager::setImpl(p_managerImplMock);
@@ -1634,7 +1632,6 @@ TEST_F(DeviceVideoCapabilitiesTest, Constructor_HandlesUnknownException_ManagerI
 
     // Verify that the plugin is still functional
     Core::JSONRPC::Handler& testHandler = *testPlugin;
-    DECL_CORE_JSONRPC_CONX testConnection(1, 0);
     string testResponse;
 
     device::List<device::VideoOutputPort> videoPorts;
@@ -1650,7 +1647,7 @@ TEST_F(DeviceVideoCapabilitiesTest, Constructor_HandlesUnknownException_ManagerI
             return videoPorts;
         }));
 
-    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(testConnection, _T("supportedvideodisplays"), _T(""), testResponse));
+    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(connection, _T("supportedvideodisplays"), _T(""), testResponse));
 
     testPlugin->Deinitialize(&testService);
     device::Manager::setImpl(p_managerImplMock);

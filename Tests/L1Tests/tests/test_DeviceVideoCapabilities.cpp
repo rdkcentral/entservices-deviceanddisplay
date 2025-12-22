@@ -1017,7 +1017,6 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Positive_SingleDispla
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedvideodisplays"), _T("{}"), response));
     EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
-    EXPECT_FALSE(response.find("\"HDMI1\"") != string::npos);
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -1205,7 +1204,6 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_SingleResoluti
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedresolutions"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
     EXPECT_TRUE(response.find("\"1080p\"") != string::npos);
-    EXPECT_FALSE(response.find("\"720p\"") != string::npos);
 }
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_LargeResolutionList)

@@ -1628,7 +1628,7 @@ TEST_F(DeviceInfoTest, Constructor_Success_ManagerInitializeSuccess)
     // If we reach here without exceptions, the constructor succeeded with Manager::Initialize()
     // This test validates that the DeviceInfoImplementation object is properly initialized
     Core::hresult result;
-    Plugin::DeviceInfoImplementation::DeviceSerialNo serialNo;
+    Exchange::IDeviceInfo::DeviceSerialNo serialNo;
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -1639,7 +1639,7 @@ TEST_F(DeviceInfoTest, Constructor_Success_ManagerInitializeSuccess)
 
     result = deviceInfoImplementation->SerialNumber(serialNo);
     EXPECT_EQ(result, Core::ERROR_NONE);
-    EXPECT_EQ(serialNo.serialNumber, string("TEST123456"));
+    EXPECT_EQ(serialNo.serialnumber, string("TEST123456"));
 }
 
 TEST_F(DeviceInfoTest, Constructor_HandlesDeviceException_ManagerInitializeThrows)
@@ -1662,7 +1662,7 @@ TEST_F(DeviceInfoTest, Constructor_HandlesDeviceException_ManagerInitializeThrow
 
     // Verify that the object is still functional despite the exception
     Core::hresult result;
-    Plugin::DeviceInfoImplementation::DeviceSerialNo serialNo;
+    Exchange::IDeviceInfo::DeviceSerialNo serialNo;
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -1673,7 +1673,7 @@ TEST_F(DeviceInfoTest, Constructor_HandlesDeviceException_ManagerInitializeThrow
 
     result = testImpl->SerialNumber(serialNo);
     EXPECT_EQ(result, Core::ERROR_NONE);
-    EXPECT_EQ(serialNo.serialNumber, string("EXCEPTION_TEST"));
+    EXPECT_EQ(serialNo.serialnumber, string("EXCEPTION_TEST"));
 
     // Cleanup
     device::Manager::setImpl(p_managerImplMock);
@@ -1702,7 +1702,7 @@ TEST_F(DeviceInfoTest, Constructor_HandlesStdException_ManagerInitializeThrows)
 
     // Verify that the object is still functional
     Core::hresult result;
-    Plugin::DeviceInfoImplementation::SocId socId;
+    Exchange::IDeviceInfo::DeviceSoc deviceSoc;
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -1711,9 +1711,9 @@ TEST_F(DeviceInfoTest, Constructor_HandlesStdException_ManagerInitializeThrows)
                 return WDMP_SUCCESS;
             }));
 
-    result = testImpl->SocName(socId);
+    result = testImpl->SocName(deviceSoc);
     EXPECT_EQ(result, Core::ERROR_NONE);
-    EXPECT_EQ(socId.socName, string("TestSOC"));
+    EXPECT_EQ(deviceSoc.socname, string("TestSOC"));
 
     // Cleanup
     device::Manager::setImpl(p_managerImplMock);
@@ -1742,7 +1742,7 @@ TEST_F(DeviceInfoTest, Constructor_HandlesUnknownException_ManagerInitializeThro
 
     // Verify that the object is still functional
     Core::hresult result;
-    Plugin::DeviceInfoImplementation::ChipsetId chipsetId;
+    Exchange::IDeviceInfo::DeviceChip deviceChip;
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
@@ -1751,9 +1751,9 @@ TEST_F(DeviceInfoTest, Constructor_HandlesUnknownException_ManagerInitializeThro
                 return WDMP_SUCCESS;
             }));
 
-    result = testImpl->ChipSet(chipsetId);
+    result = testImpl->ChipSet(deviceChip);
     EXPECT_EQ(result, Core::ERROR_NONE);
-    EXPECT_EQ(chipsetId.chipSetName, string("TestChip"));
+    EXPECT_EQ(deviceChip.chipset, string("TestChip"));
 
     // Cleanup
     device::Manager::setImpl(p_managerImplMock);
@@ -1798,7 +1798,7 @@ TEST_F(DeviceInfoTest, Constructor_MultipleInstances_WithExceptions)
 
     // Verify all instances are functional
     Core::hresult result;
-    Plugin::DeviceInfoImplementation::ReleaseVer releaseVersion;
+    Exchange::IDeviceInfo::DeviceReleaseVer releaseVersion;
 
     EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
         .Times(3)

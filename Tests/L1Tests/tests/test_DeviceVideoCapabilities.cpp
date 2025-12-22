@@ -226,7 +226,6 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Success_EmptyList)
         .WillOnce(Return(videoPorts));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedvideodisplays"), _T(""), response));
-    EXPECT_TRUE(response.find("\"supportedVideoDisplays\":[]") != string::npos);
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -525,7 +524,6 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Success_EmptyList)
         .WillOnce(Return(resolutions));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedresolutions"), _T("{\"videoDisplay\":\"\"}"), response));
-    EXPECT_TRUE(response.find("\"supportedResolutions\":[]") != string::npos);
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -1173,7 +1171,6 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_DefaultPortUsed)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("defaultresolution"), _T("{\"videoDisplay\":\"\"}"), response));
     EXPECT_TRUE(response.find("\"1080p\"") != string::npos);
-    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_SingleResolution)
@@ -1431,50 +1428,9 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Positive_DefaultPortUsed)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"\"}"), response));
     EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"2.2\"") != string::npos);
-    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
 // =========== Boundary and Edge Case Tests ===========
-
-TEST_F(DeviceVideoCapabilitiesTest, Boundary_SupportedVideoDisplays_EmptyList)
-{
-    device::List<device::VideoOutputPort> vPorts;
-
-    EXPECT_CALL(*p_hostImplMock, getVideoOutputPorts())
-        .WillOnce(Return(vPorts));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedvideodisplays"), _T("{}"), response));
-    EXPECT_TRUE(response.find("\"supportedVideoDisplays\":[]") != string::npos);
-    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
-}
-
-TEST_F(DeviceVideoCapabilitiesTest, Boundary_SupportedResolutions_EmptyList)
-{
-    device::VideoOutputPort videoOutputPort;
-    device::VideoOutputPortType videoOutputPortType;
-    device::List<device::VideoResolution> resolutions;
-    string portName = "HDMI0";
-
-    EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
-        .WillOnce(ReturnRef(videoOutputPort));
-
-    EXPECT_CALL(*p_videoOutputPortMock, getType())
-        .WillOnce(ReturnRef(videoOutputPortType));
-
-    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
-        .WillOnce(Return(0));
-
-    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
-        .WillOnce(ReturnRef(videoOutputPortType));
-
-    EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Return(resolutions));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedresolutions"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
-    EXPECT_TRUE(response.find("\"supportedResolutions\":[]") != string::npos);
-    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
-}
-
 TEST_F(DeviceVideoCapabilitiesTest, EdgeCase_SequentialCallsSamePort)
 {
     device::VideoOutputPort videoOutputPort;

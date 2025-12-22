@@ -19,6 +19,7 @@
 
 #include <functional> // for function
 #include <unistd.h>   // for access, F_OK
+#include <sys/stat.h> // for stat
 
 #include <core/IAction.h>    // for IDispatch
 #include <core/Time.h>       // for Time
@@ -51,6 +52,33 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
 #endif
 {
     ASSERT(nullptr != _platform);
+    bool isRamPersistenceAvailable = (0 == access(m_ramSettingsFile.c_str(), F_OK));
+
+    if (!isRamPersistenceAvailable) {
+        // Save current settings to RAM file to preserve power state across PowerManager restarts within the same boot cycle
+        bool isSettingsSaved = _settings.Save(m_ramSettingsFile);
+        if (!isSettingsSaved) {
+            LOGERR("Failed to create RAM persistence file for PowerStateBeforeReboot");
+        }
+        else {
+            LOGINFO("RAM persistence file created for PowerStateBeforeReboot");
+        }
+    }
+    else {
+        // RAM persistence file already exists, indicating PowerManager has restarted for some reason, So load PowerStateBeforeReboot from RAM file
+        Settings ramSettings = Settings::Load(m_ramSettingsFile);
+        _settings.SetPowerStateBeforeReboot(ramSettings.powerStateBeforeReboot());
+    }
+    LOGINFO("RAM persistence[%s] %s, PowerStateBeforeReboot is [%s]", m_ramSettingsFile.c_str(), isRamPersistenceAvailable ? "Available" : "Not Available", util::str(_settings.powerStateBeforeReboot()));
+
+#ifdef PLATCO_BOOTTO_STANDBY
+    struct stat buf = {};
+    if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
+        // First boot after power cycle, set default powerstate to STANDBY based on PLATCO_BOOTTO_STANDBY
+        _settings.SetPowerState(PowerState::POWER_STATE_STANDBY);
+        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY");
+    }
+#endif
 
     // Settings initialization will never fail
     // It will either be deserialized from file or initialized to default values

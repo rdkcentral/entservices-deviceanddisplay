@@ -104,6 +104,7 @@ public:
 
 private:
     const std::string m_settingsFile = "/opt/uimgr_settings.bin";
+    const std::string m_ramSettingsFile = "/tmp/uimgr_settings.bin";
     std::unique_ptr<IPlatform> _platform;
     PowerState _powerStateBeforeReboot;
     PowerState _lastKnownPowerState;

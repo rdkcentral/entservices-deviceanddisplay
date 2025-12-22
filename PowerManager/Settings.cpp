@@ -191,7 +191,6 @@ Settings Settings::Load(const std::string& path)
     bool ok = false;
 
     if (fd >= 0) {
-
         Header header;
 
         lseek(fd, 0, SEEK_SET);
@@ -216,22 +215,20 @@ Settings Settings::Load(const std::string& path)
             // failed to read settings file, init default settings
             settings.initDefaults();
             settings.save(fd);
+            LOGERR("Failed to load settings, initialized to default");
         }
-
         fsync(fd);
         close(fd);
     }
-
-    settings._powerStateBeforeReboot = settings._powerState;
-#ifdef PLATCO_BOOTTO_STANDBY
-    struct stat buf = {};
-    if (stat("/tmp/pwrmgr_restarted", &buf) != 0) {
-        settings._powerState = PowerState::POWER_STATE_STANDBY;
-        LOGINFO("PLATCO_BOOTTO_STANDBY Setting default powerstate to POWER_STATE_STANDBY\n\r");
+    else {
+        // failed to open file, init default settings
+        LOGERR("Failed to open settings file %s", strerror(errno));
+        settings.initDefaults();
     }
-#endif
-
-    LOGINFO("Final settings: %s", settings.str().c_str());
+    settings._powerStateBeforeReboot = settings._powerState;
+    std::ostringstream prefixStream;
+    prefixStream << "PowerSettings retrieved from [" << path << "]";
+    settings.printDetails(prefixStream.str());
     return settings;
 }
 
@@ -257,16 +254,14 @@ bool Settings::Save(const std::string& path)
     return ok;
 }
 
-std::string Settings::str() const
+void Settings::printDetails(const std::string& prefix) const
 {
-    std::stringstream ss;
-
-    ss << "magic: " << std::hex << _magic << std::dec
-       << "\n\tversion: " << _version
-       << "\n\tpowerState: " << util::str(_powerState)
-       << "\n\tpowerStateBeforeReboot " << util::str(_powerStateBeforeReboot)
-       << "\n\tdeepsleep timeout sec: " << _deepSleepTimeout
-       << "\n\tnwStandbyMode: " << (_nwStandbyMode ? "enabled" : "disabled");
-
-    return ss.str();
+    LOGINFO("====================[%s]====================", prefix.c_str());
+    LOGINFO("Magic: 0x%08X", _magic);
+    LOGINFO("Version: %u", _version);
+    LOGINFO("Power State: %s", util::str(_powerState));
+    LOGINFO("Power State Before Reboot: %s", util::str(_powerStateBeforeReboot));
+    LOGINFO("Deep Sleep Timeout (sec): %u", _deepSleepTimeout);
+    LOGINFO("Network Standby Mode: %s", _nwStandbyMode ? "Enabled" : "Disabled");
+    LOGINFO("============================================");
 }

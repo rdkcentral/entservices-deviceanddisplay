@@ -81,6 +81,7 @@ public:
 
     inline void SetDeepSleepTimeout(uint32_t timeout) { _deepSleepTimeout = timeout; }
     inline void SetNwStandbyMode(bool mode) { _nwStandbyMode = mode; }
+    inline void SetPowerStateBeforeReboot(const PowerState powerState) { _powerStateBeforeReboot = powerState; }
 
     inline uint32_t magic() const { return _magic; }
     inline uint32_t version() const { return _version; }
@@ -89,7 +90,7 @@ public:
     inline uint32_t deepSleepTimeout() const { return _deepSleepTimeout; }
     inline bool nwStandbyMode() const { return _nwStandbyMode; }
 
-    std::string str() const;
+    void printDetails(const std::string& prefix) const;
 
 private:
     void initDefaults();

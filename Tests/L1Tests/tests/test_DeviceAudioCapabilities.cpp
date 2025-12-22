@@ -1541,3 +1541,164 @@ TEST_F(DeviceAudioCapabilitiesTest, EdgeCase_AlternatingPortCalls)
         .WillOnce(ReturnRef(audioOutputPort));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("audiocapabilities"), _T("{\"audioPort\":\"HDMI0\"}"), response));
 }
+
+// =========== Constructor Exception Tests ===========
+
+TEST_F(DeviceAudioCapabilitiesTest, Constructor_Success_ManagerInitializeSuccess)
+{
+    // Constructor is called in the test fixture setup
+    // If we reach here without exceptions, the constructor succeeded with Manager::Initialize()
+    // This test validates that the object is properly initialized
+    device::AudioOutputPort audioOutputPort;
+    string defaultPort = "HDMI0";
+
+    EXPECT_CALL(*p_audioOutputPortMock, getAudioCapabilities(_))
+        .WillOnce(Invoke([](int* capabilities) {
+            *capabilities = dsAUDIOSUPPORT_ATMOS;
+        }));
+
+    EXPECT_CALL(*p_hostImplMock, getDefaultAudioPortName())
+        .WillOnce(Return(defaultPort));
+
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(_))
+        .WillOnce(ReturnRef(audioOutputPort));
+
+    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("audiocapabilities"), _T("{\"audioPort\":\"\"}"), response));
+    EXPECT_TRUE(response.find("\"ATMOS\"") != string::npos);
+}
+
+TEST_F(DeviceAudioCapabilitiesTest, Constructor_HandlesDeviceException_ManagerInitializeThrows)
+{
+    // Create a test fixture that simulates Manager::Initialize() throwing device::Exception
+    // The constructor catches this exception and continues, so the object should still be usable
+    NiceMock<ServiceMock> testService;
+    ON_CALL(testService, ConfigLine())
+        .WillByDefault(Return("{\"root\":{\"mode\":\"Off\"}}"));
+    ON_CALL(testService, WebPrefix())
+        .WillByDefault(Return(webPrefix));
+
+    NiceMock<ManagerImplMock>* testManagerMock = new NiceMock<ManagerImplMock>;
+    device::Manager::setImpl(testManagerMock);
+
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw device::Exception("Manager initialization failed");
+        }));
+
+    // Constructor should handle the exception gracefully
+    Core::ProxyType<Plugin::DeviceInfo> testPlugin = Core::ProxyType<Plugin::DeviceInfo>::Create();
+    EXPECT_EQ(string(""), testPlugin->Initialize(&testService));
+
+    // Verify that the plugin is still functional despite the exception
+    Core::JSONRPC::Handler& testHandler = *testPlugin;
+    DECL_CORE_JSONRPC_CONX testConnection(1, 0);
+    string testResponse;
+
+    device::AudioOutputPort audioOutputPort;
+    string portName = "HDMI0";
+
+    EXPECT_CALL(*p_audioOutputPortMock, getAudioCapabilities(_))
+        .WillOnce(Invoke([](int* capabilities) {
+            *capabilities = dsAUDIOSUPPORT_DD;
+        }));
+
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(portName))
+        .WillOnce(ReturnRef(audioOutputPort));
+
+    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(testConnection, _T("audiocapabilities"), _T("{\"audioPort\":\"HDMI0\"}"), testResponse));
+
+    testPlugin->Deinitialize(&testService);
+    device::Manager::setImpl(p_managerImplMock);
+    delete testManagerMock;
+}
+
+TEST_F(DeviceAudioCapabilitiesTest, Constructor_HandlesStdException_ManagerInitializeThrows)
+{
+    // Create a test fixture that simulates Manager::Initialize() throwing std::exception
+    NiceMock<ServiceMock> testService;
+    ON_CALL(testService, ConfigLine())
+        .WillByDefault(Return("{\"root\":{\"mode\":\"Off\"}}"));
+    ON_CALL(testService, WebPrefix())
+        .WillByDefault(Return(webPrefix));
+
+    NiceMock<ManagerImplMock>* testManagerMock = new NiceMock<ManagerImplMock>;
+    device::Manager::setImpl(testManagerMock);
+
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw std::runtime_error("Manager initialization std exception");
+        }));
+
+    // Constructor should handle the exception gracefully
+    Core::ProxyType<Plugin::DeviceInfo> testPlugin = Core::ProxyType<Plugin::DeviceInfo>::Create();
+    EXPECT_EQ(string(""), testPlugin->Initialize(&testService));
+
+    // Verify that the plugin is still functional
+    Core::JSONRPC::Handler& testHandler = *testPlugin;
+    DECL_CORE_JSONRPC_CONX testConnection(1, 0);
+    string testResponse;
+
+    device::AudioOutputPort audioOutputPort;
+    string portName = "SPDIF";
+
+    EXPECT_CALL(*p_audioOutputPortMock, getAudioCapabilities(_))
+        .WillOnce(Invoke([](int* capabilities) {
+            *capabilities = dsAUDIOSUPPORT_DDPLUS;
+        }));
+
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(portName))
+        .WillOnce(ReturnRef(audioOutputPort));
+
+    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(testConnection, _T("audiocapabilities"), _T("{\"audioPort\":\"SPDIF\"}"), testResponse));
+
+    testPlugin->Deinitialize(&testService);
+    device::Manager::setImpl(p_managerImplMock);
+    delete testManagerMock;
+}
+
+TEST_F(DeviceAudioCapabilitiesTest, Constructor_HandlesUnknownException_ManagerInitializeThrows)
+{
+    // Create a test fixture that simulates Manager::Initialize() throwing unknown exception
+    NiceMock<ServiceMock> testService;
+    ON_CALL(testService, ConfigLine())
+        .WillByDefault(Return("{\"root\":{\"mode\":\"Off\"}}"));
+    ON_CALL(testService, WebPrefix())
+        .WillByDefault(Return(webPrefix));
+
+    NiceMock<ManagerImplMock>* testManagerMock = new NiceMock<ManagerImplMock>;
+    device::Manager::setImpl(testManagerMock);
+
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw 123; // Unknown exception type
+        }));
+
+    // Constructor should handle the exception gracefully
+    Core::ProxyType<Plugin::DeviceInfo> testPlugin = Core::ProxyType<Plugin::DeviceInfo>::Create();
+    EXPECT_EQ(string(""), testPlugin->Initialize(&testService));
+
+    // Verify that the plugin is still functional
+    Core::JSONRPC::Handler& testHandler = *testPlugin;
+    DECL_CORE_JSONRPC_CONX testConnection(1, 0);
+    string testResponse;
+
+    device::AudioOutputPort audioOutputPort;
+    string defaultPort = "SPEAKER";
+
+    EXPECT_CALL(*p_audioOutputPortMock, getAudioCapabilities(_))
+        .WillOnce(Invoke([](int* capabilities) {
+            *capabilities = dsAUDIOSUPPORT_MS12;
+        }));
+
+    EXPECT_CALL(*p_hostImplMock, getDefaultAudioPortName())
+        .WillOnce(Return(defaultPort));
+
+    EXPECT_CALL(*p_hostImplMock, getAudioOutputPort(_))
+        .WillOnce(ReturnRef(audioOutputPort));
+
+    EXPECT_EQ(Core::ERROR_NONE, testHandler.Invoke(testConnection, _T("audiocapabilities"), _T("{\"audioPort\":\"\"}"), testResponse));
+
+    testPlugin->Deinitialize(&testService);
+    device::Manager::setImpl(p_managerImplMock);
+    delete testManagerMock;
+}

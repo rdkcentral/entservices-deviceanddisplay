@@ -1619,3 +1619,207 @@ TEST_F(DeviceInfoTest, EstbIp_Success_NewlineStripped)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("estbip"), _T(""), response));
     EXPECT_EQ(response, string("{\"estb_ip\":\"10.0.0.1\"}"));
 }
+
+// =========== Constructor Exception Tests ===========
+
+TEST_F(DeviceInfoTest, Constructor_Success_ManagerInitializeSuccess)
+{
+    // Constructor is called in the test fixture setup
+    // If we reach here without exceptions, the constructor succeeded with Manager::Initialize()
+    // This test validates that the DeviceInfoImplementation object is properly initialized
+    Core::hresult result;
+    Plugin::DeviceInfoImplementation::DeviceSerialNo serialNo;
+
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                strncpy(pstParamData->value, "TEST123456", sizeof(pstParamData->value));
+                return WDMP_SUCCESS;
+            }));
+
+    result = deviceInfoImplementation->SerialNumber(serialNo);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+    EXPECT_EQ(serialNo.serialNumber, string("TEST123456"));
+}
+
+TEST_F(DeviceInfoTest, Constructor_HandlesDeviceException_ManagerInitializeThrows)
+{
+    // Create a test that simulates Manager::Initialize() throwing device::Exception
+    NiceMock<IarmBusImplMock>* testIarmMock = new NiceMock<IarmBusImplMock>;
+    IarmBus::setImpl(testIarmMock);
+
+    NiceMock<ManagerImplMock>* testManagerMock = new NiceMock<ManagerImplMock>;
+    device::Manager::setImpl(testManagerMock);
+
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw device::Exception("Manager initialization failed");
+        }));
+
+    // Constructor should handle the exception gracefully
+    Core::ProxyType<Plugin::DeviceInfoImplementation> testImpl = 
+        Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
+
+    // Verify that the object is still functional despite the exception
+    Core::hresult result;
+    Plugin::DeviceInfoImplementation::DeviceSerialNo serialNo;
+
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                strncpy(pstParamData->value, "EXCEPTION_TEST", sizeof(pstParamData->value));
+                return WDMP_SUCCESS;
+            }));
+
+    result = testImpl->SerialNumber(serialNo);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+    EXPECT_EQ(serialNo.serialNumber, string("EXCEPTION_TEST"));
+
+    // Cleanup
+    device::Manager::setImpl(p_managerImplMock);
+    delete testManagerMock;
+    IarmBus::setImpl(p_iarmBusImplMock);
+    delete testIarmMock;
+}
+
+TEST_F(DeviceInfoTest, Constructor_HandlesStdException_ManagerInitializeThrows)
+{
+    // Create a test that simulates Manager::Initialize() throwing std::exception
+    NiceMock<IarmBusImplMock>* testIarmMock = new NiceMock<IarmBusImplMock>;
+    IarmBus::setImpl(testIarmMock);
+
+    NiceMock<ManagerImplMock>* testManagerMock = new NiceMock<ManagerImplMock>;
+    device::Manager::setImpl(testManagerMock);
+
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw std::runtime_error("Manager initialization std exception");
+        }));
+
+    // Constructor should handle the exception gracefully
+    Core::ProxyType<Plugin::DeviceInfoImplementation> testImpl = 
+        Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
+
+    // Verify that the object is still functional
+    Core::hresult result;
+    Plugin::DeviceInfoImplementation::SocId socId;
+
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                strncpy(pstParamData->value, "TestSOC", sizeof(pstParamData->value));
+                return WDMP_SUCCESS;
+            }));
+
+    result = testImpl->SocName(socId);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+    EXPECT_EQ(socId.socName, string("TestSOC"));
+
+    // Cleanup
+    device::Manager::setImpl(p_managerImplMock);
+    delete testManagerMock;
+    IarmBus::setImpl(p_iarmBusImplMock);
+    delete testIarmMock;
+}
+
+TEST_F(DeviceInfoTest, Constructor_HandlesUnknownException_ManagerInitializeThrows)
+{
+    // Create a test that simulates Manager::Initialize() throwing unknown exception
+    NiceMock<IarmBusImplMock>* testIarmMock = new NiceMock<IarmBusImplMock>;
+    IarmBus::setImpl(testIarmMock);
+
+    NiceMock<ManagerImplMock>* testManagerMock = new NiceMock<ManagerImplMock>;
+    device::Manager::setImpl(testManagerMock);
+
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw 789; // Unknown exception type
+        }));
+
+    // Constructor should handle the exception gracefully
+    Core::ProxyType<Plugin::DeviceInfoImplementation> testImpl = 
+        Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
+
+    // Verify that the object is still functional
+    Core::hresult result;
+    Plugin::DeviceInfoImplementation::ChipsetId chipsetId;
+
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                strncpy(pstParamData->value, "TestChip", sizeof(pstParamData->value));
+                return WDMP_SUCCESS;
+            }));
+
+    result = testImpl->ChipSet(chipsetId);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+    EXPECT_EQ(chipsetId.chipSetName, string("TestChip"));
+
+    // Cleanup
+    device::Manager::setImpl(p_managerImplMock);
+    delete testManagerMock;
+    IarmBus::setImpl(p_iarmBusImplMock);
+    delete testIarmMock;
+}
+
+TEST_F(DeviceInfoTest, Constructor_MultipleInstances_WithExceptions)
+{
+    // Test creating multiple instances when Manager::Initialize() throws exceptions
+    NiceMock<IarmBusImplMock>* testIarmMock = new NiceMock<IarmBusImplMock>;
+    IarmBus::setImpl(testIarmMock);
+
+    NiceMock<ManagerImplMock>* testManagerMock = new NiceMock<ManagerImplMock>;
+    device::Manager::setImpl(testManagerMock);
+
+    // First instance throws device::Exception
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw device::Exception("First instance exception");
+        }));
+
+    Core::ProxyType<Plugin::DeviceInfoImplementation> testImpl1 = 
+        Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
+
+    // Second instance throws std::exception
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(Invoke([]() {
+            throw std::runtime_error("Second instance exception");
+        }));
+
+    Core::ProxyType<Plugin::DeviceInfoImplementation> testImpl2 = 
+        Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
+
+    // Third instance succeeds
+    EXPECT_CALL(*testManagerMock, Initialize())
+        .WillOnce(::testing::Return());
+
+    Core::ProxyType<Plugin::DeviceInfoImplementation> testImpl3 = 
+        Core::ProxyType<Plugin::DeviceInfoImplementation>::Create();
+
+    // Verify all instances are functional
+    Core::hresult result;
+    Plugin::DeviceInfoImplementation::ReleaseVer releaseVersion;
+
+    EXPECT_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
+        .Times(3)
+        .WillRepeatedly(::testing::Invoke(
+            [](char* pcCallerID, const char* pcParameterName, RFC_ParamData_t* pstParamData) {
+                strncpy(pstParamData->value, "v1.0.0", sizeof(pstParamData->value));
+                return WDMP_SUCCESS;
+            }));
+
+    result = testImpl1->ReleaseVersion(releaseVersion);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+
+    result = testImpl2->ReleaseVersion(releaseVersion);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+
+    result = testImpl3->ReleaseVersion(releaseVersion);
+    EXPECT_EQ(result, Core::ERROR_NONE);
+
+    // Cleanup
+    device::Manager::setImpl(p_managerImplMock);
+    delete testManagerMock;
+    IarmBus::setImpl(p_iarmBusImplMock);
+    delete testIarmMock;
+}

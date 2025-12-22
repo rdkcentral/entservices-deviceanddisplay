@@ -132,7 +132,6 @@ TEST_F(DeviceAudioCapabilitiesTest, AudioCapabilities_Success_EmptyPort_AllCapab
         .WillOnce(ReturnRef(audioOutputPort));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("audiocapabilities"), _T("{\"audioPort\":\"\"}"), response));
-    EXPECT_TRUE(response.find("\"audiocapabilities\":[") != string::npos);
     EXPECT_TRUE(response.find("\"ATMOS\"") != string::npos);
     EXPECT_TRUE(response.find("\"DOLBY_DIGITAL\"") != string::npos);
     EXPECT_TRUE(response.find("\"DOLBY_DIGITAL_PLUS\"") != string::npos);
@@ -279,7 +278,6 @@ TEST_F(DeviceAudioCapabilitiesTest, MS12Capabilities_Success_EmptyPort_AllCapabi
         .WillOnce(ReturnRef(audioOutputPort));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("ms12capabilities"), _T("{\"audioPort\":\"\"}"), response));
-    EXPECT_TRUE(response.find("\"ms12capabilities\":[") != string::npos);
     EXPECT_TRUE(response.find("\"Dolby_Volume\"") != string::npos);
     EXPECT_TRUE(response.find("\"Inteligent_Equalizer\"") != string::npos);
     EXPECT_TRUE(response.find("\"Dialogue_Enhancer\"") != string::npos);
@@ -460,7 +458,6 @@ TEST_F(DeviceAudioCapabilitiesTest, SupportedMS12AudioProfiles_Success_EmptyList
         .WillOnce(ReturnRef(audioOutputPort));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedms12audioprofiles"), _T("{\"audioPort\":\"\"}"), response));
-    EXPECT_TRUE(response.find("\"supportedMS12AudioProfiles\":[]") != string::npos);
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 

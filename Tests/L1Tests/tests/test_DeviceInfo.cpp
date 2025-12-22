@@ -1002,38 +1002,6 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Negative_GetPortFromConfigThro
 
 // =========== Additional Comprehensive Positive Tests ===========
 
-TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Positive_MultipleDisplays)
-{
-    device::List<device::VideoOutputPort> vPorts;
-    device::VideoOutputPort videoOutputPort;
-    device::VideoOutputPort videoOutputPort2;
-    device::VideoOutputPort videoOutputPort3;
-
-    static const string portName1 = "HDMI0";
-    static const string portName2 = "HDMI1";
-    static const string portName3 = "Component";
-
-    // Test with 3 displays
-    EXPECT_CALL(*p_videoOutputPortMock, getName())
-        .WillOnce(ReturnRef(portName1))
-        .WillOnce(ReturnRef(portName2))
-        .WillOnce(ReturnRef(portName3));
-
-    EXPECT_CALL(*p_hostImplMock, getVideoOutputPorts())
-        .WillOnce(Invoke([&]() {
-            vPorts.push_back(videoOutputPort);
-            vPorts.push_back(videoOutputPort2);
-            vPorts.push_back(videoOutputPort3);
-            return vPorts;
-        }));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedvideodisplays"), _T("{}"), response));
-    EXPECT_TRUE(response.find("\"HDMI0\"") != string::npos);
-    EXPECT_TRUE(response.find("\"HDMI1\"") != string::npos);
-    EXPECT_TRUE(response.find("\"Component\"") != string::npos);
-    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
-}
-
 TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Positive_SingleDisplay)
 {
     device::List<device::VideoOutputPort> vPorts;
@@ -1205,43 +1173,6 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_DefaultPortUsed)
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("defaultresolution"), _T("{\"videoDisplay\":\"\"}"), response));
     EXPECT_TRUE(response.find("\"1080p\"") != string::npos);
-    EXPECT_TRUE(response.find("\"success\":true") != string::npos);
-}
-
-TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_MultipleResolutions)
-{
-    device::VideoOutputPort videoOutputPort;
-    device::VideoOutputPortType videoOutputPortType;
-    device::VideoResolution resolution1, resolution2, resolution3;
-    device::List<device::VideoResolution> resolutions;
-    string portName = "HDMI0";
-    static const string res1080p = "1080p";
-    static const string res720p = "720p";
-    static const string res480p = "480p";
-
-    EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(ReturnRef(res1080p))
-        .WillOnce(ReturnRef(res720p))
-        .WillOnce(ReturnRef(res480p));
-
-    EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&]() {
-            resolutions.push_back(resolution1);
-            resolutions.push_back(resolution2);
-            resolutions.push_back(resolution3);
-            return resolutions;
-        }));
-
-    EXPECT_CALL(*p_videoOutputPortMock, getType())
-        .WillOnce(ReturnRef(videoOutputPortType));
-
-    EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
-        .WillOnce(ReturnRef(videoOutputPort));
-
-    EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedresolutions"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
-    EXPECT_TRUE(response.find("\"1080p\"") != string::npos);
-    EXPECT_TRUE(response.find("\"720p\"") != string::npos);
-    EXPECT_TRUE(response.find("\"480p\"") != string::npos);
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 

@@ -157,6 +157,7 @@ add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 set_source_files_properties(
         tests/test_DeviceAudioCapabilities.cpp
         tests/test_DeviceVideoCapabilities.cpp
+        tests/test_DeviceInfo.cpp
         tests/test_SystemServices.cpp
         tests/test_Warehouse.cpp
         PROPERTIES COMPILE_FLAGS "-fexceptions")

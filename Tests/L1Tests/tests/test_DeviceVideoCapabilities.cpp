@@ -506,23 +506,23 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Success_EmptyList)
     device::List<device::VideoResolution> resolutions;
     string defaultPort = "HDMI0";
 
-    EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Return(resolutions));
-
-    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
-        .WillOnce(Return(0));
-
-    EXPECT_CALL(*p_videoOutputPortMock, getType())
-        .WillOnce(ReturnRef(portType));
-
-    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
-        .WillOnce(ReturnRef(portType));
-
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
         .WillOnce(Return(defaultPort));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(_))
         .WillOnce(ReturnRef(videoPort));
+
+    EXPECT_CALL(*p_videoOutputPortMock, getType())
+        .WillOnce(ReturnRef(portType));
+
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillOnce(Return(0));
+
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
+        .WillOnce(ReturnRef(portType));
+
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
+        .WillOnce(Return(resolutions));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedresolutions"), _T("{\"videoDisplay\":\"\"}"), response));
     EXPECT_TRUE(response.find("\"supportedResolutions\":[]") != string::npos);
@@ -1159,17 +1159,17 @@ TEST_F(DeviceVideoCapabilitiesTest, DefaultResolution_Positive_DefaultPortUsed)
     string defaultPort = "HDMI1";
     static const string res1080p = "1080p";
 
-    EXPECT_CALL(*p_videoResolutionMock, getName())
-        .WillOnce(ReturnRef(res1080p));
-
-    EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
-        .WillOnce(ReturnRef(videoResolution));
-
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
         .WillOnce(Return(defaultPort));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(_))
         .WillOnce(ReturnRef(videoOutputPort));
+
+    EXPECT_CALL(*p_videoOutputPortMock, getDefaultResolution())
+        .WillOnce(ReturnRef(videoResolution));
+
+    EXPECT_CALL(*p_videoResolutionMock, getName())
+        .WillOnce(ReturnRef(res1080p));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("defaultresolution"), _T("{\"videoDisplay\":\"\"}"), response));
     EXPECT_TRUE(response.find("\"1080p\"") != string::npos);
@@ -1194,7 +1194,13 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_SingleResoluti
             return resolutions;
         }));
 
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillOnce(Return(0));
+
     EXPECT_CALL(*p_videoOutputPortMock, getType())
+        .WillOnce(ReturnRef(videoOutputPortType));
+
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
         .WillOnce(ReturnRef(videoOutputPortType));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
@@ -1241,7 +1247,13 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_LargeResolutio
             return resolutions;
         }));
 
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillOnce(Return(0));
+
     EXPECT_CALL(*p_videoOutputPortMock, getType())
+        .WillOnce(ReturnRef(videoOutputPortType));
+
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
         .WillOnce(ReturnRef(videoOutputPortType));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
@@ -1278,7 +1290,11 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_VariousPortNam
             resolutions.push_back(resolution2);
             return resolutions;
         }));
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillOnce(Return(0));
     EXPECT_CALL(*p_videoOutputPortMock, getType())
+        .WillOnce(ReturnRef(videoOutputPortType));
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
         .WillOnce(ReturnRef(videoOutputPortType));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port1))
         .WillOnce(ReturnRef(videoOutputPort));
@@ -1295,7 +1311,11 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_VariousPortNam
             resolutions.push_back(resolution1);
             return resolutions;
         }));
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillOnce(Return(0));
     EXPECT_CALL(*p_videoOutputPortMock, getType())
+        .WillOnce(ReturnRef(videoOutputPortType));
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
         .WillOnce(ReturnRef(videoOutputPortType));
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(port2))
         .WillOnce(ReturnRef(videoOutputPort));
@@ -1321,7 +1341,13 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_DefaultPortUse
             return resolutions;
         }));
 
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillOnce(Return(0));
+
     EXPECT_CALL(*p_videoOutputPortMock, getType())
+        .WillOnce(ReturnRef(videoOutputPortType));
+
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
         .WillOnce(ReturnRef(videoOutputPortType));
 
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
@@ -1341,20 +1367,20 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Positive_VariousHdcpVersions)
     string portName = "HDMI0";
 
     // Test HDCP 1.4
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(portName))
+        .WillOnce(ReturnRef(videoOutputPort));
     EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
         .WillOnce(Return(dsHDCP_VERSION_1X));
-    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(portName))
-        .WillOnce(ReturnRef(videoOutputPort));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
-    EXPECT_TRUE(response.find("\"HDCPVersion\":\"1.4\"") != string::npos);
+    EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"1.4\"") != string::npos);
 
     // Test HDCP 2.2
-    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
-        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(portName))
         .WillOnce(ReturnRef(videoOutputPort));
+    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
+        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
-    EXPECT_TRUE(response.find("\"HDCPVersion\":\"2.2\"") != string::npos);
+    EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"2.2\"") != string::npos);
 }
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Positive_VariousPortNames)
@@ -1363,30 +1389,30 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Positive_VariousPortNames)
 
     // Test HDMI0
     string port1 = "HDMI0";
-    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
-        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(port1))
         .WillOnce(ReturnRef(videoOutputPort));
+    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
+        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
-    EXPECT_TRUE(response.find("\"HDCPVersion\":\"2.2\"") != string::npos);
+    EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"2.2\"") != string::npos);
 
     // Test HDMI1
     string port2 = "HDMI1";
-    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
-        .WillOnce(Return(dsHDCP_VERSION_1X));
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(port2))
         .WillOnce(ReturnRef(videoOutputPort));
+    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
+        .WillOnce(Return(dsHDCP_VERSION_1X));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"HDMI1\"}"), response));
-    EXPECT_TRUE(response.find("\"HDCPVersion\":\"1.4\"") != string::npos);
+    EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"1.4\"") != string::npos);
 
     // Test HDMI2
     string port3 = "HDMI2";
-    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
-        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(port3))
         .WillOnce(ReturnRef(videoOutputPort));
+    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
+        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"HDMI2\"}"), response));
-    EXPECT_TRUE(response.find("\"HDCPVersion\":\"2.2\"") != string::npos);
+    EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"2.2\"") != string::npos);
 }
 
 TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Positive_DefaultPortUsed)
@@ -1394,17 +1420,17 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedHdcp_Positive_DefaultPortUsed)
     device::VideoOutputPort videoOutputPort;
     string defaultPort = "HDMI0";
 
-    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
-        .WillOnce(Return(dsHDCP_VERSION_2X));
-
     EXPECT_CALL(*p_hostImplMock, getDefaultVideoPortName())
         .WillOnce(Return(defaultPort));
 
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(_))
         .WillOnce(ReturnRef(videoOutputPort));
 
+    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
+        .WillOnce(Return(dsHDCP_VERSION_2X));
+
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"\"}"), response));
-    EXPECT_TRUE(response.find("\"HDCPVersion\":\"2.2\"") != string::npos);
+    EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"2.2\"") != string::npos);
     EXPECT_TRUE(response.find("\"success\":true") != string::npos);
 }
 
@@ -1429,14 +1455,20 @@ TEST_F(DeviceVideoCapabilitiesTest, Boundary_SupportedResolutions_EmptyList)
     device::List<device::VideoResolution> resolutions;
     string portName = "HDMI0";
 
-    EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Return(resolutions));
+    EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
+        .WillOnce(ReturnRef(videoOutputPort));
 
     EXPECT_CALL(*p_videoOutputPortMock, getType())
         .WillOnce(ReturnRef(videoOutputPortType));
 
-    EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
-        .WillOnce(ReturnRef(videoOutputPort));
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
+        .WillOnce(Return(0));
+
+    EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPortType(_))
+        .WillOnce(ReturnRef(videoOutputPortType));
+
+    EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
+        .WillOnce(Return(resolutions));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedresolutions"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
     EXPECT_TRUE(response.find("\"supportedResolutions\":[]") != string::npos);
@@ -1461,12 +1493,12 @@ TEST_F(DeviceVideoCapabilitiesTest, EdgeCase_SequentialCallsSamePort)
     EXPECT_TRUE(response.find("\"1080p\"") != string::npos);
 
     // Second call - supportedhdcp
-    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
-        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_CALL(*p_videoOutputPortConfigImplMock, getPort(portName))
         .WillOnce(ReturnRef(videoOutputPort));
+    EXPECT_CALL(*p_videoOutputPortMock, getHDCPProtocol())
+        .WillOnce(Return(dsHDCP_VERSION_2X));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedhdcp"), _T("{\"videoDisplay\":\"HDMI0\"}"), response));
-    EXPECT_TRUE(response.find("\"HDCPVersion\":\"2.2\"") != string::npos);
+    EXPECT_TRUE(response.find("\"supportedHDCPVersion\":\"2.2\"") != string::npos);
 }
 
 TEST_F(DeviceVideoCapabilitiesTest, EdgeCase_AlternatingPortCalls)

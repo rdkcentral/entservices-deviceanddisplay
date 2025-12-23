@@ -1,0 +1,4 @@
+precondition = ["Platform"]
+callsign = "org.rdk.NcalcOld"
+autostart = "@PLUGIN_NCALCOLD_AUTOSTART@"
+startuporder = "@PLUGIN_NCALCOLD_STARTUPORDER@"

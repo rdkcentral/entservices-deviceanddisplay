@@ -17,6 +17,7 @@
 
 set(PLUGIN_NAME DeviceInfo)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
+set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Implementation)
 
 set(PLUGIN_DEVICEINFO_MODE "Off" CACHE STRING "Controls if the plugin should run in its own process, in process or remote")
 set(PLUGIN_DEVICEINFO_STARTUPORDER "" CACHE STRING "Start-up order for DeviceInfo plugin")
@@ -30,30 +31,47 @@ find_package(IARMBus)
 
 add_library(${MODULE_NAME} SHARED
         DeviceInfo.cpp
-        DeviceInfoJsonRpc.cpp
-        Implementation/DeviceAudioCapabilities.cpp
-        Implementation/DeviceVideoCapabilities.cpp
-        Implementation/FirmwareVersion.cpp
-        Implementation/DeviceInfo.cpp
         Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
 
-target_include_directories(${MODULE_NAME} PRIVATE
+include_directories(
+        ../helpers)
+
+target_link_libraries(${MODULE_NAME}
+    PRIVATE
+        CompileSettingsDebug::CompileSettingsDebug
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
+
+install(TARGETS ${MODULE_NAME}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)
+
+add_library(${PLUGIN_IMPLEMENTATION} SHARED
+    DeviceInfoImplementation.cpp
+    DeviceAudioCapabilities.cpp
+    DeviceVideoCapabilities.cpp
+    Module.cpp)
+
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE
         ${RFC_INCLUDE_DIRS}
         ${DS_INCLUDE_DIRS}
         ${IARMBUS_INCLUDE_DIRS}
         ../helpers)
 
+set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
+        CXX_STANDARD 11
+        CXX_STANDARD_REQUIRED YES)
+
 set_source_files_properties(
-        Implementation/DeviceAudioCapabilities.cpp
-        Implementation/DeviceVideoCapabilities.cpp
+        DeviceAudioCapabilities.cpp
+        DeviceVideoCapabilities.cpp
         PROPERTIES
         COMPILE_FLAGS "-fexceptions")
 
-target_link_libraries(${MODULE_NAME}
+target_link_libraries(${PLUGIN_IMPLEMENTATION}
         PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
@@ -62,7 +80,17 @@ target_link_libraries(${MODULE_NAME}
         ${DS_LIBRARIES}
         ${IARMBUS_LIBRARIES})
 
-install(TARGETS ${MODULE_NAME}
+if (RDK_SERVICE_L2_TEST)
+   find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
+   if (TESTMOCKLIB_LIBRARIES)
+       message ("linking mock libraries ${TESTMOCKLIB_LIBRARIES} library")
+       target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TESTMOCKLIB_LIBRARIES})
+   else (TESTMOCKLIB_LIBRARIES)
+       message ("Require ${TESTMOCKLIB_LIBRARIES} library")
+   endif (TESTMOCKLIB_LIBRARIES)
+endif (RDK_SERVICE_L2_TEST)
+
+install(TARGETS ${PLUGIN_IMPLEMENTATION}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)
 
 write_config(${PLUGIN_NAME})

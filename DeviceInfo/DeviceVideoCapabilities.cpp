@@ -45,7 +45,7 @@ namespace Plugin {
         }
     }
 
-    Core::hresult DeviceVideoCapabilities::SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays) const
+    Core::hresult DeviceVideoCapabilities::SupportedVideoDisplays(RPC::IStringIterator*& supportedVideoDisplays, bool& success) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -84,12 +84,13 @@ namespace Plugin {
 
         if (result == Core::ERROR_NONE) {
             supportedVideoDisplays = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
+            success = true;
         }
 
         return result;
     }
 
-    Core::hresult DeviceVideoCapabilities::HostEDID(string& edid) const
+    Core::hresult DeviceVideoCapabilities::HostEDID(HostEdid& hostEdid) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -97,7 +98,7 @@ namespace Plugin {
         try {
             std::vector<unsigned char> edidVec2;
             device::Host::getInstance().getHostEDID(edidVec2);
-            edidVec = edidVec2;
+            edidVec = std::move(edidVec2);
         } catch (const device::Exception& e) {
             TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
             result = Core::ERROR_GENERAL;
@@ -116,21 +117,21 @@ namespace Plugin {
             } else {
                 string base64String;
                 Core::ToString((uint8_t*)&edidVec[0], edidVec.size(), true, base64String);
-                edid = base64String;
+                hostEdid.EDID = std::move(base64String);
             }
         }
 
         return result;
     }
 
-    Core::hresult DeviceVideoCapabilities::DefaultResolution(const string& videoDisplay, string& defaultResolution) const
+    Core::hresult DeviceVideoCapabilities::DefaultResolution(const string& videoDisplay, DefaultResln& defaultResln) const
     {
         uint32_t result = Core::ERROR_NONE;
 
         try {
             auto strVideoPort = videoDisplay.empty() ? device::Host::getInstance().getDefaultVideoPortName() : videoDisplay;
             auto& vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort);
-            defaultResolution = vPort.getDefaultResolution().getName();
+            defaultResln.defaultResolution = vPort.getDefaultResolution().getName();
         } catch (const device::Exception& e) {
             TRACE(Trace::Fatal, (_T("Exception caught %s"), e.what()));
             result = Core::ERROR_GENERAL;
@@ -144,7 +145,7 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult DeviceVideoCapabilities::SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions) const
+    Core::hresult DeviceVideoCapabilities::SupportedResolutions(const string& videoDisplay, RPC::IStringIterator*& supportedResolutions, bool& success) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -169,12 +170,13 @@ namespace Plugin {
 
         if (result == Core::ERROR_NONE) {
             supportedResolutions = (Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(list));
+            success = true;
         }
 
         return result;
     }
 
-    Core::hresult DeviceVideoCapabilities::SupportedHdcp(const string& videoDisplay, Exchange::IDeviceVideoCapabilities::CopyProtection& supportedHDCPVersion) const
+    Core::hresult DeviceVideoCapabilities::SupportedHdcp(const string& videoDisplay, SupportedHDCPVer& supportedHDCPVer) const
     {
         uint32_t result = Core::ERROR_NONE;
 
@@ -183,10 +185,10 @@ namespace Plugin {
             auto& vPort = device::VideoOutputPortConfig::getInstance().getPort(strVideoPort);
             switch (vPort.getHDCPProtocol()) {
             case dsHDCP_VERSION_2X:
-                supportedHDCPVersion = Exchange::IDeviceVideoCapabilities::CopyProtection::HDCP_22;
+                supportedHDCPVer.supportedHDCPVersion = HDCP_22;
                 break;
             case dsHDCP_VERSION_1X:
-                supportedHDCPVersion = Exchange::IDeviceVideoCapabilities::CopyProtection::HDCP_14;
+                supportedHDCPVer.supportedHDCPVersion = HDCP_14;
                 break;
             default:
                 result = Core::ERROR_GENERAL;
@@ -200,7 +202,6 @@ namespace Plugin {
         } catch (...) {
             result = Core::ERROR_GENERAL;
         }
-
         return result;
     }
 }

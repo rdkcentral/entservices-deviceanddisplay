@@ -27,7 +27,6 @@
 #include "FrameRateImplementation.h"
 #include "host.hpp"
 #include "exception.hpp"
-#include "dsMgr.h"
 
 #include "UtilsJsonRpc.h"
 #include "UtilsIarm.h"
@@ -63,41 +62,18 @@ namespace WPEFramework
               , m_lastFpsValue(0)
         {
             FrameRateImplementation::_instance = this;
-            InitializeIARM();
+            device::Host::getInstance().Register(this, "WPE::FrameRate");
             // Connect the timer callback handle for triggering FrameRate notifications.
             m_reportFpsTimer.connect(std::bind(&FrameRateImplementation::onReportFpsTimer, this));
         }
 
         FrameRateImplementation::~FrameRateImplementation()
         {
-            DeinitializeIARM();
+            device::Host::getInstance().UnRegister(this);
             //Stop the timer if running
             if (m_reportFpsTimer.isActive())
             {
                 m_reportFpsTimer.stop();
-            }
-        }
-
-        // IARM EventHandler
-        static void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
-
-        void FrameRateImplementation::InitializeIARM()
-        {
-            if (Utils::IARM::init())
-            {
-                IARM_Result_t res;
-                IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
-                IARM_CHECK(IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
-            }
-        }
-
-        void FrameRateImplementation::DeinitializeIARM()
-        {
-            if (Utils::IARM::isConnected())
-            {
-                IARM_Result_t res;
-                IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE, _iarmDSFramerateEventHandler));
-                IARM_CHECK(IARM_Bus_RemoveEventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE, _iarmDSFramerateEventHandler));
             }
         }
 
@@ -173,46 +149,6 @@ namespace WPEFramework
                     break;
             }
             _adminLock.Unlock();
-        }
-
-        /**
-         * @brief This function is used to handle the generic IARM event callback.
-         * @param owner - The owner of the event.
-         * @param eventId - The ID of the event.
-         * @param data - The data associated with the event.
-         * @param len - The length of the data.
-         * @return void
-         */
-        void _iarmDSFramerateEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            switch (eventId)
-            {
-                case  IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE:
-                    {
-                        char dispFrameRate[32] = {0};
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        strncpy(dispFrameRate, eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
-                        dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
-                        DBGINFO("IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE: '%s'", dispFrameRate);
-                        Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
-                                    FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE,
-                                    dispFrameRate));
-                    }
-                    break;
-
-                case  IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE:
-                    {
-                        char dispFrameRate[32] = {0};
-                        IARM_Bus_DSMgr_EventData_t *eventData = (IARM_Bus_DSMgr_EventData_t *)data;
-                        strncpy(dispFrameRate, eventData->data.DisplayFrameRateChange.framerate, sizeof(dispFrameRate));
-                        dispFrameRate[sizeof(dispFrameRate) - 1] = '\0';
-                        DBGINFO("IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE: '%s'", dispFrameRate);
-                        Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
-                                    FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE,
-                                    dispFrameRate));
-                    }
-                    break;
-            }
         }
 
         Core::hresult FrameRateImplementation::Register(Exchange::IFrameRate::INotification *notification)
@@ -294,6 +230,16 @@ namespace WPEFramework
             {
                 LOG_DEVICE_EXCEPTION0();
             }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
+            }
 
             return Core::ERROR_GENERAL;
         }
@@ -330,6 +276,16 @@ namespace WPEFramework
             catch(const device::Exception& err)
             {
                 LOG_DEVICE_EXCEPTION0();
+            }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
             }
             return Core::ERROR_GENERAL;
         }
@@ -406,6 +362,16 @@ namespace WPEFramework
             {
                 LOG_DEVICE_EXCEPTION0();
             }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
+            }
             return Core::ERROR_GENERAL;
         }
 
@@ -445,6 +411,16 @@ namespace WPEFramework
             catch (const device::Exception& err)
             {
                 LOG_DEVICE_EXCEPTION0();
+            }
+            catch(const std::exception& err)
+            {
+                LOGERR("exception: %s", err.what());
+                success = false;
+            }
+            catch(...)
+            {
+                LOGWARN("Unknown exception occurred");
+                success = false;
             }
             return Core::ERROR_GENERAL;
         }
@@ -577,6 +553,22 @@ namespace WPEFramework
                 m_totalFpsValues = 0;
                 m_numberOfFpsUpdates = 0;
             }
+        }
+
+        void FrameRateImplementation::OnDisplayFrameratePreChange(const std::string& frameRate)
+        {
+            LOGINFO("Received OnDisplayFrameratePreChange callback");
+            Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
+                                    FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE,
+                                    frameRate));
+        }
+
+        void FrameRateImplementation::OnDisplayFrameratePostChange(const std::string& frameRate)
+        {
+            LOGINFO("Received OnDisplayFrameratePostChange callback");
+            Core::IWorkerPool::Instance().Submit(FrameRateImplementation::Job::Create(FrameRateImplementation::_instance,
+                                    FrameRateImplementation::DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE,
+                                    frameRate));
         }
     } // namespace Plugin
 } // namespace WPEFramework

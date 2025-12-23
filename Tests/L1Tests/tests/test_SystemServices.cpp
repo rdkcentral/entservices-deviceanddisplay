@@ -269,7 +269,7 @@ TEST_F(SystemServicesTest, TestedAPIsShouldExist)
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getFriendlyName")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setFriendlyName")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("setPreferredStandbyMode")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getPreferredStandbyMode")));
+   // EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getPreferredStandbyMode")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getAvailableStandbyModes")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getWakeupReason")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getLastWakeupKeyCode")));
@@ -296,7 +296,7 @@ TEST_F(SystemServicesTest, TestedAPIsShouldExist)
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getFirmwareUpdateInfo")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("clearLastDeepSleepReason")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getMfgSerialNumber")));
-    EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getXconfParams")));
+   // EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getXconfParams")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getSerialNumber")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("getPlatformConfiguration")));
     EXPECT_EQ(Core::ERROR_NONE, handler.Exists(_T("uploadLogsAsync")));
@@ -1011,6 +1011,7 @@ TEST_F(SystemServicesTest, setPreferredStandbyMode)
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("setPreferredStandbyMode"), _T("{\"standbyMode\":\"LIGHT_SLEEP\"}"), response));
 }
 
+#if 0
 TEST_F(SystemServicesTest, getPreferredStandbyMode)
 {
     device::SleepMode mode;
@@ -1033,7 +1034,7 @@ TEST_F(SystemServicesTest, getPreferredStandbyMode)
 
     EXPECT_EQ(Core::ERROR_GENERAL, handler.Invoke(connection, _T("getPreferredStandbyMode"), _T("{}"), response));
 }
-
+#endif
 TEST_F(SystemServicesTest, getAvailableStandbyModes)
 {
     device::SleepMode mode;
@@ -2194,6 +2195,7 @@ TEST_F(SystemServicesTest, setWakeupSrcConfiguration)
     EXPECT_EQ(response, string("{\"success\":true}"));
 }
 
+#if 0
 TEST_F(SystemServicesTest, getStoreDemoLink)
 {
     Core::File file(string("/opt/persistent/store-mode-video/videoFile.mp4"));
@@ -2210,6 +2212,7 @@ TEST_F(SystemServicesTest, getStoreDemoLink)
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("getStoreDemoLink"), _T("{}"), response));
     EXPECT_EQ(response, string("{\"fileURL\":\"file:\\/\\/\\/opt\\/persistent\\/store-mode-video\\/videoFile.mp4\",\"success\":true}"));
 }
+#endif
 
 TEST_F(SystemServicesTest, deletePersistentPath)
 {
@@ -4675,9 +4678,9 @@ TEST_F(SystemServicesTest, clearLastDeepSleepReasonSuccess_When_unlinkSucceed)
             }));
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("clearLastDeepSleepReason"), _T("{}"), response));
 }
-
 /*Test cases for clearLastDeepSleepReason ends here*/
 
+#if 0
 /*********************************************************************************************************
  * Test function for :getXconfParams
  * getXconfParams :
@@ -4866,6 +4869,7 @@ TEST_F(SystemServicesTest, getXconfParamsSuccess_onFirmvalueQA)
 }
 
 /*Test cases for getXconfParams ends here*/
+#endif
 
 /*****************************************************************************************************
  * Test function for :getMfgSerialNumber

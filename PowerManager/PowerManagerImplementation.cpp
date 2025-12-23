@@ -19,7 +19,6 @@
 
 #include <chrono>
 #include <memory>
-#include <mutex>
 
 #include "PowerManagerImplementation.h"
 
@@ -32,11 +31,10 @@
 
 #define STANDBY_REASON_FILE "/opt/standbyReason.txt"
 
-using PreModeChangeTimer = WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeTimer;
-using util               = PowerUtils;
-
-template <>
-WPEFramework::Core::TimerType<PreModeChangeTimer> PreModeChangeTimer::timerThread(32 * 1024, "ACK TIMER");
+using util                           = PowerUtils;
+using WakeupSourceConfig             = WPEFramework::Exchange::IPowerManager::WakeupSourceConfig;
+using IWakeupSourceConfigIterator    = WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator;
+using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IWakeupSourceConfigIterator>>;
 
 int WPEFramework::Plugin::PowerManagerImplementation::PreModeChangeController::_nextTransactionId = 0;
 uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId                          = 0;
@@ -44,6 +42,11 @@ uint32_t WPEFramework::Plugin::PowerManagerImplementation::_nextClientId        
 #ifndef POWER_MODE_PRECHANGE_TIMEOUT_SEC
 #define POWER_MODE_PRECHANGE_TIMEOUT_SEC 1
 #endif
+
+// Device is considered to be in transient deep sleep state if
+// 1. As per PowerManager PowerState is DEEP_SLEEP, but then SoC is not in deepsleep
+// 2. SoC woke-up from deep sleep even before schedule timeout
+static constexpr int kTransientDeepsleepThresholdSec = 5;
 
 using namespace std;
 
@@ -81,7 +84,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnPowerModeChanged(prevState, newState);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -95,7 +98,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnDeepSleepTimeout(timeout);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -109,7 +112,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -123,7 +126,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process IThermalModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process IThermalModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -137,7 +140,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             notification->OnNetworkStandbyModeChanged(enabled);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %lldms to process INetworkStandbyModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            LOGINFO("client %p took %" PRId64 "ms to process INetworkStandbyModeChanged event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         LOGINFO("<<");
@@ -163,7 +166,7 @@ namespace Plugin {
     }
 
     template <typename T>
-    Core::hresult PowerManagerImplementation::Unregister(std::list<T*>& list, T* notification)
+    Core::hresult PowerManagerImplementation::Unregister(std::list<T*>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
 
@@ -190,7 +193,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IRebootNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IRebootNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_rebootNotifications, notification);
@@ -206,7 +209,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModePreChangeNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_preModeChangeNotifications, notification);
@@ -222,7 +225,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IModeChangedNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IModeChangedNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_modeChangedNotifications, notification);
@@ -238,7 +241,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IDeepSleepTimeoutNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_deepSleepTimeoutNotifications, notification);
@@ -254,7 +257,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::INetworkStandbyModeChangedNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_networkStandbyModeChangedNotifications, notification);
@@ -270,7 +273,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::Unregister(Exchange::IPowerManager::IThermalModeChangedNotification* notification)
+    Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IThermalModeChangedNotification* notification)
     {
         LOGINFO(">>");
         Core::hresult errorCode = Unregister(_thermalModeChangedNotifications, notification);
@@ -338,9 +341,7 @@ namespace Plugin {
     //    - This was introduced because immerse ui was not launching if there is a direct transition from DEEP_SLEEP => ON (see RDKEMW-5633)
     Core::hresult PowerManagerImplementation::SetPowerState(const int keyCode, const PowerState newState, const string& reason)
     {
-        // Thunder CriticalSection lock does not allow unlock operation from a thread different than locking thread,
-        // so for now use `std::mutex` until we figure out an equivalent Thunder alternative
-        static std::mutex selfLock {}; // to implement a sync / forced state change we need a unique lock
+        static WPEFramework::Core::BinairySemaphore selfLock{ 1, 1 };
 
         PowerState currState = POWER_STATE_UNKNOWN;
         PowerState prevState = POWER_STATE_UNKNOWN;
@@ -350,7 +351,7 @@ namespace Plugin {
 
         LOGINFO(">> newState: %s, reason %s", util::str(newState), reason.c_str());
 
-        selfLock.lock();
+        selfLock.Lock();
 
         LOGINFO("selfLock Acquired");
 
@@ -359,7 +360,7 @@ namespace Plugin {
         // Cannot determine current state, won't be able to process request
         if (Core::ERROR_NONE != errorCode) {
             LOGERR("Failed to get current power state, errorCode: %d", errorCode);
-            selfLock.unlock();
+            selfLock.Unlock();
             LOGINFO("selfLock Released isSync: na");
             return errorCode;
         }
@@ -371,9 +372,13 @@ namespace Plugin {
             isSync = isSyncStateChange(currState, newState);
 
             if (POWER_STATE_STANDBY_DEEP_SLEEP == currState) {
-                if (_deepSleepController.IsDeepSleepInProgress()) {
-                    LOGINFO("deepsleep in  progress  ignoring %s request", util::str(newState));
-                    selfLock.unlock();
+                if (_deepSleepController.IsDeepSleepInProgress()
+                    && (_deepSleepController.Elapsed() < std::chrono::seconds(kTransientDeepsleepThresholdSec))) {
+
+                    LOGINFO("deepsleep in  progress  ignoring %s request, elapsed: %" PRId64 " sec",
+                            util::str(newState), std::chrono::duration_cast<std::chrono::seconds>(_deepSleepController.Elapsed()).count());
+
+                    selfLock.Unlock();
                     LOGINFO("selfLock Released isSync: na");
                     return Core::ERROR_NONE;
                 }
@@ -385,16 +390,14 @@ namespace Plugin {
             _apiLock.Lock();
 
             if (_modeChangeController) {
-                if (!_modeChangeController->IsMarkedForDelete() && _modeChangeController->powerState() == newState) {
+                LOGINFO("There is a state change request in progress for %s state.", util::str(_modeChangeController->powerState()));
+                if (_modeChangeController->powerState() == newState) {
                     LOGINFO("Ignore (redundant) repeated transition request to %s state.", util::str(newState));
                     _apiLock.Unlock();
-                    selfLock.unlock();
+                    selfLock.Unlock();
                     return Core::ERROR_NONE;
                 } else {
-                    // Log warning only if object is not marked for delete
-                    if (!_modeChangeController->IsMarkedForDelete()) {
-                        LOGWARN("Power state change is already in progress, cancel old request");
-                    }
+                    LOGWARN("Power state change is already in progress, cancel old request");
                     _modeChangeController.reset();
                 }
             }
@@ -406,10 +409,6 @@ namespace Plugin {
             for (const auto& client : _modeChangeClients) {
                 _modeChangeController->AckAwait(client.first);
             }
-
-            // There is a remote chance that request could be canceled when Completion handler is run.
-            // To avoid race condition, we create a weak_ptr from shared_ptr and pass it on to Completion handler.
-            std::weak_ptr<PreModeChangeController> wPtr = _modeChangeController;
 
             // For sync state change requests timeout is `0`
             const uint32_t timeOut = isSync ? 0 : POWER_MODE_PRECHANGE_TIMEOUT_SEC;
@@ -424,7 +423,7 @@ namespace Plugin {
             submitPowerModePreChangeEvent(currState, newState, transactionId, timeOut);
 
             // Starts pre modeChange timer, and waits for Ack from clients for given timeOut duration
-            // On all clients acknowledging or upon timeOut (whiche ever happens first), Completion handler gets triggered
+            // On all clients acknowledging or upon timeout (whichever happens first), Completion handler gets triggered
             // The thread context in which completion handler is triggered could be
             //  1. Caller thread if timeout `0`
             //  2. Caller thread if all clients have acknowledged for power state transition even before `Schedule` gets called
@@ -432,16 +431,10 @@ namespace Plugin {
             //     - To avoid race conditions in this usecase, take `_apiLock` to run completion handler
             //  4. Caller thread of last acknowledging client
             _modeChangeController->Schedule(timeOut * 1000,
-                [this, keyCode, currState, newState, reason, wPtr, isSync](bool isTimedout) mutable {
-                    // new shared_ptr will increase refCount and avoid deletion of _modeChangeController
-                    // which can happen in case of nested requests
-                    std::shared_ptr<PreModeChangeController> controller = wPtr.lock();
+                [this, keyCode, currState, newState, reason, isSync](bool isTimedout, bool isAborted) mutable {
+                    LOGINFO(">> CompletionHandler isTimedout: %d, isAborted: %d", isTimedout, isAborted);
 
-                    LOGINFO(">> CompletionHandler isTimedout: %d", isTimedout);
-
-                    // Ideally we should never get this callback if AckController object is deleted
-                    // However in timeout scenarios, callback is triggered from ACK TIMER Thread
-                    if (controller) {
+                    if (!isAborted) {
                         powerModePreChangeCompletionHandler(keyCode, currState, newState, reason);
                     } else {
                         LOGWARN("modeChangeController was already deleted, do not process CompletionHandler");
@@ -452,7 +445,7 @@ namespace Plugin {
 
                     // For sync state change requests, the selfLock is held until this point. Release it now.
                     if (isSync) {
-                        selfLock.unlock();
+                        selfLock.Unlock();
                         LOGINFO("selfLock Released isSync: true");
                     }
 
@@ -465,7 +458,7 @@ namespace Plugin {
         // For Async state change requests, release the lock immediately, allowing nested state changes if required
         // Example: DEEP_SLEEP is in transition (mediarite has delayed PowerState by 15 seconds), and user attemps to turn ON the device
         if (!isSync) {
-            selfLock.unlock();
+            selfLock.Unlock();
             LOGINFO("selfLock Released isSync: false");
         }
 
@@ -679,52 +672,129 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::SetWakeupSrcConfig(const int powerMode, const int srcType, int config)
+    bool PowerManagerImplementation::isWakeupSrcEnabled(const std::list<WakeupSourceConfig>& configs, WakeupSrcType src) const
     {
-        LOGINFO(">> Power State stored: %x, srcType: %x,  config: %x", powerMode, srcType, config);
+        auto it = std::find_if(configs.begin(), configs.end(),
+            [&](const WakeupSourceConfig& config) { return config.wakeupSource == src; });
+
+        if (it == configs.end()) {
+            // not found
+            return false;
+        }
+        return it->enabled;
+    }
+
+    Core::hresult PowerManagerImplementation::setWakeupSourceConfig(const std::list<WakeupSourceConfig>& configs)
+    {
+        LOGINFO(">>");
+
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.SetWakeupSrcConfig(powerMode, srcType, config);
+        uint32_t errorCode = _powerController.SetWakeupSourceConfig(configs);
 
         _apiLock.Unlock();
+
+        do {
+            if (Core::ERROR_NONE != errorCode) {
+                LOGERR("Failed to SetWakeupSourceConfig");
+                break;
+            }
+
+            std::list<WakeupSourceConfig> currConfigs;
+
+            errorCode = getWakeupSourceConfig(currConfigs);
+
+            if (Core::ERROR_NONE != errorCode) {
+                LOGERR("Failed to getWakeupSourceConfig");
+                break;
+            }
+
+            bool isWiFiEnabled =  isWakeupSrcEnabled(currConfigs, WakeupSrcType::WAKEUP_SRC_WIFI);
+            bool isLanEnabled  =  isWakeupSrcEnabled(currConfigs, WakeupSrcType::WAKEUP_SRC_LAN);
+
+            // Update nwStandbyMode only if Wi-Fi and LAN are set to same state (both ON or both OFF).
+            if (isWiFiEnabled != isLanEnabled) {
+                LOGINFO("WakeupSrc WIFI: %d, LAN: %d", isWiFiEnabled, isLanEnabled);
+                break;
+            }
+
+            bool currNwStandbyMode = false;
+
+            errorCode = GetNetworkStandbyMode(currNwStandbyMode);
+
+            if (Core::ERROR_NONE != errorCode) {
+                LOGERR("Failed to fetch current nwStandbymode");
+                break;
+            }
+
+            bool nwStandbyMode = isWiFiEnabled && isLanEnabled;
+
+            if (nwStandbyMode == currNwStandbyMode) {
+                LOGINFO("nwStandbyMode is already set to %d", nwStandbyMode);
+                break;
+            }
+
+            errorCode = SetNetworkStandbyMode(nwStandbyMode);
+        } while (false);
 
         LOGINFO("<< errorCode: %d", errorCode);
 
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::GetWakeupSrcConfig(int& powerMode, int& srcType, int& config) const
+    Core::hresult PowerManagerImplementation::SetWakeupSourceConfig(IWakeupSourceConfigIterator* wakeupSources)
     {
-        LOGINFO(">> Power Mode stored: %x, srcType: %x,  config: %x", powerMode, srcType, config);
-
-        _apiLock.Lock();
-
-        uint32_t errorCode = _powerController.GetWakeupSrcConfig(powerMode, srcType, config);
-
-        _apiLock.Unlock();
-
-        LOGINFO("<< errorCode: %d", errorCode);
-
-        return errorCode;
-    }
-
-    Core::hresult PowerManagerImplementation::SetSystemMode(const SystemMode currentMode, const SystemMode newMode) const
-    {
-        LOGINFO(">> currentMode: %u, newMode: %u", currentMode, newMode);
-
-        _apiLock.Lock();
-
-        // In the legacy implementation, this call routed to the System Plugin's SetSystemMode via IARM.
-        // Since it only contains setters and lacks getters, it appears to be an unused API.
-        // Please reach out if this API is still required.
-
-        LOGWARN("SetSystemMode is depricated, not found any module utilizing this");
-
         uint32_t errorCode = Core::ERROR_NONE;
+        WakeupSourceConfig config{ WakeupSrcType::WAKEUP_SRC_UNKNOWN, false };
+
+        std::list<WakeupSourceConfig> configs;
+
+        LOGINFO(">>");
+
+        // create std::list from Thunder iterator
+        while (wakeupSources->Next(config)) {
+            if (WakeupSrcType::WAKEUP_SRC_UNKNOWN == config.wakeupSource) {
+                errorCode = Core::ERROR_INVALID_PARAMETER;
+                break;
+            }
+            configs.push_back(config);
+        }
+
+        if (Core::ERROR_NONE == errorCode) {
+            errorCode = setWakeupSourceConfig(configs);
+        }
+
+        LOGINFO("<< errorCode: %d", errorCode);
+
+        return errorCode;
+    }
+
+    Core::hresult PowerManagerImplementation::getWakeupSourceConfig(std::list<WakeupSourceConfig>& configs) const
+    {
+        _apiLock.Lock();
+
+        uint32_t errorCode = _powerController.GetWakeupSourceConfig(configs);
 
         _apiLock.Unlock();
 
-        LOGINFO("<< errorCode: %u", errorCode);
+        LOGINFO("<< errorCode: %d", errorCode);
+
+        return errorCode;
+    }
+
+    Core::hresult PowerManagerImplementation::GetWakeupSourceConfig(IWakeupSourceConfigIterator*& wakeupSources) const
+    {
+        std::list<WakeupSourceConfig> configs;
+
+        LOGINFO(">>");
+
+        uint32_t errorCode = getWakeupSourceConfig(configs);
+
+        if (Core::ERROR_NONE == errorCode) {
+            wakeupSources = WakeupSourceConfigIteratorImpl::Create<IWakeupSourceConfigIterator>(configs);
+        }
+
+        LOGINFO("<< errorCode: %d", errorCode);
 
         return errorCode;
     }
@@ -750,11 +820,6 @@ namespace Plugin {
 
         setDevicePowerState(keyCode, currentState, newState, reason);
 
-        // We are in callback from _modeChangeController, avoid deletion from class method
-        // To properly delete this object some more code refactoring will be required.
-        // _modeChangeController.reset();
-        _modeChangeController->MarkDelete();
-
         LOGINFO("<<");
     }
 
@@ -766,7 +831,7 @@ namespace Plugin {
 
         _apiLock.Lock();
 
-        if (_modeChangeController && !_modeChangeController->IsMarkedForDelete()) {
+        if (_modeChangeController) {
             errorCode = _modeChangeController->Ack(clientId, transactionId);
         }
 

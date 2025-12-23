@@ -19,127 +19,17 @@
 
 #pragma once
 #include <cstdint>
+#include <memory>
 #include <unordered_set>
 
 #include <core/Portability.h>
 #include <core/Timer.h>
+#include <core/WorkerPool.h>
 
 #include "UtilsLogging.h"
 #include "interfaces/IPowerManager.h"
 
-/**
- * @class AckTimer
- * @brief Manages timeout functionality for acknowledgement operations.
- *        This class internally manages a timer thread to handle timeouts.
- *
- * @tparam T The parent type that implements the Timed function.
- */
-template <typename T>
-class AckTimer {
-public:
-    /**
-     * @brief Constructs an AckTimer instance.
-     * @param parent The parent object that implements the Timed function.
-     */
-    AckTimer(T& parent)
-        : _parent(parent)
-        , _timeout(WPEFramework::Core::Time {})
-    {
-    }
-
-    /**
-     * @brief Schedules the timer with a specified timeout.
-     * @param timeout The timeout value to start the timer with.
-     */
-    inline void Schedule(const WPEFramework::Core::Time& timeout)
-    {
-        _timeout = timeout;
-        timerThread.Schedule(_timeout, *this);
-    }
-
-    /**
-     * @brief Reschedules / updates timer with specified timeout.
-     *        In case if timout was already set, it will be replaced with new timeout.
-     * @param timeout The timeout value to start timer with.
-     */
-    inline void Reschedule(const WPEFramework::Core::Time& timeout)
-    {
-        timerThread.Trigger(timeout.Ticks(), *this);
-    }
-
-    /**
-     * @brief Revokes / stops the scheduled timer. The timer will not be triggered after this.
-     * @return True if the timer was successfully revoked, otherwise false.
-     */
-    inline bool Revoke()
-    {
-        return timerThread.Revoke(*this);
-    }
-
-    /**
-     * @brief Callback function for timer expiration.
-     * @param timeout The timeout duration.
-     * @return The result of the Timed function from the parent.
-     */
-    uint64_t Timed(uint64_t timeout)
-    {
-        return _parent.Timed(timeout);
-    }
-
-    /**
-     * @brief Checks if the timer is currently running.
-     * @return True if the timer is running, otherwise false.
-     */
-    bool IsRunning() const
-    {
-        return _timeout > WPEFramework::Core::Time {} && timerThread.HasEntry(*this);
-    }
-
-    /**
-     * @brief Equality operator for comparing two AckTimer instances.
-     * @param rhs The other AckTimer instance to compare.
-     * @return True if both instances are equal, otherwise false.
-     */
-    bool operator==(const AckTimer& rhs) const
-    {
-        // pointer comparison
-        return &_parent == &(rhs._parent) && (_timeout == rhs._timeout);
-    }
-
-    /**
-     * @brief Inequality operator for comparing two AckTimer instances.
-     * @param rhs The other AckTimer instance to compare.
-     * @return True if both instances are not equal, otherwise false.
-     */
-    bool operator!=(const AckTimer& rhs) const
-    {
-        return !(*this == rhs);
-    }
-
-    /**
-     * @brief Greater-than operator for comparing two AckTimer instances.
-     * @param rhs The other AckTimer instance to compare.
-     * @return True if this instance has a greater timeout than the other, otherwise false.
-     */
-    bool operator>(const AckTimer& rhs) const
-    {
-        return _timeout > rhs._timeout;
-    }
-
-    /**
-     * @brief Gets the current timeout value.
-     * @return The current timeout value.
-     */
-    const WPEFramework::Core::Time& Timeout() const
-    {
-        return _timeout;
-    }
-
-private:
-    T& _parent;
-    WPEFramework::Core::Time _timeout;
-    static WPEFramework::Core::TimerType<AckTimer<T>> timerThread;
-};
+#include "LambdaJob.h"
 
 /**
  * @class AckController
@@ -152,8 +42,7 @@ private:
  * IMPORTANT: This class is not thread-safe. It expects thread safety
  *            from the instantiating class.
  */
-class AckController {
-    using AckTimer_t = AckTimer<AckController>;
+class AckController : public std::enable_shared_from_this<AckController> {
     using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
 public:
@@ -162,12 +51,12 @@ public:
      *        The TransactionId is unique for each instance.
      */
     AckController(PowerState powerState)
-        : _powerState(powerState)
+        : _workerPool(WPEFramework::Core::WorkerPool::Instance())
+        , _powerState(powerState)
         , _transactionId(++_nextTransactionId)
-        , _timer(*this)
+        , _timeout(WPEFramework::Core::Time::Now())
         , _handler(nullptr)
         , _running(false)
-        , _delete(false)
     {
     }
 
@@ -270,7 +159,7 @@ public:
      */
     bool IsRunning() const
     {
-        return _running && _timer.IsRunning();
+        return _running && _timerJob.IsValid();
     }
 
     /**
@@ -289,25 +178,53 @@ public:
      * @param handler The completion handler to be invoke.
      *        The completion handler is triggered in one of these scenarios:
      *        - Acknowledgement received from all clients (Triggered from the last Ack caller thread).
-     *        - Scheduled timer times out (Triggered in the timerThread thread).
+     *        - Scheduled timer times out (Triggered from Thunder workerpool thread).
      *        - Scheduled without any clients awaiting (Triggered in the caller thread).
+     *
+     *  handler args: isTimedOut true   => handler is invoked because operation timedout
+     *                isRevoked true    => handler is invoked because operation was cancelled (obj destroyed)
+     *                if args are false => handler is invoked as acknowledgement is received from all clients
+     *
      */
-    template <typename COMPLETION_HANDLER>
-    void Schedule(const uint64_t offsetInMilliseconds, COMPLETION_HANDLER handler)
+    void Schedule(const uint64_t offsetInMilliseconds, std::function<void(bool, bool)> handler)
     {
         ASSERT(false == _running);
         ASSERT(nullptr == _handler);
 
-        _handler = handler;
-
-        LOGINFO("time offset: %lldms, pending: %d", offsetInMilliseconds, int(_pending.size()));
+        LOGINFO("time offset: %" PRIu64 "ms, pending: %d", offsetInMilliseconds, int(_pending.size()));
 
         if (_pending.empty() || 0 == offsetInMilliseconds) {
             // no clients acks to wait for, trigger completion handler immediately
-            runHandler(false);
+            handler(false, false);
         } else {
-            _running = true;
-            _timer.Schedule(WPEFramework::Core::Time::Now().Add(offsetInMilliseconds));
+            std::weak_ptr<AckController> wPtr = shared_from_this();
+            _running                          = true;
+            _handler                          = std::move(handler);
+
+            // If timeout is already set (via Reschedule), use max of offset or timeout
+            auto newTimeout = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
+            _timeout        = std::max(newTimeout, _timeout);
+
+            _timerJob = LambdaJob::Create([wPtr]() {
+                std::shared_ptr<AckController> self = wPtr.lock();
+
+                bool isRevoked  = self ? false : true;
+                bool isTimedout = true;
+
+                LOGINFO("AckTimer handler isTimedout: 1, isRevoked: %d", isRevoked);
+
+                if (!isRevoked) {
+                    if (self->_running) {
+                        self->_running = false;
+                        self->_handler(isTimedout, isRevoked);
+                    } else {
+                        LOGERR("FATAL not expected to reach timeout, without timer running");
+                    }
+                } else {
+                    LOGERR("FATAL AckController is already revoked\n\trevoke operation should have triggered completion handler");
+                }
+            });
+            _workerPool.Schedule(_timeout, _timerJob);
         }
     }
 
@@ -326,8 +243,13 @@ public:
         ASSERT(nullptr != _handler);
 
         do {
+            auto newTimeout = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
+
+            // If Reschedule is called even before Schedule, cache the timeout value
+            // use timeout value later when Schedule gets called
             if (!_running) {
-                status = WPEFramework::Core::ERROR_ILLEGAL_STATE;
+                _timeout = std::max(_timeout, newTimeout);
+                status = WPEFramework::Core::ERROR_NONE;
                 break;
             }
 
@@ -344,14 +266,13 @@ public:
                 break;
             }
 
-            auto newTimeout = WPEFramework::Core::Time::Now().Add(offsetInMilliseconds);
-
             // set new timeout only if it's greater than previous timeout, else fail silently
-            if (newTimeout > _timer.Timeout()) {
-                _timer.Reschedule(newTimeout);
+            if (newTimeout > _timeout) {
+                _timeout = newTimeout;
+                _workerPool.Reschedule(newTimeout, _timerJob);
             } else {
-                LOGWARN("Skipping new timeout %lld is less than previous timeout %lld",
-                    newTimeout.Ticks(), _timer.Timeout().Ticks());
+                LOGWARN("Skipping new timeout %" PRIu64 " is less than previous timeout %" PRIu64,
+                    newTimeout.Ticks(), _timeout.Ticks());
             }
         } while (false);
 
@@ -359,36 +280,6 @@ public:
             clientId, transactionId, offsetInMilliseconds, status);
 
         return status;
-    }
-
-    /**
-     * @brief Handles the AckController timeout event.
-     *        Ideally, this method should have been made private, but due to
-     *        Thunder Timer implementation limitations, it's made public.
-     *
-     * IMPORTANT: This API is not meant to be invoked by clients.
-     *
-     * @param timeout The timeout duration.
-     * @return Always returns 0 (to make the implementation generic).
-     */
-    uint64_t Timed(uint64_t timeout)
-    {
-        // ack timedout, invoke completion handler now
-        if (_running) {
-            _running = false;
-            runHandler(true);
-        }
-        return 0;
-    }
-
-    inline void MarkDelete()
-    {
-        _delete = true;
-    }
-
-    inline bool IsMarkedForDelete() const
-    {
-        return _delete;
     }
 
 private:
@@ -400,9 +291,10 @@ private:
     {
         LOGINFO("isTimedout: %d, pending: %d", isTimedout, int(_pending.size()));
         if (!isTimedout) {
-            _timer.Revoke();
+            _workerPool.Revoke(_timerJob);
         }
-        _handler(isTimedout);
+        bool isRevoked = false;
+        _handler(isTimedout, isRevoked);
     }
 
     /**
@@ -414,18 +306,29 @@ private:
     {
         if (_running) {
             _running = false;
-            _timer.Revoke();
+            if (_timerJob.IsValid()) {
+                _workerPool.Revoke(_timerJob);
+                bool isTimedout = false;
+                bool isRevoked  = true;
+                _handler(isTimedout, isRevoked);
+            }
+        }
+        if (_timerJob.IsValid()) {
+            _timerJob.Release();
         }
     }
 
 private:
-    PowerState _powerState;
-    std::unordered_set<uint32_t> _pending; // Set of pending acknowledgements.
-    int _transactionId;                    // Unique transaction ID for each AckController instance.
-    AckTimer_t _timer;                     // Timer for managing completion timeouts.
-    std::function<void(bool)> _handler;    // Completion handler to be called on timeout or all acknowledgements.
-    std::atomic<bool> _running;            // Flag to synchronize timer timeout callback and Ack* APIs.
-    std::atomic<bool> _delete;             // Flag to mark this object for deletion
+    using TimerJob = WPEFramework::Core::ProxyType<WPEFramework::Core::IDispatch>;
+
+    WPEFramework::Core::IWorkerPool& _workerPool; // Thunder worker pool
+    PowerState _powerState;                       // target / next powerState to change
+    std::unordered_set<uint32_t> _pending;        // Set of pending acknowledgements.
+    int _transactionId;                           // Unique transaction ID for each AckController instance.
+    WPEFramework::Core::Time _timeout;            // Absolute timeout value for _timerJob (not duration)
+    TimerJob _timerJob;                           // job scheduler to timeout
+    std::function<void(bool, bool)> _handler;     // Completion handler to be called on timeout or all acknowledgements.
+    std::atomic<bool> _running;                   // Flag to synchronize timer timeout callback and Ack* APIs.
 
     static int _nextTransactionId; // static counter for unique transaction ID generation.
 };

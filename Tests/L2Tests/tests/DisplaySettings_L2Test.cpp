@@ -59,6 +59,12 @@ protected:
         
     public:
         DisplaySettings_L2test();
+        device::Host::IDisplayEvents* de_listener;
+        device::Host::IAudioOutputPortEvents* aope_listener;
+        device::Host::IDisplayDeviceEvents* dde_listener;
+        device::Host::IHdmiInEvents* hie_listener;
+        device::Host::IVideoDeviceEvents* vde_listener;
+        device::Host::IVideoOutputPortEvents* vope_listener;
 
 };
  
@@ -72,13 +78,13 @@ DisplaySettings_L2test::DisplaySettings_L2test()
         printf("DISPLAYSETTINGS Constructor\n");
         uint32_t status = Core::ERROR_GENERAL;
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_INIT())
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_INIT())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_INIT())
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_INIT())
         .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetWakeupSrc(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Return(PWRMGR_SUCCESS));
 
         ON_CALL(*p_rfcApiImplMock, getRFCParameter(::testing::_, ::testing::_, ::testing::_))
@@ -99,7 +105,7 @@ DisplaySettings_L2test::DisplaySettings_L2test()
            }
         }));
 
-        EXPECT_CALL(mfrMock::Mock(), mfrSetTempThresholds(::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrSetTempThresholds(::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
         [](int high, int critical) {
            EXPECT_EQ(high, 100);
@@ -107,14 +113,14 @@ DisplaySettings_L2test::DisplaySettings_L2test()
            return mfrERR_NONE;
         }));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_GetPowerState(::testing::_))
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_GetPowerState(::testing::_))
         .WillRepeatedly(::testing::Invoke(
         [](PWRMgr_PowerState_t* powerState) {
            *powerState = PWRMGR_POWERSTATE_OFF; // by default over boot up, return PowerState OFF
            return PWRMGR_SUCCESS;
         }));
 
-        EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_API_SetPowerState(::testing::_))
+        EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillRepeatedly(::testing::Invoke(
         [](PWRMgr_PowerState_t powerState) {
            // All tests are run without settings file
@@ -122,7 +128,7 @@ DisplaySettings_L2test::DisplaySettings_L2test()
            return PWRMGR_SUCCESS;
         }));
 
-        EXPECT_CALL(mfrMock::Mock(), mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
+        EXPECT_CALL(*p_mfrMock, mfrGetTemperature(::testing::_, ::testing::_, ::testing::_))
         .WillRepeatedly(::testing::Invoke(
             [&](mfrTemperatureState_t* curState, int* curTemperature, int* wifiTemperature) {
                 *curTemperature  = 90; // safe temperature
@@ -134,6 +140,48 @@ DisplaySettings_L2test::DisplaySettings_L2test()
          /* Activate plugin in constructor */
          status = ActivateService("org.rdk.PowerManager");
          EXPECT_EQ(Core::ERROR_NONE, status);
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IDisplayEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IDisplayEvents* listener) {
+                         de_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IAudioOutputPortEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IAudioOutputPortEvents* listener) {
+                         aope_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IDisplayDeviceEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IDisplayDeviceEvents* listener) {
+                         dde_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IHdmiInEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IHdmiInEvents* listener) {
+                         hie_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IVideoDeviceEvents* listener) {
+                         vde_listener = listener;
+                     return dsERR_NONE;
+         }));
+
+         ON_CALL(*p_hostImplMock, Register(::testing::Matcher<device::Host::IVideoOutputPortEvents*>(::testing::_)))
+             .WillByDefault(::testing::Invoke(
+                 [&](device::Host::IVideoOutputPortEvents* listener) {
+                         vope_listener = listener;
+                     return dsERR_NONE;
+         }));
 
          status = ActivateService("org.rdk.DisplaySettings");
          EXPECT_EQ(Core::ERROR_NONE, status);
@@ -148,19 +196,59 @@ DisplaySettings_L2test::~DisplaySettings_L2test()
     printf("DISPLAYSETTINGS Destructor\n");
     uint32_t status = Core::ERROR_GENERAL;
 
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IDisplayEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IDisplayEvents* listener) {
+                    de_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IAudioOutputPortEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IAudioOutputPortEvents* listener) {
+                    aope_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IDisplayDeviceEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IDisplayDeviceEvents* listener) {
+                    dde_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IHdmiInEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IHdmiInEvents* listener) {
+                    hie_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoDeviceEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IVideoDeviceEvents* listener) {
+                    vde_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
+    ON_CALL(*p_hostImplMock, UnRegister(::testing::Matcher<device::Host::IVideoOutputPortEvents*>(::testing::_)))
+        .WillByDefault(::testing::Invoke(
+            [&](device::Host::IVideoOutputPortEvents* listener) {
+                    vope_listener = nullptr;
+                return dsERR_NONE;
+    }));
+
     status = DeactivateService("org.rdk.DisplaySettings");
     EXPECT_EQ(Core::ERROR_NONE, status);
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_TERM())
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_TERM())
         .WillOnce(::testing::Return(PWRMGR_SUCCESS));
 
-    EXPECT_CALL(PowerManagerHalMock::Mock(), PLAT_DS_TERM())
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_TERM())
         .WillOnce(::testing::Return(DEEPSLEEPMGR_SUCCESS));
 
     status = DeactivateService("org.rdk.PowerManager");
     EXPECT_EQ(Core::ERROR_NONE, status);
-    PowerManagerHalMock::Delete();
-    mfrMock::Delete();
 }
 
 TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
@@ -381,5 +469,40 @@ TEST_F(DisplaySettings_L2test, DisplaySettings_L2_MethodTest)
         JsonObject result, params;
         status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "getSinkAtmosCapability", params, result);
     }
+
+    /****************setPrimaryLanguage***************/
+    {
+        JsonObject params2, result;
+        params2["lang"] = "US-en";
+        params2["audioPort"] = "HDMI0";
+
+        status = InvokeServiceMethod("org.rdk.DisplaySettings.1", "setPrimaryLanguage", params2, result);
+    }
+
+    dsDisplayEvent_t displayEvent = dsDISPLAY_RXSENSE_ON;
+    de_listener->OnDisplayRxSense(displayEvent);
+    /* IAudioOutputPortEvents*/
+    aope_listener->OnAudioOutHotPlug(dsAudioPortType_t::dsAUDIOPORT_TYPE_HDMI, 1, true);
+    aope_listener->OnAudioFormatUpdate(dsAudioFormat_t::dsAUDIO_FORMAT_DOLBY_AC3);
+    aope_listener->OnDolbyAtmosCapabilitiesChanged(dsATMOSCapability_t::dsAUDIO_ATMOS_DDPLUSSTREAM, true);
+    aope_listener->OnAudioPortStateChanged(dsAudioPortState_t::dsAUDIOPORT_STATE_INITIALIZED);
+    aope_listener->OnAssociatedAudioMixingChanged(true);
+    aope_listener->OnAudioFaderControlChanged(10);
+    aope_listener->OnAudioPrimaryLanguageChanged("US-en");
+    aope_listener->OnAudioSecondaryLanguageChanged("US-en");
+
+    /* IDisplayDeviceEvents */
+    dde_listener->OnDisplayHDMIHotPlug(dsDisplayEvent_t::dsDISPLAY_HDCPPROTOCOL_CHANGE);
+
+    /* IHdmiInEvents*/
+    hie_listener->OnHdmiInEventHotPlug(dsHdmiInPort_t::dsHDMI_IN_PORT_0, true);
+
+    /* IVideoDeviceEvents */
+    vde_listener->OnZoomSettingsChanged(dsVideoZoom_t::dsVIDEO_ZOOM_FULL);
+
+    /* IVideoOutputPortEvents */
+    vope_listener->OnResolutionPreChange(1,1);
+    vope_listener->OnResolutionPostChange(1,1);
+    vope_listener->OnVideoFormatUpdate(dsHDRStandard_t::dsHDRSTANDARD_HDR10);
 
 }

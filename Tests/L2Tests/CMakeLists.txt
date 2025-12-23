@@ -52,6 +52,10 @@ endif()
 
 if(PLUGIN_SYSTEMMODE)
     set(SRC_FILES ${SRC_FILES} tests/SystemMode_L2Test.cpp)
+
+if(PLUGIN_DEVICEINFO)
+    set(SRC_FILES ${SRC_FILES} tests/DeviceInfo_L2Test.cpp)
+
 endif()
 
 add_library(${MODULE_NAME} SHARED ${SRC_FILES})

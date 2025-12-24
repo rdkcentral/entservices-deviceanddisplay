@@ -151,6 +151,8 @@ protected:
  */
 Warehouse_L2Test::Warehouse_L2Test()
     : L2TestMocks()
+    , m_controller_warehouse(nullptr)
+    , m_warehouseplugin(nullptr)
 {
     uint32_t status = Core::ERROR_GENERAL;
     m_event_signalled = WAREHOUSEL2TEST_STATE_INVALID;

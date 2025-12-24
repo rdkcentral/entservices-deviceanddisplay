@@ -10,7 +10,7 @@ applyTo: "**/**Implementation.cpp,**/**Implementation.h,**/**.cpp,**/**.h"
 
 ### Requirement
 
-Plugins should use COM-RPC (e.g., use QueryInterfaceByCallsign or QueryInterface) to access other plugins.
+Plugins should use COM-RPC (e.g., QueryInterfaceByCallsign or QueryInterface) to access other plugins.
 
 ### Example
 
@@ -26,7 +26,7 @@ QueryInterface:
 _userSettingsPlugin = _service->QueryInterface<WPEFramework::Exchange::IUserSettings>();
 ```
 
-SHOULD not use JSON-RPC or LinkType for inter-plugin communication, as they introduce unnecessary overhead.
+should not use JSON-RPC or LinkType for inter-plugin communication, as they introduce unnecessary overhead.
 
 ### Incorrect Example
 

@@ -100,7 +100,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: Feature/L1-L2test
 
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
@@ -613,7 +613,7 @@ jobs:
           RdkServicesL2Test &&
           cp -rf $(pwd)/rdkL2TestResults.json $GITHUB_WORKSPACE/rdkL2TestResultsWithValgrind.json &&
           rm -rf $(pwd)/rdkL2TestResults.json
-
+          
       - name: Generate coverage
         if: ${{ matrix.coverage == 'with-coverage' && !env.ACT }}
         run: >

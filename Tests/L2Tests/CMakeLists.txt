@@ -38,6 +38,10 @@ if(PLUGIN_DISPLAYSETTINGS)
     set(SRC_FILES ${SRC_FILES} tests/DisplaySettings_L2Test.cpp)
 endif()
 
+if(PLUGIN_DISPLAYINFO)
+    set(SRC_FILES ${SRC_FILES} tests/DisplayInfo_L2Test.cpp)
+endif()
+
 if(PLUGIN_SYSTEMSERVICES)
     set(SRC_FILES ${SRC_FILES} tests/SystemService_L2Test.cpp)
 endif()

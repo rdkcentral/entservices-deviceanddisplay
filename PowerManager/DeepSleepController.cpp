@@ -55,6 +55,7 @@ std::map<std::string, DeepSleepWakeupSettings::tzValue> DeepSleepWakeupSettings:
 uint32_t DeepSleepWakeupSettings::getTZDiffInSec() const
 {
     uint32_t _TZDiffTime  = 6 * 3600;
+#if 0
     IARM_Result_t iResult = IARM_RESULT_SUCCESS;
     tzValue value         = tzCST06;
 
@@ -75,6 +76,7 @@ uint32_t DeepSleepWakeupSettings::getTZDiffInSec() const
             }
         }
     }
+#endif
     return _TZDiffTime;
 }
 

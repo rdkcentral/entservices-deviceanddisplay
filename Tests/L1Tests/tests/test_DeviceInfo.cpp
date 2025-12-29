@@ -173,7 +173,7 @@ protected:
 
         EXPECT_EQ(string(""), plugin->Initialize(&service));
 
-        if (0 != system("mkdir -p /opt/www/authService"){ /* do nothig */
+        if (0 != system("mkdir -p /opt/www/authService")){ /* do nothig */
         }
     }
 

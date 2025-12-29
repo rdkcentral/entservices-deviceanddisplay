@@ -173,7 +173,8 @@ protected:
 
         EXPECT_EQ(string(""), plugin->Initialize(&service));
 
-        system("mkdir -p /opt/www/authService");
+        if (0 != system("mkdir -p /opt/www/authService"){ /* do nothig */
+        }
     }
 
     virtual ~DeviceInfoTest()

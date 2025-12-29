@@ -38,9 +38,7 @@
 #include "DeviceInfoMock.h"
 #include "WrapsMock.h"
 #include "ISubSystemMock.h"
-
 #include "SystemInfo.h"
-
 #include <fstream>
 #include "ThunderPortability.h"
 

@@ -138,7 +138,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: feature/workflow-L1-L2test
+          ref: feature/workflow-test
 
       - name: Checkout googletest
         uses: actions/checkout@v3

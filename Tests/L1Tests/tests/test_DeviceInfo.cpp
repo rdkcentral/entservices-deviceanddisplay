@@ -37,7 +37,7 @@
 #include "COMLinkMock.h"
 #include "DeviceInfoMock.h"
 #include "WrapsMock.h"
-//#include "ISubSystemMock.h"
+#include "ISubSystemMock.h"
 
 #include "SystemInfo.h"
 
@@ -85,7 +85,7 @@ protected:
     NiceMock<ServiceMock> service;
     NiceMock<COMLinkMock> comLinkMock;
     WrapsImplMock* p_wrapsImplMock = nullptr;
-    //Core::Sink<NiceMock<SystemInfo>> subSystem;
+    Core::Sink<NiceMock<SystemInfo>> subSystem;
 
     DeviceInfoTest()
         : plugin(Core::ProxyType<Plugin::DeviceInfo>::Create())
@@ -131,7 +131,6 @@ protected:
             .WillByDefault(Return("{\"root\":{\"mode\":\"Off\"}}"));
         ON_CALL(service, WebPrefix())
             .WillByDefault(Return(webPrefix));
-#if 0
         ON_CALL(service, SubSystems())
             .WillByDefault(Invoke(
                 [&]() {
@@ -139,7 +138,6 @@ protected:
                     result->AddRef();
                     return result;
                 }));
-#endif
         ON_CALL(service, COMLink())
             .WillByDefault(Return(&comLinkMock));
 

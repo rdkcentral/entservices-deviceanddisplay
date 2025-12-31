@@ -21,15 +21,12 @@
 
 #include "DeviceInfo.h"
 #include "DeviceAudioCapabilities.h"
-
 #include "AudioOutputPortMock.h"
 #include "HostMock.h"
 #include "IarmBusMock.h"
 #include "ManagerMock.h"
 #include "ServiceMock.h"
-
 #include "SystemInfo.h"
-
 #include <fstream>
 #include "ThunderPortability.h"
 

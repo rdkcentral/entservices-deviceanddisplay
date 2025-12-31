@@ -21,7 +21,6 @@
 
 #include "DeviceInfo.h"
 #include "DeviceVideoCapabilities.h"
-
 #include "HostMock.h"
 #include "IarmBusMock.h"
 #include "ManagerMock.h"
@@ -30,9 +29,7 @@
 #include "VideoOutputPortMock.h"
 #include "VideoOutputPortTypeMock.h"
 #include "VideoResolutionMock.h"
-
 #include "SystemInfo.h"
-
 #include <fstream>
 #include "ThunderPortability.h"
 

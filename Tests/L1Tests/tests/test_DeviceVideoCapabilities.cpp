@@ -176,7 +176,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Success_MultipleDispl
         .WillOnce(ReturnRef(portName2));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPorts())
-        .WillOnce(Invoke([&videoPorts, &videoPort1, &videoPort2]() {
+        .WillOnce(Invoke([&videoPorts, &videoPort1, &videoPort2]() -> const auto& {
             videoPorts.push_back(videoPort1);
             videoPorts.push_back(videoPort2);
             return videoPorts;
@@ -202,7 +202,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Success_DuplicatePort
         .WillOnce(ReturnRef(portName3));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPorts())
-        .WillOnce(Invoke([&videoPorts, &videoPort1, &videoPort2, &videoPort3]() {
+        .WillOnce(Invoke([&videoPorts, &videoPort1, &videoPort2, &videoPort3]() -> const auto& {
             videoPorts.push_back(videoPort1);
             videoPorts.push_back(videoPort2);
             videoPorts.push_back(videoPort3);
@@ -430,7 +430,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Success_EmptyPort_Multi
         .WillOnce(ReturnRef(resName3));
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &res1, &res2, &res3]() {
+        .WillOnce(Invoke([&resolutions, &res1, &res2, &res3]() -> const auto& {
             resolutions.push_back(res1);
             resolutions.push_back(res2);
             resolutions.push_back(res3);
@@ -473,7 +473,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Success_SpecificPort_Si
         .WillOnce(ReturnRef(resName1));
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &res1]() {
+        .WillOnce(Invoke([&resolutions, &res1]() -> const auto& {
             resolutions.push_back(res1);
             return resolutions;
         }));
@@ -693,7 +693,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Negative_GetNameThrow
         }));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPorts())
-        .WillOnce(Invoke([&videoPorts, &videoPort]() {
+        .WillOnce(Invoke([&videoPorts, &videoPort]() -> const auto& {
             videoPorts.push_back(videoPort);
             return videoPorts;
         }));
@@ -883,7 +883,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Negative_ResolutionGetN
         }));
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &res1]() {
+        .WillOnce(Invoke([&resolutions, &res1]() -> const auto& {
             resolutions.push_back(res1);
             return resolutions;
         }));
@@ -981,7 +981,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Positive_SingleDispla
         .WillOnce(ReturnRef(portName));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPorts())
-        .WillOnce(Invoke([&vPorts, &videoOutputPort]() {
+        .WillOnce(Invoke([&vPorts, &videoOutputPort]() -> const auto& {
             vPorts.push_back(videoOutputPort);
             return vPorts;
         }));
@@ -1010,7 +1010,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedVideoDisplays_Positive_VariousPortT
         .WillOnce(ReturnRef(portName5));
 
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPorts())
-        .WillOnce(Invoke([&vPorts, &port1, &port2, &port3, &port4, &port5]() {
+        .WillOnce(Invoke([&vPorts, &port1, &port2, &port3, &port4, &port5]() -> const auto& {
             vPorts.push_back(port1);
             vPorts.push_back(port2);
             vPorts.push_back(port3);
@@ -1156,7 +1156,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_SingleResoluti
         .WillOnce(ReturnRef(res1080p));
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &resolution1]() {
+        .WillOnce(Invoke([&resolutions, &resolution1]() -> const auto& {
             resolutions.push_back(resolution1);
             return resolutions;
         }));
@@ -1202,7 +1202,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_LargeResolutio
         .WillOnce(ReturnRef(res480i));
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &res1, &res2, &res3, &res4, &res5, &res6, &res7]() {
+        .WillOnce(Invoke([&resolutions, &res1, &res2, &res3, &res4, &res5, &res6, &res7]() -> const auto& {
             resolutions.push_back(res1);
             resolutions.push_back(res2);
             resolutions.push_back(res3);
@@ -1251,7 +1251,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_VariousPortNam
         .WillOnce(ReturnRef(res1080p))
         .WillOnce(ReturnRef(res720p));
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &resolution1, &resolution2]() {
+        .WillOnce(Invoke([&resolutions, &resolution1, &resolution2]() -> const auto& {
             resolutions.push_back(resolution1);
             resolutions.push_back(resolution2);
             return resolutions;
@@ -1273,7 +1273,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_VariousPortNam
     EXPECT_CALL(*p_videoResolutionMock, getName())
         .WillOnce(ReturnRef(res480i));
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &resolution1]() {
+        .WillOnce(Invoke([&resolutions, &resolution1]() -> const auto& {
             resolutions.push_back(resolution1);
             return resolutions;
         }));
@@ -1302,7 +1302,7 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Positive_DefaultPortUse
         .WillOnce(ReturnRef(res1080p));
 
     EXPECT_CALL(*p_videoOutputPortTypeMock, getSupportedResolutions())
-        .WillOnce(Invoke([&resolutions, &resolution1]() {
+        .WillOnce(Invoke([&resolutions, &resolution1]() -> const auto& {
             resolutions.push_back(resolution1);
             return resolutions;
         }));

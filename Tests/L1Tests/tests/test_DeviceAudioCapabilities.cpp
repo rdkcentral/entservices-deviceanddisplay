@@ -902,7 +902,7 @@ TEST_F(DeviceAudioCapabilitiesTest, SupportedMS12AudioProfiles_Negative_ProfileL
     string portName = "HDMI0";
 
     EXPECT_CALL(*p_audioOutputPortMock, getMS12AudioProfileList())
-        .WillOnce(Invoke([]() -> const auto& {
+        .WillOnce(Invoke([]() {
             std::vector<std::string> profiles;
             profiles.push_back("Movie");
             return profiles;

@@ -55,7 +55,7 @@ using namespace std;
 #define HDMICECSINK_ARC_INITIATION_EVENT "arcInitiationEvent"
 #define HDMICECSINK_ARC_TERMINATION_EVENT "arcTerminationEvent"
 #define HDMICECSINK_ARC_AUDIO_STATUS_EVENT "reportAudioStatusEvent"
-#define HDMICECSINK_SHORT_AUDIO_DESCRIPTOR_EVENT "shortAudiodesciptorEvent"
+#define HDMICECSINK_SHORT_AUDIO_DESCRIPTOR_EVENT "shortAudiodescriptorEvent"
 #define HDMICECSINK_SYSTEM_AUDIO_MODE_EVENT "setSystemAudioModeEvent"
 #define HDMICECSINK_AUDIO_DEVICE_CONNECTED_STATUS_EVENT "reportAudioDeviceConnectedStatus"
 #define HDMICECSINK_CEC_ENABLED_EVENT "reportCecEnabledEvent"

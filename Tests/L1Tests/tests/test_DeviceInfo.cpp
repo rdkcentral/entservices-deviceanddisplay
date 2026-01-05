@@ -760,7 +760,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Success)
         .WillOnce(ReturnRef(portName2));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&audioPorts, &port1, &port2]() {
+        .WillOnce(Invoke([&audioPorts, &port1, &port2]() -> const auto& {
             audioPorts.push_back(port1);
             audioPorts.push_back(port2);
             return audioPorts;
@@ -1012,7 +1012,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Negative_GetNameThrowsException)
         }));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&audioPorts, &port1]() {
+        .WillOnce(Invoke([&audioPorts, &port1]() -> const auto& {
             audioPorts.push_back(port1);
             return audioPorts;
         }));
@@ -1211,7 +1211,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_MultiplePortTypes)
         .WillOnce(ReturnRef(portName3));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&audioPorts, &port1, &port2, &port3]() {
+        .WillOnce(Invoke([&audioPorts, &port1, &port2, &port3]() -> const auto& {
             audioPorts.push_back(port1);
             audioPorts.push_back(port2);
             audioPorts.push_back(port3);
@@ -1234,7 +1234,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
         .WillOnce(ReturnRef(portName));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&audioPorts, &port1]() {
+        .WillOnce(Invoke([&audioPorts, &port1]() -> const auto& {
             audioPorts.push_back(port1);
             return audioPorts;
         }));
@@ -1383,6 +1383,7 @@ TEST_F(DeviceInfoTest, EthMac_Success)
                 static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, mac, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
                 return pipe;
             }));
@@ -1461,6 +1462,7 @@ TEST_F(DeviceInfoTest, EstbMac_Success)
                 static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, mac, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
                 return pipe;
             }));
@@ -1520,6 +1522,7 @@ TEST_F(DeviceInfoTest, WifiMac_Success)
                 static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, mac, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
                 return pipe;
             }));
@@ -1579,6 +1582,7 @@ TEST_F(DeviceInfoTest, EstbIp_Success)
                 static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, ip, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
                 return pipe;
             }));

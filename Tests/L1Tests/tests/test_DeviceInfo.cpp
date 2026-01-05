@@ -469,7 +469,8 @@ TEST_F(DeviceInfoTest, Sku_Success_FromMFR)
                     auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
                     if (param->type == mfrSERIALIZED_TYPE_MODELNAME) {
                         param->bufLen = strlen("MFR-SKU-002");
-                        strncpy(param->buffer, "MFR-SKU-002", sizeof(param->buffer));
+                        strncpy(param->buffer, "MFR-SKU-002", sizeof(param->buffer) - 1);
+                        param->buffer[sizeof(param->buffer) - 1] = '\0';
                         return IARM_RESULT_SUCCESS;
                     }
                 }
@@ -759,7 +760,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Success)
         .WillOnce(ReturnRef(portName2));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&]() {
+        .WillOnce(Invoke([&audioPorts, &port1, &port2]() {
             audioPorts.push_back(port1);
             audioPorts.push_back(port2);
             return audioPorts;
@@ -1008,12 +1009,10 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Negative_GetNameThrowsException)
     EXPECT_CALL(*p_audioOutputPortMock, getName())
         .WillOnce(Invoke([]() -> const string& {
             throw device::Exception("getName exception");
-            static const string portName = "HDMI0";
-            return portName;
         }));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&]() {
+        .WillOnce(Invoke([&audioPorts, &port1]() {
             audioPorts.push_back(port1);
             return audioPorts;
         }));
@@ -1027,7 +1026,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Negative_EmptyPortList)
     device::List<device::AudioOutputPort> audioPorts;
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Return(audioPorts));
+        .WillOnce(Return(std::move(audioPorts)));
 
     EXPECT_EQ(Core::ERROR_NONE, handler.Invoke(connection, _T("supportedaudioports"), _T(""), response));
     EXPECT_FALSE(response.find("\"supportedAudioPorts\":[]") != string::npos);
@@ -1044,7 +1043,8 @@ TEST_F(DeviceInfoTest, SerialNumber_Positive_LongSerialNumber)
             [&longSerial](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
                 auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
                 param->bufLen = longSerial.length();
-                strncpy(param->buffer, longSerial.c_str(), sizeof(param->buffer));
+                strncpy(param->buffer, longSerial.c_str(), sizeof(param->buffer) - 1);
+                param->buffer[sizeof(param->buffer) - 1] = '\0';
                 return IARM_RESULT_SUCCESS;
             }));
 
@@ -1103,7 +1103,8 @@ TEST_F(DeviceInfoTest, Make_Positive_LongName)
             [&longName](const char* ownerName, const char* methodName, void* arg, size_t argLen) {
                 auto* param = static_cast<IARM_Bus_MFRLib_GetSerializedData_Param_t*>(arg);
                 param->bufLen = longName.length();
-                strncpy(param->buffer, longName.c_str(), sizeof(param->buffer));
+                strncpy(param->buffer, longName.c_str(), sizeof(param->buffer) - 1);
+                param->buffer[sizeof(param->buffer) - 1] = '\0';
                 return IARM_RESULT_SUCCESS;
             }));
 
@@ -1210,7 +1211,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_MultiplePortTypes)
         .WillOnce(ReturnRef(portName3));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&]() {
+        .WillOnce(Invoke([&audioPorts, &port1, &port2, &port3]() {
             audioPorts.push_back(port1);
             audioPorts.push_back(port2);
             audioPorts.push_back(port3);
@@ -1233,7 +1234,7 @@ TEST_F(DeviceInfoTest, SupportedAudioPorts_Positive_SinglePort)
         .WillOnce(ReturnRef(portName));
 
     EXPECT_CALL(*p_hostImplMock, getAudioOutputPorts())
-        .WillOnce(Invoke([&]() {
+        .WillOnce(Invoke([&audioPorts, &port1]() {
             audioPorts.push_back(port1);
             return audioPorts;
         }));
@@ -1379,7 +1380,7 @@ TEST_F(DeviceInfoTest, EthMac_Success)
                 EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read eth_mac"));
 
                 const char mac[] = "AA:BB:CC:DD:EE:FF\n";
-                char buffer[256];
+                static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, mac, sizeof(buffer) - 1);
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
@@ -1410,8 +1411,9 @@ TEST_F(DeviceInfoTest, EthMac_Success_NewlineStripped)
         .WillOnce(::testing::Invoke(
             [&](const char* direction, const char* command, va_list args) {
                 const char mac[] = "11:22:33:44:55:66\n";
-                char buffer[256];
+                static char buffer[256];
                 strncpy(buffer, mac, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 return fmemopen(buffer, strlen(buffer), "r");
             }));
 
@@ -1430,7 +1432,7 @@ TEST_F(DeviceInfoTest, EthMac_Success_EmptyOutput)
         .Times(1)
         .WillOnce(::testing::Invoke(
             [&](const char* direction, const char* command, va_list args) {
-                char buffer[1] = {0};
+                static char buffer[1] = {0};
                 return fmemopen(buffer, 0, "r");
             }));
 
@@ -1456,7 +1458,7 @@ TEST_F(DeviceInfoTest, EstbMac_Success)
                 EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read estb_mac"));
 
                 const char mac[] = "11:22:33:44:55:66\n";
-                char buffer[256];
+                static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, mac, sizeof(buffer) - 1);
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
@@ -1487,8 +1489,9 @@ TEST_F(DeviceInfoTest, EstbMac_Success_NewlineStripped)
         .WillOnce(::testing::Invoke(
             [&](const char* direction, const char* command, va_list args) {
                 const char mac[] = "AA:11:BB:22:CC:33\n";
-                char buffer[256];
+                static char buffer[256];
                 strncpy(buffer, mac, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 return fmemopen(buffer, strlen(buffer), "r");
             }));
 
@@ -1514,7 +1517,7 @@ TEST_F(DeviceInfoTest, WifiMac_Success)
                 EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read wifi_mac"));
 
                 const char mac[] = "00:11:22:33:44:55\n";
-                char buffer[256];
+                static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, mac, sizeof(buffer) - 1);
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
@@ -1545,8 +1548,9 @@ TEST_F(DeviceInfoTest, WifiMac_Success_NewlineStripped)
         .WillOnce(::testing::Invoke(
             [&](const char* direction, const char* command, va_list args) {
                 const char mac[] = "FF:EE:DD:CC:BB:AA\n";
-                char buffer[256];
+                static char buffer[256];
                 strncpy(buffer, mac, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 return fmemopen(buffer, strlen(buffer), "r");
             }));
 
@@ -1572,7 +1576,7 @@ TEST_F(DeviceInfoTest, EstbIp_Success)
                 EXPECT_EQ(string(strFmt), string("/lib/rdk/getDeviceDetails.sh read estb_ip"));
 
                 const char ip[] = "192.168.1.100\n";
-                char buffer[256];
+                static char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, ip, sizeof(buffer) - 1);
                 FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
@@ -1603,8 +1607,9 @@ TEST_F(DeviceInfoTest, EstbIp_Success_NewlineStripped)
         .WillOnce(::testing::Invoke(
             [&](const char* direction, const char* command, va_list args) {
                 const char ip[] = "10.0.0.1\n";
-                char buffer[256];
+                static char buffer[256];
                 strncpy(buffer, ip, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
                 return fmemopen(buffer, strlen(buffer), "r");
             }));
 

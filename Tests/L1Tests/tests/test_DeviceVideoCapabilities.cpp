@@ -835,10 +835,6 @@ TEST_F(DeviceVideoCapabilitiesTest, SupportedResolutions_Negative_GetPortTypeThr
             throw device::Exception("getPortType exception");
         }));
 
-    EXPECT_CALL(*p_videoOutputPortTypeMock, getId())
-            return dummy;
-        }));
-
     EXPECT_CALL(*p_hostImplMock, getVideoOutputPort(portName))
         .WillOnce(ReturnRef(videoPort));
 

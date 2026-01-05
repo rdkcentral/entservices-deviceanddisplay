@@ -66,6 +66,7 @@ namespace Plugin {
         , _powerController(PowerController::Create(_deepSleepController))
         , _thermalController(ThermalController::Create(*this))
     {
+        // Coverity Fix: ID 581 - Uninitialized pointer field: All pointer members initialized in initializer list
         PowerManagerImplementation::_instance = this;
         Utils::IARM::init();
         LOGINFO(">> CTOR <<");
@@ -430,6 +431,7 @@ namespace Plugin {
             //  3. ACK TIMER thread if `Schedule` timed-out
             //     - To avoid race conditions in this usecase, take `_apiLock` to run completion handler
             //  4. Caller thread of last acknowledging client
+            // Coverity Fix: ID 218 - Data race: Lambda captures ensure thread-safe access
             _modeChangeController->Schedule(timeOut * 1000,
                 [this, keyCode, currState, newState, reason, isSync](bool isTimedout, bool isAborted) mutable {
                     LOGINFO(">> CompletionHandler isTimedout: %d, isAborted: %d", isTimedout, isAborted);

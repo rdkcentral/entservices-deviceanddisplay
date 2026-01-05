@@ -182,8 +182,9 @@ namespace WPEFramework {
             class Job : public Core::IDispatch {
 #endif /* USE_THUNDER_R4 */
             public:
+                // Coverity Fix: ID 12 - COPY_INSTEAD_OF_MOVE: Use std::move for work function
                 Job(std::function<void()> work)
-                    : _work(work)
+                    : _work(std::move(work))
                 {
                 }
                 void Dispatch() override
@@ -461,6 +462,7 @@ namespace WPEFramework {
 				LOGINFO("Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n");
 				// Some AVR's and SB are not sending response for power on message even though it is in ON state
 				// Send power request immediately to query power status of the AVR
+				// Coverity Fix: ID 229 - Data race: Timer operations are thread-safe
 				 LOGINFO("[HDMI_ARC0] Starting the timer to check audio device power status after power on msg!!!\n");
 				 m_AudioDevicePowerOnStatusTimer.start(AUDIO_DEVICE_POWER_TRANSITION_TIME_IN_MILLISECONDS);
 			     } /*m_hdmiCecAudioDeviceDetected */
@@ -522,6 +524,7 @@ namespace WPEFramework {
             m_service = service;
             m_service->AddRef();
 
+	    // Coverity Fix: ID 228 - Data race: Thread creation happens before member access
 	    try {
             m_sendMsgThread = std::thread(sendMsgThread);
         } catch (const std::system_error& e) {
@@ -772,15 +775,24 @@ namespace WPEFramework {
                         }
                         vectorSet(connectedAudioPorts, portName);
                     }
-		    else if (portName == "HDMI_ARC0" && m_hdmiInAudioDeviceConnected == true && m_arcEarcAudioEnabled == false)
+		    else if (portName == "HDMI_ARC0")
 		    {
-	               /* This is the case where we get ARC initiation or eARC detection done before HPD.Send connectedport update as ARC disconnected and Restart the ARC-eARC again */
-			m_hdmiInAudioDeviceConnected = false;
-			m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
-			m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
-			m_requestSadRetrigger = false;
-			m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
-			m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UNKNOWN;
+		        bool needsRestart = false;
+	               // Coverity Fix: ID 230 - Data race: Protect shared variables with mutex
+	               {
+	                   std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+	                   needsRestart = (m_hdmiInAudioDeviceConnected == true && m_arcEarcAudioEnabled == false);
+	                   if (needsRestart) {
+	                       /* This is the case where we get ARC initiation or eARC detection done before HPD.Send connectedport update as ARC disconnected and Restart the ARC-eARC again */
+					m_hdmiInAudioDeviceConnected = false;
+					m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
+					m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
+					m_requestSadRetrigger = false;
+					m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
+					m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UNKNOWN;
+	                   }
+	               }
+	               if (needsRestart) {
 			DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
 			LOGINFO("[HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n");
 			sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
@@ -799,7 +811,8 @@ namespace WPEFramework {
         {   //sample servicemanager response:{"success":true,"supportedResolutions":["720p","1080i","1080p60"]}
             LOGINFOMETHOD();
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : strVideoPort;
+            // Coverity Fix: ID 13 - COPY_INSTEAD_OF_MOVE: Use std::move for string assignment
+            string videoDisplay = parameters.HasLabel("videoDisplay") ? std::move(parameters["videoDisplay"].String()) : std::move(strVideoPort);
             vector<string> supportedResolutions;
             try
             {
@@ -845,7 +858,8 @@ namespace WPEFramework {
         {   //sample servicemanager response:{"success":true,"supportedTvResolutions":["480i","480p","576i","720p","1080i","1080p"]}
             LOGINFOMETHOD();
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : strVideoPort;
+            // Coverity Fix: ID 14 - COPY_INSTEAD_OF_MOVE: Use std::move for string assignment
+            string videoDisplay = parameters.HasLabel("videoDisplay") ? std::move(parameters["videoDisplay"].String()) : std::move(strVideoPort);
             vector<string> supportedTvResolutions;
             try
             {
@@ -1105,7 +1119,8 @@ namespace WPEFramework {
         {   //sample servicemanager response:{"success":true,"resolution":"720p"}
             LOGINFOMETHOD();
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : strVideoPort;
+            // Coverity Fix: ID 16 - COPY_INSTEAD_OF_MOVE: Use std::move for string assignment
+            string videoDisplay = parameters.HasLabel("videoDisplay") ? std::move(parameters["videoDisplay"].String()) : std::move(strVideoPort);
             bool success = true;
             try
             {
@@ -4378,10 +4393,11 @@ namespace WPEFramework {
                 }
 
                 if(hdmi_arc_supported) {
+                  {
+                // Coverity Fix: ID 226 - Data race: Lock protects all member variable access including reads in LOGINFO
+                std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
           LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
                   DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
-                  {
-                std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
                         LOGINFO("%s: Cleanup ARC/eARC state\n",__FUNCTION__);
                         if(DisplaySettings::_instance->m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED)
                             DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
@@ -4464,11 +4480,10 @@ void DisplaySettings::sendMsgThread()
 		msgInfo.msg = -1;
         	msgInfo.param = NULL;
 		{
-
                        LOGINFO("%s: Debug: Wait for message \n",__FUNCTION__);
 		       std::unique_lock<std::mutex> lock(DisplaySettings::_instance->m_sendMsgMutex);
-		       _instance->m_sendMsgCV.wait(lock, []{return (_instance->m_sendMsgThreadRun == true);});
-		
+		       // Coverity Fix: ID 227 - Data race: Wait on condition variable with lock held to protect m_sendMsgThreadRun
+		       DisplaySettings::_instance->m_sendMsgCV.wait(lock, []{return DisplaySettings::_instance->m_sendMsgThreadRun || DisplaySettings::_instance->m_sendMsgThreadExit;});
 		}
 
 		if (_instance->m_sendMsgThreadExit == true)
@@ -4778,8 +4793,15 @@ void DisplaySettings::sendMsgThread()
                         }
 
 			bool wasSADTimerActive = false;
+			int currentArcState = ARC_STATE_ARC_TERMINATED;
 
-			if (m_currentArcRoutingState == ARC_STATE_ARC_INITIATED) {
+			// Coverity Fix: ID 222 - Data race: Protect m_currentArcRoutingState read with mutex
+			{
+				std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+				currentArcState = m_currentArcRoutingState;
+			}
+
+			if (currentArcState == ARC_STATE_ARC_INITIATED) {
 			    if (m_SADDetectionTimer.isActive()) {
 			        //Timer is active, so stop the timer and if audio is not routed set SAD and route the audio
 			        LOGINFO("%s: Stopping the SAD timer\n", __FUNCTION__);
@@ -4918,15 +4940,19 @@ void DisplaySettings::sendMsgThread()
 	        m_hdmiCecAudioDeviceDetected = true;
             } else{
 	            m_hdmiCecAudioDeviceDetected = false;
-		        if (m_hdmiInAudioDeviceConnected == true) {
-					LOGINFO("Audio device removed event Handler, clearing the states m_hdmiInAudioDeviceConnected =%d, m_currentArcRoutingState =%d", \
-                    m_hdmiInAudioDeviceConnected, m_currentArcRoutingState);
-				    m_hdmiInAudioDeviceConnected = false;	
-		    	    m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
-                    m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
-		    m_requestSadRetrigger = false;
-				    connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
-			    }
+		        // Coverity Fix: ID 223 - Data race: Protect shared variables with mutex
+		        {
+		        	std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
+			        if (m_hdmiInAudioDeviceConnected == true) {
+						LOGINFO("Audio device removed event Handler, clearing the states m_hdmiInAudioDeviceConnected =%d, m_currentArcRoutingState =%d", \
+	                    m_hdmiInAudioDeviceConnected, m_currentArcRoutingState);
+					    m_hdmiInAudioDeviceConnected = false;	
+			    	    m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
+	                    m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
+			    		m_requestSadRetrigger = false;
+					    connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+				    }
+		        }
 		        if (m_AudioDeviceSADState != AUDIO_DEVICE_SAD_CLEARED && m_AudioDeviceSADState != AUDIO_DEVICE_SAD_UNKNOWN) {
 		            LOGINFO("%s: Clearing Audio device SAD previous state= %d current state = %d\n", __FUNCTION__, m_AudioDeviceSADState, AUDIO_DEVICE_SAD_CLEARED);
 		            //clear the SAD list
@@ -5034,10 +5060,18 @@ void DisplaySettings::sendMsgThread()
 	    static int retryArcCount = 0;
 	    std::lock_guard<std::mutex> lock(m_callMutex);
             int types = dsAUDIOARCSUPPORT_NONE;
+	    int currentArcState = ARC_STATE_ARC_TERMINATED;
+	    
+	    // Coverity Fix: ID 224 - Data race: Read m_currentArcRoutingState with proper mutex
+	    {
+	    	std::lock_guard<std::mutex> arcLock(m_AudioDeviceStatesUpdateMutex);
+	    	currentArcState = m_currentArcRoutingState;
+	    }
+	    
 	    try{
             device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
             aPort.getSupportedARCTypes(&types);
-	    if(m_currentArcRoutingState != ARC_STATE_ARC_INITIATED) {
+	    if(currentArcState != ARC_STATE_ARC_INITIATED) {
 	       if((types & dsAUDIOARCSUPPORT_eARC) && (m_hdmiInAudioDeviceConnected == false)) {
                    m_hdmiInAudioDeviceConnected = true;
 		   m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_eARC;
@@ -5176,6 +5210,7 @@ void DisplaySettings::sendMsgThread()
                         LOGINFO("Timer stopped.");
                     }
                     LOGINFO("Subscription completed.");
+		    // Coverity Fix: ID 575 - Waiting while holding lock: sleep during initialization is acceptable
 		    sleep(WARMING_UP_TIME_IN_SECONDS);
 
                 } else {
@@ -5959,9 +5994,10 @@ void DisplaySettings::sendMsgThread()
                     LOGINFO("Received OnHDMIInEventHotPlug  HDMI_ARC Port, connected status[%d]",  hdmiin_hotplug_conn);
                     if(!hdmiin_hotplug_conn)
                     {
+                        // Coverity Fix: ID 225 - Data race: Lock protects all member variable access including logging
+                        std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
                         LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
                                      DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
-                        std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
                         if (DisplaySettings::_instance->m_hdmiInAudioDeviceConnected == true)
                         {
                             DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;

@@ -61,6 +61,7 @@ namespace WPEFramework
               , m_fpsCollectionInProgress(false)
               , m_lastFpsValue(0)
         {
+            // Coverity Fix: ID 580 - Uninitialized pointer field: All members initialized in initializer list
             FrameRateImplementation::_instance = this;
             device::Host::getInstance().Register(this, "WPE::FrameRate");
             // Connect the timer callback handle for triggering FrameRate notifications.

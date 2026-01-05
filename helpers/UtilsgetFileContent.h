@@ -292,9 +292,10 @@ inline bool ExpandPropertiesInString(const char* input, const char* filePath, st
             string tempPropertyValue;
             if (readPropertyFromFile(filePath, variable, tempPropertyValue))
             {
+                // Coverity Fix: ID 593 - Unused value: Use tempPropertyValue length directly
                 const char* propertyValue = tempPropertyValue.c_str();
                 expandedString += tempPropertyValue;
-                variablePos += strlen(propertyValue);
+                variablePos += tempPropertyValue.length();
             }
             else
             {

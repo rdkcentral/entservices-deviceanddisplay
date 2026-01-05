@@ -37,6 +37,7 @@ bool PlatformCaps::Load(PluginHost::IShell* service, const string &query) {
 
   if (query.empty() || !m.empty()) {
     if (query.empty() || (m[1] == _T("AccountInfo"))) {
+      // Coverity Fix: ID 2 - CHECKED_RETURN: Check return value of Load()
       if (!accountInfo.Load(service, m.size() > 3 ? m[3] : string())) {
         result = false;
       }

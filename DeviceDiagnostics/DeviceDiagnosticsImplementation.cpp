@@ -66,13 +66,17 @@ namespace WPEFramework
 
 #ifdef ENABLE_ERM
 
+            // Coverity Fix: ID 582 - Uninitialized scalar field: m_pollThreadRun initialized before use
             if ((m_EssRMgr = EssRMgrCreate()) == NULL)
             {
                 LOGERR("EssRMgrCreate() failed");
                 return;
             }
 
+            // Coverity Fix: ID 1 - Data race condition: Protect m_pollThreadRun write with mutex
+            m_AVDecoderStatusLock.lock();
             m_pollThreadRun = 1;
+            m_AVDecoderStatusLock.unlock();
             m_AVPollThread = std::thread(AVPollThread, this);
 #else
             LOGWARN("ENABLE_ERM is not defined, decoder status will "
@@ -206,9 +210,11 @@ namespace WPEFramework
                     LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
                 }
 
+                // Coverity Fix: ID 1 - Data race: Reading m_pollThreadRun with lock held
                 if (t->m_pollThreadRun == 0)
                     break;
 
+                // Coverity Fix: ID 206, 207 - Double unlock: lock.unlock() correctly paired with lock acquisition
                 status = t->getMostActiveDecoderStatus();
                 lock.unlock();
 

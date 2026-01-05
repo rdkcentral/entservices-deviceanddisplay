@@ -757,8 +757,9 @@ namespace WPEFramework {
             LOGWARN("IARM Event triggered for PowerStateChange.\
                     Old State %s, New State: %s\n",
                     curPowerState.c_str() , newPowerState.c_str());
+            // Coverity Fix: ID 35, 36 - COPY_INSTEAD_OF_MOVE: onSystemPowerStateChanged will copy if needed
             if (SystemServices::_instance) {
-                SystemServices::_instance->onSystemPowerStateChanged(curPowerState, newPowerState);
+                SystemServices::_instance->onSystemPowerStateChanged(std::move(curPowerState), std::move(newPowerState));
             } else {
                 LOGERR("SystemServices::_instance is NULL.\n");
             }
@@ -1699,12 +1700,18 @@ namespace WPEFramework {
 
         bool checkOpFlashStoreDir()
         {
-            int ret = 0;
-            if (access(OPFLASH_STORE, F_OK) == -1) {
-                ret = mkdir(OPFLASH_STORE, 0774);
-                LOGINFO(" --- SubDirectories created from mkdir %d ", ret);
+            // Coverity Fix: ID 578 - TOCTOU: Use mkdir directly and check for EEXIST to handle race condition
+            int ret = mkdir(OPFLASH_STORE, 0774);
+            if (ret == 0) {
+                LOGINFO(" --- Directory %s created", OPFLASH_STORE);
+                return true;
+            } else if (errno == EEXIST) {
+                // Directory already exists, which is fine
+                return true;
+            } else {
+                LOGERR(" --- Failed to create directory %s: %d", OPFLASH_STORE, ret);
+                return false;
             }
-            return 0 == ret;
         }
 
         // Function to write (update or append) parameters in the file
@@ -1769,7 +1776,7 @@ namespace WPEFramework {
             for (const string &line : lines) {
                 file_out << line << endl;
             }
-            status = true;
+            // Coverity Fix: ID 592 - Unused value: Removed redundant status=true, already handled by return logic
         
             file_out.close();
             LOGINFO("%s flag stored successfully in persistent memory. status= %d, update=%d, oldBlocklistFlag=%d", param.c_str(), status, update, oldBlocklistFlag);
@@ -2967,7 +2974,10 @@ namespace WPEFramework {
                                     }
 
                                     LOGWARN("Linux localtime linked to %s\n", city.c_str());
-                                    symlink(city.c_str(), LOCALTIME_FILE);
+                                    // Coverity Fix: ID 4 - CHECKED_RETURN: Check return value of symlink()
+                                    if (symlink(city.c_str(), LOCALTIME_FILE) != 0) {
+                                        LOGERR("Failed to create symlink to %s: %s\n", city.c_str(), strerror(errno));
+                                    }
 #endif
                                 } else {
                                     LOGERR("Unable to open %s file.\n", TZ_FILE);
@@ -4546,12 +4556,19 @@ namespace WPEFramework {
 
         bool SystemServices::makePersistentDir()
         {
-            struct stat st = {0};
-            int ret = 0;
-            if (stat("/opt/secure/persistent/System", &st) == -1) {
-                ret = mkdir("/opt/secure/persistent/System", 0700);
-                LOGWARN(" --- SubDirectories created from mkdir %d ", ret);
+            // Coverity Fix: ID 579 - TOCTOU: Use mkdir directly and check for EEXIST to handle race condition
+            int ret = mkdir("/opt/secure/persistent/System", 0700);
+            if (ret == 0) {
+                LOGWARN(" --- Directory /opt/secure/persistent/System created");
+                return true;
+            } else if (errno == EEXIST) {
+                // Directory already exists, which is fine
+                return true;
+            } else {
+                LOGERR(" --- Failed to create directory: %d", ret);
+                return false;
             }
+        }
             return 0 == ret;
         }
 

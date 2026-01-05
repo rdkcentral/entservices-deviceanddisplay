@@ -110,6 +110,7 @@ uint32_t DeepSleepWakeupSettings::secure_random() const
 */
 uint32_t DeepSleepWakeupSettings::getWakeupTime() const
 {
+    // Coverity Fix: ID 594, 595 - Y2038: Use time_t which is 64-bit on modern systems
     time_t now = 0, wakeup = 0;
     struct tm wakeupTime     = { 0 };
     uint32_t wakeupTimeInSec = 0;

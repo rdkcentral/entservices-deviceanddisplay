@@ -295,7 +295,11 @@ namespace WPEFramework {
 
         void UserPreferences::Deinitialize(PluginHost::IShell* /* service */) {
             LOGINFO("Deinitialize");
-            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            // Coverity Fix: ID 540 - Dereference before null check: Check _service before dereferencing
+            Exchange::IUserSettings* userSettings = nullptr;
+            if (_service != nullptr) {
+                userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            }
             if (nullptr != userSettings) {
                 userSettings->Unregister(&_notification);
                 userSettings->Release();

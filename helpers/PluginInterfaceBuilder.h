@@ -37,13 +37,17 @@ namespace Plugin {
         PluginHost::IShell* _service;
 
     public:
+        // Coverity Fix: ID 583 - Uninitialized pointer field: Initialize _service to nullptr
         PluginInterfaceRef()
             : _interface(nullptr)
+            , _service(nullptr)
         {
         }
 
+        // Coverity Fix: ID 584 - Uninitialized pointer field: Initialize _service member
         PluginInterfaceRef(INTERFACE* interface, PluginHost::IShell* controller)
             : _interface(interface)
+            , _service(controller)
         {
         }
 
@@ -57,10 +61,13 @@ namespace Plugin {
         PluginInterfaceRef& operator=(const PluginInterfaceRef&) = delete;
 
         // use move
+        // Coverity Fix: ID 585 - Uninitialized pointer field: Initialize _service in move constructor
         PluginInterfaceRef(PluginInterfaceRef&& other)
             : _interface(other._interface)
+            , _service(other._service)
         {
             other._interface = nullptr;
+            other._service = nullptr;
         }
 
         PluginInterfaceRef& operator=(PluginInterfaceRef&& other)
@@ -197,12 +204,14 @@ namespace Plugin {
             return std::move(PluginInterfaceRef<INTERFACE>(interface, _service));
         }
 
-        const uint32_t retryInterval() const
+        // Coverity Fix: ID 535 - PW.USELESS_TYPE_QUALIFIER_ON_RETURN_TYPE: Removed const from return type
+        uint32_t retryInterval() const
         {
             return _retryInterval;
         }
 
-        const int retryCount() const
+        // Coverity Fix: ID 536 - PW.USELESS_TYPE_QUALIFIER_ON_RETURN_TYPE: Removed const from return type
+        int retryCount() const
         {
             return _retryCount;
         }

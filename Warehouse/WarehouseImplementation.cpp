@@ -91,6 +91,7 @@ bool isFileExistsAndOlderThen(const char* pFileName, long age = -1)
     if (-1 == age)
         return true;
 
+    // Coverity Fix: ID 598, 599 - Y2038: time_t and difftime usage for file age calculation
     time_t currentTime = time(nullptr);
 
     time_t modifiedSecondsAgo = difftime(currentTime, fileStat.st_mtime);
@@ -502,11 +503,12 @@ namespace WPEFramework
 
                     // allow search recursively if path ends by '/*[|...]', otherwise, for cases like /*.ini, searching process will be done only by given path
                     std::string result;
-                    const char* input =  path.c_str();
+                    // Coverity Fix: ID 532 - PW.PARAMETER_HIDDEN: Renamed to avoid shadowing parameter
+                    const char* inputStr =  path.c_str();
                     const char* filePath = "/etc/device.properties";
                     std::string inputPath = path;
 
-                    bool success = Utils::ExpandPropertiesInString(input, filePath, inputPath);
+                    bool success = Utils::ExpandPropertiesInString(inputStr, filePath, inputPath);
                     if(!success)
                     {
                         LOGERR("Path String Expansion failed.\n");

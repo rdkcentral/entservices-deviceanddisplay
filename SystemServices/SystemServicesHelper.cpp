@@ -194,9 +194,10 @@ namespace WPEFramework {
             }
             v_secure_pclose(pipe);
 
+            // Coverity Fix: ID 59, 60 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
             string tri = caseInsensitive(result);
-            string ret = tri.c_str();
-            ret = trim(ret);
+            string ret = std::move(tri.c_str());
+            ret = trim(std::move(ret));
             LOGWARN("%s: ret=%s\n", __FUNCTION__, ret.c_str());
             return ret;
         }
@@ -463,6 +464,7 @@ string getTimeZoneAccuracyDSTHelper(void)
 string currentDateTimeUtc(const char *fmt)
 {
     char timeStringBuffer[128] = {0};
+    // Coverity Fix: ID 597 - Y2038: Using time_t which should be 64-bit on target platform
     time_t rawTime = time(0);
     struct tm *gmt = gmtime(&rawTime);
 

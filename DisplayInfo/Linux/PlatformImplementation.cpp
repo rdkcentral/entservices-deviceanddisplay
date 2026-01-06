@@ -319,19 +319,19 @@ namespace Plugin {
             return _drmConnector ? _drmConnector->IsConnected() : 0;
         }
 
-        Core::hresult Width() const
+        uint32_t Width() const
         {
             std::lock_guard<std::mutex> lock(_propertiesLock);
             return _drmConnector ? _drmConnector->Width() : 0;
         }
 
-        Core::hresult Height() const
+        uint32_t Height() const
         {
             std::lock_guard<std::mutex> lock(_propertiesLock);
             return _drmConnector ? _drmConnector->Height() : 0;
         }
 
-        Core::hresult RefreshRate() const
+        uint32_t RefreshRate() const
         {
             std::lock_guard<std::mutex> lock(_propertiesLock);
             return _drmConnector ? _drmConnector->RefreshRate() : 0;
@@ -532,7 +532,7 @@ namespace Plugin {
             return result;
         }
 
-        uint32_t Width(uint32_t& width) const override
+        Core::hresult Width(uint32_t& width) const override
         {
             uint32_t result = Core::ERROR_NONE;
 

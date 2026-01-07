@@ -147,6 +147,7 @@ namespace Plugin {
     uint32_t DeviceInfoImplementation::DeviceType(string& deviceType) const
     {
         const char* device_type;
+	fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Enter\n");
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
             std::regex("^deviceType(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceType);
 
@@ -163,6 +164,7 @@ namespace Plugin {
                     (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
             }
         }
+	fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Return result: %d, device_type: %s\n", result, device_type);
         return result;
     }
 

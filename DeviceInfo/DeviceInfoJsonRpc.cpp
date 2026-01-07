@@ -238,7 +238,7 @@ namespace Plugin {
     uint32_t DeviceInfo::get_devicetype(DevicetypeData& response) const
     {
         string deviceType;
-
+        fprintf(stderr, "bvanav-dbg: DeviceInfoJsonRpc.cpp DeviceInfo::get_devicetype Enter\n");
         auto result = _deviceInfo->DeviceType(deviceType);
         if (result == Core::ERROR_NONE) {
             Core::EnumerateType<JsonData::DeviceInfo::DevicetypeData::DevicetypeType> value(deviceType.c_str(), false);
@@ -249,7 +249,7 @@ namespace Plugin {
                 result = Core::ERROR_GENERAL;
             }
         }
-
+        fprintf(stderr, "bvanav-dbg: DeviceInfoJsonRpc.cpp DeviceInfo::get_devicetype Return: %d, DeviceType: %s\n", result, deviceType.c_str());
         return result;
     }
 

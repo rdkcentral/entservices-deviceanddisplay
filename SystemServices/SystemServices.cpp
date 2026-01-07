@@ -1221,7 +1221,7 @@ namespace WPEFramework {
                 returnResponse(getManufacturerData(queryParams, response));
 		}
 
-        getModelName(queryParams, response)
+        getModelName(queryParams, response);
 	    if(!queryParams.compare(FRIENDLY_ID))
 	    {
 			returnResponse(true);

@@ -1223,8 +1223,8 @@ namespace WPEFramework {
 
 	    if(!queryParams.compare(FRIENDLY_ID))
 	    {
-                if (getModelName(queryParams, response))
-                    returnResponse(true);
+		    if(getModelName(queryParams, response))
+			    returnResponse(true);
             }
 #endif
             std::string cmd = "";
@@ -1297,8 +1297,8 @@ namespace WPEFramework {
 		LOGWARN("SystemService getDeviceInfo query %s", parameter.c_str());
 
 		bool status = false;
-                std::string device_name{};
-                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
+		std::string device_name{};
+		GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
 
 		if ((device_name == "PLATCO") || (device_name == "LLAMA")){
 		IARM_Bus_MFRLib_GetSerializedData_Param_t param;
@@ -1314,17 +1314,17 @@ namespace WPEFramework {
 		else{
 			LOGWARN("SystemService getDeviceInfo - Manufacturer Data Read Failed");
 		}
-                }
-                else {
-                    std::string friendly_id;
-                    GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "FRIENDLY_ID", friendly_id);
-                    if (friendly_id.size() > 0) {
-                        response[parameter.c_str()] = friendly_id;
-                        status = true;
-                    } else {
-                        populateResponseWithError(SysSrv_MissingKeyValues, response);
-                    }
-                }
+		}
+		else {
+			std::string friendly_id;
+			GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "FRIENDLY_ID", friendly_id);
+			if (friendly_id.size() > 0) {
+				response[parameter.c_str()] = friendly_id;
+				status = true;
+			} else {
+				populateResponseWithError(SysSrv_MissingKeyValues, response);
+			}
+		}
 		return status;
 	}
 

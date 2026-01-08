@@ -23,7 +23,7 @@
 #include "rfcapi.h"
 
 #include "UtilsIarm.h"
-
+#include <chrono>
 #include <fstream>
 #include <regex>
 
@@ -31,10 +31,16 @@ namespace WPEFramework {
 namespace Plugin {
     namespace {
 
+	uint64_t GetTimeStampForTest(void)
+        {
+            return std::chrono::duration_cast<std::chrono::microseconds>
+                (std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        }
         uint32_t GetFileRegex(const char* filename, const std::regex& regex, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
-
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
             std::ifstream file(filename);
             if (file) {
                 string line;
@@ -48,14 +54,15 @@ namespace Plugin {
                     }
                 }
             }
-
+        LOGINFO("Entering %s exit timetook: [%llu] ",__FUNCTION__,GetTimeStampForTest()-entryTime);
             return result;
         }
 
         uint32_t GetMFRData(mfrSerializedType_t type, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
-
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
             IARM_Bus_MFRLib_GetSerializedData_Param_t param;
             param.bufLen = 0;
             param.type = type;
@@ -67,14 +74,15 @@ namespace Plugin {
             } else {
                 TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
             }
-
+        LOGINFO("Entering %s exit timetook: [%llu] ",__FUNCTION__,GetTimeStampForTest()-entryTime);
             return result;
         }
 
         uint32_t GetRFCData(const char* name, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
-
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
             RFC_ParamData_t param;
             auto status = getRFCParameter(nullptr, name, &param);
             if ((status == WDMP_SUCCESS) && param.value[0]) {
@@ -83,7 +91,7 @@ namespace Plugin {
             } else {
                 TRACE_GLOBAL(Trace::Information, (_T("RFC error [%d] for %s"), status, name));
             }
-
+        LOGINFO("Entering %s exit timetook: [%llu] ",__FUNCTION__,GetTimeStampForTest()-entryTime);
             return result;
         }
     }
@@ -97,6 +105,8 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::SerialNumber(string& serialNumber) const
     {
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         return (GetMFRData(mfrSERIALIZED_TYPE_SERIALNUMBER, serialNumber)
                    == Core::ERROR_NONE)
             ? Core::ERROR_NONE
@@ -105,6 +115,8 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::Sku(string& sku) const
     {
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         LOGINFO("ENTERING SKU TO GET device.properties");
         return (GetFileRegex(_T("/etc/device.properties"),
                     std::regex("^MODEL_NUM(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), sku)
@@ -118,6 +130,8 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::Make(string& make) const
     {
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
 
         return ( GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, make) == Core::ERROR_NONE)
             ? Core::ERROR_NONE
@@ -126,6 +140,8 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::Model(string& model) const
     {
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         return
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
             (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, model) == Core::ERROR_NONE)
@@ -139,6 +155,8 @@ namespace Plugin {
     uint32_t DeviceInfoImplementation::Brand(string& brand) const
     {
         brand = "Unknown";
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         return
             ((Core::ERROR_NONE == GetFileRegex(_T("/tmp/.manufacturer"), std::regex("^([^\\n]+)$"), brand)) || 
              (GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, brand) == Core::ERROR_NONE))?Core::ERROR_NONE:Core::ERROR_GENERAL;
@@ -147,14 +165,18 @@ namespace Plugin {
     uint32_t DeviceInfoImplementation::DeviceType(string& deviceType) const
     {
         const char* device_type;
+	uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
             std::regex("^deviceType(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceType);
 
+        LOGINFO("DeviceType authservice result: %d  ",result);
         if (result != Core::ERROR_NONE) {
             // If we didn't find the deviceType in authService.conf, try device.properties
             result = GetFileRegex(_T("/etc/device.properties"),
                 std::regex("^DEVICE_TYPE(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceType);
 
+             LOGINFO("DeviceType device property result: %d  ",result);
             if (result == Core::ERROR_NONE) {
                 // Perform the conversion logic if we found the deviceType in device.properties
                 // as it doesnt comply with plugin spec. See RDKEMW-276
@@ -163,18 +185,23 @@ namespace Plugin {
                     (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
             }
         }
+        LOGINFO("Entering %s exit timetook: [%llu] ",__FUNCTION__,GetTimeStampForTest()-entryTime);
         return result;
     }
 
 
     uint32_t DeviceInfoImplementation::SocName(string& socName)  const
     {
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         return (GetFileRegex(_T("/etc/device.properties"),
                 std::regex("^SOC(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), socName));
     }
 
     uint32_t DeviceInfoImplementation::DistributorId(string& distributorId) const
     {
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         return (GetFileRegex(_T("/opt/www/authService/partnerId3.dat"),
                     std::regex("^([^\\n]+)$"), distributorId)
                    == Core::ERROR_NONE)
@@ -184,6 +211,8 @@ namespace Plugin {
 
         Core::hresult DeviceInfoImplementation::ReleaseVersion(string& releaseVersion ) const
     {
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
         const std::string defaultVersion = "99.99.0.0";
         std::regex pattern(R"((\d+)\.(\d+)[sp])");
         std::smatch match;
@@ -213,8 +242,11 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::ChipSet(string& chipset) const
     {
-        auto result = GetFileRegex(_T("/etc/device.properties"),std::regex("^CHIPSET_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), chipset);
-        return result;
+        uint64_t entryTime = GetTimeStampForTest();
+        LOGINFO("Entering %s entry Time: [%llu] ",__FUNCTION__,entryTime);
+	auto result = GetFileRegex(_T("/etc/device.properties"),std::regex("^CHIPSET_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), chipset);
+        LOGINFO("Entering %s exit timetook: [%llu] ",__FUNCTION__,GetTimeStampForTest()-entryTime);
+	return result;
     }
 }
 }

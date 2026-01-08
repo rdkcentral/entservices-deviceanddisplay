@@ -82,7 +82,7 @@ jobs:
               paths = plugin_name.split()
               for path in paths:
                   keyword = path.split('/')[0]
-                  if keyword.lower() in ['hdmicecsource', 'hdmicecsink','frontpanel','hdcpprofile']:
+                  if keyword.lower() in ['hdmicecsource', 'hdmicecsink','frontpanel','hdcpprofile','powerManager']:
                       return keyword
               return None
           

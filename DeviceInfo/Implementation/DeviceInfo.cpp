@@ -164,7 +164,7 @@ namespace Plugin {
                     (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
             }
         }
-	fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Return result: %d, device_type: %s\n", result, device_type);
+	fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Return result: %d, deviceType: %s\n", result, deviceType.c_str());
         return result;
     }
 

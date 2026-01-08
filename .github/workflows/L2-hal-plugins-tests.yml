@@ -106,7 +106,7 @@ jobs:
         run: |
           rm -rf rdkservices
           #apt install libjsoncpp-dev
-          git clone -b topic/RDK-57171-L2HalMock https://github.com/rdkcentral/entservices-deviceandisplay.git
+          git clone -b topic/RDK-57171-New https://github.com/rdkcentral/entservices-deviceanddisplay.git
           cd entservices-deviceanddisplay/L2HalMock
           rm -rf build.sh
           #rm -rf peru.yaml

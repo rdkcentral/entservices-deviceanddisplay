@@ -156,9 +156,10 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Model(DeviceModel& deviceModel) const
     {
-        return (GetFileRegex(_T("/etc/device.properties"),std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceModel.model) == Core::ERROR_NONE)
+        return (GetFileRegex(_T("/etc/device.properties"),
+            std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceModel.model) == Core::ERROR_NONE)
             ? Core::ERROR_NONE
-            : (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, deviceModel.model));
+            : GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, deviceModel.model);
     }
 
     Core::hresult DeviceInfoImplementation::Brand(DeviceBrand& deviceBrand) const

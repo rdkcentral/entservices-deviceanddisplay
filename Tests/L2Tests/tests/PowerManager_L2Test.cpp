@@ -175,7 +175,8 @@ class PwrMgr_Notification : public Exchange::IPowerManager::IRebootNotification,
             }
 
             signalled = m_event_signalled;
-            m_event_signalled = POWERMANAGERL2TEST_STATE_INVALID;
+            // Clear only the expected flags that were waited for, not all flags
+            m_event_signalled &= ~expected_status;
             return signalled;
         }
 

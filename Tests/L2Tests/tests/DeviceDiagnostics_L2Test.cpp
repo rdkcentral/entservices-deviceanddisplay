@@ -150,7 +150,6 @@ DeviceDiagnostics_L2test::DeviceDiagnostics_L2test()
         if (m_controller_devdiag) {
             EXPECT_TRUE(m_devdiagplugin != nullptr);
             if (m_devdiagplugin) {
-                m_devdiagplugin->AddRef();
                 m_devdiagplugin->Register(&notify);
             } else {
                 TEST_LOG("m_devdiagplugin is NULL");

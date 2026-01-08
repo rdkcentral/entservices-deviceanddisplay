@@ -168,7 +168,6 @@ Warehouse_L2Test::Warehouse_L2Test()
         if (m_controller_warehouse) {
             EXPECT_TRUE(m_warehouseplugin != nullptr);
             if (m_warehouseplugin) {
-                m_warehouseplugin->AddRef();
                 m_warehouseplugin->Register(&notify);
             } else {
                 TEST_LOG("m_warehouseplugin is NULL");

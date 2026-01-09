@@ -1382,7 +1382,7 @@ TEST_F(DeviceInfoTest, EthMac_Success)
                 char buffer[256];
                 memset(buffer, 0, sizeof(buffer));
                 strncpy(buffer, mac, sizeof(buffer) - 1);
-                FILE* pipe = fmemopen(buffer, strlen(buffer), "r");
+                FILE* pipe = fmemopen(buffer, sizeof(mac) -1, "r");
                 return pipe;
             }));
 

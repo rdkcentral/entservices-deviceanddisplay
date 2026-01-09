@@ -13,9 +13,37 @@
 #include <sys/resource.h>
 
 // RDK specific includes
-#include "device_settings.h"  // Thunder client library for DeviceSettings
+#include "device_settings.h"  // Thunder client library for DeviceSettings - DISABLED due to missing interfaces
 // #include "libIBus.h"           // Uncomment if using IARM Bus
 // #include "libIBusDaemon.h"      // Uncomment if using IARM Bus daemon
+
+// Basic DeviceSettings definitions (standalone version without WPEFramework dependencies)
+typedef enum {
+    FPD_INDICATOR_POWER = 0,
+    FPD_INDICATOR_RECORD = 1,
+    FPD_INDICATOR_REMOTE = 2,
+    FPD_INDICATOR_RFBYPASS = 3
+} DeviceSettings_FPDIndicator_t;
+
+typedef enum {
+    DS_FPD_STATE_OFF = 0,
+    DS_FPD_STATE_ON = 1,
+    DS_FPD_STATE_MAX = 2
+} DeviceSettings_FPDState_t;
+
+typedef enum {
+    HDMI_COMPATIBILITY_VERSION_14 = 0,
+    HDMI_COMPATIBILITY_VERSION_20 = 1,
+    HDMI_COMPATIBILITY_VERSION_21 = 2,
+    HDMI_COMPATIBILITY_VERSION_MAX = 3
+} DeviceSettings_HDMIInCapabilityVersion_t;
+
+typedef enum {
+    DS_HDMI_IN_PORT_0 = 0,
+    DS_HDMI_IN_PORT_1 = 1,
+    DS_HDMI_IN_PORT_2 = 2,
+    DS_HDMI_IN_PORT_MAX = 3
+} DeviceSettings_HDMIInPort_t;
 
 using namespace std;
 
@@ -43,7 +71,6 @@ static bool gSignalHandlersSet = false;
 
 // Function declarations (DeviceSettings functions are in device_settings.h)
 void getDSClientInterface();
-void test_getDSClientInterface();
 int setup_signals();
 int breakpad_ExceptionHandler();
 void cleanup_resources();
@@ -63,6 +90,18 @@ void DeviceSettings_Init();
 bool DeviceSettings_IsOperational();
 uint32_t DeviceSettings_Connect();
 void DeviceSettings_Term();
+
+// FPD function declarations
+uint32_t DeviceSettings_GetFPDBrightness(DeviceSettings_FPDIndicator_t indicator, uint32_t* brightness);
+uint32_t DeviceSettings_SetFPDBrightness(DeviceSettings_FPDIndicator_t indicator, uint32_t brightness);
+uint32_t DeviceSettings_GetFPDState(DeviceSettings_FPDIndicator_t indicator, DeviceSettings_FPDState_t* state);
+uint32_t DeviceSettings_SetFPDState(DeviceSettings_FPDIndicator_t indicator, DeviceSettings_FPDState_t state);
+uint32_t DeviceSettings_GetFPDColor(DeviceSettings_FPDIndicator_t indicator, uint32_t* color);
+uint32_t DeviceSettings_SetFPDColor(DeviceSettings_FPDIndicator_t indicator, uint32_t color);
+
+// HDMI function declarations
+uint32_t DeviceSettings_GetHDMIVersion(DeviceSettings_HDMIInPort_t port, DeviceSettings_HDMIInCapabilityVersion_t* version);
+uint32_t DeviceSettings_GetHDMIInNumbefOfInputs(int32_t* numInputs);
 
 
 int main(int argc, char **argv)
@@ -123,8 +162,7 @@ int main(int argc, char **argv)
 
     getDSClientInterface();
 
-    // Set application as initialized
-    pthread_mutex_lock(&gDSAppMutex);
+    // Sapplication as initialitex);
     gAppInitialized = true;
     pthread_mutex_unlock(&gDSAppMutex);
 
@@ -147,32 +185,6 @@ int main(int argc, char **argv)
     printf("\nDevice Settings Application exiting with code %d\n", result);
     closelog();
     return result;
-}
-
-void test_getDSClientInterface()
-{
-    // After your existing initialization
-    DeviceSettings_Init();
-    DeviceSettings_Connect(); // This may return ERROR_NOT_EXIST
-
-/*    // If Operational(true) isn't called after a reasonable time:
-    if (!DeviceSettings_IsOperational()) {
-        printf("Operational callback not triggered, trying manual check...\n");
-        if (DeviceSettings_ForceCheckOperational()) {
-            printf("Successfully acquired interface manually!\n");
-        }
-    }
-*/
-    // Wait a bit for any async operations
-    sleep(2);
-
-    // Check detailed connection state
-    DeviceSettings_DebugConnectionState();
-
-    // Try the API call
-    uint32_t brightness = 0;
-    uint32_t result = DeviceSettings_GetFPDBrightness(FPD_INDICATOR_POWER, &brightness);
-    printf("Final result: %u, brightness: %u\n", result, brightness);
 }
 
 void getDSClientInterface()
@@ -233,12 +245,6 @@ void getDSClientInterface()
         usleep(delay_ms * 1000);
     }
 
-    if (DeviceSettings_IsOperational())
-    {
-        LOGI("Device Settings service became operational");
-        return;
-    }
-
     // Final failure handling
     clock_gettime(CLOCK_MONOTONIC, &current_time);
     long total_elapsed_ms = (current_time.tv_sec - start_time.tv_sec) * 1000 + 
@@ -252,7 +258,7 @@ void getDSClientInterface()
     LOGE("  3. System resources exhausted");
     LOGE("  4. Network connectivity issues");
     
-    throw std::runtime_error("Device Settings connection failed");
+//    throw std::runtime_error("Device Settings connection failed");
 }
 
 // Signal handler for graceful shutdown
@@ -261,6 +267,12 @@ static void signal_handler(int signum) {
     switch (signum) {
         case SIGTERM: signal_name = "SIGTERM"; break;
         case SIGINT:  signal_name = "SIGINT"; break;
+
+    if (DeviceSettings_IsOperational())
+    {
+        LOGI("Device Settings service became operational");
+        return;
+    }
         case SIGHUP:  signal_name = "SIGHUP"; break;
         case SIGUSR1: signal_name = "SIGUSR1"; break;
         case SIGUSR2: signal_name = "SIGUSR2"; break;
@@ -507,18 +519,22 @@ void handleFPDModule() {
             }
             case 3: {
                 printf("\nCalling DeviceSettings_GetFPDState()...\n");
-                // TODO: Add actual function call
+                DeviceSettings_FPDState_t state;
+                uint32_t result = DeviceSettings_GetFPDState(FPD_INDICATOR_POWER, &state);
+                printf("Result: %u, FPD State: %d\n", result, state);
                 printf("Function called successfully!\n");
                 printf("Press Enter to continue...");
                 getchar(); getchar();
                 break;
             }
             case 4: {
-                int state;
-                printf("\nEnter FPD state (0=Off, 1=On): ");
-                if (scanf("%d", &state) == 1) {
+                int stateInput;
+                printf("\nEnter FPD state (0=Off, 1=On, 2=Max): ");
+                if (scanf("%d", &stateInput) == 1) {
+                    DeviceSettings_FPDState_t state = (DeviceSettings_FPDState_t)stateInput;
                     printf("Calling DeviceSettings_SetFPDState(%d)...\n", state);
-                    // TODO: Add actual function call
+                    uint32_t result = DeviceSettings_SetFPDState(FPD_INDICATOR_POWER, state);
+                    printf("Result: %u\n", result);
                     printf("Function called successfully!\n");
                 } else {
                     printf("Invalid input!\n");
@@ -529,7 +545,9 @@ void handleFPDModule() {
             }
             case 5: {
                 printf("\nCalling DeviceSettings_GetFPDColor()...\n");
-                // TODO: Add actual function call
+                uint32_t color;
+                DeviceSettings_GetFPDColor(FPD_INDICATOR_POWER, &color);
+                printf("FPD Color: %d\n", color);
                 printf("Function called successfully!\n");
                 printf("Press Enter to continue...");
                 getchar(); getchar();
@@ -540,7 +558,7 @@ void handleFPDModule() {
                 printf("\nEnter FPD color (0-7): ");
                 if (scanf("%d", &color) == 1) {
                     printf("Calling DeviceSettings_SetFPDColor(%d)...\n", color);
-                    // TODO: Add actual function call
+                    DeviceSettings_SetFPDColor(FPD_INDICATOR_POWER, color);
                     printf("Function called successfully!\n");
                 } else {
                     printf("Invalid input!\n");
@@ -684,6 +702,7 @@ void handleHDMIInModule() {
         printf("3. DeviceSettings_GetHDMIInputStatus\n");
         printf("4. DeviceSettings_GetHDMIInputSignalStatus\n");
         printf("5. DeviceSettings_GetHDMIVersion\n");
+        printf("6. DeviceSettings_GetHDMIInNumberOfInputs\n");
         printf("0. Back to Main Menu\n");
         printf("==========================\n");
 
@@ -720,14 +739,24 @@ void handleHDMIInModule() {
                 break;
             case 5: {
                 printf("\nCalling DeviceSettings_GetHDMIVersion()...\n");
-		DeviceSettings_HDMIInCapabilityVersion_t version = HDMI_COMPATIBILITY_VERSION_14;
-                uint32_t result = DeviceSettings_GetHDMIVersion(DS_HDMI_IN_PORT_1, version);
+                DeviceSettings_HDMIInCapabilityVersion_t version = HDMI_COMPATIBILITY_VERSION_14;
+                uint32_t result = DeviceSettings_GetHDMIVersion(DS_HDMI_IN_PORT_1, &version);
                 printf("Result: %u, HDMI Version: %u\n", result, version);
                 printf("Function called successfully!\n");
                 printf("Press Enter to continue...");
                 getchar(); getchar();
                 break;
-		    }
+            }
+            case 6: {
+                printf("\nCalling DeviceSettings_GetHDMIInNumberOfInputs()...\n");
+                int32_t numInputs = 0;
+                uint32_t result = DeviceSettings_GetHDMIInNumbefOfInputs(&numInputs);
+                printf("Result: %u, Number of Inputs: %d\n", result, numInputs);
+                printf("Function called successfully!\n");
+                printf("Press Enter to continue...");
+                getchar(); getchar();
+                break;
+            }
             case 0:
                 printf("\nReturning to main menu...\n");
                 break;

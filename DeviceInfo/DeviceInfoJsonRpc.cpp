@@ -188,14 +188,14 @@ namespace Plugin {
     uint32_t DeviceInfo::get_make(MakeData& response) const
     {
         string make;
-
+        fprintf(stderr, "bvanav-dbg: DeviceInfoJsonRpc.cpp DeviceInfo::get_make Enter\n");
         auto result = _deviceInfo->Make(make);
         if (result == Core::ERROR_NONE) {
             response.Make = make;
         } else {
             TRACE(Trace::Fatal, (_T("Make wasn't specified.")));
         }
-
+        fprintf(stderr, "bvanav-dbg: DeviceInfoJsonRpc.cpp DeviceInfo::get_make Return: %d, Make: %s\n", result, make.c_str());
         return result;
     }
 
@@ -211,7 +211,7 @@ namespace Plugin {
         if (result == Core::ERROR_NONE) {
             response.Model = model;
         }
-
+        
         return result;
     }
 

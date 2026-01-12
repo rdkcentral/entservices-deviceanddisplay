@@ -34,7 +34,7 @@ namespace Plugin {
         uint32_t GetFileRegex(const char* filename, const std::regex& regex, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
-
+			fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::GetFileRegex Enter filename: %s\n", filename);
             std::ifstream file(filename);
             if (file) {
                 string line;
@@ -48,14 +48,14 @@ namespace Plugin {
                     }
                 }
             }
-
+			fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::GetFileRegex Return filename: %s, response: %s, result: %d\n", filename, response.c_str(), result);
             return result;
         }
 
         uint32_t GetMFRData(mfrSerializedType_t type, string& response)
         {
             uint32_t result = Core::ERROR_GENERAL;
-
+			fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::GetMFRData Enter\n");
             IARM_Bus_MFRLib_GetSerializedData_Param_t param;
             param.bufLen = 0;
             param.type = type;
@@ -67,7 +67,7 @@ namespace Plugin {
             } else {
                 TRACE_GLOBAL(Trace::Information, (_T("MFR error [%d] for %d"), status, type));
             }
-
+			fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::GetMFRData Return: %d\n", result);
             return result;
         }
 
@@ -118,7 +118,7 @@ namespace Plugin {
 
     uint32_t DeviceInfoImplementation::Make(string& make) const
     {
-
+        fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::make Enter/Return\n");
         return ( GetMFRData(mfrSERIALIZED_TYPE_MANUFACTURER, make) == Core::ERROR_NONE)
             ? Core::ERROR_NONE
             : GetFileRegex(_T("/etc/device.properties"),std::regex("^MFG_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), make);
@@ -147,7 +147,7 @@ namespace Plugin {
     uint32_t DeviceInfoImplementation::DeviceType(string& deviceType) const
     {
         const char* device_type;
-	fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Enter\n");
+	    fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Enter\n");
         uint32_t result = GetFileRegex(_T("/etc/authService.conf"),
             std::regex("^deviceType(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), deviceType);
 
@@ -164,7 +164,7 @@ namespace Plugin {
                     (strcmp("hybrid", device_type) == 0) ? "QamIpStb" : "IpTv";
             }
         }
-	fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Return result: %d, deviceType: %s\n", result, deviceType.c_str());
+	    fprintf(stderr, "bvanav-dbg: DeviceInfo.cpp DeviceInfoImplementation::DeviceType Return result: %d, deviceType: %s\n", result, deviceType.c_str());
         return result;
     }
 

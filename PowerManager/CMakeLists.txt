@@ -97,8 +97,6 @@ if (MFR_FOUND)
   target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${MFR_INCLUDE_DIRS})
 endif()
 
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
-
 find_package(DS)
 find_package(IARMBus)
 

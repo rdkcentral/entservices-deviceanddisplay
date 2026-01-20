@@ -692,7 +692,8 @@ namespace WPEFramework {
 
         void DisplaySettings::registerEventHandlers()
         {
-            ASSERT (nullptr != _powerManagerPlugin);
+            //ASSERT (nullptr != _powerManagerPlugin);
+	    ASSERT (_powerManagerPlugin);
 
             if(!_registeredEventHandlers && _powerManagerPlugin) {
                 _registeredEventHandlers = true;

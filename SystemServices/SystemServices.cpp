@@ -1295,19 +1295,35 @@ namespace WPEFramework {
 	bool SystemServices::getModelName(const string& parameter, JsonObject& response)
 	{
 		LOGWARN("SystemService getDeviceInfo query %s", parameter.c_str());
+
+		bool status = false;
+		std::string device_name{};
+		GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
+
+		if ((device_name == "PLATCO") || (device_name == "LLAMA")){
 		IARM_Bus_MFRLib_GetSerializedData_Param_t param;
 		param.bufLen = 0;
 		param.type = mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME;
 		IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
 		param.buffer[param.bufLen] = '\0';
 		LOGWARN("SystemService getDeviceInfo param type %d result %s", param.type, param.buffer);
-		bool status = false;
 		if (result == IARM_RESULT_SUCCESS) {
 			response[parameter.c_str()] = string(param.buffer);
 			status = true;
 		}
 		else{
 			LOGWARN("SystemService getDeviceInfo - Manufacturer Data Read Failed");
+		}
+		}
+		else {
+			std::string friendly_id;
+			GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "FRIENDLY_ID", friendly_id);
+			if (friendly_id.size() > 0) {
+				response[parameter.c_str()] = friendly_id;
+				status = true;
+			} else {
+				populateResponseWithError(SysSrv_MissingKeyValues, response);
+			}
 		}
 		return status;
 	}

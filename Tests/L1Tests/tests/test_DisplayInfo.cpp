@@ -154,6 +154,9 @@ protected:
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
+        Core::IWorkerPool::Assign(&(*workerPool));
+        workerPool->Run();
+
         dispatcher = static_cast<PLUGINHOST_DISPATCHER*>(
         plugin->QueryInterface(PLUGINHOST_DISPATCHER_ID));
         dispatcher->Activate(&service);
@@ -188,7 +191,9 @@ protected:
         plugin->Deinitialize(&service);
         dispatcher->Deactivate();
         dispatcher->Release();
-        
+
+        Core::IWorkerPool::Assign(nullptr);
+        workerPool.Release();
 
         if (p_serviceMock != nullptr)
         {

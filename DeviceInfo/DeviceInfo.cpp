@@ -51,10 +51,12 @@ namespace WPEFramework
     DeviceInfo::DeviceInfo() : _service(nullptr), _connectionId(0), _deviceInfo(nullptr), _deviceAudioCapabilities(nullptr), _deviceVideoCapabilities(nullptr), configure(nullptr)
     {
         SYSLOG(Logging::Startup, (_T("DeviceInfo Constructor")));
+        SYSLOG(Logging::Startup, (_T("Testing log DeviceInfo Constructor")));
     }
 
     DeviceInfo::~DeviceInfo()
     {
+        SYSLOG(Logging::Shutdown, (string(_T("Testing log DeviceInfo Destructor"))));
         SYSLOG(Logging::Shutdown, (string(_T("DeviceInfo Destructor"))));
     }
 
@@ -67,6 +69,7 @@ namespace WPEFramework
         ASSERT(0 == _connectionId);
 
         SYSLOG(Logging::Startup, (_T("DeviceInfo::Initialize: PID=%u"), getpid()));
+        SYSLOG(Logging::Startup, (_T("Testing log DeviceInfo::Initialize: PID=%u"), getpid()));
 
         _service = service;
         _service->AddRef();
@@ -82,6 +85,7 @@ namespace WPEFramework
         if(nullptr != _deviceInfo && nullptr != _deviceAudioCapabilities && nullptr != _deviceVideoCapabilities)
         {
             configure = _deviceInfo->QueryInterface<Exchange::IConfiguration>();
+            SYSLOG(Logging::Startup, (_T("Testing log DeviceInfo")));
             if (configure != nullptr)
             {
                 uint32_t result = configure->Configure(_service);
@@ -111,6 +115,7 @@ namespace WPEFramework
 
     void DeviceInfo::Deinitialize(PluginHost::IShell* service)
     {
+        SYSLOG(Logging::Shutdown, (string(_T("Testing log DeviceInfo destructor"))));
         ASSERT(_service == service);
         ASSERT(_deviceInfo != nullptr);
         ASSERT(_deviceAudioCapabilities != nullptr);
@@ -120,6 +125,7 @@ namespace WPEFramework
 
         if (nullptr != _deviceInfo && nullptr != _deviceAudioCapabilities && nullptr != _deviceVideoCapabilities)
         {
+            SYSLOG(Logging::Shutdown, (string(_T("Testing log DeviceInfo Constructor"))));
             Exchange::JDeviceAudioCapabilities::Unregister(*this);
             _deviceAudioCapabilities->Release();
             _deviceAudioCapabilities = nullptr;

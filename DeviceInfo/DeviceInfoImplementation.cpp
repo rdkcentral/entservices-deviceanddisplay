@@ -309,7 +309,7 @@ namespace Plugin {
         systemInfo.uptime = singleton.GetUpTime();
         systemInfo.freeram = singleton.GetFreeRam();
         systemInfo.totalram = singleton.GetTotalRam();
-        systemInfo.memunit = singleton.GetMemUnit();
+        printf("HISENSE MemUnit: %lu\n", singleton.GetMemUnit());
         systemInfo.totalswap = singleton.GetTotalSwap();
         systemInfo.freeswap = singleton.GetFreeSwap();
         systemInfo.devicename = singleton.GetHostName();

@@ -122,8 +122,6 @@ protected:
         p_iarmBusImplMock  = new NiceMock <IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusImplMock);
 
-        // Defensive cleanup in case previous test didn't clean up properly
-        Core::IWorkerPool::Assign(nullptr);
         Core::IWorkerPool::Assign(&(*workerPool));
             workerPool->Run();
 

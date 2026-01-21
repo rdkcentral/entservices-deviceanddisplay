@@ -106,8 +106,6 @@ protected:
 
         PluginHost::IFactories::Assign(&factoriesImplementation);
 
-        // Defensive cleanup in case previous test didn't clean up properly
-        Core::IWorkerPool::Assign(nullptr);
         Core::IWorkerPool::Assign(&(*workerPool));
         workerPool->Run();
 

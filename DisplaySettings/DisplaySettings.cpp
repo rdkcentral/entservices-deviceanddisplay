@@ -222,7 +222,7 @@ namespace WPEFramework {
             , _registeredEventHandlers(false)
             , _registeredDsEventHandlers(false)
         {
-            LOGINFO("constructor");
+            LOGINFO("Testing logs constructor");
             DisplaySettings::_instance = this;
             m_client = nullptr;
 
@@ -344,20 +344,22 @@ namespace WPEFramework {
 	    audioPortEnableStatusMap["HEADPHONE0"] = false;
 
 	   // m_AudioSentPoweronmsg = false;
+			LOGINFO("Testing logs");
         }
 
         DisplaySettings::~DisplaySettings()
         {
-            LOGINFO ("dtor");
+            LOGINFO ("Testing logs dtor");
             isResCacheUpdated = false;
             isDisplayConnectedCacheUpdated = false;
             isStbHDRcapabilitiesCache = false;
 	    audioPortEnableStatusMap.clear();
+			LOGINFO(">> Testing logs");
         }
 
         void DisplaySettings::AudioPortsReInitialize()
         {
-            LOGINFO("Entering DisplaySettings::AudioPortsReInitialize");
+            LOGINFO("testing logsEntering DisplaySettings::AudioPortsReInitialize");
             try
             {
                 device::List<device::AudioOutputPort> aPorts = device::Host::getInstance().getAudioOutputPorts();
@@ -377,7 +379,7 @@ namespace WPEFramework {
         void DisplaySettings::InitAudioPorts() 
         {   //sample servicemanager response: {"success":true,"supportedAudioPorts":["HDMI0"]}
             //LOGINFOMETHOD();
-            LOGINFO("Entering DisplaySettings::InitAudioPorts");
+            LOGINFO("Testing logs Entering DisplaySettings::InitAudioPorts");
             uint32_t ret = Core::ERROR_NONE;
 	    m_systemAudioMode_Power_RequestedAndReceived = true; //resetting this variable for bootup for AVR case
             try
@@ -515,6 +517,7 @@ namespace WPEFramework {
 
         const string DisplaySettings::Initialize(PluginHost::IShell* service)
         {
+			LOGINFO(">> Testing logs");
 	    Exchange::ISystemMode* _remotStoreObject = nullptr;
             ASSERT(service != nullptr);
             ASSERT(m_service == nullptr);
@@ -580,7 +583,7 @@ namespace WPEFramework {
         void DisplaySettings::Deinitialize(PluginHost::IShell* service)
         {
             Exchange::ISystemMode* _remotStoreObject1 = nullptr;
-            LOGINFO("Enetering DisplaySettings::Deinitialize");
+            LOGINFO("Testing logs Enetering DisplaySettings::Deinitialize");
             if (_powerManagerPlugin) {
 		// Unregister from PowerManagerPlugin Notification
 		_powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
@@ -663,11 +666,12 @@ namespace WPEFramework {
 
             m_service->Release();
             m_service = nullptr;
+			LOGINFO(">>Testing logs ");
         }
 
         void DisplaySettings::InitializePowerManager()
         {
-            LOGINFO("Connect the COM-RPC socket\n");
+            LOGINFO("Testing logs Connect the COM-RPC socket\n");
             PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
             Core::hresult retStatus = Core::ERROR_GENERAL;
@@ -888,6 +892,7 @@ namespace WPEFramework {
 
         uint32_t DisplaySettings::getSupportedSettopResolutions(const JsonObject& parameters, JsonObject& response)
         {   //sample servicemanager response:{"success":true,"supportedSettopResolutions":["720p","1080i","1080p60"]}
+			LOGINFO("Testing logs");
             LOGINFOMETHOD();
             vector<string> supportedSettopResolutions;
             try

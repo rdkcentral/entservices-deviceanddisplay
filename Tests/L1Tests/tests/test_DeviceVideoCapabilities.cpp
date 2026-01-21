@@ -91,6 +91,8 @@ protected:
             .WillByDefault(Return("{\"root\":{\"mode\":\"Off\"}}"));
         ON_CALL(service, WebPrefix())
             .WillByDefault(Return(webPrefix));
+        ON_CALL(service, COMLink())
+            .WillByDefault(::testing::Return(static_cast<WPEFramework::PluginHost::IShell::ICOMLink*>(&service)));
 
         EXPECT_EQ(string(""), plugin->Initialize(&service));
     }

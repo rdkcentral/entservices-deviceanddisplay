@@ -80,6 +80,8 @@ protected:
             .WillByDefault(::testing::Return("{\"root\":{\"mode\":\"Off\"}}"));
         ON_CALL(service, WebPrefix())
             .WillByDefault(::testing::Return(webPrefix));
+        ON_CALL(service, COMLink())
+            .WillByDefault(::testing::Return(static_cast<WPEFramework::PluginHost::IShell::ICOMLink*>(&service)));
         ON_CALL(service, SubSystems())
             .WillByDefault(::testing::Invoke(
                 [&]() {

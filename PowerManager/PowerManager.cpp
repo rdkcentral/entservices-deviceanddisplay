@@ -51,25 +51,27 @@ namespace Plugin {
         , _powerManager(nullptr)
         , _powermanagersNotification(this)
     {
+        SYSLOG(Logging::Startup, (_T("Testing logs PowerManager Constructor")));
         SYSLOG(Logging::Startup, (_T("PowerManager Constructor")));
-        LOGINFO("CTOR");
+        LOGINFO("Testing log CTOR");
     }
 
     PowerManager::~PowerManager()
     {
         SYSLOG(Logging::Shutdown, (string(_T("PowerManager Destructor"))));
-        LOGINFO("DTOR");
+        LOGINFO("Testing log DTOR");
     }
 
     const string PowerManager::Initialize(PluginHost::IShell* service)
     {
+        LOGINFO("Testing log Initialize");
         string message = "";
 
         ASSERT(nullptr != service);
         ASSERT(nullptr == _service);
         ASSERT(nullptr == _powerManager);
         ASSERT(0 == _connectionId);
-
+        SYSLOG(Logging::Startup, (_T("Testing PowerManager::Initialize: PID=%u"), getpid()));
         SYSLOG(Logging::Startup, (_T("PowerManager::Initialize: PID=%u"), getpid()));
 
         _service = service;
@@ -96,13 +98,14 @@ namespace Plugin {
         if (0 != message.length()) {
             Deinitialize(service);
         }
-
+        SYSLOG(Logging::Startup, (_T("Testing logs PowerManager::Initialize: end PID=%u"), getpid()));
         return message;
     }
 
     void PowerManager::Deinitialize(PluginHost::IShell* service)
     {
         ASSERT(_service == service);
+        LOGINFO("Testing log Deinitialize start");
 
         SYSLOG(Logging::Shutdown, (string(_T("PowerManager::Deinitialize"))));
 
@@ -156,6 +159,8 @@ namespace Plugin {
         _service->Release();
         _service = nullptr;
         SYSLOG(Logging::Shutdown, (string(_T("PowerManager de-initialised"))));
+        SYSLOG(Logging::Shutdown, (string(_T("Testing logs PowerManager de-initialised"))));
+        LOGINFO("Testing log Deinitialize end");
     }
 
     string PowerManager::Information() const

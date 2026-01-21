@@ -68,12 +68,12 @@ namespace Plugin {
     {
         PowerManagerImplementation::_instance = this;
         Utils::IARM::init();
-        LOGINFO(">> CTOR <<");
+        LOGINFO(">> Testing logs CTOR <<");
     }
 
     PowerManagerImplementation::~PowerManagerImplementation()
     {
-        LOGINFO(">> DTOR <<");
+        LOGINFO(">>Testing logs DTOR <<");
     }
 
     void PowerManagerImplementation::dispatchPowerModeChangedEvent(const PowerState& prevState, const PowerState& newState)
@@ -92,7 +92,7 @@ namespace Plugin {
 
     void PowerManagerImplementation::dispatchDeepSleepTimeoutEvent(const uint32_t& timeout)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         _callbackLock.Lock();
         for (auto& notification : _deepSleepTimeoutNotifications) {
             auto start = std::chrono::steady_clock::now();
@@ -101,12 +101,12 @@ namespace Plugin {
             LOGINFO("client %p took %" PRId64 "ms to process IDeepSleepTimeout event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
-        LOGINFO("<<");
+        LOGINFO("<< Testing logs");
     }
 
     void PowerManagerImplementation::dispatchRebootBeginEvent(const string& rebootRequestor, const std::string& rebootReasonCustom, const string& rebootReasonOther)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         _callbackLock.Lock();
         for (auto& notification : _rebootNotifications) {
             auto start = std::chrono::steady_clock::now();
@@ -115,7 +115,7 @@ namespace Plugin {
             LOGINFO("client %p took %" PRId64 "ms to process IReboot event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
-        LOGINFO("<<");
+        LOGINFO("<< Testing logs");
     }
 
     void PowerManagerImplementation::dispatchThermalModeChangedEvent(const ThermalTemperature& currentThermalLevel, const ThermalTemperature& newThermalLevel, const float& currentTemperature)
@@ -150,6 +150,7 @@ namespace Plugin {
     Core::hresult PowerManagerImplementation::Register(std::list<T*>& list, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
+        LOGINFO(">> Testing logs");
 
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
@@ -162,12 +163,14 @@ namespace Plugin {
         }
 
         _callbackLock.Unlock();
+        LOGINFO("<< Testing logs");
         return status;
     }
 
     template <typename T>
     Core::hresult PowerManagerImplementation::Unregister(std::list<T*>& list, const T* notification)
     {
+        LOGINFO(">> Testing logs");
         uint32_t status = Core::ERROR_GENERAL;
 
         ASSERT(nullptr != notification);
@@ -182,12 +185,13 @@ namespace Plugin {
         }
 
         _callbackLock.Unlock();
+        LOGINFO("<< Testing logs");
         return status;
     }
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IRebootNotification* notification)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         Core::hresult errorCode = Register(_rebootNotifications, notification);
         LOGINFO("<< IReboot %p, errorCode: %u", notification, errorCode);
         return errorCode;
@@ -195,7 +199,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IRebootNotification* notification)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         Core::hresult errorCode = Unregister(_rebootNotifications, notification);
         LOGINFO("<< IRebootNotification %p, errorCode: %u", notification, errorCode);
         return errorCode;
@@ -203,7 +207,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         Core::hresult errorCode = Register(_preModeChangeNotifications, notification);
         LOGINFO("<< IModePreChange %p, errorCode: %u", notification, errorCode);
         return errorCode;
@@ -211,7 +215,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IModePreChangeNotification* notification)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         Core::hresult errorCode = Unregister(_preModeChangeNotifications, notification);
         LOGINFO("<< IModePreChange %p, errorCode: %u", notification, errorCode);
         return errorCode;
@@ -219,7 +223,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::Register(Exchange::IPowerManager::IModeChangedNotification* notification)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         Core::hresult errorCode = Register(_modeChangedNotifications, notification);
         LOGINFO("<< IModeChanged %p, errorCode: %u", notification, errorCode);
         return errorCode;
@@ -227,7 +231,7 @@ namespace Plugin {
 
     Core::hresult PowerManagerImplementation::Unregister(const Exchange::IPowerManager::IModeChangedNotification* notification)
     {
-        LOGINFO(">>");
+        LOGINFO(">> Testing logs");
         Core::hresult errorCode = Unregister(_modeChangedNotifications, notification);
         LOGINFO("<< IModeChanged %p, errorcode: %u", notification, errorCode);
         return errorCode;

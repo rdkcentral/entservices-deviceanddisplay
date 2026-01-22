@@ -68,13 +68,10 @@ namespace WPEFramework
         ASSERT(0 == _connectionId);
 
 		// INTENTIONAL FAILURE FOR TESTING - Force Initialize to fail and flow to Deinitialize
-        SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - INTENTIONALLY FAILING for testing")));
-        message = _T("DisplayInfo Initialize intentionally failed for testing deinitialize behavior");
+        SYSLOG(Logging::Startup, (_T("SystemMode::Initialize - INTENTIONALLY FAILING for testing")));
+        message = _T("SystemMode Initialize intentionally failed for testing deinitialize behavior");
 
-		// INTENTIONAL FAILURE FOR TESTING - Force Initialize to fail
-        SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - INTENTIONALLY FAILING for testing")));
-        message = _T("DisplayInfo Initialize intentionally failed for testing deinitialize behavior");
-        
+		
 
         SYSLOG(Logging::Startup, (_T("SystemMode::Initialize: PID=%u"), getpid()));
 
@@ -94,9 +91,9 @@ namespace WPEFramework
 
         if (0 != message.length())
         {
-		   SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - FAILED, calling Deinitialize for cleanup")));
+		   SYSLOG(Logging::Startup, (_T("SystemMode::Initialize - FAILED, calling Deinitialize for cleanup")));
            Deinitialize(service);
-		   SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - Deinitialize completed, returning error message")));
+		   SYSLOG(Logging::Startup, (_T("SystemMode::Initialize - Deinitialize completed, returning error message")));
         }
 
         return message;

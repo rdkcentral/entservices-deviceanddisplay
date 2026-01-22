@@ -54,6 +54,12 @@ namespace Plugin {
         ASSERT(_graphicsProperties == nullptr);
         ASSERT(_hdrProperties == nullptr);
 
+        // INTENTIONAL FAILURE FOR TESTING - Force Initialize to fail
+        SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - INTENTIONALLY FAILING for testing")));
+        message = _T("DisplayInfo Initialize intentionally failed for testing deinitialize behavior");
+        return message;
+
+
         _service = service;
         _service->AddRef();
         _service->Register(&_notification);
@@ -108,6 +114,8 @@ namespace Plugin {
 
     void DisplayInfo::Deinitialize(PluginHost::IShell* service) /* override */
     {
+        SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - CALLED for cleanup testing")));
+        
         ASSERT(service == _service);
 
         _service->Unregister(&_notification);

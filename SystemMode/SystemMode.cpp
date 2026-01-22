@@ -74,7 +74,7 @@ namespace WPEFramework
 		// INTENTIONAL FAILURE FOR TESTING - Force Initialize to fail
         SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - INTENTIONALLY FAILING for testing")));
         message = _T("DisplayInfo Initialize intentionally failed for testing deinitialize behavior");
-        re
+        
 
         SYSLOG(Logging::Startup, (_T("SystemMode::Initialize: PID=%u"), getpid()));
 

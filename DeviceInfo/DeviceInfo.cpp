@@ -67,6 +67,7 @@ namespace WPEFramework
         ASSERT(0 == _connectionId);
 
         SYSLOG(Logging::Startup, (_T("DeviceInfo::Initialize: PID=%u"), getpid()));
+      
 
         _service = service;
         _service->AddRef();
@@ -104,6 +105,9 @@ namespace WPEFramework
             SYSLOG(Logging::Startup, (_T("DeviceInfo::Initialize: Failed to initialise DeviceInfo plugin")));
             message = _T("DeviceInfo plugin could not be initialised");
         }
+        // INTENTIONAL FAILURE FOR TESTING - Force Initialize to fail
+        SYSLOG(Logging::Startup, (_T("DeviceInfo::Initialize - INTENTIONALLY FAILING for testing")));
+        message = _T("DeviceInfo Initialize intentionally failed for testing deinitialize behavior");
 
         // On success return empty, to indicate there is no error text.
         return message;
@@ -111,6 +115,7 @@ namespace WPEFramework
 
     void DeviceInfo::Deinitialize(PluginHost::IShell* service)
     {
+        SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - CALLED for cleanup testing")));
         ASSERT(_service == service);
         ASSERT(_deviceInfo != nullptr);
         ASSERT(_deviceAudioCapabilities != nullptr);

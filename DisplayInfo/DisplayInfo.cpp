@@ -54,8 +54,14 @@ namespace Plugin {
         ASSERT(_graphicsProperties == nullptr);
         ASSERT(_hdrProperties == nullptr);
 
+        // INTENTIONAL FAILURE FOR TESTING - Force Initialize to fail and flow to Deinitialize
+        SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - INTENTIONALLY FAILING for testing")));
+        message = _T("DisplayInfo Initialize intentionally failed for testing deinitialize behavior");
+        
+
         _service = service;
-        _service->AddRef();
+        _service->AddRef();        
+        SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - Registering with Thunder BEFORE failure")));        
         _service->Register(&_notification);
         _skipURL = static_cast<uint8_t>(service->WebPrefix().length());
 
@@ -96,11 +102,17 @@ namespace Plugin {
                 }
             }
         } else {
+            
             message = _T("DisplayInfo could not be instantiated. Could not acquire ConnectionProperties interface");
         }
 
         if (message.length() != 0) {
+            SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - FAILED, calling Deinitialize for cleanup (CALL #1 from Initialize)")));
             Deinitialize(service);
+            SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - Deinitialize completed, returning error message to Thunder")));
+            SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - Check logs to see if Thunder calls Deinitialize again (CALL #2)")));
+        }
+            
         }
 
         return message;
@@ -108,6 +120,15 @@ namespace Plugin {
 
     void DisplayInfo::Deinitialize(PluginHost::IShell* service) /* override */
     {
+        static uint32_t callCount = 0;
+        ++callCount;
+        SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - ENTERED (call #%d) - service=%p, _service=%p"), callCount, service, _service));
+        
+        // Guard against double Deinitialize calls
+        if (_service == nullptr) {
+            SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - Already deinitialized (call #%d), skipping - Thunder IS calling Deinitialize again"), callCount));
+            return;
+        }
         ASSERT(service == _service);
 
         _service->Unregister(&_notification);
@@ -158,6 +179,8 @@ namespace Plugin {
         _connectionId = 0;
         _service->Release();
         _service = nullptr;
+
+        SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - COMPLETED cleanup")));
     }
 
     string DisplayInfo::Information() const /* override */

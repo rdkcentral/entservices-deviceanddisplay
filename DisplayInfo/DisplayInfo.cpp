@@ -113,7 +113,7 @@ namespace Plugin {
             SYSLOG(Logging::Startup, (_T("DisplayInfo::Initialize - Check logs to see if Thunder calls Deinitialize again (CALL #2)")));
         }
             
-        }
+        
 
         return message;
     }

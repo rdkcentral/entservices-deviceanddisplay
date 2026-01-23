@@ -125,10 +125,10 @@ namespace Plugin {
         SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - ENTERED (call #%d) - service=%p, _service=%p"), callCount, service, _service));
         
         // Guard against double Deinitialize calls
-        if (_service == nullptr) {
-            SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - Already deinitialized (call #%d), skipping - Thunder IS calling Deinitialize again"), callCount));
-            return;
-        }
+        //if (_service == nullptr) {
+          //  SYSLOG(Logging::Shutdown, (_T("DisplayInfo::Deinitialize - Already deinitialized (call #%d), skipping - Thunder IS calling Deinitialize again"), callCount));
+            //return;
+        //}
         ASSERT(service == _service);
 
         _service->Unregister(&_notification);

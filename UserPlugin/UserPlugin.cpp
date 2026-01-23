@@ -41,9 +41,9 @@ using namespace std;
 using namespace WPEFramework;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
-// Use proper FPD types from IDeviceSettingsManagerFPD interface
-using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDIndicator;
-using FPDState = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDState;
+// Use proper FPD types from IDeviceSettingsFPD interface
+using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsFPD::FPDIndicator;
+using FPDState = WPEFramework::Exchange::IDeviceSettingsFPD::FPDState;
 
 namespace WPEFramework {
 namespace {
@@ -106,21 +106,21 @@ namespace Plugin {
         }
 
         // Connect to FPD Manager interface
-        _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerFPD>("org.rdk.DeviceSettingsManager");
+        _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsFPD>("org.rdk.DeviceSettings");
         ASSERT(_fpdManager != nullptr);
         if (_fpdManager) {
-            LOGINFO("Successfully connected to DeviceSettingsManagerFPD interface");
+            LOGINFO("Successfully connected to DeviceSettingsFPD interface");
         } else {
-            LOGERR("Failed to connect to DeviceSettingsManagerFPD interface");
+            LOGERR("Failed to connect to DeviceSettingsFPD interface");
         }
 
         // Connect to HDMI In Manager interface
-        _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerHDMIIn>("org.rdk.DeviceSettingsManager");
+        _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
         ASSERT(_hdmiInManager != nullptr);
 
         // Register for HDMI In notifications
         if (_hdmiInManager) {
-            _hdmiInManager->Register(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
+            _hdmiInManager->Register(_hdmiInNotification.baseInterface<DeviceSettingsHDMIIn::INotification>());
             LOGINFO("Successfully registered for HDMI In notifications");
         } else {
             LOGERR("Failed to get HDMI In interface for notification registration");
@@ -156,7 +156,7 @@ namespace Plugin {
 
         // Unregister HDMI In notifications and release HDMI In Manager
         if (_hdmiInManager) {
-            _hdmiInManager->Unregister(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
+            _hdmiInManager->Unregister(_hdmiInNotification.baseInterface<DeviceSettingsHDMIIn::INotification>());
             _hdmiInManager->Release();
             _hdmiInManager = nullptr;
             LOGINFO("Successfully unregistered and released HDMI In Manager interface");
@@ -285,12 +285,12 @@ namespace Plugin {
         LOGINFO("========== Testing FPD APIs ==========\n");
 
         // Test all FPD indicators
-        Exchange::IDeviceSettingsManagerFPD::FPDIndicator testIndicators[] = {
-            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
-            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
-            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_RECORD,
-            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_REMOTE,
-            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_RFBYPASS
+        Exchange::IDeviceSettingsFPD::FPDIndicator testIndicators[] = {
+            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
+            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
+            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_RECORD,
+            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_REMOTE,
+            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_RFBYPASS
         };
 
         const char* indicatorNames[] = {
@@ -332,14 +332,14 @@ namespace Plugin {
             }
 
             // 3. Test GetFPDState
-            Exchange::IDeviceSettingsManagerFPD::FPDState currentState;
+            Exchange::IDeviceSettingsFPD::FPDState currentState;
             result = _fpdManager->GetFPDState(indicator, currentState);
             LOGINFO("GetFPDState: indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(currentState));
 
             // 4. Test SetFPDState with get-set-restore pattern
-            Exchange::IDeviceSettingsManagerFPD::FPDState originalState = currentState; // Save original
-            Exchange::IDeviceSettingsManagerFPD::FPDState newState = (currentState == Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON) ? 
-                Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_OFF : Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON;
+            Exchange::IDeviceSettingsFPD::FPDState originalState = currentState; // Save original
+            Exchange::IDeviceSettingsFPD::FPDState newState = (currentState == Exchange::IDeviceSettingsFPD::FPDState::DS_FPD_STATE_ON) ? 
+                Exchange::IDeviceSettingsFPD::FPDState::DS_FPD_STATE_OFF : Exchange::IDeviceSettingsFPD::FPDState::DS_FPD_STATE_ON;
             result = _fpdManager->SetFPDState(indicator, newState);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SetFPDState completed");
@@ -384,14 +384,14 @@ namespace Plugin {
         // 7. Test SetFPDMode with different modes (get-set-restore pattern)
         LOGINFO("---------- Testing FPD Mode Settings ----------");
 
-        Exchange::IDeviceSettingsManagerFPD::FPDMode testModes[] = {
-            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_ANY,
-            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_TEXT,
-            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_CLOCK
+        Exchange::IDeviceSettingsFPD::FPDMode testModes[] = {
+            Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_ANY,
+            Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_TEXT,
+            Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_CLOCK
         };
 
         // Assume default mode is ANY for restoration
-        Exchange::IDeviceSettingsManagerFPD::FPDMode originalMode = Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_ANY;
+        Exchange::IDeviceSettingsFPD::FPDMode originalMode = Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_ANY;
 
         for (size_t i = 0; i < sizeof(testModes)/sizeof(testModes[0]); i++) {
             auto mode = testModes[i];
@@ -416,7 +416,7 @@ namespace Plugin {
 
         // Additional comprehensive test with different brightness values (get-set-restore)
         LOGINFO("---------- Testing FPD Brightness Range ----------");
-        Exchange::IDeviceSettingsManagerFPD::FPDIndicator testIndicator = Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
+        Exchange::IDeviceSettingsFPD::FPDIndicator testIndicator = Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
         
         // Get original brightness for restoration
         uint32_t originalBrightness = 0;
@@ -499,7 +499,7 @@ namespace Plugin {
         // The specific methods listed in the requirement are part of the IHDMIIn sub-interface
         // This would require proper interface access pattern implementation
 
-        LOGINFO("DeviceSettingsManager available - HDMI In interface access needs implementation");
+        LOGINFO("DeviceSettings available - HDMI In interface access needs implementation");
         LOGINFO("Required APIs for implementation:");
         LOGINFO("- GetHDMIInNumbefOfInputs");
         LOGINFO("- GetHDMIInStatus"); 
@@ -524,10 +524,10 @@ namespace Plugin {
         LOGINFO("========== HDMI In API Framework Ready ==========");
 
         // Test all HDMI In methods with sample values
-        using HDMIInPort = DeviceSettingsManagerHDMIIn::HDMIInPort;
-        //using HDMIInSignalStatus = DeviceSettingsManagerHDMIIn::HDMIInSignalStatus;
-        using HDMIVideoPortResolution = DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution;
-        //using HDMIInAviContentType = DeviceSettingsManagerHDMIIn::HDMIInAviContentType;
+        using HDMIInPort = DeviceSettingsHDMIIn::HDMIInPort;
+        //using HDMIInSignalStatus = DeviceSettingsHDMIIn::HDMIInSignalStatus;
+        using HDMIVideoPortResolution = DeviceSettingsHDMIIn::HDMIVideoPortResolution;
+        //using HDMIInAviContentType = DeviceSettingsHDMIIn::HDMIInAviContentType;
 
         // Test sample ports
         HDMIInPort testPorts[] = {
@@ -537,7 +537,7 @@ namespace Plugin {
         };
 
         // Use HDMI In Manager interface directly
-        DeviceSettingsManagerHDMIIn* hdmiIn = _hdmiInManager;
+        DeviceSettingsHDMIIn* hdmiIn = _hdmiInManager;
 
         uint32_t result = 0;
         for (auto port : testPorts) {
@@ -549,15 +549,15 @@ namespace Plugin {
             LOGINFO("GetHDMIInNumbefOfInputs: result=%u, numInputs=%d", result, numInputs);
 
             // 2. Test GetHDMIInStatus
-            DeviceSettingsManagerHDMIIn::HDMIInStatus hdmiStatus;
-            DeviceSettingsManagerHDMIIn::IHDMIInPortConnectionStatusIterator* portConnIter = nullptr;
+            DeviceSettingsHDMIIn::HDMIInStatus hdmiStatus;
+            DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator* portConnIter = nullptr;
             result = hdmiIn->GetHDMIInStatus(hdmiStatus, portConnIter);
             LOGINFO("GetHDMIInStatus: result=%u, isPresented=%d, activePort=%d", result, hdmiStatus.isPresented, static_cast<int>(hdmiStatus.activePort));
             if (portConnIter) portConnIter->Release();
 
             // 3. Test SelectHDMIInPort with get-set-restore pattern
-            DeviceSettingsManagerHDMIIn::HDMIInPort originalActivePort = hdmiStatus.activePort; // Save original active port
-            result = hdmiIn->SelectHDMIInPort(port, true, true, DeviceSettingsManagerHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+            DeviceSettingsHDMIIn::HDMIInPort originalActivePort = hdmiStatus.activePort; // Save original active port
+            result = hdmiIn->SelectHDMIInPort(port, true, true, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SelectHDMIInPort completed");
             } else {
@@ -565,7 +565,7 @@ namespace Plugin {
             }
 
             // Restore original active port
-            result = hdmiIn->SelectHDMIInPort(originalActivePort, true, true, DeviceSettingsManagerHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+            result = hdmiIn->SelectHDMIInPort(originalActivePort, true, true, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS HDMI port selection restored");
             } else {
@@ -573,7 +573,7 @@ namespace Plugin {
             }
 
             // 4. Test ScaleHDMIInVideo with get-set-restore pattern
-            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle testRect = {100, 100, 1920, 1080};
+            DeviceSettingsHDMIIn::HDMIInVideoRectangle testRect = {100, 100, 1920, 1080};
             result = hdmiIn->ScaleHDMIInVideo(testRect);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS ScaleHDMIInVideo completed");
@@ -582,7 +582,7 @@ namespace Plugin {
             }
 
             // Restore to full screen (assuming default)
-            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle defaultRect = {0, 0, 1920, 1080};
+            DeviceSettingsHDMIIn::HDMIInVideoRectangle defaultRect = {0, 0, 1920, 1080};
             result = hdmiIn->ScaleHDMIInVideo(defaultRect);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS HDMI video scaling restored");
@@ -591,14 +591,14 @@ namespace Plugin {
             }
 
             // 5. Test GetSupportedGameFeaturesList
-            DeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
+            DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
             result = hdmiIn->GetSupportedGameFeaturesList(gameFeatureList);
             LOGINFO("GetSupportedGameFeaturesList: result=%u", result);
 
             // Print all game features from the iterator
             if (gameFeatureList && result == Core::ERROR_NONE) {
                 LOGINFO("Printing game features from iterator:");
-                DeviceSettingsManagerHDMIIn::HDMIInGameFeatureList currentFeature;
+                DeviceSettingsHDMIIn::HDMIInGameFeatureList currentFeature;
                 uint32_t featureIndex = 0;
 
                 // Iterate through all features (iterator starts at beginning by default)
@@ -626,12 +626,12 @@ namespace Plugin {
             LOGINFO("GetHDMIInAVLatency: result=%u, videoLatency=%u, audioLatency=%u", result, videoLatency, audioLatency);
 
             // 7. Test GetHDMIVideoMode
-            DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoMode;
+            DeviceSettingsHDMIIn::HDMIVideoPortResolution videoMode;
             result = hdmiIn->GetHDMIVideoMode(videoMode);
             LOGINFO("GetHDMIVideoMode: result=%u, name=%s", result, videoMode.name.c_str());
 
             // 8. Test GetHDMIVersion
-            DeviceSettingsManagerHDMIIn::HDMIInCapabilityVersion capVersion;
+            DeviceSettingsHDMIIn::HDMIInCapabilityVersion capVersion;
             result = hdmiIn->GetHDMIVersion(port, capVersion);
             LOGINFO("GetHDMIVersion: result=%u, version=%d", result, static_cast<int>(capVersion));
 
@@ -646,14 +646,14 @@ namespace Plugin {
             LOGINFO("GetHDMISPDInformation: result=%u", result);
 
             // 11. Test GetHDMIEdidVersion
-            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion edidVersion;
+            DeviceSettingsHDMIIn::HDMIInEdidVersion edidVersion;
             result = hdmiIn->GetHDMIEdidVersion(port, edidVersion);
             LOGINFO("GetHDMIEdidVersion: result=%u, version=%d", result, static_cast<int>(edidVersion));
 
             // 12. Test SetHDMIEdidVersion with get-set-restore pattern
-            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion originalEdidVersion = edidVersion; // Save original
-            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion newEdidVersion = (edidVersion == DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14) ? 
-                DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_20 : DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14;
+            DeviceSettingsHDMIIn::HDMIInEdidVersion originalEdidVersion = edidVersion; // Save original
+            DeviceSettingsHDMIIn::HDMIInEdidVersion newEdidVersion = (edidVersion == DeviceSettingsHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14) ? 
+                DeviceSettingsHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_20 : DeviceSettingsHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14;
             result = hdmiIn->SetHDMIEdidVersion(port, newEdidVersion);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SetHDMIEdidVersion completed");
@@ -698,7 +698,7 @@ namespace Plugin {
             }
 
             // 16. Test SelectHDMIZoomMode with get-set-restore pattern
-            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_FULL);
+            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_FULL);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SelectHDMIZoomMode completed");
             } else {
@@ -706,7 +706,7 @@ namespace Plugin {
             }
 
             // Restore to default zoom mode (assuming NONE is default)
-            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_NONE);
+            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_NONE);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS HDMI zoom mode restored");
             } else {
@@ -737,7 +737,7 @@ namespace Plugin {
             }
 
             // 19. Test GetVRRStatus
-            DeviceSettingsManagerHDMIIn::HDMIInVRRStatus vrrStatus;
+            DeviceSettingsHDMIIn::HDMIInVRRStatus vrrStatus;
             result = hdmiIn->GetVRRStatus(port, vrrStatus);
             LOGINFO("GetVRRStatus: result=%u, vrrType=%d, framerate=%.2f", result, static_cast<int>(vrrStatus.vrrType), vrrStatus.vrrFreeSyncFramerateHz);
 
@@ -758,7 +758,7 @@ namespace Plugin {
     }
 
     // HDMI In Event Handler Implementations
-    void UserPlugin::OnHDMIInEventHotPlug(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool isConnected)
+    void UserPlugin::OnHDMIInEventHotPlug(const DeviceSettingsHDMIIn::HDMIInPort port, const bool isConnected)
     {
         LOGINFO("========== HDMI In Event: Hot Plug ==========");
         LOGINFO("OnHDMIInEventHotPlug: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
@@ -771,7 +771,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInEventSignalStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInSignalStatus signalStatus)
+    void UserPlugin::OnHDMIInEventSignalStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInSignalStatus signalStatus)
     {
         LOGINFO("========== HDMI In Event: Signal Status ==========");
         LOGINFO("OnHDMIInEventSignalStatus: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
@@ -791,7 +791,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInEventStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort activePort, const bool isPresented)
+    void UserPlugin::OnHDMIInEventStatus(const DeviceSettingsHDMIIn::HDMIInPort activePort, const bool isPresented)
     {
         LOGINFO("========== HDMI In Event: Status ==========");
         LOGINFO("OnHDMIInEventStatus: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
@@ -804,7 +804,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInVideoModeUpdate(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoPortResolution)
+    void UserPlugin::OnHDMIInVideoModeUpdate(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIVideoPortResolution videoPortResolution)
     {
         LOGINFO("========== HDMI In Event: Video Mode Update ==========");
         LOGINFO("OnHDMIInVideoModeUpdate: port=%d", static_cast<int>(port));
@@ -820,7 +820,7 @@ namespace Plugin {
         LOGINFO("Video mode changed on port %d to %s", static_cast<int>(port), videoPortResolution.name.c_str());
     }
 
-    void UserPlugin::OnHDMIInAllmStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool allmStatus)
+    void UserPlugin::OnHDMIInAllmStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const bool allmStatus)
     {
         LOGINFO("========== HDMI In Event: ALLM Status ==========");
         LOGINFO("OnHDMIInAllmStatus: port=%d, allmStatus=%s", static_cast<int>(port), allmStatus ? "enabled" : "disabled");
@@ -833,7 +833,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInAVIContentType(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInAviContentType aviContentType)
+    void UserPlugin::OnHDMIInAVIContentType(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInAviContentType aviContentType)
     {
         LOGINFO("========== HDMI In Event: AVI Content Type ==========");
         LOGINFO("OnHDMIInAVIContentType: port=%d, aviContentType=%d", static_cast<int>(port), static_cast<int>(aviContentType));
@@ -870,7 +870,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInVRRStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInVRRType vrrType)
+    void UserPlugin::OnHDMIInVRRStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInVRRType vrrType)
     {
         LOGINFO("========== HDMI In Event: VRR Status ==========");
         LOGINFO("OnHDMIInVRRStatus: port=%d, vrrType=%d", static_cast<int>(port), static_cast<int>(vrrType));

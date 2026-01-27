@@ -83,6 +83,7 @@ if(PLUGIN_DEVICEINFO)
 endif()
 
 add_subdirectory(DeviceSettingsManager)
+add_subdirectory(UserPlugin)
 
 if(PLUGIN_DISPLAYINFO)
     add_subdirectory(DisplayInfo)

@@ -82,10 +82,6 @@ if(PLUGIN_DEVICEINFO)
     add_subdirectory(DeviceInfo)
 endif()
 
-if(PLUGIN_DISPLAYINFO)
-    add_subdirectory(DisplayInfo)
-endif()
-
 if(PLUGIN_DEVICEDIAGNOSTICS)
     add_subdirectory(DeviceDiagnostics)
 endif()

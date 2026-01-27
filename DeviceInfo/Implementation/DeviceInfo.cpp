@@ -126,14 +126,16 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Model(string& model) const
     {
-        return
-#ifdef ENABLE_DEVICE_MANUFACTURER_INFO
-            (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, model) == Core::ERROR_NONE)
-            ? Core::ERROR_NONE
-            :
-#endif
-            GetFileRegex(_T("/etc/device.properties"),
-                std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), model);
+        std::string device_name;
+        uint32_t result = GetFileRegex(_T("/etc/device.properties"), std::regex("^DEVICE_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), device_name);
+        if ((result == Core::ERROR_NONE) && ((device_name == "PLATCO") || (device_name == "LLAMA"))) {
+            result = (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, model) == Core::ERROR_NONE) ? Core::ERROR_NONE
+		: GetFileRegex(_T("/etc/device.properties"), std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), model);
+        } else {
+            result = GetFileRegex(_T("/etc/device.properties"), std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), model);
+        }
+
+        return result;
     }
 
     Core::hresult DeviceInfoImplementation::Brand(string& brand) const

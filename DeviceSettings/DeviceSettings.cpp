@@ -106,7 +106,7 @@ namespace Plugin
 
 #ifdef USE_LEGACY_INTERFACE
         // Get IDeviceSettingsFPD interface.
-        _mDeviceSettingsFPD = service->Root<Exchange::IDeviceSettingsFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsFPDImp"));
+        _mDeviceSettingsFPD = service->Root<Exchange::IDeviceSettingsFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsFPDImpl"));
 
 
         if (_mDeviceSettingsFPD == nullptr) {

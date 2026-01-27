@@ -67,10 +67,6 @@ if(PLUGIN_USERPREFERENCES)
     add_subdirectory(UserPreferences)
 endif()
 
-if(PLUGIN_FRAMERATE)
-    add_subdirectory(FrameRate)
-endif()
-
 if(PLUGIN_WAREHOUSE)
     add_subdirectory(Warehouse)
 endif()

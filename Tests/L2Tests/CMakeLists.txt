@@ -50,10 +50,6 @@ if(PLUGIN_POWERMANAGER)
     set(SRC_FILES ${SRC_FILES} tests/PowerManager_L2Test.cpp)
 endif()
 
-if(PLUGIN_FRAMERATE)
-    set(SRC_FILES ${SRC_FILES} tests/FrameRate_L2Test.cpp)
-endif()
-
 if(PLUGIN_DEVICEINFO)
     set(SRC_FILES ${SRC_FILES} tests/DeviceInfo_L2Test.cpp)
 endif()

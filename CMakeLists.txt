@@ -78,10 +78,6 @@ if(PLUGIN_WAREHOUSE)
     add_subdirectory(Warehouse)
 endif()
 
-if(PLUGIN_DEVICEINFO)
-    add_subdirectory(DeviceInfo)
-endif()
-
 if(PLUGIN_DISPLAYINFO)
     add_subdirectory(DisplayInfo)
 endif()

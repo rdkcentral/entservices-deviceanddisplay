@@ -399,6 +399,43 @@ namespace WPEFramework {
                     LOGWARN("Failed to get %s from %s", key, filename);
 
                 return result;                    
+            }
+
+            uint32_t GetFileRegex(const char* filename, const std::regex& regex, string& response)
+            {
+                uint32_t result = Core::ERROR_GENERAL;
+
+                if (!Utils::fileExists(filename)) {
+                    LOGWARN("GetFileRegex: file %s does not exist", filename);
+                    return result;
+                }
+                std::ifstream file(filename);
+                if (file) {
+                    string line;
+                    while (std::getline(file, line)) {
+                        std::smatch sm;
+                        if (std::regex_match(line, sm, regex)) {
+                            if (sm.size() == 2) {
+                                response = sm[1];
+                                result = Core::ERROR_NONE;
+                            } else {
+                                LOGERR("GetFileRegex: Unexpected capture group count %zu (expected 2) in file %s",
+                                    sm.size(), filename);
+                                result = Core::ERROR_GENERAL;
+                            }
+                            break;
+                        }
+                    }
+
+                    if (result != Core::ERROR_NONE) {
+                        LOGWARN("Regex pattern did not match any line in %s", filename);
+                    }
+                }
+                else {
+                    LOGWARN("failed to open %s:%s", filename, strerror(errno));
+                }
+
+                return result;
             }            
         }
 
@@ -1314,7 +1351,7 @@ namespace WPEFramework {
 		}
 		else{
 			LOGWARN("SystemService getDeviceInfo - Manufacturer Data Read Failed");
-                        GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "FRIENDLY_ID", friendly_id);
+			GetFileRegex(DEVICE_PROPERTIES_FILE, std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), friendly_id);
                         if (friendly_id.size() > 0) {
                                 response[parameter.c_str()] = friendly_id;
                                 status = true;
@@ -1324,7 +1361,7 @@ namespace WPEFramework {
 		}
 		}
 		else {
-			GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "FRIENDLY_ID", friendly_id);
+			GetFileRegex(DEVICE_PROPERTIES_FILE, std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), friendly_id);
 			if (friendly_id.size() > 0) {
 				response[parameter.c_str()] = friendly_id;
 				status = true;

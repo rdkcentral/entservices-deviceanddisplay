@@ -1314,7 +1314,7 @@ namespace WPEFramework {
 		}
 		else{
 			LOGWARN("SystemService getDeviceInfo - Manufacturer Data Read Failed");
-                        GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "FRIENDLY_ID", friendly_id);
+			GetFileRegex(DEVICE_PROPERTIES_FILE, std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), friendly_id);
                         if (friendly_id.size() > 0) {
                                 response[parameter.c_str()] = friendly_id;
                                 status = true;
@@ -1324,7 +1324,7 @@ namespace WPEFramework {
 		}
 		}
 		else {
-			GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "FRIENDLY_ID", friendly_id);
+			GetFileRegex(DEVICE_PROPERTIES_FILE, std::regex("^FRIENDLY_ID(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), friendly_id);
 			if (friendly_id.size() > 0) {
 				response[parameter.c_str()] = friendly_id;
 				status = true;

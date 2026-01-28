@@ -401,7 +401,7 @@ namespace WPEFramework {
                 return result;                    
             }
  
-	    uint32_t GetFileRegex(const char* filename, const std::regex& regex, string& response)
+            uint32_t GetFileRegex(const char* filename, const std::regex& regex, string& response)
             {
                 uint32_t result = Core::ERROR_GENERAL;
 

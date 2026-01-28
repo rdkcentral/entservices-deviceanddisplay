@@ -406,6 +406,7 @@ namespace WPEFramework {
                 uint32_t result = Core::ERROR_GENERAL;
 
                 if (!Utils::fileExists(filename)) {
+                    LOGWARN("GetFileRegex: file %s does not exist", filename);
                     return result;
                 }
                 std::ifstream file(filename);

@@ -295,7 +295,7 @@ inline bool ExpandPropertiesInString(const char* input, const char* filePath, st
             string tempPropertyValue;
             if (readPropertyFromFile(filePath, variable, tempPropertyValue))
             {
-                const char* propertyValue = tempPropertyValue.c_str();
+                //const char* propertyValue = tempPropertyValue.c_str();
                 expandedString += tempPropertyValue;
                 // Coverity Fix: ID 593 - Unused value: Remove unused assignment to variablePos
                 

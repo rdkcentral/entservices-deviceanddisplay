@@ -108,7 +108,8 @@ namespace Plugin {
 
         void connect(std::function<void()> callback)
         {
-            onTimeoutCallback = callback;
+            // Coverity Fix: ID 75 - COPY_INSTEAD_OF_MOVE: Use std::move for function assignment
+            onTimeoutCallback = std::move(callback);
         }
 
     private:

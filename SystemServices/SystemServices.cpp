@@ -425,6 +425,13 @@ namespace WPEFramework {
                             break;
                         }
                     }
+
+                    if (result != Core::ERROR_NONE) {
+                        LOGWARN("Regex pattern did not match any line in %s", filename);
+                    }
+                }
+                else {
+                    LOGWARN("failed to open %s:%s", filename, strerror(errno));
                 }
 
                 return result;

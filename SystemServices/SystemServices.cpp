@@ -405,6 +405,9 @@ namespace WPEFramework {
             {
                 uint32_t result = Core::ERROR_GENERAL;
 
+                if (!Utils::fileExists(filename)) {
+                    return result;
+                }
                 std::ifstream file(filename);
                 if (file) {
                     string line;

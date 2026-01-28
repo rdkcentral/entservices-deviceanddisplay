@@ -399,6 +399,27 @@ namespace WPEFramework {
                     LOGWARN("Failed to get %s from %s", key, filename);
 
                 return result;                    
+            }
+ 
+	    uint32_t GetFileRegex(const char* filename, const std::regex& regex, string& response)
+            {
+                uint32_t result = Core::ERROR_GENERAL;
+
+                std::ifstream file(filename);
+                if (file) {
+                    string line;
+                    while (std::getline(file, line)) {
+                        std::smatch sm;
+                        if (std::regex_match(line, sm, regex)) {
+                            ASSERT(sm.size() == 2);
+                            response = sm[1];
+                            result = Core::ERROR_NONE;
+                            break;
+                        }
+                    }
+                }
+
+                return result;
             }            
         }
 

@@ -417,6 +417,9 @@ namespace Plugin {
             // Like in `Job` class we avoid impl destruction before handler is invoked
             this->AddRef();
 
+            // Coverity Fix: ID 218 - Data race: Keep local copy of shared_ptr before releasing lock
+            auto modeChangeController = _modeChangeController;
+
             _apiLock.Unlock();
 
             // Dispatch pre power mode change notifications, we cannot take in apiLock here
@@ -431,8 +434,7 @@ namespace Plugin {
             //  3. ACK TIMER thread if `Schedule` timed-out
             //     - To avoid race conditions in this usecase, take `_apiLock` to run completion handler
             //  4. Caller thread of last acknowledging client
-            // Coverity Fix: ID 218 - Data race: Lambda captures ensure thread-safe access
-            _modeChangeController->Schedule(timeOut * 1000,
+            modeChangeController->Schedule(timeOut * 1000,
                 [this, keyCode, currState, newState, reason, isSync](bool isTimedout, bool isAborted) mutable {
                     LOGINFO(">> CompletionHandler isTimedout: %d, isAborted: %d", isTimedout, isAborted);
 

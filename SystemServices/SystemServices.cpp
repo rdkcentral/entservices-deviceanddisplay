@@ -4569,8 +4569,6 @@ namespace WPEFramework {
                 return false;
             }
         }
-            return 0 == ret;
-        }
 
         /***
          * TODO: Stub implementation; Decide whether needed or not since setProperty

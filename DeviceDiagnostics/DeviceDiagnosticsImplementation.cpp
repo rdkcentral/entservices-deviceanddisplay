@@ -59,6 +59,9 @@ namespace WPEFramework
         }
 
         DeviceDiagnosticsImplementation::DeviceDiagnosticsImplementation() : _adminLock() , _service(nullptr)
+#ifdef ENABLE_ERM
+            , m_pollThreadRun(0)  // Coverity Fix: ID 582 - Uninitialized scalar field: Initialize in constructor initializer list
+#endif
         {
             LOGINFO("Create DeviceDiagnosticsImplementation Instance");
 
@@ -66,7 +69,6 @@ namespace WPEFramework
 
 #ifdef ENABLE_ERM
 
-            // Coverity Fix: ID 582 - Uninitialized scalar field: m_pollThreadRun initialized before use
             if ((m_EssRMgr = EssRMgrCreate()) == NULL)
             {
                 LOGERR("EssRMgrCreate() failed");
@@ -204,19 +206,20 @@ namespace WPEFramework
             LOGINFO("AVPollThread started");
             for (;;)
             {
-                std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
-                if (t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec)) != std::cv_status::timeout)
+                // Coverity Fix: ID 206, 207 - Double unlock: Use scope block to control lock lifetime
                 {
-                    LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
-                }
+                    std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
+                    
+                    // Coverity Fix: ID 1 - Data race: Use wait_for with predicate to handle spurious wakeups
+                    // Wait for signal or timeout, checking m_pollThreadRun in a loop
+                    t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec), 
+                        [t]() { return t->m_pollThreadRun == 0; });
 
-                // Coverity Fix: ID 1 - Data race: Reading m_pollThreadRun with lock held
-                if (t->m_pollThreadRun == 0)
-                    break;
+                    if (t->m_pollThreadRun == 0)
+                        break;
 
-                // Coverity Fix: ID 206, 207 - Double unlock: lock.unlock() correctly paired with lock acquisition
-                status = t->getMostActiveDecoderStatus();
-                lock.unlock();
+                    status = t->getMostActiveDecoderStatus();
+                } // Lock automatically released here
 
                 if (status == lastStatus)
                     continue;

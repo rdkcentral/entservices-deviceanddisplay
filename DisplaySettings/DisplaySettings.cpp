@@ -796,6 +796,7 @@ namespace WPEFramework {
 			DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
 			LOGINFO("[HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n");
 			sendMsgToQueue(SEND_AUDIO_DEVICE_POWERON_MSG, NULL);
+		       }
 		    }
                 }
             }

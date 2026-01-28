@@ -411,9 +411,14 @@ namespace WPEFramework {
                     while (std::getline(file, line)) {
                         std::smatch sm;
                         if (std::regex_match(line, sm, regex)) {
-                            ASSERT(sm.size() == 2);
-                            response = sm[1];
-                            result = Core::ERROR_NONE;
+                            if (sm.size() == 2) {
+                                response = sm[1];
+                                result = Core::ERROR_NONE;
+                            } else {
+                                LOGERR("GetFileRegex: Unexpected capture group count %zu (expected 2) in file %s",
+                                    sm.size(), filename);
+                                result = Core::ERROR_GENERAL;
+                            }
                             break;
                         }
                     }

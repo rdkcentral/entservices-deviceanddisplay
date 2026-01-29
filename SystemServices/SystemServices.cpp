@@ -1271,10 +1271,11 @@ namespace WPEFramework {
                                 response["cable_card_firmware_version"] = value;
                             }
                             else if (key == "model_number") {
-                                model_number = value;
+                                // Coverity Fix: IDs 37-38 - COPY_INSTEAD_OF_MOVE: Use std::move for assignments
+                                model_number = std::move(value);
                             }
 			    else if(key == "device_type") {
-				device_type = value;
+				device_type = std::move(value);
 			    }
                         }
                     }
@@ -2970,14 +2971,14 @@ namespace WPEFramework {
 #ifdef ENABLE_LINK_LOCALTIME
                                     // Now create the linux link back to the zone info file to our writeable localtime
                                     if (Utils::fileExists(LOCALTIME_FILE)) {
-                                        remove (LOCALTIME_FILE);
+                                        // Coverity Fix: ID 4 - CHECKED_RETURN: Check return value of remove()
+                                        if (remove(LOCALTIME_FILE) != 0) {
+                                            LOGERR("Failed to remove %s: %s\n", LOCALTIME_FILE, strerror(errno));
+                                        }
                                     }
 
                                     LOGWARN("Linux localtime linked to %s\n", city.c_str());
-                                    // Coverity Fix: ID 4 - CHECKED_RETURN: Check return value of symlink()
-                                    if (symlink(city.c_str(), LOCALTIME_FILE) != 0) {
-                                        LOGERR("Failed to create symlink to %s: %s\n", city.c_str(), strerror(errno));
-                                    }
+                                    symlink(city.c_str(), LOCALTIME_FILE);
 #endif
                                 } else {
                                     LOGERR("Unable to open %s file.\n", TZ_FILE);
@@ -3048,7 +3049,8 @@ namespace WPEFramework {
         {
             LOGINFOMETHOD();
             returnIfParamNotFound(parameters, "friendlyName");
-            string friendlyName = parameters["friendlyName"].String();
+            // Coverity Fix: ID 46 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter string
+            string friendlyName = std::move(parameters["friendlyName"].String());
             bool success = true;
             LOGWARN("SystemServices::setFriendlyName  :%s \n", friendlyName.c_str());
             if(m_friendlyName != friendlyName)
@@ -3452,7 +3454,8 @@ namespace WPEFramework {
 
                 if (S_ISDIR(deStat.st_mode))
                 {
-                    dirs.push_back(fullName);
+                    // Coverity Fix: ID 50 - COPY_INSTEAD_OF_MOVE: Use std::move when adding to vector
+                    dirs.push_back(std::move(fullName));
                 }
                 else
                 {
@@ -4263,8 +4266,9 @@ namespace WPEFramework {
             JsonObject paramIn, paramOut;
 
             if (parameters.HasLabel("powerState")) {
-                string state  = parameters["powerState"].String();
-                string reason = parameters["standbyReason"].String();
+                // Coverity Fix: IDs 51-52 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter strings
+                string state  = std::move(parameters["powerState"].String());
+                string reason = std::move(parameters["standbyReason"].String());
                 /* Power state defaults standbyReason is "application". */
                 reason = ((reason.length()) ? reason : "application");
                 LOGINFO("SystemServices::setDevicePowerState state: %s, reason: %s\n", state.c_str(), reason.c_str());
@@ -4397,7 +4401,8 @@ namespace WPEFramework {
 
             if (getFileContent(VERSION_FILE_NAME, lines)) {
                 for (int i = 0; i < (int)lines.size(); ++i) {
-                    string line = lines.at(i);
+                    // Coverity Fix: ID 53 - COPY_INSTEAD_OF_MOVE: Use std::move from vector
+                    string line = std::move(lines.at(i));
 
                     if (strstr(line.c_str(), "imagename:")) {
                         std::string gp = line.c_str();

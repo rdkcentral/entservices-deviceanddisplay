@@ -382,7 +382,8 @@ namespace WPEFramework
                 bool ok = return_value == 0;
                 successErr.success = ok;
                 if (!ok)
-                    successErr.error = error;
+                    // Coverity Fix: ID 68 - COPY_INSTEAD_OF_MOVE: Use std::move for assignment
+                    successErr.error = std::move(error);
 #else
                 response[PARAM_SUCCESS] = false;
                 successErr.error = "No IARMBUS";
@@ -491,13 +492,14 @@ namespace WPEFramework
                             std::string s = path.substr(last, next - last);
                             Utils::String::trim(s);
                             if (s.length() > 0)
-                                exclusions.push_back(s);
+                                // Coverity Fix: IDs 69-70 - COPY_INSTEAD_OF_MOVE: Use std::move when adding to vector
+                                exclusions.push_back(std::move(s));
                             last = next + 1;
                         }
                         std::string s = path.substr(last, next - last);
                         Utils::String::trim(s);
                         if (s.length() > 0)
-                            exclusions.push_back(s);
+                            exclusions.push_back(std::move(s));
                         path = exclusions.front();
                     }
 
@@ -665,7 +667,8 @@ namespace WPEFramework
             else
             {
                 LOGERR("lightReset failed. %s", error.c_str());
-                successErr.error = error;
+                // Coverity Fix: ID 71 - COPY_INSTEAD_OF_MOVE: Use std::move for assignment
+                successErr.error = std::move(error);
             }
 #else
             LOGERR("lightReset failed: No IARMBUS");

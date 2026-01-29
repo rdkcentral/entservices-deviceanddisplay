@@ -343,7 +343,8 @@ namespace WPEFramework {
                     g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
                     g_autoptr(GError) error = nullptr;
                     if (g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
-                        _lastUILanguage = uiLanguage;
+                        // Coverity Fix: ID 67 - COPY_INSTEAD_OF_MOVE: Use std::move for assignment
+                        _lastUILanguage = std::move(uiLanguage);
                     } else {
                         LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
                     }

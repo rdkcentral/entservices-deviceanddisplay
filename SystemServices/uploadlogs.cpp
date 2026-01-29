@@ -67,7 +67,8 @@ bool getDCMconfigDetails(string &upload_protocol,string &httplink, string &uploa
 
     if (regex_search(dcminfo, match, regex("LogUploadSettings:UploadOnReboot=([^\\n]+)"))
             &&  match.size() > 1) temp = trim(match[1]);
-    if (temp.size() > 0) uploadCheck = temp;
+    // Coverity Fix: ID 66 - COPY_INSTEAD_OF_MOVE: Use std::move for assignment
+    if (temp.size() > 0) uploadCheck = std::move(temp);
 
     return true;
 }

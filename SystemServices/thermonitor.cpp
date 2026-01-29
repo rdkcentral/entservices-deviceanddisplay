@@ -170,7 +170,8 @@ namespace WPEFramework {
         void CThermalMonitor::emitTemperatureThresholdChange(std::string thresholdType, bool isAboveThreshold, float temperature)
         {
             LOGWARN("emitTemperatureThresholdChange invoked.");
-            reportTemperatureThresholdChange(thresholdType, isAboveThreshold, temperature);
+            // Coverity Fix: ID 65 - COPY_INSTEAD_OF_MOVE: Use std::move for function parameter
+            reportTemperatureThresholdChange(std::move(thresholdType), isAboveThreshold, temperature);
         }
 
         void CThermalMonitor::reportTemperatureThresholdChange(std::string thresholdType, bool isAboveThreshold, float temperature){

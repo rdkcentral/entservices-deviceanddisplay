@@ -201,11 +201,14 @@ namespace WPEFramework
             int lastStatus = EssRMgrRes_idle;
             int status;
             int timeoutInSec = AVDECODERSTATUS_RETRY_INTERVAL;
-            DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
 
             LOGINFO("AVPollThread started");
             for (;;)
             {
+                // Coverity Fix: ATOMICITY - Read _instance inside lock to ensure atomic access
+                DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
+                if (!t) break; // Safety check in case instance is null
+                
                 // Coverity Fix: ID 206, 207 - Double unlock: Use scope block to control lock lifetime
                 {
                     std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);

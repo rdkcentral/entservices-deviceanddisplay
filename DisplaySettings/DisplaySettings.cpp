@@ -1230,7 +1230,8 @@ namespace WPEFramework {
         uint32_t DisplaySettings::getSoundMode(const JsonObject& parameters, JsonObject& response)
         {   //sample servicemanager response:{"success":true,"soundMode":"AUTO (Dolby Digital 5.1)"}
             LOGINFOMETHOD();
-            string audioPort = parameters["audioPort"].String();//empty value will browse all ports
+            // Coverity Fix: ID 17 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter string
+            string audioPort = std::move(parameters["audioPort"].String());//empty value will browse all ports
 
             if (!checkPortName(audioPort))
                 audioPort = "HDMI0";
@@ -1245,7 +1246,8 @@ namespace WPEFramework {
                 if (audioPort.empty())
                 {
                     std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-                    if (isDisplayConnected(strVideoPort))
+                    // Coverity Fix: ID 22 - COPY_INSTEAD_OF_MOVE: Use std::move for function parameter
+                    if (isDisplayConnected(std::move(strVideoPort)))
                     {
                         audioPort = "HDMI0";
                     }
@@ -1583,10 +1585,12 @@ namespace WPEFramework {
                 vector<uint8_t> edidVec2;
                 std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
                 device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
-                if (isDisplayConnected(strVideoPort))
+                // Coverity Fix: ID 18 - COPY_INSTEAD_OF_MOVE: Use std::move for function parameter
+                if (isDisplayConnected(std::move(strVideoPort)))
                 {
                     vPort.getDisplay().getEDIDBytes(edidVec2);
-                    edidVec = edidVec2;//edidVec must be "unknown" unless we successfully get to this line
+                    // Coverity Fix: ID 19 - COPY_INSTEAD_OF_MOVE: Use std::move() instead of copy
+                    edidVec = std::move(edidVec2);//edidVec must be "unknown" unless we successfully get to this line
 
                     //convert to base64
                     uint16_t size = min(edidVec.size(), (size_t)numeric_limits<uint16_t>::max());
@@ -1621,7 +1625,8 @@ namespace WPEFramework {
             {
                 vector<unsigned char> edidVec2;
                 device::Host::getInstance().getHostEDID(edidVec2);
-                edidVec = edidVec2;//edidVec must be "unknown" unless we successfully get to this line
+                // Coverity Fix: ID 20 - COPY_INSTEAD_OF_MOVE: Use std::move() instead of copy
+                edidVec = std::move(edidVec2);//edidVec must be "unknown" unless we successfully get to this line
                 LOGINFO("getHostEDID size is %d.", int(edidVec2.size()));
             }
             catch (const device::Exception& err)
@@ -1644,7 +1649,8 @@ namespace WPEFramework {
             LOGINFOMETHOD();
 
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : strVideoPort;
+            // Coverity Fix: ID 21 - COPY_INSTEAD_OF_MOVE: Use std::move for string assignment
+            string videoDisplay = parameters.HasLabel("videoDisplay") ? std::move(parameters["videoDisplay"].String()) : std::move(strVideoPort);
             bool active = true;
             try
             {
@@ -2147,7 +2153,8 @@ namespace WPEFramework {
             bool success = true;
             bool muted = false;
 
-            string audioPort = parameters.HasLabel("audioPort") ? parameters["audioPort"].String() : "HDMI0";
+            // Coverity Fix: ID 23 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter string
+            string audioPort = parameters.HasLabel("audioPort") ? std::move(parameters["audioPort"].String()) : "HDMI0";
             try
             {
                 device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(audioPort);
@@ -2851,7 +2858,8 @@ namespace WPEFramework {
                        bool success = true;
                        int enhancerlevel = 0;
 
-            string audioPort = parameters.HasLabel("audioPort") ? parameters["audioPort"].String() : "HDMI0";
+            // Coverity Fix: ID 24 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter string
+            string audioPort = parameters.HasLabel("audioPort") ? std::move(parameters["audioPort"].String()) : "HDMI0";
             try
             {
                 device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(audioPort);
@@ -3007,10 +3015,11 @@ namespace WPEFramework {
             bool success = true;
 
             returnIfParamNotFound(parameters, "operation");
-            string audioProfileState = parameters["operation"].String();
+            // Coverity Fix: IDs 25-28 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter strings
+            string audioProfileState = std::move(parameters["operation"].String());
 
             returnIfParamNotFound(parameters, "profileName");
-            string audioProfileName = parameters["profileName"].String();
+            string audioProfileName = std::move(parameters["profileName"].String());
 
             returnIfParamNotFound(parameters, "ms12SettingsName");
             string audioProfileSettingsName = parameters["ms12SettingsName"].String();
@@ -3401,7 +3410,8 @@ namespace WPEFramework {
             }
 
             bool success = true;
-            string audioPort = parameters["audioPort"].String();//empty value will browse all ports
+            // Coverity Fix: ID 30 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter string
+            string audioPort = std::move(parameters["audioPort"].String());//empty value will browse all ports
 
             if (!checkPortName(audioPort))
                 audioPort = "HDMI0";
@@ -3561,7 +3571,8 @@ namespace WPEFramework {
             bool success = false;
             try
             {
-		std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
+		// Coverity Fix: ID 31 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
+		std::string strVideoPort = std::move(device::Host::getInstance().getDefaultVideoPortName());
                 device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
                 if (isDisplayConnected(vPort.getName())) {
                    if(vPort.setForceHDRMode (mode) == true)
@@ -4476,25 +4487,32 @@ void DisplaySettings::sendMsgThread()
 	if(!DisplaySettings::_instance)
                  return;
 
-	while(!_instance->m_sendMsgThreadExit) 
+	// Coverity Fix: ID 227 - Data race: Use condition variable pattern to safely check exit flag
+	while(true) 
 	{
-		msgInfo.msg = -1;
-        	msgInfo.param = NULL;
-		{
-                       LOGINFO("%s: Debug: Wait for message \n",__FUNCTION__);
-		       std::unique_lock<std::mutex> lock(DisplaySettings::_instance->m_sendMsgMutex);
-		       // Coverity Fix: ID 227 - Data race: Wait on condition variable with lock held to protect m_sendMsgThreadRun
-		       DisplaySettings::_instance->m_sendMsgCV.wait(lock, []{return DisplaySettings::_instance->m_sendMsgThreadRun || DisplaySettings::_instance->m_sendMsgThreadExit;});
-		}
+        {
+            std::unique_lock<std::mutex> lock(DisplaySettings::_instance->m_sendMsgMutex);
+            if (!_instance->m_sendMsgThreadExit)
+            {
+		        msgInfo.msg = -1;
+        	    msgInfo.param = NULL;
+		        {
+                    LOGINFO("%s: Debug: Wait for message \n",__FUNCTION__);
+		            // Coverity Fix: ID 227 - Data race: Wait on condition variable with lock held
+		            _instance->m_sendMsgCV.wait(lock, []{return (_instance->m_sendMsgThreadRun == true);});
+		       
+		            // Coverity Fix: ID 227 - Check exit flag with lock held to prevent data race
+		            if (_instance->m_sendMsgThreadExit == true)
+		            {
+		                LOGINFO(" sendCecMessageThread Exiting");
+		                _instance->m_sendMsgThreadRun = false;
+		                break;
+		            }
+		        }
+            }
+    }
 
-		if (_instance->m_sendMsgThreadExit == true)
-        	{
-            		LOGINFO(" sendCecMessageThread Exiting");
-            		_instance->m_sendMsgThreadRun = false;
-            		break;
-        	}
-
-        	if (_instance->m_sendMsgQueue.empty()) {
+		if (_instance->m_sendMsgQueue.empty()) {
             		_instance->m_sendMsgThreadRun = false;
             		continue;
         	}
@@ -5448,8 +5466,9 @@ void DisplaySettings::sendMsgThread()
                     }
                     else if (!firstResolutionSet)
                     {
-                        firstDisplay = display;
-                        firstResolution = resolution;
+                        // Coverity Fix: IDs 33-34 - COPY_INSTEAD_OF_MOVE: Use std::move for string assignments
+                        firstDisplay = std::move(display);
+                        firstResolution = std::move(resolution);
                         firstResolutionSet = true;
                     }
                 }

@@ -216,7 +216,8 @@ namespace WPEFramework {
         {
             LOGWARN("INSIDE CONVERT\n");
             bool status = false;
-            string firmware = convertCase(firm);
+            // Coverity Fix: ID 61 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
+            string firmware = std::move(convertCase(firm));
             string str = firmware.c_str();
             size_t found = str.find(str3);
             if (found != string::npos) {
@@ -397,7 +398,8 @@ string getXconfOverrideUrl(bool& bFileExists)
     if (getFileContent(XCONF_OVERRIDE_FILE, lines)) {
         if (lines.size()) {
             for (int i = 0; i < (int)lines.size(); ++i) {
-                string line = lines.at(i);
+                // Coverity Fix: ID 62 - COPY_INSTEAD_OF_MOVE: Use std::move from vector
+                string line = std::move(lines.at(i));
                 if (!line.empty() && (line[0] != '#')) {
                     xconfUrl = line;
                 }

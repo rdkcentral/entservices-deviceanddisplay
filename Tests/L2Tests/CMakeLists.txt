@@ -30,10 +30,6 @@ if(PLUGIN_WAREHOUSE)
     set(SRC_FILES ${SRC_FILES} tests/Warehouse_L2Test.cpp)
 endif()
 
-if(PLUGIN_DEVICEDIAGNOSTICS)
-    set(SRC_FILES ${SRC_FILES} tests/DeviceDiagnostics_L2Test.cpp)
-endif()
-
 if(PLUGIN_DISPLAYSETTINGS)
     set(SRC_FILES ${SRC_FILES} tests/DisplaySettings_L2Test.cpp)
 endif()

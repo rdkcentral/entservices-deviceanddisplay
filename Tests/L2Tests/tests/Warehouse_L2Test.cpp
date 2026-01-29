@@ -160,7 +160,7 @@ Warehouse_L2Test::Warehouse_L2Test()
     EXPECT_EQ(Core::ERROR_NONE, status);
 
     if (CreateWarehouseInterfaceObject() != Core::ERROR_NONE) {
-        TEST_LOG("Invalid DeviceDiagnostics_Client");
+        TEST_LOG("Invalid Warehouse_Client");
     } else {
         EXPECT_TRUE(m_controller_warehouse != nullptr);
         if (m_controller_warehouse) {

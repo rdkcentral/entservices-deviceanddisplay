@@ -1002,7 +1002,8 @@ namespace WPEFramework {
                         surroundMode = false;
                         LOG_DEVICE_EXCEPTION1(audioPort);
                     }
-                    if (isDisplayConnected(strVideoPort) && surroundMode)
+                    // Coverity Fix: ID 8 - COPY_INSTEAD_OF_MOVE
+                    if (isDisplayConnected(std::move(strVideoPort)) && surroundMode)
                     {
                         if(surroundMode & dsSURROUNDMODE_DDPLUS )
                         {
@@ -1678,7 +1679,8 @@ namespace WPEFramework {
             {
                 std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
                 device::VideoOutputPort vPort = device::VideoOutputPortConfig::getInstance().getPort(strVideoPort.c_str());
-                if (isDisplayConnected(strVideoPort)) {
+                // Coverity Fix: ID 9 - COPY_INSTEAD_OF_MOVE
+                if (isDisplayConnected(std::move(strVideoPort))) {
                     vPort.getTVHDRCapabilities(&capabilities);
                 }
             }
@@ -1846,7 +1848,8 @@ namespace WPEFramework {
             {
                 std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
                 device::VideoOutputPort vPort = device::Host::getInstance().getVideoOutputPort(strVideoPort.c_str());
-                if (isDisplayConnected(strVideoPort))
+                // Coverity Fix: ID 10 - COPY_INSTEAD_OF_MOVE
+                if (isDisplayConnected(std::move(strVideoPort)))
                 {
                     int videoEOTF = 0, matrixCoefficients = 0, colorSpace = 0, colorDepth = 0, quantizationRange =0;
                     vPort.getCurrentOutputSettings(videoEOTF, matrixCoefficients, colorSpace, colorDepth, quantizationRange);
@@ -2163,7 +2166,8 @@ namespace WPEFramework {
             }
             catch(const device::Exception& err)
             {
-                LOG_DEVICE_EXCEPTION1(string(audioPort));
+                // Coverity Fix: ID 11 - COPY_INSTEAD_OF_MOVE
+                LOG_DEVICE_EXCEPTION1(std::move(string(audioPort)));
                 success = false;
             }
             returnResponse(success);
@@ -2869,7 +2873,8 @@ namespace WPEFramework {
             }
             catch(const device::Exception& err)
             {
-                LOG_DEVICE_EXCEPTION1(string(audioPort));
+                // Coverity Fix: ID 12 - COPY_INSTEAD_OF_MOVE
+                LOG_DEVICE_EXCEPTION1(std::move(string(audioPort)));
                 response["enable"] = false;
                 response["enhancerlevel"] = 0;
                 success = false;
@@ -3031,7 +3036,8 @@ namespace WPEFramework {
             string audioPort = parameters.HasLabel("audioPort") ? parameters["audioPort"].String() : "HDMI0";
             try
             {
-                device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(audioPort);
+                // Coverity Fix: IDs 13-16 - COPY_INSTEAD_OF_MOVE
+                device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(std::move(audioPort));
                 aPort.setMS12AudioProfileSetttingsOverride(audioProfileState,audioProfileName,audioProfileSettingsName, audioProfileSettingValue);
             }
             catch (const device::Exception& err)
@@ -3351,7 +3357,8 @@ namespace WPEFramework {
                 if (audioPort.empty())
                 {
                     std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-                    if (isDisplayConnected(strVideoPort))
+                    // Coverity Fix: ID 17 - COPY_INSTEAD_OF_MOVE
+                    if (isDisplayConnected(std::move(strVideoPort)))
                     {
                         audioPort = "HDMI0";
                     }
@@ -3423,7 +3430,8 @@ namespace WPEFramework {
                 if (audioPort.empty())
                 {
                     std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-                    if (isDisplayConnected(strVideoPort)) {
+                    // Coverity Fix: ID 18 - COPY_INSTEAD_OF_MOVE
+                    if (isDisplayConnected(std::move(strVideoPort))) {
                         audioPort = "HDMI0";
                     }
                     else
@@ -3602,7 +3610,8 @@ namespace WPEFramework {
             bool success = true;
             try
             {
-                device::VideoOutputPort &vPort = device::Host::getInstance().getVideoOutputPort(videoDisplay);
+                // Coverity Fix: ID 19 - COPY_INSTEAD_OF_MOVE
+                device::VideoOutputPort &vPort = device::Host::getInstance().getVideoOutputPort(std::move(videoDisplay));
                 unsigned int colorDepth = vPort.getPreferredColorDepth(persist);
 		switch (colorDepth) {
 			case dsDISPLAY_COLORDEPTH_8BIT:
@@ -3680,7 +3689,8 @@ namespace WPEFramework {
             try
             {
                 unsigned int capabilities = 0;
-                device::VideoOutputPort &vPort = device::Host::getInstance().getVideoOutputPort(videoDisplay);
+                // Coverity Fix: ID 20 - COPY_INSTEAD_OF_MOVE
+                device::VideoOutputPort &vPort = device::Host::getInstance().getVideoOutputPort(std::move(videoDisplay));
                 vPort.getColorDepthCapabilities(&capabilities);
                 if(!capabilities) colorDepthCapabilities.emplace_back("none");
                 if(capabilities & dsDISPLAY_COLORDEPTH_8BIT)colorDepthCapabilities.emplace_back("8 Bit");

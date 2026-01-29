@@ -510,8 +510,9 @@ namespace WPEFramework
                     const char* filePath = "/etc/device.properties";
                     std::string inputPath = path;
 
-                    bool success = Utils::ExpandPropertiesInString(inputStr, filePath, inputPath);
-                    if(!success)
+                    // Coverity Fix: ID 532 - PW.PARAMETER_HIDDEN: Renamed local variable to avoid hiding function parameter
+                    bool expandSuccess = Utils::ExpandPropertiesInString(inputStr, filePath, inputPath);
+                    if(!expandSuccess)
                     {
                         LOGERR("Path String Expansion failed.\n");
                     }

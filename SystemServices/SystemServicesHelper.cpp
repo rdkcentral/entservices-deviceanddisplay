@@ -199,7 +199,8 @@ namespace WPEFramework {
             string ret = std::move(tri.c_str());
             ret = trim(std::move(ret));
             LOGWARN("%s: ret=%s\n", __FUNCTION__, ret.c_str());
-            return ret;
+            // Coverity Fix: ID 40 - COPY_INSTEAD_OF_MOVE
+            return std::move(ret);
         }
 
         string convertCase(string str)
@@ -209,16 +210,17 @@ namespace WPEFramework {
                     bufferString.begin(), ::toupper);
             LOGWARN("%s: after transform to upper :%s\n", __FUNCTION__,
                     bufferString.c_str());
-            return bufferString;
+            // Coverity Fix: ID 41 - COPY_INSTEAD_OF_MOVE
+            return std::move(bufferString);
         }
 
         bool convert(string str3, string firm)
         {
             LOGWARN("INSIDE CONVERT\n");
             bool status = false;
-            // Coverity Fix: ID 61 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
+            // Coverity Fix: IDs 42, 61 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
             string firmware = std::move(convertCase(firm));
-            string str = firmware.c_str();
+            string str = std::move(firmware);
             size_t found = str.find(str3);
             if (found != string::npos) {
                 status = true;
@@ -398,10 +400,10 @@ string getXconfOverrideUrl(bool& bFileExists)
     if (getFileContent(XCONF_OVERRIDE_FILE, lines)) {
         if (lines.size()) {
             for (int i = 0; i < (int)lines.size(); ++i) {
-                // Coverity Fix: ID 62 - COPY_INSTEAD_OF_MOVE: Use std::move from vector
+                // Coverity Fix: IDs 43, 62 - COPY_INSTEAD_OF_MOVE: Use std::move from vector
                 string line = std::move(lines.at(i));
                 if (!line.empty() && (line[0] != '#')) {
-                    xconfUrl = line;
+                    xconfUrl = std::move(line);
                 }
             }
         }
@@ -537,7 +539,8 @@ void findMacInString(std::string totalStr, std::string macId, std::string& mac)
 {
     const std::regex re("^([0-9A-F]{2}[:]){5}([0-9A-F]{2})$");
     std::size_t found = totalStr.find(macId);
-    mac = totalStr.substr(found + macId.length(), 17);
+    // Coverity Fix: ID 44 - COPY_INSTEAD_OF_MOVE
+    mac = std::move(totalStr.substr(found + macId.length(), 17));
     std::string defMac = "00:00:00:00:00:00";
     if (!std::regex_match(mac, re)) {
         mac = defMac;

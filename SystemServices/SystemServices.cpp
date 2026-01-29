@@ -1601,8 +1601,9 @@ namespace WPEFramework {
 
                     if (changeMode) {
                         IARM_Bus_CommonAPI_SysModeChange_Param_t modeParam;
-                        stringToIarmMode(oldMode, modeParam.oldMode);
-                        stringToIarmMode(m_currentMode, modeParam.newMode);
+                        // Coverity Fix: ID 21 - COPY_INSTEAD_OF_MOVE
+                        stringToIarmMode(std::move(oldMode), modeParam.oldMode);
+                        stringToIarmMode(std::move(m_currentMode), modeParam.newMode);
 
                         if (IARM_RESULT_SUCCESS == IARM_Bus_Call(IARM_BUS_DAEMON_NAME,
                                     "DaemonSysModeChange", &modeParam, sizeof(modeParam))) {
@@ -2078,8 +2079,9 @@ namespace WPEFramework {
                     // empty /opt/swupdate.conf. Don't initiate FW download
                     LOGWARN("Empty /opt/swupdate.conf. Skipping FW upgrade check with xconf");
                     if (_instance) {
+                        // Coverity Fix: ID 22 - COPY_INSTEAD_OF_MOVE
                         _instance->reportFirmwareUpdateInfoReceived("",
-                        STATUS_CODE_NO_SWUPDATE_CONF, true, "", response);
+                        STATUS_CODE_NO_SWUPDATE_CONF, true, "", std::move(response));
                     }
                     return;
                 }
@@ -2140,8 +2142,9 @@ namespace WPEFramework {
             
 
             if (_instance) {
-                _instance->reportFirmwareUpdateInfoReceived(_fwUpdate.firmwareUpdateVersion,
-                        _fwUpdate.httpStatus, _fwUpdate.success, firmwareVersion, response);
+                // Coverity Fix: IDs 23-24 - COPY_INSTEAD_OF_MOVE
+                _instance->reportFirmwareUpdateInfoReceived(std::move(_fwUpdate.firmwareUpdateVersion),
+                        _fwUpdate.httpStatus, _fwUpdate.success, std::move(firmwareVersion), std::move(response));
             } else {
                 LOGERR("_instance is NULL.\n");
             }
@@ -3014,7 +3017,8 @@ namespace WPEFramework {
                             }
 
                             if (SystemServices::_instance && (oldTimeZoneDST != timeZone || oldAccuracy != accuracy))
-                                SystemServices::_instance->onTimeZoneDSTChanged(oldTimeZoneDST,timeZone,oldAccuracy, accuracy);
+                                // Coverity Fix: IDs 25-27 - COPY_INSTEAD_OF_MOVE
+                                SystemServices::_instance->onTimeZoneDSTChanged(std::move(oldTimeZoneDST),std::move(timeZone),std::move(oldAccuracy), std::move(accuracy));
 
                         }
                         else{
@@ -3055,7 +3059,8 @@ namespace WPEFramework {
             LOGWARN("SystemServices::setFriendlyName  :%s \n", friendlyName.c_str());
             if(m_friendlyName != friendlyName)
             {
-                m_friendlyName = friendlyName;
+                // Coverity Fix: ID 28 - COPY_INSTEAD_OF_MOVE
+                m_friendlyName = std::move(friendlyName);
                 JsonObject params;
                 params["friendlyName"] = m_friendlyName;
                 sendNotify("onFriendlyNameChanged", params);
@@ -3114,7 +3119,8 @@ namespace WPEFramework {
 				if(resp == true){
 					//call event on Territory changed
 					if (SystemServices::_instance)
-						SystemServices::_instance->onTerritoryChanged(m_strTerritory,territoryStr,m_strRegion,regionStr);
+						// Coverity Fix: IDs 29-30 - COPY_INSTEAD_OF_MOVE
+						SystemServices::_instance->onTerritoryChanged(std::move(m_strTerritory),std::move(territoryStr),std::move(m_strRegion),std::move(regionStr));
 				}
 			}
 			catch(...){
@@ -3249,7 +3255,8 @@ namespace WPEFramework {
 		if(regionStr.length() < 7){
 			string strRegion = regionStr.substr(0,regionStr.find("-"));
 			if( strRegion.length() == 2){
-				if (isStrAlphaUpper(strRegion)){
+				// Coverity Fix: ID 31 - COPY_INSTEAD_OF_MOVE
+				if (isStrAlphaUpper(std::move(strRegion))){
 					strRegion = regionStr.substr(regionStr.find("-")+1,regionStr.length());
 					if(strRegion.length() >= 2){
 						retVal = isStrAlphaUpper(strRegion);
@@ -4278,10 +4285,11 @@ namespace WPEFramework {
                     sleepMode = mode.toString();
                     LOGWARN("Output of getPreferredSleepMode: '%s'", sleepMode.c_str());
 
+                    // Coverity Fix: IDs 32-33 - COPY_INSTEAD_OF_MOVE
                     if (convert("DEEP_SLEEP", sleepMode)) {
-                        retVal = setPowerState(sleepMode);
+                        retVal = setPowerState(std::move(sleepMode));
                     } else {
-                        retVal = setPowerState(state);
+                        retVal = setPowerState(std::move(state));
                     }
 
                     outfile.open(STANDBY_REASON_FILE, ios::out);
@@ -4414,7 +4422,8 @@ namespace WPEFramework {
                             LOGWARN("m_stbVersion: %s\n", m_stbVersionString.c_str());
                         }
                         if (versionFound) {
-                            return m_stbVersionString;
+                            // Coverity Fix: ID 34 - COPY_INSTEAD_OF_MOVE
+                            return std::move(m_stbVersionString);
                         } else {
                             LOGWARN("stb version not found in file %s\n",
                                     VERSION_FILE_NAME);
@@ -4815,7 +4824,8 @@ namespace WPEFramework {
 
 #ifdef HAS_API_POWERSTATE
             if (SystemServices::_instance) {
-                SystemServices::_instance->onSystemModeChanged(mode);
+                // Coverity Fix: ID 35 - COPY_INSTEAD_OF_MOVE
+                SystemServices::_instance->onSystemModeChanged(std::move(mode));
             } else {
                 LOGERR("SystemServices::_instance is NULL.\n");
             }
@@ -4926,7 +4936,8 @@ namespace WPEFramework {
                     string timerStr = std::string(pMsg->currentTime,cTIMER_STATUS_MESSAGE_LENGTH);
 
                 if (SystemServices::_instance) {
-                    SystemServices::_instance->onTimeStatusChanged(timequality,timersrc,timerStr);
+                    // Coverity Fix: IDs 36-38 - COPY_INSTEAD_OF_MOVE
+                    SystemServices::_instance->onTimeStatusChanged(std::move(timequality),std::move(timersrc),std::move(timerStr));
                 } else {
                     LOGERR("SystemServices::_instance is NULL.\n");
                 }
@@ -5006,7 +5017,8 @@ namespace WPEFramework {
             if (validparams) {
                 LOGWARN("Invalid temperature levels \n");
                 if (SystemServices::_instance) {
-                    SystemServices::_instance->onTemperatureThresholdChanged(thermLevel,
+                    // Coverity Fix: ID 39 - COPY_INSTEAD_OF_MOVE
+                    SystemServices::_instance->onTemperatureThresholdChanged(std::move(thermLevel),
                             crossOver, currentTemperature);
                 } else {
                     LOGERR("SystemServices::_instance is NULL.\n");

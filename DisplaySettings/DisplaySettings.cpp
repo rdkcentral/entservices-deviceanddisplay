@@ -462,9 +462,12 @@ namespace WPEFramework {
 				LOGINFO("Audio Port : [HDMI_ARC0] sendHdmiCecSinkAudioDevicePowerOn !!! \n");
 				// Some AVR's and SB are not sending response for power on message even though it is in ON state
 				// Send power request immediately to query power status of the AVR
-				// Coverity Fix: ID 229 - Data race: Timer operations are thread-safe
+				// Coverity Fix: ID 229 - Data race: Protect timer start with mutex
 				 LOGINFO("[HDMI_ARC0] Starting the timer to check audio device power status after power on msg!!!\n");
-				 m_AudioDevicePowerOnStatusTimer.start(AUDIO_DEVICE_POWER_TRANSITION_TIME_IN_MILLISECONDS);
+				 {
+				     std::lock_guard<std::mutex> lock(m_sendMsgMutex);
+				     m_AudioDevicePowerOnStatusTimer.start(AUDIO_DEVICE_POWER_TRANSITION_TIME_IN_MILLISECONDS);
+				 }
 			     } /*m_hdmiCecAudioDeviceDetected */
                              else {
                                  LOGINFO("Starting the timer to recheck audio device connection state after : %d ms\n", AUDIO_DEVICE_CONNECTION_CHECK_TIME_IN_MILLISECONDS);
@@ -530,11 +533,14 @@ namespace WPEFramework {
         } catch (const std::system_error& e) {
             LOGERR("Failed to start m_sendMsgThread: %s", e.what());
         }
+        {
+	        std::lock_guard<std::mutex> lock(m_callMutex);
 	    m_timer.connect(std::bind(&DisplaySettings::onTimer, this));
             m_AudioDeviceDetectTimer.connect(std::bind(&DisplaySettings::checkAudioDeviceDetectionTimer, this));
             m_ArcDetectionTimer.connect(std::bind(&DisplaySettings::checkArcDeviceConnected, this));
             m_SADDetectionTimer.connect(std::bind(&DisplaySettings::checkSADUpdate, this));
 	    m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
+        }
 
             InitializePowerManager();
             try
@@ -4822,13 +4828,9 @@ void DisplaySettings::sendMsgThread()
                         }
 
 			bool wasSADTimerActive = false;
-			int currentArcState = ARC_STATE_ARC_TERMINATED;
 
-			// Coverity Fix: ID 222 - Data race: Protect m_currentArcRoutingState read with mutex
-			{
-				std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);
-				currentArcState = m_currentArcRoutingState;
-			}
+			// Coverity Fix: ID 222 - Data race: Use existing function to protect m_currentArcRoutingState read
+			int currentArcState = getCurrentArcRoutingState();
 
 			if (currentArcState == ARC_STATE_ARC_INITIATED) {
 			    if (m_SADDetectionTimer.isActive()) {
@@ -4871,7 +4873,8 @@ void DisplaySettings::sendMsgThread()
 			            LOGINFO("%s: Not updating SAD now since arc routing has not yet happened and SAD timer is not active -> Routing and SAD is updated when setEnableAudioPort is called \n", __FUNCTION__);
 			      }
 			}else {
-				LOGINFO("%s: m_currentArcRoutingState = %d, m_arcEarcAudioEnabled = %d", __FUNCTION__, m_currentArcRoutingState, m_arcEarcAudioEnabled);
+				// Coverity Fix: ID 222 - Data race: Use accessor function to safely read m_currentArcRoutingState
+				LOGINFO("%s: m_currentArcRoutingState = %d, m_arcEarcAudioEnabled = %d", __FUNCTION__, getCurrentArcRoutingState(), m_arcEarcAudioEnabled);
 			}/*End of m_currentArcRoutingState check */
                     }
                     catch (const device::Exception& err)
@@ -5089,13 +5092,9 @@ void DisplaySettings::sendMsgThread()
 	    static int retryArcCount = 0;
 	    std::lock_guard<std::mutex> lock(m_callMutex);
             int types = dsAUDIOARCSUPPORT_NONE;
-	    int currentArcState = ARC_STATE_ARC_TERMINATED;
 	    
-	    // Coverity Fix: ID 224 - Data race: Read m_currentArcRoutingState with proper mutex
-	    {
-	    	std::lock_guard<std::mutex> arcLock(m_AudioDeviceStatesUpdateMutex);
-	    	currentArcState = m_currentArcRoutingState;
-	    }
+	    // Coverity Fix: ID 224 - Data race: Use existing function to protect m_currentArcRoutingState read
+	    int currentArcState = getCurrentArcRoutingState();
 	    
 	    try{
             device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
@@ -5128,13 +5127,16 @@ void DisplaySettings::sendMsgThread()
 	            }
 	       }//Release Mutex m_AudioDeviceStatesUpdateMutex
 	    } else {
-		    LOGINFO("Arc is already initiated m_currentArcRoutingState =%d", m_currentArcRoutingState);
+		    // Coverity Fix: Data race - Use accessor function to safely read m_currentArcRoutingState
+		    LOGINFO("Arc is already initiated m_currentArcRoutingState =%d", getCurrentArcRoutingState());
 	    }
 
-	    if ( m_ArcDetectionTimer.isActive() && ((retryArcCount >= 3) || (m_currentArcRoutingState == ARC_STATE_ARC_INITIATED) || (m_hdmiInAudioDeviceType != dsAUDIOARCSUPPORT_NONE)) ) {
+	    // Coverity Fix: Data race - Use accessor function to safely read m_currentArcRoutingState
+	    int currentArcState = getCurrentArcRoutingState();
+	    if ( m_ArcDetectionTimer.isActive() && ((retryArcCount >= 3) || (currentArcState == ARC_STATE_ARC_INITIATED) || (m_hdmiInAudioDeviceType != dsAUDIOARCSUPPORT_NONE)) ) {
 	            retryArcCount = 0; /* reset counter */
 		    LOGINFO("Stopping the eArc detection timer retryArcCount = %d, m_currentArcRoutingState = %d, m_hdmiInAudioDeviceType = %d",\
-				    retryArcCount, m_currentArcRoutingState, m_hdmiInAudioDeviceType);
+				    retryArcCount, currentArcState, m_hdmiInAudioDeviceType);
                     m_ArcDetectionTimer.stop();
             }
 	    }

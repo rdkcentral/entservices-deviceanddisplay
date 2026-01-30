@@ -61,12 +61,13 @@ namespace Plugin {
         , m_networkStandbyMode(false)
         , m_networkStandbyModeValid(false)
         , m_powerStateBeforeRebootValid(false)
+        , _controller(nullptr)
         , _modeChangeController(nullptr)
         , _deepSleepController(DeepSleepController::Create(*this))
         , _powerController(PowerController::Create(_deepSleepController))
         , _thermalController(ThermalController::Create(*this))
     {
-        // Coverity Fix: ID 581 - Uninitialized pointer field: All pointer members initialized in initializer list
+        // Coverity Fix: ID 581 - Uninitialized pointer field
         PowerManagerImplementation::_instance = this;
         Utils::IARM::init();
         LOGINFO(">> CTOR <<");

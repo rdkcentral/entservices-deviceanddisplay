@@ -146,15 +146,15 @@ namespace String {
     // Split string s into a vector of strings using the supplied delimiter
     inline void split(std::vector<std::string> &stringList, std::string &s, std::string delimiters)
     {
-        size_t current;
-        // Coverity Fix: ID 197 - INTEGER_OVERFLOW: Changed from -1 to std::string::npos to avoid unsigned overflow
-        size_t next = std::string::npos;
+        // Coverity Fix: ID 197 - INTEGER_OVERFLOW
+        size_t current = 0;
+        size_t next;
         do
         {
-            current = next + 1;
             next = s.find_first_of( delimiters, current );
 
             stringList.push_back(s.substr( current, next - current ));
+            current = next + 1;
         }
         while (next != string::npos);
      }

@@ -3018,7 +3018,7 @@ namespace WPEFramework {
 
                             if (SystemServices::_instance && (oldTimeZoneDST != timeZone || oldAccuracy != accuracy))
                                 // Coverity Fix: IDs 25-27 - COPY_INSTEAD_OF_MOVE
-                                SystemServices::_instance->onTimeZoneDSTChanged(std::move(oldTimeZoneDST),std::move(timeZone),std::move(oldAccuracy), std::move(accuracy));
+                                SystemServices::_instance->onTimeZoneDSTChanged(std::move(oldTimeZoneDST),timeZone,std::move(oldAccuracy), std::move(accuracy));
 
                         }
                         else{
@@ -3255,11 +3255,11 @@ namespace WPEFramework {
 		if(regionStr.length() < 7){
 			string strRegion = regionStr.substr(0,regionStr.find("-"));
 			if( strRegion.length() == 2){
-				// Coverity Fix: ID 31 - COPY_INSTEAD_OF_MOVE
-				if (isStrAlphaUpper(std::move(strRegion))){
+				// Coverity Fix: ID 16, 31 - COPY_INSTEAD_OF_MOVE
+				if (isStrAlphaUpper(strRegion)){
 					strRegion = regionStr.substr(regionStr.find("-")+1,regionStr.length());
 					if(strRegion.length() >= 2){
-						retVal = isStrAlphaUpper(strRegion);
+						retVal = isStrAlphaUpper(std::move(strRegion));
 					}
 				}
 			}
@@ -4287,9 +4287,9 @@ namespace WPEFramework {
 
                     // Coverity Fix: IDs 32-33 - COPY_INSTEAD_OF_MOVE
                     if (convert("DEEP_SLEEP", sleepMode)) {
-                        retVal = setPowerState(std::move(sleepMode));
+                        retVal = setPowerState(sleepMode);
                     } else {
-                        retVal = setPowerState(std::move(state));
+                        retVal = setPowerState(state);
                     }
 
                     outfile.open(STANDBY_REASON_FILE, ios::out);
@@ -4304,7 +4304,8 @@ namespace WPEFramework {
                 } else {
                     retVal = setPowerState(state);
                 }
-                m_current_state = state; /* save the old state */
+                // Coverity Fix: ID 17 - COPY_INSTEAD_OF_MOVE: Move to m_current_state
+                m_current_state = std::move(state);
             } else {
                 populateResponseWithError(SysSrv_MissingKeyValues, response);
             }
@@ -4418,12 +4419,13 @@ namespace WPEFramework {
                         std::string token = gp.substr((gp.find(delimiter)+1), string::npos);
                         if (token.length()){
                             versionFound = true;
-                            m_stbVersionString = token;
+                            // Coverity Fix: ID 53 - COPY_INSTEAD_OF_MOVE: Use std::move for token
+                            m_stbVersionString = std::move(token);
                             LOGWARN("m_stbVersion: %s\n", m_stbVersionString.c_str());
                         }
                         if (versionFound) {
                             // Coverity Fix: ID 34 - COPY_INSTEAD_OF_MOVE
-                            return std::move(m_stbVersionString);
+                            return m_stbVersionString;
                         } else {
                             LOGWARN("stb version not found in file %s\n",
                                     VERSION_FILE_NAME);

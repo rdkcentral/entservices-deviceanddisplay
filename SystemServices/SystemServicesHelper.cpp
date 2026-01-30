@@ -194,18 +194,18 @@ namespace WPEFramework {
             }
             v_secure_pclose(pipe);
 
-            // Coverity Fix: ID 59, 60 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
-            string tri = caseInsensitive(result);
-            string ret = std::move(tri.c_str());
-            ret = trim(std::move(ret));
+            // Coverity Fix: ID 19, 59, 60 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
+            string tri = caseInsensitive(std::move(result));
+            string ret = tri.c_str();
+            ret = trim(ret);
             LOGWARN("%s: ret=%s\n", __FUNCTION__, ret.c_str());
-            // Coverity Fix: ID 40 - COPY_INSTEAD_OF_MOVE
-            return std::move(ret);
+            return ret;
         }
 
         string convertCase(string str)
         {
-            std::string bufferString = str;
+            // Coverity Fix: ID 60,20 - COPY_INSTEAD_OF_MOVE
+            std::string bufferString = std::move(str);
             transform(bufferString.begin(), bufferString.end(),
                     bufferString.begin(), ::toupper);
             LOGWARN("%s: after transform to upper :%s\n", __FUNCTION__,
@@ -218,9 +218,9 @@ namespace WPEFramework {
         {
             LOGWARN("INSIDE CONVERT\n");
             bool status = false;
-            // Coverity Fix: IDs 42, 61 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
-            string firmware = std::move(convertCase(firm));
-            string str = std::move(firmware);
+            // Coverity Fix: IDs 21, 42, 61 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
+            string firmware = convertCase(std::move(firm));
+            string str = firmware;
             size_t found = str.find(str3);
             if (found != string::npos) {
                 status = true;
@@ -539,11 +539,11 @@ void findMacInString(std::string totalStr, std::string macId, std::string& mac)
 {
     const std::regex re("^([0-9A-F]{2}[:]){5}([0-9A-F]{2})$");
     std::size_t found = totalStr.find(macId);
-    // Coverity Fix: ID 44 - COPY_INSTEAD_OF_MOVE
-    mac = std::move(totalStr.substr(found + macId.length(), 17));
+    mac = totalStr.substr(found + macId.length(), 17);
     std::string defMac = "00:00:00:00:00:00";
+    // Coverity Fix: ID 63,22 - COPY_INSTEAD_OF_MOVE: Use std::move for defMac
     if (!std::regex_match(mac, re)) {
-        mac = defMac;
+        mac = std::move(defMac);
     }
 }
 

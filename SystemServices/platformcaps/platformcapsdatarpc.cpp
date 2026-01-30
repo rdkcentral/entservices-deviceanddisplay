@@ -64,8 +64,11 @@ string PlatformCapsData::GetDeviceType() {
 
     auto deviceInfo = stringFromHex(hex);
 
-    std::smatch m;    // Coverity Fix: ID 3 - CHECKED_RETURN: Return value of regex_search is checked via !m.empty()    std::regex_search(deviceInfo, m, std::regex("deviceType=(\\w+),"));
-    if (!m.empty()) {
+   std::smatch m;
+   bool matched = std::regex_search(query, m,
+      std::regex("^(AccountInfo|DeviceInfo)(\\.(\\w*)){0,1}"));
+          // Coverity Fix: ID 3 - CHECKED_RETURN: Return value of regex_search is checked via !m.empty()
+    if (matched) {
       return m[1];
     }
   }

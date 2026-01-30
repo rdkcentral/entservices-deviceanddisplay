@@ -102,9 +102,9 @@ std::int32_t getUploadLogParameters(string &tftp_server, string &upload_protocol
     }
 
     if (parseConfigFile(DEVICE_PROPERTIES,"FORCE_MTLS",force_mtls) ){
-        // Coverity Fix: ID 240 - Array compared against 0: Comparing string value, not pointer
+        // Coverity Fix: ID 240 - Array compared against 0
         if ( "true" == force_mtls ){
-            mTlsLogUpload = "true";
+            mTlsLogUpload = true;
         }
     }
 

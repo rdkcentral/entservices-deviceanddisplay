@@ -464,14 +464,15 @@ namespace WPEFramework {
 				// Send power request immediately to query power status of the AVR
 				// Coverity Fix: ID 229 - Data race: Protect timer start with mutex
 				 LOGINFO("[HDMI_ARC0] Starting the timer to check audio device power status after power on msg!!!\n");
-				 {
-				     std::lock_guard<std::mutex> lock(m_sendMsgMutex);
 				     m_AudioDevicePowerOnStatusTimer.start(AUDIO_DEVICE_POWER_TRANSITION_TIME_IN_MILLISECONDS);
-				 }
 			     } /*m_hdmiCecAudioDeviceDetected */
                              else {
+                                 // Coverity Fix: ID 229 - Data race: Protect m_AudioDeviceDetectTimer access with m_callMutex
                                  LOGINFO("Starting the timer to recheck audio device connection state after : %d ms\n", AUDIO_DEVICE_CONNECTION_CHECK_TIME_IN_MILLISECONDS);
-                                 m_AudioDeviceDetectTimer.start(AUDIO_DEVICE_CONNECTION_CHECK_TIME_IN_MILLISECONDS);
+                                 {
+                                     std::lock_guard<std::mutex> lock(m_callMutex);
+                                     m_AudioDeviceDetectTimer.start(AUDIO_DEVICE_CONNECTION_CHECK_TIME_IN_MILLISECONDS);
+                                 }
                              }
                             }
 			}
@@ -1596,8 +1597,7 @@ namespace WPEFramework {
                 if (isDisplayConnected(std::move(strVideoPort)))
                 {
                     vPort.getDisplay().getEDIDBytes(edidVec2);
-                    // Coverity Fix: ID 19 - COPY_INSTEAD_OF_MOVE: Use std::move() instead of copy
-                    edidVec = std::move(edidVec2);//edidVec must be "unknown" unless we successfully get to this line
+                    edidVec = edidVec2;//edidVec must be "unknown" unless we successfully get to this line
 
                     //convert to base64
                     uint16_t size = min(edidVec.size(), (size_t)numeric_limits<uint16_t>::max());
@@ -2173,7 +2173,7 @@ namespace WPEFramework {
             catch(const device::Exception& err)
             {
                 // Coverity Fix: ID 11 - COPY_INSTEAD_OF_MOVE
-                LOG_DEVICE_EXCEPTION1(std::move(string(audioPort)));
+                LOG_DEVICE_EXCEPTION1(std::move(audioPort));
                 success = false;
             }
             returnResponse(success);
@@ -2880,7 +2880,7 @@ namespace WPEFramework {
             catch(const device::Exception& err)
             {
                 // Coverity Fix: ID 12 - COPY_INSTEAD_OF_MOVE
-                LOG_DEVICE_EXCEPTION1(std::move(string(audioPort)));
+                LOG_DEVICE_EXCEPTION1(std::move(audioPort));
                 response["enable"] = false;
                 response["enhancerlevel"] = 0;
                 success = false;
@@ -3044,7 +3044,7 @@ namespace WPEFramework {
             {
                 // Coverity Fix: IDs 13-16 - COPY_INSTEAD_OF_MOVE
                 device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort(std::move(audioPort));
-                aPort.setMS12AudioProfileSetttingsOverride(audioProfileState,audioProfileName,audioProfileSettingsName, audioProfileSettingValue);
+                aPort.setMS12AudioProfileSetttingsOverride(std::move(audioProfileState), std::move(audioProfileName), std::move(audioProfileSettingsName), std::move(audioProfileSettingValue));
             }
             catch (const device::Exception& err)
             {
@@ -3610,7 +3610,8 @@ namespace WPEFramework {
         {   //sample servicemanager response:{"colorDepth":"10 Bit","success":true}
             LOGINFOMETHOD();
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : strVideoPort;
+            // Coverity Fix: ID 31 - COPY_INSTEAD_OF_MOVE: Use std::move for strVideoPort
+            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : std::move(strVideoPort);
             bool persist = parameters.HasLabel("persist") ? parameters["persist"].Boolean() : true;
 
             bool success = true;
@@ -3690,7 +3691,8 @@ namespace WPEFramework {
         {   //sample servicemanager response:{"success":true,"capabilities":["8 Bit","10 Bit","12 Bit","Auto"]}
             LOGINFOMETHOD();
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : strVideoPort;
+            // Coverity Fix: ID 32 - COPY_INSTEAD_OF_MOVE: Use std::move for strVideoPort
+            string videoDisplay = parameters.HasLabel("videoDisplay") ? parameters["videoDisplay"].String() : std::move(strVideoPort);
             vector<string> colorDepthCapabilities;
             try
             {
@@ -5066,7 +5068,10 @@ void DisplaySettings::sendMsgThread()
 			if ((m_hdmiInAudioDeviceConnected == false) && !(m_ArcDetectionTimer.isActive())) {
 			    // tinymix commad to detect eArc is failed, start the timer for 3 seconds
 			    LOGINFO("Starting timer to detect eArc for %d milli seconds", ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);
-		            m_ArcDetectionTimer.start(ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);
+		        {
+                    std::lock_guard<std::mutex> lock(m_callMutex);    
+                    m_ArcDetectionTimer.start(ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);
+                }
 			}
 		    }
                 }

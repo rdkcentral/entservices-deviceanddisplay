@@ -58,10 +58,6 @@ if(PLUGIN_DISPLAYSETTINGS)
     add_subdirectory(DisplaySettings)
 endif()
 
-if(PLUGIN_SYSTEMSERVICES)
-    add_subdirectory(SystemServices)
-endif()
-
 if(PLUGIN_POWERMANAGER)
     add_subdirectory(PowerManager)
 endif()

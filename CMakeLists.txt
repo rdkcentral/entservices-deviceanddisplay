@@ -66,10 +66,6 @@ if(PLUGIN_POWERMANAGER)
     add_subdirectory(PowerManager)
 endif()
 
-if(PLUGIN_USERPREFERENCES)
-    add_subdirectory(UserPreferences)
-endif()
-
 if(PLUGIN_FRAMERATE)
     add_subdirectory(FrameRate)
 endif()

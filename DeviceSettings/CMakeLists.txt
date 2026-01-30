@@ -51,7 +51,11 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DeviceSettingsFPDImplementation.cpp
     DeviceSettingsHdmiInImplementation.cpp
     fpd.cpp
-    HdmiIn.cpp)
+    HdmiIn.cpp
+    DSController.cpp
+    DSPwrEventListener.cpp
+    DSProductTraitsHandler.cpp
+    )
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}

@@ -78,8 +78,7 @@ using HDMIVideoAspectRatio     = DeviceSettingsHDMIIn::HDMIVideoAspectRatio;
 using HDMIInTVResolution       = DeviceSettingsHDMIIn::HDMIInTVResolution;
 using HDMIInVideoStereoScopicMode = DeviceSettingsHDMIIn::HDMIInVideoStereoScopicMode;
 using HDMIInVideoFrameRate     = DeviceSettingsHDMIIn::HDMIInVideoFrameRate;
-using IHDMIInPortConnectionStatusIterator = DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator;
-using IHDMIInGameFeatureListIterator      = DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator;
+using IHDMIInPortConnectionStatusIterator = DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator;using IHDMIInGameFeatureListIterator      = DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator;
 using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>;
 
 // FPD type aliases for convenience

@@ -41,8 +41,8 @@
 #include <interfaces/IDeviceSettingsVideoPort.h>
 
 
-#include "fpd.h"
-#include "HdmiIn.h"
+//#include "fpd.h"
+//#include "HdmiIn.h"
 
 #include "list.hpp"
 #include "DeviceSettingsTypes.h"
@@ -62,48 +62,8 @@ namespace Plugin {
         DeviceSettingsImp(const DeviceSettingsImp&)            = delete;
         DeviceSettingsImp& operator=(const DeviceSettingsImp&) = delete;
 
-    public:
-        class EXTERNAL LambdaJob : public Core::IDispatch {
-        protected:
-            LambdaJob(DeviceSettingsImp* impl, std::function<void()> lambda)
-                : _impl(impl)
-                , _lambda(std::move(lambda))
-            {
-            }
-
-        public:
-            LambdaJob()                            = delete;
-            LambdaJob(const LambdaJob&)            = delete;
-            LambdaJob& operator=(const LambdaJob&) = delete;
-            ~LambdaJob() {}
-
-            static Core::ProxyType<Core::IDispatch> Create(DeviceSettingsImp* impl, std::function<void()> lambda)
-            {
-                return (Core::ProxyType<Core::IDispatch>(Core::ProxyType<LambdaJob>::Create(impl, std::move(lambda))));
-            }
-
-            virtual void Dispatch()
-            {
-                _lambda();
-            }
-
-        private:
-            DeviceSettingsImp* _impl;
-            std::function<void()> _lambda;
-        };
-
-    public:
-        void DeviceManager_Init();
-        void InitializeIARM();
-
-        static DeviceSettingsImp* _instance;
-
-        
     private:
-        // lock to guard all apis of DeviceSettings
-        mutable Core::CriticalSection _apiLock;
-        // lock to guard all notification from DeviceSettings to clients and also their callback register & unregister
-        mutable Core::CriticalSection _callbackLock;
+        static DeviceSettingsImp* _instance;
     };
 } // namespace Plugin
 } // namespace WPEFramework

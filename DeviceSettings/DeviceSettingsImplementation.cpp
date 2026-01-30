@@ -20,6 +20,7 @@
 #include "DeviceSettingsImplementation.h"
 
 #include "UtilsLogging.h"
+#include "UtilsSearchRDKProfile.h"
 #include <syscall.h>
 
 using namespace std;
@@ -36,6 +37,11 @@ namespace Plugin {
         ENTRY_LOG;
         DeviceSettingsImp::_instance = this;
         LOGINFO("DeviceSettingsImp Constructor - Instance Address: %p", this);
+        
+        // Initialize profile type
+        profileType = searchRdkProfile();
+        LOGINFO("Initialized profileType: %d (0=STB, 1=TV)", profileType);
+        
         EXIT_LOG;
     }
 

@@ -59,6 +59,7 @@ namespace Plugin
         , mNotificationSink(this)
 
     {
+        ENTRY_LOG;
         #if (defined(RDK_LOGGER_ENABLED) || defined(DSMGR_LOGGER_ENABLED))
 
         const char* PdebugConfigFile = NULL;
@@ -79,11 +80,14 @@ namespace Plugin
 
 #endif
 
+        EXIT_LOG;
     }
 
     
     DeviceSettings::~DeviceSettings()
     {
+        ENTRY_LOG;
+        EXIT_LOG;
     }
     const string DeviceSettings::Initialize(PluginHost::IShell * service)
     {
@@ -185,7 +189,6 @@ namespace Plugin
         ENTRY_LOG;
         // No additional info to report.
         EXIT_LOG;
-
         return (string());
     }
 
@@ -203,8 +206,10 @@ namespace Plugin
 
     void DeviceSettings::CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId)
     {
+        ENTRY_LOG;
         // Add your handling code here, or leave empty if not needed
         LOGINFO("CallbackRevoked called for interfaceId %u", interfaceId);
+        EXIT_LOG;
     }
 
 } // namespace Plugin

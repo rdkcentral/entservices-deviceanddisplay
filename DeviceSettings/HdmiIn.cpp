@@ -36,11 +36,14 @@ HdmiIn::HdmiIn(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
+    ENTRY_LOG;
     Platform_init();
+    EXIT_LOG;
 }
 
 void HdmiIn::Platform_init()
 {
+    ENTRY_LOG;
     CallbackBundle bundle;
     bundle.OnHDMIInHotPlugEvent = [this](HDMIInPort port, bool isConnected) {
         this->OnHDMIInHotPlugEvent(port, isConnected);
@@ -70,46 +73,63 @@ void HdmiIn::Platform_init()
         this->platform().setAllCallbacks(bundle);
         this->platform().getPersistenceValue();
     }
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInEventHotPlugNotification(port, isConnected);
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInSignalStatusEvent(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInEventSignalStatusNotification(port, signalStatus);
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInStatusEvent(const HDMIInPort activePort, const bool isPresented)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInEventStatusNotification(activePort, isPresented);
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInVideoModeUpdateEvent(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInVideoModeUpdateNotification(port, videoPortResolution);
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInAllmStatusEvent(const HDMIInPort port, const bool allmStatus)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInAllmStatusNotification(port, allmStatus);
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInAVIContentTypeEvent(const HDMIInPort port, const HDMIInAviContentType aviContentType)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInAVIContentTypeNotification(port, aviContentType);
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInAVLatencyEvent(const int32_t audioDelay, const int32_t videoDelay)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInAVLatencyNotification(audioDelay, videoDelay);
+    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInVRRStatusEvent(const HDMIInPort port, const HDMIInVRRType vrrType)
 {
+    ENTRY_LOG;
     _parent.OnHDMIInVRRStatusNotification(port, vrrType);
+    EXIT_LOG;
 }
 
 uint32_t HdmiIn::GetHDMIInNumberOfInputs(int32_t &count) {

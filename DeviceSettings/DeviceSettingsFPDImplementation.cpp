@@ -133,8 +133,10 @@ namespace Plugin {
     // FPD notification implementation
     void DeviceSettingsFPDImpl::OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat)
     {
+        ENTRY_LOG;
         LOGINFO("OnFPDTimeFormatChanged event Received: timeFormat=%d", timeFormat);
         dispatchFPDEvent(&DeviceSettingsFPD::INotification::OnFPDTimeFormatChanged, timeFormat);
+        EXIT_LOG;
     }
 
     //Depricated

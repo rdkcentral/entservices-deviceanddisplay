@@ -133,50 +133,66 @@ namespace Plugin {
 
     void DeviceSettingsHdmiInImp::OnHDMIInEventHotPlugNotification(const HDMIInPort port, const bool isConnected)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInEventHotPlug event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInEventHotPlug, port, isConnected);
+        EXIT_LOG;
     }
 
     void DeviceSettingsHdmiInImp::OnHDMIInEventSignalStatusNotification(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInEventSignalStatus event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInEventSignalStatus, port, signalStatus);
+        EXIT_LOG;
     }
 
     void DeviceSettingsHdmiInImp::OnHDMIInAVLatencyNotification(const int32_t audioDelay, const int32_t videoDelay)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInAVLatency event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInAVLatency, audioDelay, videoDelay);
+        EXIT_LOG;
     }
 
     void DeviceSettingsHdmiInImp::OnHDMIInEventStatusNotification(const HDMIInPort activePort, const bool isPresented)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInEventStatus event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInEventStatus, activePort, isPresented);
+        EXIT_LOG;
     }
 
     void DeviceSettingsHdmiInImp::OnHDMIInVideoModeUpdateNotification(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInVideoModeUpdate event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInVideoModeUpdate, port, videoPortResolution);
+        EXIT_LOG;
     }
 
     void DeviceSettingsHdmiInImp::OnHDMIInAllmStatusNotification(const HDMIInPort port, const bool allmStatus)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInAllmStatus event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInAllmStatus, port, allmStatus);
+        EXIT_LOG;
     }
 
     void DeviceSettingsHdmiInImp::OnHDMIInAVIContentTypeNotification(const HDMIInPort port, const HDMIInAviContentType aviContentType)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInAVIContentType event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInAVIContentType, port, aviContentType);
+        EXIT_LOG;
     }
 
     void DeviceSettingsHdmiInImp::OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType)
     {
+        ENTRY_LOG;
         LOGINFO("OnHDMIInVRRStatus event Received");
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInVRRStatus, port, vrrType);
+        EXIT_LOG;
     }
 
     Core::hresult DeviceSettingsHdmiInImp::GetHDMIInNumbefOfInputs(int32_t &count) {

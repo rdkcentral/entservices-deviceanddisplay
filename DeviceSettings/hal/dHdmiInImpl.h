@@ -35,8 +35,17 @@
 #include "dsHdmiInTypes.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-#include "dsInternal.h"
+//#include "dsInternal.h"
 #include "dsRpc.h"
+
+// Forward declaration - profileType is defined in DeviceSettingsImplementation.cpp
+typedef enum profile {
+    NOT_FOUND = -1,
+    STB = 0,
+    TV,
+    MAX
+} profile_t;
+extern profile_t profileType;
 
 #include <WPEFramework/interfaces/IDeviceSettingsHDMIIn.h>
 #include "DeviceSettingsTypes.h"
@@ -70,9 +79,6 @@ public:
     dHdmiInImpl()
     {
         LOGINFO("dHdmiInImpl Constructor");
-        LOGINFO("HDMI version: %s", HdmiConnectionToStrMapping[0].name);
-        LOGINFO("HDMI version: %s", HdmiStatusToStrMapping[0].name);
-        LOGINFO("HDMI version: %s", HdmiVerToStrMapping[0].name);
         InitialiseHAL();
     }
 
@@ -85,9 +91,10 @@ public:
     void InitialiseHAL()
     {
         getDynamicAutoLatencyConfig();
-        profile_t profileType = searchRdkProfile();
+        // profileType is already initialized in DeviceSettingsImplementation.cpp
+        LOGINFO("profileType %d", profileType);
 
-        if (PROFILE_TV == profileType)
+        if (TV == profileType)
         {
             if (!m_hdmiInPlatInitialized)
             {
@@ -104,10 +111,11 @@ public:
 
     void DeInitialiseHAL()
     {
-        profile_t profileType = searchRdkProfile();
+        // profileType is already initialized in DeviceSettingsImplementation.cpp
+        LOGINFO("profileType %d", profileType);
         getDynamicAutoLatencyConfig();
 
-        if (PROFILE_TV == profileType)
+        if (TV == profileType)
         {
             if (m_hdmiInPlatInitialized)
             {
@@ -433,11 +441,10 @@ public:
     void setAllCallbacks(const CallbackBundle bundle) override
     {
         ENTRY_LOG;
-        profile_t profileType = searchRdkProfile();
         LOGINFO("setAllCallbacks: profileType %d", profileType);
         if (!m_hdmiInInitialized && m_hdmiInPlatInitialized) {
             LOGINFO("HdmiIn platform callback Initialization");
-            if (PROFILE_TV == profileType)
+            if (TV == profileType)
             {
                 LOGINFO("setAllCallbacks: its TV Profile");
                 if (bundle.OnHDMIInHotPlugEvent) {
@@ -639,6 +646,7 @@ public:
         LOGINFO("Set Callbacks");
     }
 
+    #if 0
     profile_t searchRdkProfile(void) {
         LOGINFO("Entering searchRdkProfile");
         const char* devPropPath = "/etc/device.properties";
@@ -679,6 +687,7 @@ public:
         LOGINFO("Exit searchRdkProfile: RDK_PROFILE = %d", ret);
         return ret;
     }
+    #endif
 
     void getDynamicAutoLatencyConfig()
     {

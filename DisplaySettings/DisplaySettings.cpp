@@ -1632,8 +1632,7 @@ namespace WPEFramework {
             {
                 vector<unsigned char> edidVec2;
                 device::Host::getInstance().getHostEDID(edidVec2);
-                // Coverity Fix: ID 20 - COPY_INSTEAD_OF_MOVE: Use std::move() instead of copy
-                edidVec = std::move(edidVec2);//edidVec must be "unknown" unless we successfully get to this line
+                edidVec = edidVec2;//edidVec must be "unknown" unless we successfully get to this line
                 LOGINFO("getHostEDID size is %d.", int(edidVec2.size()));
             }
             catch (const device::Exception& err)
@@ -1656,7 +1655,7 @@ namespace WPEFramework {
             LOGINFOMETHOD();
 
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();
-            // Coverity Fix: ID 21 - COPY_INSTEAD_OF_MOVE: Use std::move for string assignment
+            // Coverity Fix: ID 20 - COPY_INSTEAD_OF_MOVE: Use std::move for string assignment
             string videoDisplay = parameters.HasLabel("videoDisplay") ? std::move(parameters["videoDisplay"].String()) : std::move(strVideoPort);
             bool active = true;
             try
@@ -5065,13 +5064,12 @@ void DisplaySettings::sendMsgThread()
 				LOGINFO("arc already enabled m_arcEarcAudioEnabled =%d", m_arcEarcAudioEnabled);
 			}
                     } else {
+                        std::lock_guard<std::mutex> lock(m_callMutex);
 			if ((m_hdmiInAudioDeviceConnected == false) && !(m_ArcDetectionTimer.isActive())) {
 			    // tinymix commad to detect eArc is failed, start the timer for 3 seconds
-			    LOGINFO("Starting timer to detect eArc for %d milli seconds", ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);
-		        {
-                    std::lock_guard<std::mutex> lock(m_callMutex);    
+			    LOGINFO("Starting timer to detect eArc for %d milli seconds", ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);    
                     m_ArcDetectionTimer.start(ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);
-                }
+                
 			}
 		    }
                 }

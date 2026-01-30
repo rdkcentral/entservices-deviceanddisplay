@@ -4273,9 +4273,8 @@ namespace WPEFramework {
             JsonObject paramIn, paramOut;
 
             if (parameters.HasLabel("powerState")) {
-                // Coverity Fix: IDs 51-52 - COPY_INSTEAD_OF_MOVE: Use std::move for parameter strings
-                string state  = std::move(parameters["powerState"].String());
-                string reason = std::move(parameters["standbyReason"].String());
+                string state  = parameters["powerState"].String();
+                string reason = parameters["standbyReason"].String();
                 /* Power state defaults standbyReason is "application". */
                 reason = ((reason.length()) ? reason : "application");
                 LOGINFO("SystemServices::setDevicePowerState state: %s, reason: %s\n", state.c_str(), reason.c_str());
@@ -4285,9 +4284,9 @@ namespace WPEFramework {
                     sleepMode = mode.toString();
                     LOGWARN("Output of getPreferredSleepMode: '%s'", sleepMode.c_str());
 
-                    // Coverity Fix: IDs 32-33 - COPY_INSTEAD_OF_MOVE
+                    // Coverity Fix: IDs 32-33, 51 - COPY_INSTEAD_OF_MOVE
                     if (convert("DEEP_SLEEP", sleepMode)) {
-                        retVal = setPowerState(sleepMode);
+                        retVal = setPowerState(std::move(sleepMode));
                     } else {
                         retVal = setPowerState(state);
                     }
@@ -4304,7 +4303,7 @@ namespace WPEFramework {
                 } else {
                     retVal = setPowerState(state);
                 }
-                // Coverity Fix: ID 17 - COPY_INSTEAD_OF_MOVE: Move to m_current_state
+                // Coverity Fix: ID 52. 17 - COPY_INSTEAD_OF_MOVE: Move to m_current_state
                 m_current_state = std::move(state);
             } else {
                 populateResponseWithError(SysSrv_MissingKeyValues, response);

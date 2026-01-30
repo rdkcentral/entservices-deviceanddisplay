@@ -220,7 +220,7 @@ namespace WPEFramework {
             bool status = false;
             // Coverity Fix: IDs 21, 42, 61 - COPY_INSTEAD_OF_MOVE: Use std::move for return value
             string firmware = convertCase(std::move(firm));
-            string str = firmware;
+            string str = firmware.c_str();
             size_t found = str.find(str3);
             if (found != string::npos) {
                 status = true;

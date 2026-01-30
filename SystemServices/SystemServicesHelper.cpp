@@ -211,7 +211,7 @@ namespace WPEFramework {
             LOGWARN("%s: after transform to upper :%s\n", __FUNCTION__,
                     bufferString.c_str());
             // Coverity Fix: ID 41 - COPY_INSTEAD_OF_MOVE
-            return std::move(bufferString);
+            return bufferString;
         }
 
         bool convert(string str3, string firm)

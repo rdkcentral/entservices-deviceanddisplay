@@ -31,7 +31,6 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-deviceanddisplay \
 -DPLUGIN_USERPREFERENCES=ON \
 -DPLUGIN_DEVICEDIAGNOSTICS=ON \
 -DPLUGIN_FRAMERATE=ON \
--DPLUGIN_SYSTEMSERVICES=ON \
 -DCMAKE_CXX_FLAGS="-DEXCEPTIONS_ENABLE=ON \
 -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers \
 -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers/audiocapturemgr \

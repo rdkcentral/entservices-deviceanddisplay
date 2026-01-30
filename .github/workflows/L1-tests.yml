@@ -478,7 +478,6 @@ jobs:
           -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_POWERMANAGER=ON
-          -DPLUGIN_SYSTEMSERVICES=ON
           &&
           cmake --build build/entservices-deviceanddisplay
           &&
@@ -555,7 +554,6 @@ jobs:
           -DUSE_DEVICESETTINGS=ON
           -DBUILD_RPI=ON
           -DHAS_FRONT_PANEL=ON
-          -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_DEVICEINFO=ON
           -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_FRAMERATE=ON

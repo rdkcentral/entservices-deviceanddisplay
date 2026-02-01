@@ -1720,7 +1720,7 @@ namespace WPEFramework {
         bool write_parameters(const string &filename, const string &param, bool value, bool &update, bool &oldBlocklistFlag) {
             ifstream file_in(filename);
             vector<string> lines;
-            bool param_found = false, status = false;
+            bool param_found = false;
         
             // If file exists, read its content line by line
             if (file_in.is_open()) {

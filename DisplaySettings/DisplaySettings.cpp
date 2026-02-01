@@ -5065,7 +5065,7 @@ void DisplaySettings::sendMsgThread()
 				LOGINFO("arc already enabled m_arcEarcAudioEnabled =%d", m_arcEarcAudioEnabled);
 			}
                     } else {
-                        std::lock_guard<std::mutex> lock(m_callMutex);
+                        //std::lock_guard<std::mutex> lock(m_callMutex); // removed for testing
 			if ((m_hdmiInAudioDeviceConnected == false) && !(m_ArcDetectionTimer.isActive())) {
 			    // tinymix commad to detect eArc is failed, start the timer for 3 seconds
 			    LOGINFO("Starting timer to detect eArc for %d milli seconds", ARC_DETECTION_CHECK_TIME_IN_MILLISECONDS);    

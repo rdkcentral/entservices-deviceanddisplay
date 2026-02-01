@@ -300,11 +300,10 @@ bool PlatformCapsData::CanMixPCMWithSurround() {
   try {
     device::List<device::VideoOutputPort> vPorts =
         device::Host::getInstance().getVideoOutputPorts();
-    // Coverity Fix: ID 589 - Structurally dead code: Loop only processes first element then breaks
-    for (size_t i = 0; i < vPorts.size(); i++) {
-      device::AudioOutputPort &aPort = vPorts.at(i).getAudioOutputPort();
+    // Coverity Fix: ID 589 - Structurally dead code: Remove pointless loop
+    if (vPorts.size() > 0) {
+      device::AudioOutputPort &aPort = vPorts.at(0).getAudioOutputPort();
       result = aPort.isAudioMSDecode();
-      break;
     }
   } catch (...) {
     result = false;

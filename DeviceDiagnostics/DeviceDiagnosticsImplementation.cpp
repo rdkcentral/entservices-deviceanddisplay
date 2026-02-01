@@ -75,10 +75,7 @@ namespace WPEFramework
                 return;
             }
 
-            // Coverity Fix: ID 1 - Data race condition: Protect m_pollThreadRun write with mutex
-            m_AVDecoderStatusLock.lock();
             m_pollThreadRun = 1;
-            m_AVDecoderStatusLock.unlock();
             m_AVPollThread = std::thread(AVPollThread, this);
 #else
             LOGWARN("ENABLE_ERM is not defined, decoder status will "

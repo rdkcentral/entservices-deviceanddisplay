@@ -1597,7 +1597,8 @@ namespace WPEFramework {
                 if (isDisplayConnected(std::move(strVideoPort)))
                 {
                     vPort.getDisplay().getEDIDBytes(edidVec2);
-                    edidVec = edidVec2;//edidVec must be "unknown" unless we successfully get to this line
+                    // Coverity Fix: ID 19 - COPY_INSTEAD_OF_MOVE
+                    edidVec = std::move(edidVec2);//edidVec must be "unknown" unless we successfully get to this line
 
                     //convert to base64
                     uint16_t size = min(edidVec.size(), (size_t)numeric_limits<uint16_t>::max());

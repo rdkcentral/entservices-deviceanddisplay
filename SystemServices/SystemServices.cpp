@@ -1770,19 +1770,17 @@ namespace WPEFramework {
         
             // Rewrite the entire file with updated values
             ofstream file_out(filename);
-            if (!file_out.is_open()) {
-                LOGERR("Error opening file for writing:%s ", filename.c_str());
-                status = false;
+            if (!file_out) {
+                LOGERR("Error opening file for writing: %s", filename.c_str());
+                return false;
             }
         
-            for (const string &line : lines) {
-                file_out << line << endl;
+            for (const auto &line : lines) {
+                file_out << line << '\n';
             }
-            // Coverity Fix: ID 592 - Unused value: Removed redundant status=true, already handled by return logic
         
-            file_out.close();
-            LOGINFO("%s flag stored successfully in persistent memory. status= %d, update=%d, oldBlocklistFlag=%d", param.c_str(), status, update, oldBlocklistFlag);
-            return status;
+            LOGINFO("%s flag stored successfully in persistent memory. update=%d, oldBlocklistFlag=%d", param.c_str(), update, oldBlocklistFlag);
+            return true;
         }
         
         // Function to read a parameter from a file and update its value

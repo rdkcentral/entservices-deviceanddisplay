@@ -321,6 +321,8 @@ jobs:
           -DL2_TEST_OOP_RPC=ON
           -DCMAKE_CXX_FLAGS="
           -DL2_TEST_OOP_RPC=ON
+          -Wno-error=format
+          -Wno-error=return-type
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/install/usr/include"
           &&

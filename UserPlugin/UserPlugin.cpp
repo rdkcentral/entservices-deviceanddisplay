@@ -539,7 +539,19 @@ namespace Plugin {
         // Use HDMI In Manager interface directly
         DeviceSettingsHDMIIn* hdmiIn = _hdmiInManager;
 
-        uint32_t result = 0;
+        // Switch to HDMI In port 0 before starting tests
+        LOGINFO("---------- Switching to HDMI In Port 0 for Testing ----------");
+        uint32_t result = hdmiIn->SelectHDMIInPort(HDMIInPort::DS_HDMI_IN_PORT_0, true, true, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("Successfully switched to HDMI In Port 0 for testing");
+        } else {
+            LOGWARN("Failed to switch to HDMI In Port 0, continuing with tests anyway. Result: %u", result);
+        }
+
+        // Brief delay to allow port switch to complete
+        usleep(1000000); // 1 second delay
+
+        result = 0;
         for (auto port : testPorts) {
             LOGINFO("---------- Testing HDMI In Port: %d ----------", static_cast<int>(port));
 
@@ -755,6 +767,20 @@ namespace Plugin {
         // No need to release _hdmiInManager as it's managed by the class
 
         LOGINFO("========== HDMI In Methods Testing Completed ==========");
+        
+        // Switch back to TV mode after all HDMI In tests are completed
+        LOGINFO("---------- Switching back to TV mode after HDMI In testing ----------");
+        
+        // Deselect HDMI In port to return to TV/Tuner mode
+        result = hdmiIn->SelectHDMIInPort(HDMIInPort::DS_HDMI_IN_PORT_NONE, false, false, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("Successfully switched back to TV mode from HDMI In Port 0");
+        } else {
+            LOGWARN("Failed to switch back to TV mode, manual intervention may be required. Result: %u", result);
+        }
+        
+        // Brief delay to allow the switch back to complete
+        usleep(500000); // 500ms delay
     }
 
     // HDMI In Event Handler Implementations

@@ -538,10 +538,11 @@ namespace WPEFramework {
 		{
 			std::lock_guard<std::mutex> lock(m_callMutex);
             m_AudioDeviceDetectTimer.connect(std::bind(&DisplaySettings::checkAudioDeviceDetectionTimer, this));
-		}	
+			
             m_ArcDetectionTimer.connect(std::bind(&DisplaySettings::checkArcDeviceConnected, this));
             m_SADDetectionTimer.connect(std::bind(&DisplaySettings::checkSADUpdate, this));
 	    m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
+		}	
 
             InitializePowerManager();
             try

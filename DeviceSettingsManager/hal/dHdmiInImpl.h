@@ -38,8 +38,8 @@
 #include "dsInternal.h"
 #include "dsRpc.h"
 
-#include <WPEFramework/interfaces/IDeviceSettingsHDMIIn.h>
-#include "DeviceSettingsTypes.h"
+#include <WPEFramework/interfaces/IDeviceSettingsManager.h>
+#include "DeviceSettingsManagerTypes.h"
 
 static int m_hdmiInInitialized = 0;
 static int m_hdmiInPlatInitialized = 0;
@@ -51,14 +51,14 @@ static bool m_hdmiPortVrrCaps[dsHDMI_IN_PORT_MAX];
 
 static tv_hdmi_edid_version_t m_edidversion[dsHDMI_IN_PORT_MAX];
 
-static std::function<void(DeviceSettingsHDMIIn::HDMIInPort, bool)> g_HdmiInHotPlugCallback;
-static std::function<void(DeviceSettingsHDMIIn::HDMIInPort, DeviceSettingsHDMIIn::HDMIInSignalStatus)> g_HdmiInSignalStatusCallback;
-static std::function<void(DeviceSettingsHDMIIn::HDMIInPort, DeviceSettingsHDMIIn::HDMIVideoPortResolution)> g_HdmiInVideoModeUpdateCallback;
-static std::function<void(DeviceSettingsHDMIIn::HDMIInPort, bool)> g_HdmiInAllmStatusCallback;
-static std::function<void(DeviceSettingsHDMIIn::HDMIInPort, DeviceSettingsHDMIIn::HDMIInAviContentType)> g_HdmiInAviContentTypeCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, bool)> g_HdmiInHotPlugCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIInSignalStatus)> g_HdmiInSignalStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution)> g_HdmiInVideoModeUpdateCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, bool)> g_HdmiInAllmStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIInAviContentType)> g_HdmiInAviContentTypeCallback;
 static std::function<void(int32_t, int32_t)> g_HdmiInAVLatencyCallback;
-static std::function<void(DeviceSettingsHDMIIn::HDMIInPort, DeviceSettingsHDMIIn::HDMIInVRRType)> g_HdmiInVRRStatusCallback;
-static std::function<void(DeviceSettingsHDMIIn::HDMIInPort, bool)> g_HdmiInStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, DeviceSettingsManagerHDMIIn::HDMIInVRRType)> g_HdmiInVRRStatusCallback;
+static std::function<void(DeviceSettingsManagerHDMIIn::HDMIInPort, bool)> g_HdmiInStatusCallback;
 
 class dHdmiInImpl : public hal::dHdmiIn::IPlatform {
 
@@ -137,7 +137,7 @@ public:
 
     bool getHdmiInPortPersistValue(const std::string& propertyName, int portIndex) {
         try {
-            // Use HostPersistence from DeviceSettingsTypes.h with default value support
+            // Use HostPersistence from DeviceSettingsManagerTypes.h with default value support
             std::string value = device::HostPersistence::getInstance().getProperty(propertyName, "TRUE");
             bool support = (value == "TRUE");
             LOGINFO("Port property %s: Value: %s, Parsed: %d", propertyName.c_str(), value.c_str(), support);
@@ -751,7 +751,7 @@ public:
     {
         LOGINFO("DS_OnHDMIInHotPlugEvent event Received: port=%d, isConnected=%s", port, isConnected ? "true" : "false");
         if (g_HdmiInHotPlugCallback) {
-            g_HdmiInHotPlugCallback(static_cast<DeviceSettingsHDMIIn::HDMIInPort>(port), isConnected);
+            g_HdmiInHotPlugCallback(static_cast<DeviceSettingsManagerHDMIIn::HDMIInPort>(port), isConnected);
         }
     }
 
@@ -816,7 +816,7 @@ public:
         }
     }
 
-    virtual uint32_t GetHDMIInNumberOfInputs(int32_t &count) override
+    virtual uint32_t GetHDMIInNumbefOfInputs(int32_t &count) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         uint8_t NumberofInputs = 0;
@@ -825,7 +825,7 @@ public:
             count = static_cast<int32_t>(NumberofInputs);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
-        LOGINFO("GetHDMIInNumberOfInputs: count=%d, retCode=%d", count, retCode);
+        LOGINFO("GetHDMIInNumbefOfInputs: count=%d, retCode=%d", count, retCode);
         return retCode;
     }
 
@@ -905,7 +905,7 @@ public:
     uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        dsSupportedGameFeatureList_t fList;
+        /*dsSupportedGameFeatureList_t fList;
 
         // Initialize the structure
         memset(&fList, 0, sizeof(fList));
@@ -919,7 +919,7 @@ public:
 
             try {
                 // Parse the comma-separated game features string
-                std::vector<DeviceSettingsHDMIIn::HDMIInGameFeatureList> features;
+                std::vector<DeviceSettingsManagerHDMIIn::HDMIInGameFeatureList> features;
 
                 if (strlen(fList.gameFeatureList) > 0) {
                     std::string featureStr(fList.gameFeatureList);
@@ -933,7 +933,7 @@ public:
                         feature.erase(std::remove(feature.begin(), feature.end(), ' '), feature.end());
 
                         if (!feature.empty()) {
-                            DeviceSettingsHDMIIn::HDMIInGameFeatureList gameFeature;
+                            DeviceSettingsManagerHDMIIn::HDMIInGameFeatureList gameFeature;
                             gameFeature.gameFeature = feature;
                             features.push_back(gameFeature);
                             LOGINFO("GetSupportedGameFeaturesList: Added feature: '%s'", feature.c_str());
@@ -968,7 +968,7 @@ public:
         } else {
             LOGERR("GetSupportedGameFeaturesList: dsGetSupportedGameFeaturesList failed with error: %d", dsResult);
             gameFeatureList = nullptr;
-        }
+        }*/
 
         return retCode;
     }

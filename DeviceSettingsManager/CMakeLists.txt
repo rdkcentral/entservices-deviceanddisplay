@@ -15,12 +15,12 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-set(PLUGIN_NAME DeviceSettings)
+set(PLUGIN_NAME DeviceSettingsManager)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Imp)
 
-set(PLUGIN_DEVICESETTINGS_AUTOSTART "true" CACHE STRING "Automatically start DeviceSettings plugin")
-set(PLUGIN_DEVICESETTINGS_STARTUPORDER "30" CACHE STRING "To configure startup order of DeviceSettings plugin")
+set(PLUGIN_DEVICESETTINGS_AUTOSTART "true" CACHE STRING "Automatically start DeviceSettingsManager plugin")
+set(PLUGIN_DEVICESETTINGS_STARTUPORDER "30" CACHE STRING "To configure startup order of DeviceSettingsManager plugin")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -31,7 +31,12 @@ find_library(PROCPS_LIBRARIES NAMES procps)
 
 add_library(${MODULE_NAME} SHARED
     Module.cpp
-    DeviceSettings.cpp)
+    DeviceSettingsManager.cpp
+)
+
+#add_executable(${MODULE_NAME}
+#    Module.cpp
+#    DeviceSettingsManager.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
@@ -47,11 +52,22 @@ install(TARGETS ${MODULE_NAME}
 
 add_library(${PLUGIN_IMPLEMENTATION} SHARED
     Module.cpp
-    DeviceSettingsImplementation.cpp
-    DeviceSettingsFPDImplementation.cpp
-    DeviceSettingsHdmiInImplementation.cpp
+    DeviceSettingsManagerImp.cpp
+    DeviceSettingsManagerFPD.cpp
+    DeviceSettingsManagerHDMIIn.cpp
+    DeviceSettingsManagerAudio.cpp
     fpd.cpp
-    HdmiIn.cpp)
+    HdmiIn.cpp
+    Audio.cpp
+)
+
+#add_executable(${PLUGIN_IMPLEMENTATION}
+#    Module.cpp
+#    DeviceSettingsManagerImp.cpp
+#    fpd.cpp
+#    HdmiIn.cpp
+#    Audio.cpp
+#)
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}

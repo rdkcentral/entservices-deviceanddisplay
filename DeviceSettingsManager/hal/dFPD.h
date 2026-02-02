@@ -27,8 +27,8 @@
 #include "rfcapi.h"
 
 #include <core/Portability.h>
-#include <WPEFramework/interfaces/IDeviceSettingsFPD.h>
-#include "DeviceSettingsTypes.h"
+#include <WPEFramework/interfaces/IDeviceSettingsManager.h>
+#include "DeviceSettingsManagerTypes.h"
 
 #include "UtilsLogging.h"
 #include <cstdint>

@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstdio>
 #include "dFPD.h"
+#include "DeviceSettingsManagerTypes.h"
 #include "dsHdmiIn.h"
 #include "dsError.h"
 #include "dsHdmiInTypes.h"
@@ -33,8 +34,7 @@
 #include "dsFPDTypes.h"
 #include "UtilsLogging.h"
 
-#include <WPEFramework/interfaces/IDeviceSettingsFPD.h>
-#include "DeviceSettingsTypes.h"
+#include <WPEFramework/interfaces/IDeviceSettingsManager.h>
 
 #define RDK_DSHAL_NAME "libds-hal.so"
 

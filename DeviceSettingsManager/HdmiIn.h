@@ -30,8 +30,8 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-#include <interfaces/IDeviceSettingsHDMIIn.h>
-#include "DeviceSettingsTypes.h"
+#include <interfaces/IDeviceSettingsManager.h>
+#include "DeviceSettingsManagerTypes.h"
 
 #include "exception.hpp"
 #include "manager.hpp"
@@ -61,7 +61,7 @@ public:
 
     void Platform_init();
 
-    uint32_t GetHDMIInNumberOfInputs(int32_t &count);
+    uint32_t GetHDMIInNumbefOfInputs(int32_t &count);
     uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);
     uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType);
     uint32_t ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition);

@@ -33,7 +33,7 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-#include <interfaces/IDeviceSettingsFPD.h>
+#include <interfaces/IDeviceSettingsManager.h>
 
 #include "dsMgr.h"
 #include "dsUtl.h"
@@ -44,7 +44,7 @@
 
 #include "hal/dFPD.h"
 #include "hal/dFPDImpl.h"
-#include "DeviceSettingsTypes.h"
+#include "DeviceSettingsManagerTypes.h"
 
 class FPD {
     using IPlatform = hal::dFPD::IPlatform;

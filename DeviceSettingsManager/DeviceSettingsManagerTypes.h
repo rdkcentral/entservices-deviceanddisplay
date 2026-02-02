@@ -30,26 +30,24 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <interfaces/IDeviceSettingsAudio.h>
-#include <interfaces/IDeviceSettingsCompositeIn.h>
-#include <interfaces/IDeviceSettingsDisplay.h>
-#include <interfaces/IDeviceSettingsFPD.h>
-#include <interfaces/IDeviceSettingsHDMIIn.h>
-#include <interfaces/IDeviceSettingsHost.h>
-#include <interfaces/IDeviceSettingsVideoDevice.h>
-#include <interfaces/IDeviceSettingsVideoPort.h>
+#include <interfaces/IDeviceSettingsManager.h>
 
+// Include DeviceSettings headers for types like StereoMode
+#include "rdk/halif/ds-hal/dsAudio.h"
+#include "rdk/halif/ds-hal/dsTypes.h"
+
+// Note: USE_LEGACY_INTERFACE should be defined via build system if needed
 #define USE_LEGACY_INTERFACE
 
 #ifdef USE_LEGACY_INTERFACE
-using DeviceSettingsFPD            = WPEFramework::Exchange::IDeviceSettingsFPD;
-using DeviceSettingsHDMIIn         = WPEFramework::Exchange::IDeviceSettingsHDMIIn;
-using DeviceSettingsCompositeIn    = WPEFramework::Exchange::IDeviceSettingsCompositeIn;
-using DeviceSettingsAudio          = WPEFramework::Exchange::IDeviceSettingsAudio;
-using DeviceSettingsVideoDevice    = WPEFramework::Exchange::IDeviceSettingsVideoDevice;
-using DeviceSettingsDisplay        = WPEFramework::Exchange::IDeviceSettingsDisplay;
-using DeviceSettingsHost           = WPEFramework::Exchange::IDeviceSettingsHost;
-using DeviceSettingsVideoPort      = WPEFramework::Exchange::IDeviceSettingsVideoPort;
+using DeviceSettingsManagerFPD            = WPEFramework::Exchange::IDeviceSettingsManagerFPD;
+using DeviceSettingsManagerHDMIIn         = WPEFramework::Exchange::IDeviceSettingsManagerHDMIIn;
+using DeviceSettingsManagerCompositeIn    = WPEFramework::Exchange::IDeviceSettingsManagerCompositeIn;
+using DeviceSettingsManagerAudio          = WPEFramework::Exchange::IDeviceSettingsManagerAudio;
+using DeviceSettingsManagerVideoDevice    = WPEFramework::Exchange::IDeviceSettingsManagerVideoDevice;
+using DeviceSettingsManagerDisplay        = WPEFramework::Exchange::IDeviceSettingsManagerDisplay;
+using DeviceSettingsManagerHost           = WPEFramework::Exchange::IDeviceSettingsManagerHost;
+using DeviceSettingsManagerVideoPort      = WPEFramework::Exchange::IDeviceSettingsManagerVideoPort;
 #else
 using DeviceSettingsManagerFPD            = WPEFramework::Exchange::IDeviceSettingsManager::IFPD;
 using DeviceSettingsManagerHDMIIn         = WPEFramework::Exchange::IDeviceSettingsManager::IHDMIIn;
@@ -62,33 +60,46 @@ using DeviceSettingsManagerVideoPort      = WPEFramework::Exchange::IDeviceSetti
 #endif
 
 // HDMI In type aliases for convenience
-using HDMIInPort               = DeviceSettingsHDMIIn::HDMIInPort;
-using HDMIInSignalStatus       = DeviceSettingsHDMIIn::HDMIInSignalStatus;
-using HDMIVideoPortResolution  = DeviceSettingsHDMIIn::HDMIVideoPortResolution;
-using HDMIInAviContentType     = DeviceSettingsHDMIIn::HDMIInAviContentType;
-using HDMIInVRRType            = DeviceSettingsHDMIIn::HDMIInVRRType;
-using HDMIInStatus             = DeviceSettingsHDMIIn::HDMIInStatus;
-using HDMIVideoPlaneType       = DeviceSettingsHDMIIn::HDMIVideoPlaneType;
-using HDMIInVRRStatus          = DeviceSettingsHDMIIn::HDMIInVRRStatus;
-using HDMIInCapabilityVersion  = DeviceSettingsHDMIIn::HDMIInCapabilityVersion;
-using HDMIInEdidVersion        = DeviceSettingsHDMIIn::HDMIInEdidVersion;
-using HDMIInVideoZoom          = DeviceSettingsHDMIIn::HDMIInVideoZoom;
-using HDMIInVideoRectangle     = DeviceSettingsHDMIIn::HDMIInVideoRectangle;
-using HDMIVideoAspectRatio     = DeviceSettingsHDMIIn::HDMIVideoAspectRatio;
-using HDMIInTVResolution       = DeviceSettingsHDMIIn::HDMIInTVResolution;
-using HDMIInVideoStereoScopicMode = DeviceSettingsHDMIIn::HDMIInVideoStereoScopicMode;
-using HDMIInVideoFrameRate     = DeviceSettingsHDMIIn::HDMIInVideoFrameRate;
-using IHDMIInPortConnectionStatusIterator = DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator;
-using IHDMIInGameFeatureListIterator      = DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator;
-using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>;
+using HDMIInPort               = DeviceSettingsManagerHDMIIn::HDMIInPort;
+using HDMIInSignalStatus       = DeviceSettingsManagerHDMIIn::HDMIInSignalStatus;
+using HDMIVideoPortResolution  = DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution;
+using HDMIInAviContentType     = DeviceSettingsManagerHDMIIn::HDMIInAviContentType;
+using HDMIInVRRType            = DeviceSettingsManagerHDMIIn::HDMIInVRRType;
+using HDMIInStatus             = DeviceSettingsManagerHDMIIn::HDMIInStatus;
+using HDMIVideoPlaneType       = DeviceSettingsManagerHDMIIn::HDMIVideoPlaneType;
+using HDMIInVRRStatus          = DeviceSettingsManagerHDMIIn::HDMIInVRRStatus;
+using HDMIInCapabilityVersion  = DeviceSettingsManagerHDMIIn::HDMIInCapabilityVersion;
+using HDMIInEdidVersion        = DeviceSettingsManagerHDMIIn::HDMIInEdidVersion;
+using HDMIInVideoZoom          = DeviceSettingsManagerHDMIIn::HDMIInVideoZoom;
+using HDMIInVideoRectangle     = DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle;
+using HDMIVideoAspectRatio     = DeviceSettingsManagerHDMIIn::HDMIVideoAspectRatio;
+using HDMIInTVResolution       = DeviceSettingsManagerHDMIIn::HDMIInTVResolution;
+using HDMIInVideoStereoScopicMode = DeviceSettingsManagerHDMIIn::HDMIInVideoStereoScopicMode;
+using HDMIInVideoFrameRate     = DeviceSettingsManagerHDMIIn::HDMIInVideoFrameRate;
+using IHDMIInPortConnectionStatusIterator = DeviceSettingsManagerHDMIIn::IHDMIInPortConnectionStatusIterator;
+using IHDMIInGameFeatureListIterator      = DeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator;
+using GameFeatureListIteratorImpl = WPEFramework::Core::Service<IHDMIInGameFeatureListIterator>;
 
 // FPD type aliases for convenience
-using FPDTimeFormat = DeviceSettingsFPD::FPDTimeFormat;
-using FPDIndicator = DeviceSettingsFPD::FPDIndicator;
-using FPDState = DeviceSettingsFPD::FPDState;
-using FPDTextDisplay = DeviceSettingsFPD::FPDTextDisplay;
-using FPDMode = DeviceSettingsFPD::FPDMode;
-using FDPLEDState = DeviceSettingsFPD::FDPLEDState;
+using FPDTimeFormat = DeviceSettingsManagerFPD::FPDTimeFormat;
+using FPDIndicator = DeviceSettingsManagerFPD::FPDIndicator;
+using FPDState = DeviceSettingsManagerFPD::FPDState;
+using FPDTextDisplay = DeviceSettingsManagerFPD::FPDTextDisplay;
+using FPDMode = DeviceSettingsManagerFPD::FPDMode;
+using FDPLEDState = DeviceSettingsManagerFPD::FDPLEDState;
+
+using AudioPortType = DeviceSettingsManagerAudio::AudioPortType;
+using AudioFormat = DeviceSettingsManagerAudio::AudioFormat;
+using DolbyAtmosCapability = DeviceSettingsManagerAudio::DolbyAtmosCapability;
+using AudioPortState = DeviceSettingsManagerAudio::AudioPortState;
+using StereoModes = DeviceSettingsManagerAudio::StereoModes; // Conflicts with dsAVDTypes.h - use fully qualified names
+using AudioARCStatus = DeviceSettingsManagerAudio::AudioARCStatus;
+using AudioDuckingType = DeviceSettingsManagerAudio::AudioDuckingType;
+using AudioDuckingAction = DeviceSettingsManagerAudio::AudioDuckingAction;
+using AudioEncoding = DeviceSettingsManagerAudio::AudioEncoding;
+using AudioCompression = DeviceSettingsManagerAudio::AudioCompression;
+using VolumeLeveller = DeviceSettingsManagerAudio::VolumeLeveller;
+using SurroundVirtualizer = DeviceSettingsManagerAudio::SurroundVirtualizer;
 
 // Common constants
 #define API_VERSION_MAJOR 1
@@ -328,5 +339,17 @@ struct CallbackBundle {
     std::function<void(HDMIInPort, HDMIInAviContentType)> OnHDMIInAVIContentTypeEvent;
     std::function<void(int32_t, int32_t)> OnHDMIInAVLatencyEvent;
     std::function<void(HDMIInPort, HDMIInVRRType)> OnHDMIInVRRStatusEvent;
+    
+    // Audio callbacks
+    std::function<void(bool)> OnAssociatedAudioMixingChangedEvent;
+    std::function<void(int32_t)> OnAudioFaderControlChangedEvent;
+    std::function<void(const string&)> OnAudioPrimaryLanguageChangedEvent;
+    std::function<void(const string&)> OnAudioSecondaryLanguageChangedEvent;
+    std::function<void(AudioPortType, uint32_t, bool)> OnAudioOutHotPlugEvent;
+    std::function<void(AudioFormat)> OnAudioFormatUpdateEvent;
+    std::function<void(DolbyAtmosCapability, bool)> OnDolbyAtmosCapabilitiesChangedEvent;
+    std::function<void(AudioPortState)> OnAudioPortStateChangedEvent;
+    std::function<void(AudioPortType, StereoModes)> OnAudioModeEvent;
+    std::function<void(int32_t)> OnAudioLevelChangedEvent;
     // Add other callbacks as needed
 };

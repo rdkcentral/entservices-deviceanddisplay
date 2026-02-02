@@ -1344,8 +1344,8 @@ namespace Plugin {
 
                 // 14. Test EnableARC with get-set-restore pattern (if applicable)
                 WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus arcStatus;
-                arcStatus.arcType = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus::ARCType::AUDIO_ARCTYPE_ARC;
-                arcStatus.status = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus::ARCStatus::AUDIO_ARCTYPE_NONE;
+                arcStatus.arcType = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AUDIO_ARCTYPE_ARC;
+                arcStatus.status = false;
                 
                 result = _audioManager->EnableARC(handle, arcStatus);
                 if (result == Core::ERROR_NONE) {
@@ -1355,7 +1355,7 @@ namespace Plugin {
                 }
 
                 // Disable ARC to restore state
-                arcStatus.status = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus::ARCStatus::AUDIO_ARCTYPE_NONE;
+                arcStatus.status = false;
                 result = _audioManager->EnableARC(handle, arcStatus);
                 if (result == Core::ERROR_NONE) {
                     LOGINFO("SUCCESS ARC state restored: handle=%d", handle);
@@ -1365,16 +1365,16 @@ namespace Plugin {
             }
 
             // 15. Test Stereo Mode APIs with get-set-restore pattern
-            WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode originalStereoMode;
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes originalStereoMode;
             result = _audioManager->GetStereoMode(handle, originalStereoMode);
             LOGINFO("GetStereoMode: handle=%d, result=%u, mode=%d", handle, result, static_cast<int>(originalStereoMode));
 
             if (result == Core::ERROR_NONE) {
                 // Test different stereo modes
-                WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode testMode = 
-                    (originalStereoMode == WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode::AUDIO_STEREO_STEREO) ?
-                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode::AUDIO_STEREO_MONO :
-                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode::AUDIO_STEREO_STEREO;
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes testMode = 
+                    (originalStereoMode == WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes::AUDIO_STEREO_STEREO) ?
+                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes::AUDIO_STEREO_MONO :
+                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes::AUDIO_STEREO_STEREO;
 
                 result = _audioManager->SetStereoMode(handle, testMode, false);
                 if (result == Core::ERROR_NONE) {
@@ -1428,23 +1428,23 @@ namespace Plugin {
         if (result == Core::ERROR_NONE && hdmiHandle > 0) {
             // Test Volume Leveller with get-set-restore pattern
             WPEFramework::Exchange::IDeviceSettingsManagerAudio::VolumeLeveller originalLeveller;
-            result = _audioManager->GetVolumeLeveller(hdmiHandle, originalLeveller);
-            LOGINFO("GetVolumeLeveller: handle=%d, result=%u, mode=%d, level=%d", hdmiHandle, result, originalLeveller.mode, originalLeveller.level);
+            result = _audioManager->GetAudioVolumeLeveller(hdmiHandle, originalLeveller);
+            LOGINFO("GetAudioVolumeLeveller: handle=%d, result=%u, mode=%d, level=%d", hdmiHandle, result, originalLeveller.mode, originalLeveller.level);
 
             if (result == Core::ERROR_NONE) {
                 WPEFramework::Exchange::IDeviceSettingsManagerAudio::VolumeLeveller newLeveller;
                 newLeveller.mode = (originalLeveller.mode == 0) ? 1 : 0;
                 newLeveller.level = (originalLeveller.level >= 50) ? 25 : 75;
 
-                result = _audioManager->SetVolumeLeveller(hdmiHandle, newLeveller);
+                result = _audioManager->SetAudioVolumeLeveller(hdmiHandle, newLeveller);
                 if (result == Core::ERROR_NONE) {
-                    LOGINFO("SUCCESS SetVolumeLeveller completed: handle=%d", hdmiHandle);
+                    LOGINFO("SUCCESS SetAudioVolumeLeveller completed: handle=%d", hdmiHandle);
                 } else {
-                    LOGERR("FAILED SetVolumeLeveller call: handle=%d", hdmiHandle);
+                    LOGERR("FAILED SetAudioVolumeLeveller call: handle=%d", hdmiHandle);
                 }
 
                 // Restore original settings
-                result = _audioManager->SetVolumeLeveller(hdmiHandle, originalLeveller);
+                result = _audioManager->SetAudioVolumeLeveller(hdmiHandle, originalLeveller);
                 if (result == Core::ERROR_NONE) {
                     LOGINFO("SUCCESS Volume leveller restored: handle=%d", hdmiHandle);
                 } else {
@@ -1454,23 +1454,23 @@ namespace Plugin {
 
             // Test Surround Virtualizer with get-set-restore pattern
             WPEFramework::Exchange::IDeviceSettingsManagerAudio::SurroundVirtualizer originalVirtualizer;
-            result = _audioManager->GetSurroundVirtualizer(hdmiHandle, originalVirtualizer);
-            LOGINFO("GetSurroundVirtualizer: handle=%d, result=%u, mode=%d, boost=%d", hdmiHandle, result, originalVirtualizer.mode, originalVirtualizer.boost);
+            result = _audioManager->GetAudioSurroudVirtualizer(hdmiHandle, originalVirtualizer);
+            LOGINFO("GetAudioSurroudVirtualizer: handle=%d, result=%u, mode=%d, boost=%d", hdmiHandle, result, originalVirtualizer.mode, originalVirtualizer.boost);
 
             if (result == Core::ERROR_NONE) {
                 WPEFramework::Exchange::IDeviceSettingsManagerAudio::SurroundVirtualizer newVirtualizer;
                 newVirtualizer.mode = (originalVirtualizer.mode == 0) ? 1 : 0;
                 newVirtualizer.boost = (originalVirtualizer.boost >= 50) ? 25 : 75;
 
-                result = _audioManager->SetSurroundVirtualizer(hdmiHandle, newVirtualizer);
+                result = _audioManager->SetAudioSurroudVirtualizer(hdmiHandle, newVirtualizer);
                 if (result == Core::ERROR_NONE) {
-                    LOGINFO("SUCCESS SetSurroundVirtualizer completed: handle=%d", hdmiHandle);
+                    LOGINFO("SUCCESS SetAudioSurroudVirtualizer completed: handle=%d", hdmiHandle);
                 } else {
-                    LOGERR("FAILED SetSurroundVirtualizer call: handle=%d", hdmiHandle);
+                    LOGERR("FAILED SetAudioSurroudVirtualizer call: handle=%d", hdmiHandle);
                 }
 
                 // Restore original settings
-                result = _audioManager->SetSurroundVirtualizer(hdmiHandle, originalVirtualizer);
+                result = _audioManager->SetAudioSurroudVirtualizer(hdmiHandle, originalVirtualizer);
                 if (result == Core::ERROR_NONE) {
                     LOGINFO("SUCCESS Surround virtualizer restored: handle=%d", hdmiHandle);
                 } else {
@@ -1480,12 +1480,12 @@ namespace Plugin {
 
             // Test MS11/MS12 Decoding queries
             bool hasMS11Decode = false;
-            result = _audioManager->IsAudioMSDecoding(hdmiHandle, hasMS11Decode);
-            LOGINFO("IsAudioMSDecoding: handle=%d, result=%u, hasMS11=%s", hdmiHandle, result, hasMS11Decode ? "true" : "false");
+            result = _audioManager->IsAudioMSDecoded(hdmiHandle, hasMS11Decode);
+            LOGINFO("IsAudioMSDecoded: handle=%d, result=%u, hasMS11=%s", hdmiHandle, result, hasMS11Decode ? "true" : "false");
 
             bool hasMS12Decode = false;
-            result = _audioManager->IsAudioMS12Decoding(hdmiHandle, hasMS12Decode);
-            LOGINFO("IsAudioMS12Decoding: handle=%d, result=%u, hasMS12=%s", hdmiHandle, result, hasMS12Decode ? "true" : "false");
+            result = _audioManager->IsAudioMS12Decoded(hdmiHandle, hasMS12Decode);
+            LOGINFO("IsAudioMS12Decoded: handle=%d, result=%u, hasMS12=%s", hdmiHandle, result, hasMS12Decode ? "true" : "false");
 
             // Test Audio Ducking
             result = _audioManager->SetAudioDucking(hdmiHandle, 

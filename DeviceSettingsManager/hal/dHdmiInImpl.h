@@ -905,7 +905,7 @@ public:
     uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        /*dsSupportedGameFeatureList_t fList;
+        dsSupportedGameFeatureList_t fList;
 
         // Initialize the structure
         memset(&fList, 0, sizeof(fList));
@@ -968,7 +968,7 @@ public:
         } else {
             LOGERR("GetSupportedGameFeaturesList: dsGetSupportedGameFeaturesList failed with error: %d", dsResult);
             gameFeatureList = nullptr;
-        }*/
+        }
 
         return retCode;
     }

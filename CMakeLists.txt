@@ -70,10 +70,6 @@ if(PLUGIN_FRAMERATE)
     add_subdirectory(FrameRate)
 endif()
 
-if(PLUGIN_WAREHOUSE)
-    add_subdirectory(Warehouse)
-endif()
-
 if(PLUGIN_DEVICEINFO)
     add_subdirectory(DeviceInfo)
 endif()

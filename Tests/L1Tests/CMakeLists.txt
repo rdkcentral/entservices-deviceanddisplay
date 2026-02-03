@@ -112,12 +112,6 @@ endmacro()
 #set (DEVICEINFO_SRC tests/test_DeviceAudioCapabilities.cpp tests/test_DeviceInfo.cpp tests/test_DeviceInfoJsonRpc.cpp tests/test_DeviceInfoWeb.cpp test_FirmwareVersion tests/test_DeviceVideoCapabilities.cpp)
 #add_plugin_test_ex(PLUGIN_DEVICEINFO "${DEVICEINFO_SRC}" "${DEVICEINFO_INC}" "${NAMESPACE}DeviceInfo")
 
-# PLUGIN_WAREHOUSE
-set (WAREHOUSE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/Warehouse ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-set (WAREHOUSE_LIBS ${NAMESPACE}Warehouse ${NAMESPACE}WarehouseImplementation)
-add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" "${WAREHOUSE_LIBS}")
-
-
 # PLUGIN_FRAMERATE
 set (FRAMERATE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/FrameRate ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 set (FRAMERATE_LIBS ${NAMESPACE}FrameRate ${NAMESPACE}FrameRateImplementation)
@@ -148,7 +142,6 @@ set_source_files_properties(
         tests/test_DeviceAudioCapabilities.cpp
         tests/test_DeviceVideoCapabilities.cpp
         tests/test_SystemServices.cpp
-        tests/test_Warehouse.cpp
         PROPERTIES COMPILE_FLAGS "-fexceptions")
 
 

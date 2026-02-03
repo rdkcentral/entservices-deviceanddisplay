@@ -1603,7 +1603,7 @@ namespace WPEFramework {
                         IARM_Bus_CommonAPI_SysModeChange_Param_t modeParam;
                         // Coverity Fix: ID 21 - COPY_INSTEAD_OF_MOVE
                         stringToIarmMode(std::move(oldMode), modeParam.oldMode);
-                        stringToIarmMode(std::move(m_currentMode), modeParam.newMode);
+                        stringToIarmMode(m_currentMode, modeParam.newMode);
 
                         if (IARM_RESULT_SUCCESS == IARM_Bus_Call(IARM_BUS_DAEMON_NAME,
                                     "DaemonSysModeChange", &modeParam, sizeof(modeParam))) {
@@ -3118,7 +3118,7 @@ namespace WPEFramework {
 					//call event on Territory changed
 					if (SystemServices::_instance)
 						// Coverity Fix: IDs 29-30 - COPY_INSTEAD_OF_MOVE
-						SystemServices::_instance->onTerritoryChanged(std::move(m_strTerritory),std::move(territoryStr),std::move(m_strRegion),std::move(regionStr));
+						SystemServices::_instance->onTerritoryChanged(m_strTerritory,std::move(territoryStr),m_strRegion,std::move(regionStr));
 				}
 			}
 			catch(...){

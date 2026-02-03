@@ -54,10 +54,6 @@ if(RDK_SERVICES_L1_TEST)
     add_subdirectory(Tests/L1Tests)
 endif()
 
-if(PLUGIN_DISPLAYSETTINGS)
-    add_subdirectory(DisplaySettings)
-endif()
-
 if(PLUGIN_SYSTEMSERVICES)
     add_subdirectory(SystemServices)
 endif()

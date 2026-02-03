@@ -385,7 +385,6 @@ jobs:
           -DENABLE_THERMAL_PROTECTION
           -DUSE_DRM_SCREENCAPTURE
           -DHAS_API_SYSTEM
-          -DHAS_API_POWERSTATE
           -DHAS_RBUS
           -D_DRM_MODE_H
           -DENABLE_DEVICE_MANUFACTURER_INFO"
@@ -452,7 +451,6 @@ jobs:
           -DENABLE_THERMAL_PROTECTION
           -DUSE_DRM_SCREENCAPTURE
           -DHAS_API_SYSTEM
-          -DHAS_API_POWERSTATE
           -D_DRM_MODE_H=ON
           -DHAS_RBUS
           -DENABLE_DEVICE_MANUFACTURER_INFO"
@@ -477,7 +475,6 @@ jobs:
           -DPLUGIN_DISPLAYINFO=ON
           -DPLUGIN_DISPLAYSETTINGS=OFF
           -DPLUGIN_FRAMERATE=ON
-          -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_SYSTEMSERVICES=ON
           &&
           cmake --build build/entservices-deviceanddisplay
@@ -540,7 +537,6 @@ jobs:
           -DENABLE_THERMAL_PROTECTION
           -DUSE_DRM_SCREENCAPTURE
           -DHAS_API_SYSTEM
-          -DHAS_API_POWERSTATE
           -D_DRM_MODE_H=ON
           -DHAS_RBUS
           -DENABLE_DEVICE_MANUFACTURER_INFO"
@@ -557,7 +553,6 @@ jobs:
           -DHAS_FRONT_PANEL=ON
           -DPLUGIN_SYSTEMSERVICES=ON
           -DPLUGIN_DEVICEINFO=ON
-          -DPLUGIN_POWERMANAGER=ON
           -DPLUGIN_FRAMERATE=ON
           -DPLUGIN_USERPREFERENCES=ON
           -DPLUGIN_WAREHOUSE=ON

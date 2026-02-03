@@ -436,7 +436,7 @@ namespace WPEFramework {
                 }
 
                 return result;
-	    }
+            }
         }
 
         //Prototypes
@@ -1338,7 +1338,7 @@ namespace WPEFramework {
 		std::string friendly_id;
 		GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "DEVICE_NAME", device_name);
 
-		if ((device_name == "PLATCO") || (device_name == "LLAMA")){
+		if ((device_name == "PLATCO") || (device_name == "LLAMA")) {
 		IARM_Bus_MFRLib_GetSerializedData_Param_t param;
 		param.bufLen = 0;
 		param.type = mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME;

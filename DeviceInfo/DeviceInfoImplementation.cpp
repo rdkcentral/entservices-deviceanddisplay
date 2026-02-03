@@ -156,7 +156,7 @@ namespace Plugin {
 
     Core::hresult DeviceInfoImplementation::Model(DeviceModel& deviceModel) const
     {
-       std::string device_name;
+        std::string device_name;
         uint32_t result = GetFileRegex(_T("/etc/device.properties"), std::regex("^DEVICE_NAME(?:\\s*)=(?:\\s*)(?:\"{0,1})([^\"\\n]+)(?:\"{0,1})(?:\\s*)$"), device_name);
         if ((result == Core::ERROR_NONE) && ((device_name == "PLATCO") || (device_name == "LLAMA"))) {
             result = (GetMFRData(mfrSERIALIZED_TYPE_PROVISIONED_MODELNAME, deviceModel.model) == Core::ERROR_NONE) ? Core::ERROR_NONE

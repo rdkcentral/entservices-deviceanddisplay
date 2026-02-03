@@ -72,26 +72,10 @@ if(PROCPS_LIBRARIES)
 endif(PROCPS_LIBRARIES)
 
 find_package(IARMBus)
-
 if (IARMBUS_FOUND)
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_LIBRARIES})
 endif(IARMBUS_FOUND)
-
-if(POWER_HAL_FOUND)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${POWER_HAL_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${POWER_HAL_LIBRARIES})
-endif()
-
-if(DEEPSLEEP_HAL_FOUND)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEEPSLEEP_HAL_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${DEEPSLEEP_HAL_LIBRARIES})
-endif()
-
-if (RFC_FOUND)
-  target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_LIBRARIES})
-  target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${RFC_INCLUDE_DIRS})
-endif()
 
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE

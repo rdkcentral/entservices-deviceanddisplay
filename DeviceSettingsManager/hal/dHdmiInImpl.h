@@ -816,7 +816,7 @@ public:
         }
     }
 
-    virtual uint32_t GetHDMIInNumbefOfInputs(int32_t &count) override
+    virtual uint32_t GetHDMIInNumberOfInputs(int32_t &count) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         uint8_t NumberofInputs = 0;
@@ -825,7 +825,7 @@ public:
             count = static_cast<int32_t>(NumberofInputs);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
-        LOGINFO("GetHDMIInNumbefOfInputs: count=%d, retCode=%d", count, retCode);
+        LOGINFO("GetHDMIInNumberOfInputs: count=%d, retCode=%d", count, retCode);
         return retCode;
     }
 

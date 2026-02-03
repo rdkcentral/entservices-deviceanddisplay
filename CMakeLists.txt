@@ -94,7 +94,7 @@ if(PLUGIN_SYSTEMMODE)
     add_subdirectory(SystemMode)
 endif()
 
-add_subdirectory(DeviceSettings)
+add_subdirectory(DeviceSettingsManager)
 add_subdirectory(UserPlugin)
 
 if(WPEFRAMEWORK_CREATE_IPKG_TARGETS)

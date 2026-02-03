@@ -41,9 +41,9 @@ using namespace std;
 using namespace WPEFramework;
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
-// Use proper FPD types from IDeviceSettingsFPD interface
-using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsFPD::FPDIndicator;
-using FPDState = WPEFramework::Exchange::IDeviceSettingsFPD::FPDState;
+// Use proper FPD types from IDeviceSettingsManagerFPD interface
+using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDIndicator;
+using FPDState = WPEFramework::Exchange::IDeviceSettingsManagerFPD::FPDState;
 
 namespace WPEFramework {
 namespace {
@@ -65,7 +65,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -106,29 +106,40 @@ namespace Plugin {
         }
 
         // Connect to FPD Manager interface
-        _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsFPD>("org.rdk.DeviceSettings");
+        _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerFPD>("org.rdk.DeviceSettingsManager");
         ASSERT(_fpdManager != nullptr);
         if (_fpdManager) {
-            LOGINFO("Successfully connected to DeviceSettingsFPD interface");
+            LOGINFO("Successfully connected to DeviceSettingsManagerFPD interface");
         } else {
-            LOGERR("Failed to connect to DeviceSettingsFPD interface");
+            LOGERR("Failed to connect to DeviceSettingsManagerFPD interface");
         }
 
         // Connect to HDMI In Manager interface
-        _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
+        _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerHDMIIn>("org.rdk.DeviceSettingsManager");
         ASSERT(_hdmiInManager != nullptr);
 
         // Register for HDMI In notifications
         if (_hdmiInManager) {
-            _hdmiInManager->Register(_hdmiInNotification.baseInterface<DeviceSettingsHDMIIn::INotification>());
+            _hdmiInManager->Register(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
             LOGINFO("Successfully registered for HDMI In notifications");
         } else {
             LOGERR("Failed to get HDMI In interface for notification registration");
         }
 
+        // Connect to Audio Manager interface
+        _audioManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerAudio>("org.rdk.DeviceSettingsManager");
+        ASSERT(_audioManager != nullptr);
+        if (_audioManager) {
+            LOGINFO("Successfully connected to DeviceSettingsManagerAudio interface");
+        } else {
+            LOGERR("Failed to connect to DeviceSettingsManagerAudio interface");
+        }
+
         TestFPDAPIs();
         // Test HDMI In methods with sample values
         TestSpecificHDMIInAPIs();
+        // Test Audio APIs with comprehensive coverage
+        TestAudioAPIs();
 
         // Test IARM APIs for direct DsMgr daemon communication
         TestIARMHdmiInAPIs();
@@ -156,10 +167,17 @@ namespace Plugin {
 
         // Unregister HDMI In notifications and release HDMI In Manager
         if (_hdmiInManager) {
-            _hdmiInManager->Unregister(_hdmiInNotification.baseInterface<DeviceSettingsHDMIIn::INotification>());
+            _hdmiInManager->Unregister(_hdmiInNotification.baseInterface<DeviceSettingsManagerHDMIIn::INotification>());
             _hdmiInManager->Release();
             _hdmiInManager = nullptr;
             LOGINFO("Successfully unregistered and released HDMI In Manager interface");
+        }
+
+        // Release Audio Manager
+        if (_audioManager) {
+            _audioManager->Release();
+            _audioManager = nullptr;
+            LOGINFO("Successfully released Audio Manager interface");
         }
         Exchange::JUserPlugin::Unregister(*this);
         _service = nullptr;
@@ -285,12 +303,12 @@ namespace Plugin {
         LOGINFO("========== Testing FPD APIs ==========\n");
 
         // Test all FPD indicators
-        Exchange::IDeviceSettingsFPD::FPDIndicator testIndicators[] = {
-            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
-            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
-            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_RECORD,
-            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_REMOTE,
-            Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_RFBYPASS
+        Exchange::IDeviceSettingsManagerFPD::FPDIndicator testIndicators[] = {
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_RECORD,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_REMOTE,
+            Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_RFBYPASS
         };
 
         const char* indicatorNames[] = {
@@ -332,14 +350,14 @@ namespace Plugin {
             }
 
             // 3. Test GetFPDState
-            Exchange::IDeviceSettingsFPD::FPDState currentState;
+            Exchange::IDeviceSettingsManagerFPD::FPDState currentState;
             result = _fpdManager->GetFPDState(indicator, currentState);
             LOGINFO("GetFPDState: indicator=%s, result=%u, state=%d", indicatorName, result, static_cast<int>(currentState));
 
             // 4. Test SetFPDState with get-set-restore pattern
-            Exchange::IDeviceSettingsFPD::FPDState originalState = currentState; // Save original
-            Exchange::IDeviceSettingsFPD::FPDState newState = (currentState == Exchange::IDeviceSettingsFPD::FPDState::DS_FPD_STATE_ON) ? 
-                Exchange::IDeviceSettingsFPD::FPDState::DS_FPD_STATE_OFF : Exchange::IDeviceSettingsFPD::FPDState::DS_FPD_STATE_ON;
+            Exchange::IDeviceSettingsManagerFPD::FPDState originalState = currentState; // Save original
+            Exchange::IDeviceSettingsManagerFPD::FPDState newState = (currentState == Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON) ? 
+                Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_OFF : Exchange::IDeviceSettingsManagerFPD::FPDState::DS_FPD_STATE_ON;
             result = _fpdManager->SetFPDState(indicator, newState);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SetFPDState completed");
@@ -384,14 +402,14 @@ namespace Plugin {
         // 7. Test SetFPDMode with different modes (get-set-restore pattern)
         LOGINFO("---------- Testing FPD Mode Settings ----------");
 
-        Exchange::IDeviceSettingsFPD::FPDMode testModes[] = {
-            Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_ANY,
-            Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_TEXT,
-            Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_CLOCK
+        Exchange::IDeviceSettingsManagerFPD::FPDMode testModes[] = {
+            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_ANY,
+            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_TEXT,
+            Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_CLOCK
         };
 
         // Assume default mode is ANY for restoration
-        Exchange::IDeviceSettingsFPD::FPDMode originalMode = Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_ANY;
+        Exchange::IDeviceSettingsManagerFPD::FPDMode originalMode = Exchange::IDeviceSettingsManagerFPD::FPDMode::DS_FPD_MODE_ANY;
 
         for (size_t i = 0; i < sizeof(testModes)/sizeof(testModes[0]); i++) {
             auto mode = testModes[i];
@@ -416,7 +434,7 @@ namespace Plugin {
 
         // Additional comprehensive test with different brightness values (get-set-restore)
         LOGINFO("---------- Testing FPD Brightness Range ----------");
-        Exchange::IDeviceSettingsFPD::FPDIndicator testIndicator = Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
+        Exchange::IDeviceSettingsManagerFPD::FPDIndicator testIndicator = Exchange::IDeviceSettingsManagerFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
         
         // Get original brightness for restoration
         uint32_t originalBrightness = 0;
@@ -499,7 +517,7 @@ namespace Plugin {
         // The specific methods listed in the requirement are part of the IHDMIIn sub-interface
         // This would require proper interface access pattern implementation
 
-        LOGINFO("DeviceSettings available - HDMI In interface access needs implementation");
+        LOGINFO("DeviceSettingsManager available - HDMI In interface access needs implementation");
         LOGINFO("Required APIs for implementation:");
         LOGINFO("- GetHDMIInNumbefOfInputs");
         LOGINFO("- GetHDMIInStatus"); 
@@ -524,10 +542,10 @@ namespace Plugin {
         LOGINFO("========== HDMI In API Framework Ready ==========");
 
         // Test all HDMI In methods with sample values
-        using HDMIInPort = DeviceSettingsHDMIIn::HDMIInPort;
-        //using HDMIInSignalStatus = DeviceSettingsHDMIIn::HDMIInSignalStatus;
-        using HDMIVideoPortResolution = DeviceSettingsHDMIIn::HDMIVideoPortResolution;
-        //using HDMIInAviContentType = DeviceSettingsHDMIIn::HDMIInAviContentType;
+        using HDMIInPort = DeviceSettingsManagerHDMIIn::HDMIInPort;
+        //using HDMIInSignalStatus = DeviceSettingsManagerHDMIIn::HDMIInSignalStatus;
+        using HDMIVideoPortResolution = DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution;
+        //using HDMIInAviContentType = DeviceSettingsManagerHDMIIn::HDMIInAviContentType;
 
         // Test sample ports
         HDMIInPort testPorts[] = {
@@ -537,21 +555,9 @@ namespace Plugin {
         };
 
         // Use HDMI In Manager interface directly
-        DeviceSettingsHDMIIn* hdmiIn = _hdmiInManager;
+        DeviceSettingsManagerHDMIIn* hdmiIn = _hdmiInManager;
 
-        // Switch to HDMI In port 0 before starting tests
-        LOGINFO("---------- Switching to HDMI In Port 0 for Testing ----------");
-        uint32_t result = hdmiIn->SelectHDMIInPort(HDMIInPort::DS_HDMI_IN_PORT_0, true, true, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
-        if (result == Core::ERROR_NONE) {
-            LOGINFO("Successfully switched to HDMI In Port 0 for testing");
-        } else {
-            LOGWARN("Failed to switch to HDMI In Port 0, continuing with tests anyway. Result: %u", result);
-        }
-
-        // Brief delay to allow port switch to complete
-        usleep(1000000); // 1 second delay
-
-        result = 0;
+        uint32_t result = 0;
         for (auto port : testPorts) {
             LOGINFO("---------- Testing HDMI In Port: %d ----------", static_cast<int>(port));
 
@@ -561,15 +567,15 @@ namespace Plugin {
             LOGINFO("GetHDMIInNumbefOfInputs: result=%u, numInputs=%d", result, numInputs);
 
             // 2. Test GetHDMIInStatus
-            DeviceSettingsHDMIIn::HDMIInStatus hdmiStatus;
-            DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator* portConnIter = nullptr;
+            DeviceSettingsManagerHDMIIn::HDMIInStatus hdmiStatus;
+            DeviceSettingsManagerHDMIIn::IHDMIInPortConnectionStatusIterator* portConnIter = nullptr;
             result = hdmiIn->GetHDMIInStatus(hdmiStatus, portConnIter);
             LOGINFO("GetHDMIInStatus: result=%u, isPresented=%d, activePort=%d", result, hdmiStatus.isPresented, static_cast<int>(hdmiStatus.activePort));
             if (portConnIter) portConnIter->Release();
 
             // 3. Test SelectHDMIInPort with get-set-restore pattern
-            DeviceSettingsHDMIIn::HDMIInPort originalActivePort = hdmiStatus.activePort; // Save original active port
-            result = hdmiIn->SelectHDMIInPort(port, true, true, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+            DeviceSettingsManagerHDMIIn::HDMIInPort originalActivePort = hdmiStatus.activePort; // Save original active port
+            result = hdmiIn->SelectHDMIInPort(port, true, true, DeviceSettingsManagerHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SelectHDMIInPort completed");
             } else {
@@ -577,7 +583,7 @@ namespace Plugin {
             }
 
             // Restore original active port
-            result = hdmiIn->SelectHDMIInPort(originalActivePort, true, true, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
+            result = hdmiIn->SelectHDMIInPort(originalActivePort, true, true, DeviceSettingsManagerHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS HDMI port selection restored");
             } else {
@@ -585,7 +591,7 @@ namespace Plugin {
             }
 
             // 4. Test ScaleHDMIInVideo with get-set-restore pattern
-            DeviceSettingsHDMIIn::HDMIInVideoRectangle testRect = {100, 100, 1920, 1080};
+            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle testRect = {100, 100, 1920, 1080};
             result = hdmiIn->ScaleHDMIInVideo(testRect);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS ScaleHDMIInVideo completed");
@@ -594,7 +600,7 @@ namespace Plugin {
             }
 
             // Restore to full screen (assuming default)
-            DeviceSettingsHDMIIn::HDMIInVideoRectangle defaultRect = {0, 0, 1920, 1080};
+            DeviceSettingsManagerHDMIIn::HDMIInVideoRectangle defaultRect = {0, 0, 1920, 1080};
             result = hdmiIn->ScaleHDMIInVideo(defaultRect);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS HDMI video scaling restored");
@@ -603,14 +609,14 @@ namespace Plugin {
             }
 
             // 5. Test GetSupportedGameFeaturesList
-            DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
+            DeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator* gameFeatureList = nullptr;
             result = hdmiIn->GetSupportedGameFeaturesList(gameFeatureList);
             LOGINFO("GetSupportedGameFeaturesList: result=%u", result);
 
             // Print all game features from the iterator
             if (gameFeatureList && result == Core::ERROR_NONE) {
                 LOGINFO("Printing game features from iterator:");
-                DeviceSettingsHDMIIn::HDMIInGameFeatureList currentFeature;
+                DeviceSettingsManagerHDMIIn::HDMIInGameFeatureList currentFeature;
                 uint32_t featureIndex = 0;
 
                 // Iterate through all features (iterator starts at beginning by default)
@@ -638,12 +644,12 @@ namespace Plugin {
             LOGINFO("GetHDMIInAVLatency: result=%u, videoLatency=%u, audioLatency=%u", result, videoLatency, audioLatency);
 
             // 7. Test GetHDMIVideoMode
-            DeviceSettingsHDMIIn::HDMIVideoPortResolution videoMode;
+            DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoMode;
             result = hdmiIn->GetHDMIVideoMode(videoMode);
             LOGINFO("GetHDMIVideoMode: result=%u, name=%s", result, videoMode.name.c_str());
 
             // 8. Test GetHDMIVersion
-            DeviceSettingsHDMIIn::HDMIInCapabilityVersion capVersion;
+            DeviceSettingsManagerHDMIIn::HDMIInCapabilityVersion capVersion;
             result = hdmiIn->GetHDMIVersion(port, capVersion);
             LOGINFO("GetHDMIVersion: result=%u, version=%d", result, static_cast<int>(capVersion));
 
@@ -658,14 +664,14 @@ namespace Plugin {
             LOGINFO("GetHDMISPDInformation: result=%u", result);
 
             // 11. Test GetHDMIEdidVersion
-            DeviceSettingsHDMIIn::HDMIInEdidVersion edidVersion;
+            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion edidVersion;
             result = hdmiIn->GetHDMIEdidVersion(port, edidVersion);
             LOGINFO("GetHDMIEdidVersion: result=%u, version=%d", result, static_cast<int>(edidVersion));
 
             // 12. Test SetHDMIEdidVersion with get-set-restore pattern
-            DeviceSettingsHDMIIn::HDMIInEdidVersion originalEdidVersion = edidVersion; // Save original
-            DeviceSettingsHDMIIn::HDMIInEdidVersion newEdidVersion = (edidVersion == DeviceSettingsHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14) ? 
-                DeviceSettingsHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_20 : DeviceSettingsHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14;
+            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion originalEdidVersion = edidVersion; // Save original
+            DeviceSettingsManagerHDMIIn::HDMIInEdidVersion newEdidVersion = (edidVersion == DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14) ? 
+                DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_20 : DeviceSettingsManagerHDMIIn::HDMIInEdidVersion::HDMI_EDID_VER_14;
             result = hdmiIn->SetHDMIEdidVersion(port, newEdidVersion);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SetHDMIEdidVersion completed");
@@ -710,7 +716,7 @@ namespace Plugin {
             }
 
             // 16. Test SelectHDMIZoomMode with get-set-restore pattern
-            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_FULL);
+            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_FULL);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS SelectHDMIZoomMode completed");
             } else {
@@ -718,7 +724,7 @@ namespace Plugin {
             }
 
             // Restore to default zoom mode (assuming NONE is default)
-            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_NONE);
+            result = hdmiIn->SelectHDMIZoomMode(DeviceSettingsManagerHDMIIn::HDMIInVideoZoom::DS_HDMIIN_VIDEO_ZOOM_NONE);
             if (result == Core::ERROR_NONE) {
                 LOGINFO("SUCCESS HDMI zoom mode restored");
             } else {
@@ -749,7 +755,7 @@ namespace Plugin {
             }
 
             // 19. Test GetVRRStatus
-            DeviceSettingsHDMIIn::HDMIInVRRStatus vrrStatus;
+            DeviceSettingsManagerHDMIIn::HDMIInVRRStatus vrrStatus;
             result = hdmiIn->GetVRRStatus(port, vrrStatus);
             LOGINFO("GetVRRStatus: result=%u, vrrType=%d, framerate=%.2f", result, static_cast<int>(vrrStatus.vrrType), vrrStatus.vrrFreeSyncFramerateHz);
 
@@ -767,24 +773,10 @@ namespace Plugin {
         // No need to release _hdmiInManager as it's managed by the class
 
         LOGINFO("========== HDMI In Methods Testing Completed ==========");
-        
-        // Switch back to TV mode after all HDMI In tests are completed
-        LOGINFO("---------- Switching back to TV mode after HDMI In testing ----------");
-        
-        // Deselect HDMI In port to return to TV/Tuner mode
-        result = hdmiIn->SelectHDMIInPort(HDMIInPort::DS_HDMI_IN_PORT_NONE, false, false, DeviceSettingsHDMIIn::HDMIVideoPlaneType::DS_HDMIIN_VIDEOPLANE_PRIMARY);
-        if (result == Core::ERROR_NONE) {
-            LOGINFO("Successfully switched back to TV mode from HDMI In Port 0");
-        } else {
-            LOGWARN("Failed to switch back to TV mode, manual intervention may be required. Result: %u", result);
-        }
-        
-        // Brief delay to allow the switch back to complete
-        usleep(500000); // 500ms delay
     }
 
     // HDMI In Event Handler Implementations
-    void UserPlugin::OnHDMIInEventHotPlug(const DeviceSettingsHDMIIn::HDMIInPort port, const bool isConnected)
+    void UserPlugin::OnHDMIInEventHotPlug(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool isConnected)
     {
         LOGINFO("========== HDMI In Event: Hot Plug ==========");
         LOGINFO("OnHDMIInEventHotPlug: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
@@ -797,7 +789,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInEventSignalStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInSignalStatus signalStatus)
+    void UserPlugin::OnHDMIInEventSignalStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInSignalStatus signalStatus)
     {
         LOGINFO("========== HDMI In Event: Signal Status ==========");
         LOGINFO("OnHDMIInEventSignalStatus: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
@@ -817,7 +809,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInEventStatus(const DeviceSettingsHDMIIn::HDMIInPort activePort, const bool isPresented)
+    void UserPlugin::OnHDMIInEventStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort activePort, const bool isPresented)
     {
         LOGINFO("========== HDMI In Event: Status ==========");
         LOGINFO("OnHDMIInEventStatus: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
@@ -830,7 +822,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInVideoModeUpdate(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIVideoPortResolution videoPortResolution)
+    void UserPlugin::OnHDMIInVideoModeUpdate(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIVideoPortResolution videoPortResolution)
     {
         LOGINFO("========== HDMI In Event: Video Mode Update ==========");
         LOGINFO("OnHDMIInVideoModeUpdate: port=%d", static_cast<int>(port));
@@ -846,7 +838,7 @@ namespace Plugin {
         LOGINFO("Video mode changed on port %d to %s", static_cast<int>(port), videoPortResolution.name.c_str());
     }
 
-    void UserPlugin::OnHDMIInAllmStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const bool allmStatus)
+    void UserPlugin::OnHDMIInAllmStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool allmStatus)
     {
         LOGINFO("========== HDMI In Event: ALLM Status ==========");
         LOGINFO("OnHDMIInAllmStatus: port=%d, allmStatus=%s", static_cast<int>(port), allmStatus ? "enabled" : "disabled");
@@ -859,7 +851,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInAVIContentType(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInAviContentType aviContentType)
+    void UserPlugin::OnHDMIInAVIContentType(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInAviContentType aviContentType)
     {
         LOGINFO("========== HDMI In Event: AVI Content Type ==========");
         LOGINFO("OnHDMIInAVIContentType: port=%d, aviContentType=%d", static_cast<int>(port), static_cast<int>(aviContentType));
@@ -896,7 +888,7 @@ namespace Plugin {
         }
     }
 
-    void UserPlugin::OnHDMIInVRRStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInVRRType vrrType)
+    void UserPlugin::OnHDMIInVRRStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInVRRType vrrType)
     {
         LOGINFO("========== HDMI In Event: VRR Status ==========");
         LOGINFO("OnHDMIInVRRStatus: port=%d, vrrType=%d", static_cast<int>(port), static_cast<int>(vrrType));
@@ -1183,6 +1175,375 @@ namespace Plugin {
         TestIARMGetVRRSupport(1);
 
         LOGINFO("=== IARM Advanced Tests Complete ===");
+    }
+
+    void UserPlugin::TestAudioAPIs()
+    {
+        LOGINFO("========== Audio APIs Testing Framework ==========\n");
+
+        if (!_audioManager) {
+            LOGERR("Audio Manager interface is not available!");
+            return;
+        }
+
+        LOGINFO("========== Testing Audio APIs ==========\n");
+
+        // Test all audio port types
+        WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType testPortTypes[] = {
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_SPDIF,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_SPEAKER,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HEADPHONE,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMIARC,
+        };
+
+        const char* portTypeNames[] = {
+            "HDMI",
+            "SPDIF", 
+            "ANALOG",
+            "HEADPHONE"
+        };
+
+        for (size_t i = 0; i < sizeof(testPortTypes)/sizeof(testPortTypes[0]); i++) {
+            auto portType = testPortTypes[i];
+            const char* portTypeName = portTypeNames[i];
+
+            LOGINFO("---------- Testing Audio Port Type: %s ----------", portTypeName);
+
+            // 1. Test GetAudioPort
+            int32_t handle = 0;
+            Core::hresult result = _audioManager->GetAudioPort(portType, 0, handle);
+            LOGINFO("GetAudioPort: portType=%s, index=0, result=%u, handle=%d", portTypeName, result, handle);
+
+            if (result != Core::ERROR_NONE || handle <= 0) {
+                LOGINFO("Skipping tests for %s port as it's not available", portTypeName);
+                continue;
+            }
+
+            // 2. Test IsAudioPortEnabled (get original state)
+            bool originalEnabled = false;
+            result = _audioManager->IsAudioPortEnabled(handle, originalEnabled);
+            LOGINFO("IsAudioPortEnabled: handle=%d, result=%u, enabled=%s", handle, result, originalEnabled ? "true" : "false");
+
+            // 3. Test EnableAudioPort with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                bool newEnabled = !originalEnabled; // Toggle state
+                result = _audioManager->EnableAudioPort(handle, newEnabled);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS EnableAudioPort completed: handle=%d, enabled=%s", handle, newEnabled ? "true" : "false");
+                } else {
+                    LOGERR("FAILED EnableAudioPort call: handle=%d", handle);
+                }
+
+                // Restore original state
+                result = _audioManager->EnableAudioPort(handle, originalEnabled);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio port enable state restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Audio port enable state restore: handle=%d", handle);
+                }
+            }
+
+            // 4. Test IsAudioMuted (get original state)
+            bool originalMuted = false;
+            result = _audioManager->IsAudioMuted(handle, originalMuted);
+            LOGINFO("IsAudioMuted: handle=%d, result=%u, muted=%s", handle, result, originalMuted ? "true" : "false");
+
+            // 5. Test SetAudioMute with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                bool newMuted = !originalMuted; // Toggle state
+                result = _audioManager->SetAudioMute(handle, newMuted);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioMute completed: handle=%d, muted=%s", handle, newMuted ? "true" : "false");
+                } else {
+                    LOGERR("FAILED SetAudioMute call: handle=%d", handle);
+                }
+
+                // Restore original mute state
+                result = _audioManager->SetAudioMute(handle, originalMuted);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio mute state restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Audio mute state restore: handle=%d", handle);
+                }
+            }
+
+            // 6. Test GetAudioLevel (get original level)
+            float originalLevel = 0.0f;
+            result = _audioManager->GetAudioLevel(handle, originalLevel);
+            LOGINFO("GetAudioLevel: handle=%d, result=%u, level=%.2f", handle, result, originalLevel);
+
+            // 7. Test SetAudioLevel with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                float newLevel = (originalLevel >= 50.0f) ? 25.0f : 75.0f; // Use different level
+                result = _audioManager->SetAudioLevel(handle, newLevel);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioLevel completed: handle=%d, level=%.2f", handle, newLevel);
+                } else {
+                    LOGERR("FAILED SetAudioLevel call: handle=%d", handle);
+                }
+
+                // Restore original level
+                result = _audioManager->SetAudioLevel(handle, originalLevel);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio level restored: handle=%d, level=%.2f", handle, originalLevel);
+                } else {
+                    LOGERR("FAILED Audio level restore: handle=%d", handle);
+                }
+            }
+
+            // 8. Test GetAudioGain (get original gain)
+            float originalGain = 0.0f;
+            result = _audioManager->GetAudioGain(handle, originalGain);
+            LOGINFO("GetAudioGain: handle=%d, result=%u, gain=%.2f", handle, result, originalGain);
+
+            // 9. Test SetAudioGain with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                float newGain = (originalGain >= 0.0f) ? -6.0f : 6.0f; // Use different gain
+                result = _audioManager->SetAudioGain(handle, newGain);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioGain completed: handle=%d, gain=%.2f", handle, newGain);
+                } else {
+                    LOGERR("FAILED SetAudioGain call: handle=%d", handle);
+                }
+
+                // Restore original gain
+                result = _audioManager->SetAudioGain(handle, originalGain);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio gain restored: handle=%d, gain=%.2f", handle, originalGain);
+                } else {
+                    LOGERR("FAILED Audio gain restore: handle=%d", handle);
+                }
+            }
+
+            // 10. Test GetAudioFormat
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioFormat audioFormat;
+            result = _audioManager->GetAudioFormat(handle, audioFormat);
+            LOGINFO("GetAudioFormat: handle=%d, result=%u, format=%d", handle, result, static_cast<int>(audioFormat));
+
+            // 11. Test GetAudioEncoding
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioEncoding audioEncoding;
+            result = _audioManager->GetAudioEncoding(handle, audioEncoding);
+            LOGINFO("GetAudioEncoding: handle=%d, result=%u, encoding=%d", handle, result, static_cast<int>(audioEncoding));
+
+            // 12. Test GetSupportedARCTypes (for HDMI ports)
+            if (portType == WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI) {
+                int32_t arcTypes = 0;
+                result = _audioManager->GetSupportedARCTypes(handle, arcTypes);
+                LOGINFO("GetSupportedARCTypes: handle=%d, result=%u, arcTypes=0x%X", handle, result, arcTypes);
+
+                // 13. Test SetSAD with sample data
+                uint8_t sadData[] = {0x09, 0x07, 0x07}; // Sample SAD data
+                uint8_t sadCount = sizeof(sadData);
+                result = _audioManager->SetSAD(handle, sadData, sadCount);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetSAD completed: handle=%d, count=%d", handle, sadCount);
+                } else {
+                    LOGERR("FAILED SetSAD call: handle=%d", handle);
+                }
+
+                // 14. Test EnableARC with get-set-restore pattern (if applicable)
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus arcStatus;
+                arcStatus.arcType = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AUDIO_ARCTYPE_ARC;
+                arcStatus.status = false;
+                
+                result = _audioManager->EnableARC(handle, arcStatus);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS EnableARC completed: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED EnableARC call: handle=%d", handle);
+                }
+
+                // Disable ARC to restore state
+                arcStatus.status = false;
+                result = _audioManager->EnableARC(handle, arcStatus);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS ARC state restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED ARC state restore: handle=%d", handle);
+                }
+            }
+
+            // 15. Test Stereo Mode APIs with get-set-restore pattern
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes originalStereoMode;
+            result = _audioManager->GetStereoMode(handle, originalStereoMode);
+            LOGINFO("GetStereoMode: handle=%d, result=%u, mode=%d", handle, result, static_cast<int>(originalStereoMode));
+
+            if (result == Core::ERROR_NONE) {
+                // Test different stereo modes
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes testMode = 
+                    (originalStereoMode == WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes::AUDIO_STEREO_STEREO) ?
+                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes::AUDIO_STEREO_MONO :
+                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoModes::AUDIO_STEREO_STEREO;
+
+                result = _audioManager->SetStereoMode(handle, testMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetStereoMode completed: handle=%d, mode=%d", handle, static_cast<int>(testMode));
+                } else {
+                    LOGERR("FAILED SetStereoMode call: handle=%d", handle);
+                }
+
+                // Restore original stereo mode
+                result = _audioManager->SetStereoMode(handle, originalStereoMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Stereo mode restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Stereo mode restore: handle=%d", handle);
+                }
+            }
+
+            // 16. Test Stereo Auto APIs with get-set-restore pattern
+            int32_t originalAutoMode = 0;
+            result = _audioManager->GetStereoAuto(handle, originalAutoMode);
+            LOGINFO("GetStereoAuto: handle=%d, result=%u, autoMode=%d", handle, result, originalAutoMode);
+
+            if (result == Core::ERROR_NONE) {
+                int32_t newAutoMode = (originalAutoMode == 0) ? 1 : 0; // Toggle auto mode
+                result = _audioManager->SetStereoAuto(handle, newAutoMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetStereoAuto completed: handle=%d, autoMode=%d", handle, newAutoMode);
+                } else {
+                    LOGERR("FAILED SetStereoAuto call: handle=%d", handle);
+                }
+
+                // Restore original auto mode
+                result = _audioManager->SetStereoAuto(handle, originalAutoMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Stereo auto mode restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Stereo auto mode restore: handle=%d", handle);
+                }
+            }
+
+            LOGINFO("---------- Completed testing Audio Port Type: %s ----------\n", portTypeName);
+        }
+
+        // Test advanced audio features with get-set-restore patterns
+        LOGINFO("---------- Testing Advanced Audio Features ----------");
+
+        // Test with HDMI port for advanced features
+        int32_t hdmiHandle = 0;
+        Core::hresult result = _audioManager->GetAudioPort(WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI, 0, hdmiHandle);
+        
+        if (result == Core::ERROR_NONE && hdmiHandle > 0) {
+            // Test Volume Leveller with get-set-restore pattern
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::VolumeLeveller originalLeveller;
+            result = _audioManager->GetAudioVolumeLeveller(hdmiHandle, originalLeveller);
+            LOGINFO("GetAudioVolumeLeveller: handle=%d, result=%u, mode=%d, level=%d", hdmiHandle, result, originalLeveller.mode, originalLeveller.level);
+
+            if (result == Core::ERROR_NONE) {
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::VolumeLeveller newLeveller;
+                newLeveller.mode = (originalLeveller.mode == 0) ? 1 : 0;
+                newLeveller.level = (originalLeveller.level >= 50) ? 25 : 75;
+
+                result = _audioManager->SetAudioVolumeLeveller(hdmiHandle, newLeveller);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioVolumeLeveller completed: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED SetAudioVolumeLeveller call: handle=%d", hdmiHandle);
+                }
+
+                // Restore original settings
+                result = _audioManager->SetAudioVolumeLeveller(hdmiHandle, originalLeveller);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Volume leveller restored: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED Volume leveller restore: handle=%d", hdmiHandle);
+                }
+            }
+
+            // Test Surround Virtualizer with get-set-restore pattern
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::SurroundVirtualizer originalVirtualizer;
+            result = _audioManager->GetAudioSurroudVirtualizer(hdmiHandle, originalVirtualizer);
+            LOGINFO("GetAudioSurroudVirtualizer: handle=%d, result=%u, mode=%d, boost=%d", hdmiHandle, result, originalVirtualizer.mode, originalVirtualizer.boost);
+
+            if (result == Core::ERROR_NONE) {
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::SurroundVirtualizer newVirtualizer;
+                newVirtualizer.mode = (originalVirtualizer.mode == 0) ? 1 : 0;
+                newVirtualizer.boost = (originalVirtualizer.boost >= 50) ? 25 : 75;
+
+                result = _audioManager->SetAudioSurroudVirtualizer(hdmiHandle, newVirtualizer);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioSurroudVirtualizer completed: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED SetAudioSurroudVirtualizer call: handle=%d", hdmiHandle);
+                }
+
+                // Restore original settings
+                result = _audioManager->SetAudioSurroudVirtualizer(hdmiHandle, originalVirtualizer);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Surround virtualizer restored: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED Surround virtualizer restore: handle=%d", hdmiHandle);
+                }
+            }
+
+            // Test MS11/MS12 Decoding queries
+            bool hasMS11Decode = false;
+            result = _audioManager->IsAudioMSDecoded(hdmiHandle, hasMS11Decode);
+            LOGINFO("IsAudioMSDecoded: handle=%d, result=%u, hasMS11=%s", hdmiHandle, result, hasMS11Decode ? "true" : "false");
+
+            bool hasMS12Decode = false;
+            result = _audioManager->IsAudioMS12Decoded(hdmiHandle, hasMS12Decode);
+            LOGINFO("IsAudioMS12Decoded: handle=%d, result=%u, hasMS12=%s", hdmiHandle, result, hasMS12Decode ? "true" : "false");
+
+            // Test Audio Ducking
+            result = _audioManager->SetAudioDucking(hdmiHandle, 
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingType::AUDIO_DUCKINGTYPE_RELATIVE,
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingAction::AUDIO_DUCKINGACTION_START,
+                50);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetAudioDucking START completed: handle=%d", hdmiHandle);
+            } else {
+                LOGERR("FAILED SetAudioDucking START call: handle=%d", hdmiHandle);
+            }
+
+            // Stop ducking to restore state
+            result = _audioManager->SetAudioDucking(hdmiHandle, 
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingType::AUDIO_DUCKINGTYPE_RELATIVE,
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingAction::AUDIO_DUCKINGACTION_STOP,
+                0);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS Audio ducking restored: handle=%d", hdmiHandle);
+            } else {
+                LOGERR("FAILED Audio ducking restore: handle=%d", hdmiHandle);
+            }
+        }
+
+        LOGINFO("---------- Completed Advanced Audio Features Testing ----------\n");
+
+        // Test comprehensive audio level variations with get-set-restore pattern
+        LOGINFO("---------- Testing Audio Level Variations ----------");
+        
+        if (hdmiHandle > 0) {
+            // Get original level for restoration
+            float originalTestLevel = 0.0f;
+            _audioManager->GetAudioLevel(hdmiHandle, originalTestLevel);
+            
+            float levelValues[] = {0.0f, 25.0f, 50.0f, 75.0f, 100.0f};
+
+            for (size_t i = 0; i < sizeof(levelValues)/sizeof(levelValues[0]); i++) {
+                float level = levelValues[i];
+                Core::hresult result = _audioManager->SetAudioLevel(hdmiHandle, level);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio level test completed: level=%.1f", level);
+                } else {
+                    LOGERR("FAILED Audio level test: level=%.1f", level);
+                }
+            }
+
+            // Restore original level
+            result = _audioManager->SetAudioLevel(hdmiHandle, originalTestLevel);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS Audio level variations restored");
+            } else {
+                LOGERR("FAILED Audio level variations restore");
+            }
+        }
+
+        LOGINFO("---------- Completed Audio Level Variations Testing ----------\n");
+
+        LOGINFO("========== Audio APIs Testing Completed ==========\n");
     }
 
 } // namespace Plugin

@@ -369,6 +369,7 @@ jobs:
           -DRDK_LOG_MILESTONE
           -DRDK_SERVICE_L2_TEST
           -DDISABLE_SECURITY_TOKEN
+          -DHAS_API_POWERSTATE
           -DENABLE_THERMAL_PROTECTION"
           -DPLUGIN_PERSISTENTSTORE_PATH="/tmp/secure/persistent/rdkservicestore"
           -DPLUGIN_PERSISTENTSTORE_LEGACYPATH="/tmp/persistent/rdkservicestore"

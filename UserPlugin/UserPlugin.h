@@ -167,8 +167,7 @@ namespace WPEFramework
             void onPowerStateChanged(string currentPowerState, string powerState);
             void TestSpecificHDMIInAPIs();
             void TestFPDAPIs();
-            void TestAudioAPIs();
-
+            
             // HDMI In Event Handlers
             void OnHDMIInEventHotPlug(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const bool isConnected);
             void OnHDMIInEventSignalStatus(const DeviceSettingsManagerHDMIIn::HDMIInPort port, const DeviceSettingsManagerHDMIIn::HDMIInSignalStatus signalStatus);
@@ -204,7 +203,6 @@ namespace WPEFramework
             Exchange::IPowerManager* _powerManager;
             Exchange::IDeviceSettingsManagerFPD* _fpdManager;
             Exchange::IDeviceSettingsManagerHDMIIn* _hdmiInManager;
-            Exchange::IDeviceSettingsManagerAudio* _audioManager;
             //PowerManagerInterfaceRef _powerManager{};
             Core::Sink<PowerManagerNotification> _pwrMgrNotification;
             Core::Sink<HDMIInNotification> _hdmiInNotification;

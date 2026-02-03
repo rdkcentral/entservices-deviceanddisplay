@@ -31,12 +31,7 @@ find_library(PROCPS_LIBRARIES NAMES procps)
 
 add_library(${MODULE_NAME} SHARED
     Module.cpp
-    DeviceSettingsManager.cpp
-)
-
-#add_executable(${MODULE_NAME}
-#    Module.cpp
-#    DeviceSettingsManager.cpp)
+    DeviceSettingsManager.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
@@ -53,21 +48,9 @@ install(TARGETS ${MODULE_NAME}
 add_library(${PLUGIN_IMPLEMENTATION} SHARED
     Module.cpp
     DeviceSettingsManagerImp.cpp
-    DeviceSettingsManagerFPD.cpp
-    DeviceSettingsManagerHDMIIn.cpp
-    DeviceSettingsManagerAudio.cpp
     fpd.cpp
     HdmiIn.cpp
-    Audio.cpp
 )
-
-#add_executable(${PLUGIN_IMPLEMENTATION}
-#    Module.cpp
-#    DeviceSettingsManagerImp.cpp
-#    fpd.cpp
-#    HdmiIn.cpp
-#    Audio.cpp
-#)
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}

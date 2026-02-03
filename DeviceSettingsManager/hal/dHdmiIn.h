@@ -55,7 +55,7 @@ namespace dHdmiIn {
         static void DS_OnHDMIInAVLatencyEvent(const int32_t audioDelay, const int32_t videoDelay);
         static void DS_OnHDMIInVRRStatusEvent(const dsHdmiInPort_t port, const dsVRRType_t vrrType);
 
-        virtual uint32_t GetHDMIInNumbefOfInputs(int32_t &count) = 0;
+        virtual uint32_t GetHDMIInNumberOfInputs(int32_t &count) = 0;
         virtual uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) = 0;
         virtual uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) = 0;
         virtual uint32_t ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) = 0;

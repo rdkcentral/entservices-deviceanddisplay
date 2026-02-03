@@ -32,11 +32,6 @@
 #include <sys/types.h>
 #include <interfaces/IDeviceSettingsManager.h>
 
-// Include DeviceSettings headers for types like StereoMode
-#include "rdk/halif/ds-hal/dsAudio.h"
-#include "rdk/halif/ds-hal/dsTypes.h"
-
-// Note: USE_LEGACY_INTERFACE should be defined via build system if needed
 #define USE_LEGACY_INTERFACE
 
 #ifdef USE_LEGACY_INTERFACE
@@ -78,7 +73,7 @@ using HDMIInVideoStereoScopicMode = DeviceSettingsManagerHDMIIn::HDMIInVideoSter
 using HDMIInVideoFrameRate     = DeviceSettingsManagerHDMIIn::HDMIInVideoFrameRate;
 using IHDMIInPortConnectionStatusIterator = DeviceSettingsManagerHDMIIn::IHDMIInPortConnectionStatusIterator;
 using IHDMIInGameFeatureListIterator      = DeviceSettingsManagerHDMIIn::IHDMIInGameFeatureListIterator;
-using GameFeatureListIteratorImpl = WPEFramework::Core::Service<IHDMIInGameFeatureListIterator>;
+using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>;
 
 // FPD type aliases for convenience
 using FPDTimeFormat = DeviceSettingsManagerFPD::FPDTimeFormat;
@@ -87,19 +82,6 @@ using FPDState = DeviceSettingsManagerFPD::FPDState;
 using FPDTextDisplay = DeviceSettingsManagerFPD::FPDTextDisplay;
 using FPDMode = DeviceSettingsManagerFPD::FPDMode;
 using FDPLEDState = DeviceSettingsManagerFPD::FDPLEDState;
-
-using AudioPortType = DeviceSettingsManagerAudio::AudioPortType;
-using AudioFormat = DeviceSettingsManagerAudio::AudioFormat;
-using DolbyAtmosCapability = DeviceSettingsManagerAudio::DolbyAtmosCapability;
-using AudioPortState = DeviceSettingsManagerAudio::AudioPortState;
-using StereoModes = DeviceSettingsManagerAudio::StereoModes; // Conflicts with dsAVDTypes.h - use fully qualified names
-using AudioARCStatus = DeviceSettingsManagerAudio::AudioARCStatus;
-using AudioDuckingType = DeviceSettingsManagerAudio::AudioDuckingType;
-using AudioDuckingAction = DeviceSettingsManagerAudio::AudioDuckingAction;
-using AudioEncoding = DeviceSettingsManagerAudio::AudioEncoding;
-using AudioCompression = DeviceSettingsManagerAudio::AudioCompression;
-using VolumeLeveller = DeviceSettingsManagerAudio::VolumeLeveller;
-using SurroundVirtualizer = DeviceSettingsManagerAudio::SurroundVirtualizer;
 
 // Common constants
 #define API_VERSION_MAJOR 1
@@ -339,17 +321,5 @@ struct CallbackBundle {
     std::function<void(HDMIInPort, HDMIInAviContentType)> OnHDMIInAVIContentTypeEvent;
     std::function<void(int32_t, int32_t)> OnHDMIInAVLatencyEvent;
     std::function<void(HDMIInPort, HDMIInVRRType)> OnHDMIInVRRStatusEvent;
-    
-    // Audio callbacks
-    std::function<void(bool)> OnAssociatedAudioMixingChangedEvent;
-    std::function<void(int32_t)> OnAudioFaderControlChangedEvent;
-    std::function<void(const string&)> OnAudioPrimaryLanguageChangedEvent;
-    std::function<void(const string&)> OnAudioSecondaryLanguageChangedEvent;
-    std::function<void(AudioPortType, uint32_t, bool)> OnAudioOutHotPlugEvent;
-    std::function<void(AudioFormat)> OnAudioFormatUpdateEvent;
-    std::function<void(DolbyAtmosCapability, bool)> OnDolbyAtmosCapabilitiesChangedEvent;
-    std::function<void(AudioPortState)> OnAudioPortStateChangedEvent;
-    std::function<void(AudioPortType, StereoModes)> OnAudioModeEvent;
-    std::function<void(int32_t)> OnAudioLevelChangedEvent;
     // Add other callbacks as needed
 };

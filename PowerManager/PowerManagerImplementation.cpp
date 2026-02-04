@@ -126,7 +126,10 @@ namespace Plugin {
     {
         auto index = _modeChangedNotifications.begin();
         while (index != _modeChangedNotifications.end()) {
+			auto start = std::chrono::steady_clock::now();
             (*index)->OnPowerModeChanged(currentState, newState);
+			auto elapsed = std::chrono::steady_clock::now() - start;
+			LOGINFO("client %p,%x took %" PRId64 "ms to process IModeChanged event", index, *index, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
             ++index;
         }
     }
@@ -674,7 +677,10 @@ namespace Plugin {
             Core::IWorkerPool::Instance().Submit(
                 PowerManagerImplementation::LambdaJob::Create(this,
                     [notification, currentState, newState, transactionId]() {
+						auto start = std::chrono::steady_clock::now();
                         notification->OnPowerModePreChange(currentState, newState, transactionId, POWER_MODE_PRECHANGE_TIMEOUT_SEC);
+						auto elapsed = std::chrono::steady_clock::now() - start;
+						LOGINFO("client %p took %" PRId64 "ms to process PowerModePreChange event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
                     }));
         }
 

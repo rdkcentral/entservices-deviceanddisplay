@@ -12,6 +12,11 @@
 #include <syslog.h>
 #include <sys/resource.h>
 
+// WPEFramework includes (required before device_settings.h)
+#include <core/core.h>
+#include <com/com.h>
+#include <interfaces/IDeviceSettingsManager.h>
+
 // RDK specific includes
 #include "device_settings.h"  // Thunder client library for DeviceSettings
 // #include "libIBus.h"           // Uncomment if using IARM Bus

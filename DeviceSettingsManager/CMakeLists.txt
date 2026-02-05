@@ -32,7 +32,7 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 
 # Set WPEFrameworkDSController library path directly
-set(WPEFRAMEWORK_DSCONTROLLER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../../wpeframework-clientlibraries/4.4.2-r20/build/Source/devicesettings")
+set(WPEFRAMEWORK_DSCONTROLLER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib32-wpeframework-clientlibraries/4.4.2-r20/build/Source/devicesettings")
 set(WPEFRAMEWORK_DSCONTROLLER_LIB "${WPEFRAMEWORK_DSCONTROLLER_PATH}/libWPEFrameworkDSController.so")
 
 # Check if the library exists

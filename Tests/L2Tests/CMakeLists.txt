@@ -46,10 +46,6 @@ if(PLUGIN_USERPREFERENCES)
     set(SRC_FILES ${SRC_FILES} tests/UserPreferences_L2Test.cpp) 
 endif()
 
-if(PLUGIN_POWERMANAGER)
-    set(SRC_FILES ${SRC_FILES} tests/PowerManager_L2Test.cpp)
-endif()
-
 if(PLUGIN_FRAMERATE)
     set(SRC_FILES ${SRC_FILES} tests/FrameRate_L2Test.cpp)
 endif()

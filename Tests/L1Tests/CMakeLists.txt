@@ -102,11 +102,6 @@ macro(add_plugin_test plugin_name test_files)
     add_plugin_test_ex(${plugin_opt} "${test_files}" "../../${plugin_name}" "${NAMESPACE}${plugin_name}")
 endmacro()
 
-# PLUGIN_POWERMANAGER
-#set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerManager ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-#set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
-#add_plugin_test_ex(PLUGIN_POWERMANAGER ../mocks/PowerManagerMock.cpp "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
-
 # PLUGIN_DEVICEINFO
 #set (DEVICEINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 #set (DEVICEINFO_SRC tests/test_DeviceAudioCapabilities.cpp tests/test_DeviceInfo.cpp tests/test_DeviceInfoJsonRpc.cpp tests/test_DeviceInfoWeb.cpp test_FirmwareVersion tests/test_DeviceVideoCapabilities.cpp)
@@ -131,11 +126,6 @@ add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USER
 # PLUGIN_SYSTEMSERVICES
 #set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 #add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")
-
-# PLUGIN_POWERMANAGER
-set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerManager ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
-add_plugin_test_ex(PLUGIN_POWERMANAGER "tests/test_PowerManager.cpp;tests/test_PowerManagerSettings.cpp;tests/test_PowerManagerThermalController.cpp" "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
 
 # PLUGIN_DEVICEDIAGNOSTICS
 set (DEVICEDIAGNOSTICS_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceDiagnostics ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)

@@ -126,10 +126,10 @@ namespace Plugin {
     {
         auto index = _modeChangedNotifications.begin();
         while (index != _modeChangedNotifications.end()) {
-			auto start = std::chrono::steady_clock::now();
+            auto start = std::chrono::steady_clock::now();
             (*index)->OnPowerModeChanged(currentState, newState);
-			auto elapsed = std::chrono::steady_clock::now() - start;
-			LOGINFO("client %p,%x took %" PRId64 "ms to process IModeChanged event", index, *index, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            auto elapsed = std::chrono::steady_clock::now() - start;
+            LOGINFO("client %p-0x%lx took %" PRId64 "ms to process IModeChanged event", static_cast<void*>(*index), reinterpret_cast<unsigned long>(*index), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
             ++index;
         }
     }

@@ -115,7 +115,6 @@ namespace Plugin
             LOGERR("Failed to get IDeviceSettingsFPD interface");
         } else {
             LOGINFO("DeviceSettingsFPD interface obtained successfully");
-            #if 0
             // Use QueryInterface to get HDMI interface from the same object instance
             _mDeviceSettingsHDMIIn = _mDeviceSettingsFPD->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
 
@@ -126,9 +125,9 @@ namespace Plugin
             } else {
                 LOGINFO("DeviceSettingsHDMIIn interface queried successfully");
             }
-            #endif
         }
-        // Get IDeviceSettingsHDMIIn interface from 
+        // Get IDeviceSettingsHDMIIn interface from
+        #if 0
         _mDeviceSettingsHDMIIn = service->Root<Exchange::IDeviceSettingsHDMIIn>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsHdmiInImp"));
 
         if (_mDeviceSettingsHDMIIn == nullptr) {
@@ -138,6 +137,7 @@ namespace Plugin
         } else {
             LOGINFO("DeviceSettingsHDMIIn interface queried successfully");
         }
+	#endif
 #else
         // Get the unified interface that provides both FPD and HDMI functionality
         _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));

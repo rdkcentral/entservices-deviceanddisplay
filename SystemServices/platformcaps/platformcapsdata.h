@@ -153,41 +153,40 @@ private:
         message->Designator = Core::JSON::String(mCallSign + ".1." + method);
         ToMessage(parameters, message);
         const uint32_t channelId = ~0;
-            string output = "";
-            uint32_t result = Core::ERROR_BAD_REQUEST;
+        string output = "";
+        uint32_t result = Core::ERROR_BAD_REQUEST;
 	    if (dispatcher_  != nullptr) {
-                PluginHost::ILocalDispatcher* localDispatcher = dispatcher_->Local();
-                ASSERT(localDispatcher != nullptr);
+            PluginHost::ILocalDispatcher* localDispatcher = dispatcher_->Local();
+            ASSERT(localDispatcher != nullptr);
 
-                if (localDispatcher != nullptr)
-                    result =  dispatcher_->Invoke(channelId, message->Id.Value(), "", message->Designator.Value(), message->Parameters.Value(),output);
+            if (localDispatcher != nullptr)
+                result =  dispatcher_->Invoke(channelId, message->Id.Value(), "", message->Designator.Value(), message->Parameters.Value(),output);
+        }
+
+        if (message.IsValid() == true) {
+            if (result == static_cast<uint32_t>(~0)) {
+                message.Release();
             }
-
-            if (message.IsValid() == true) {
-                if (result == static_cast<uint32_t>(~0)) {
-                    message.Release();
-                }
-                else if (result == Core::ERROR_NONE)
-                {
-                    if (output.empty() == true)
-                        message->Result.Null(true);
-                    else
-                        message->Result = output;
-                }
-                else
-                {
-                    message->Error.SetError(result);
-                    if (output.empty() == false) {
-                        message->Error.Text = output;
-                    }
-                }
-            }
-
-            if (!FromMessage(response, message, isResponseString))
+            else if (result == Core::ERROR_NONE)
             {
-                return Core::ERROR_GENERAL;
+                if (output.empty() == true)
+                    message->Result.Null(true);
+                else
+                    message->Result = output;
             }
-        auto resp = dispatcher_->Invoke("", channelId, *message);
+            else
+            {
+                message->Error.SetError(result);
+                if (output.empty() == false) {
+                    message->Error.Text = output;
+                }
+            }
+        }
+
+        if (!FromMessage(response, message, isResponseString))
+        {
+            return Core::ERROR_GENERAL;
+        }
         return Core::ERROR_NONE;
       }
     };

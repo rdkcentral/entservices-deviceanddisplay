@@ -116,8 +116,12 @@ public:
 
     virtual uint32_t SetDeepSleep(uint32_t deepSleepTime, bool& isGPIOWakeup, bool networkStandby) override
     {
+        int32_t ret = -1;
         LOGINFO("Update the Deepsleep marker ");
-        v_secure_system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");
+        ret = v_secure_system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");
+        if() (ret != 0) {
+            LOGERR("Failed to update the Deepsleep marker");
+        }
         
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);
 

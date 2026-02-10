@@ -5,6 +5,7 @@
 #include "DeepSleep.h"
 #include "PowerUtils.h"
 #include "UtilsLogging.h"
+#include "secure_wrapper.h" // for v_secure_system
 
 class DeepSleepImpl : public hal::deepsleep::IPlatform {
     using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
@@ -115,6 +116,9 @@ public:
 
     virtual uint32_t SetDeepSleep(uint32_t deepSleepTime, bool& isGPIOWakeup, bool networkStandby) override
     {
+        LOGINFO("Update the Deepsleep marker ");
+        v_secure_system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");
+        
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);
 
         uint32_t retCode = conv(status);

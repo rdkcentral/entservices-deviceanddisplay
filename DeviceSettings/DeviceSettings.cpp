@@ -110,6 +110,7 @@ namespace Plugin
 
 #ifdef USE_LEGACY_INTERFACE
         // Get IDeviceSettingsFPD interface.
+#if 0
         _mDeviceSettingsFPD = service->Root<Exchange::IDeviceSettingsFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsFPDImpl"));
 
 
@@ -142,6 +143,7 @@ namespace Plugin
         } else {
             LOGINFO("DeviceSettingsHDMIIn interface queried successfully");
         }
+#endif
 #else
         // Get the unified interface that provides both FPD and HDMI functionality
         _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
@@ -152,6 +154,13 @@ namespace Plugin
             LOGERR("Failed to get IDeviceSettings interface");
         } else {
             LOGINFO("DeviceSettingsImp initialized successfully");
+            
+            // Call Configure method on DeviceSettingsImp with the service
+            Core::hresult result = _mDeviceSettings->Configure(service);
+            if (result != Core::ERROR_NONE) {
+                LOGERR("Failed to configure DeviceSettings: %d", result);
+                message = _T("DeviceSettings configuration failed");
+            }
         }
 #endif
         if (0 != message.length()) {

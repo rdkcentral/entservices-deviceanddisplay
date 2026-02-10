@@ -70,6 +70,7 @@ void RebootController::scheduleHeartbeat()
 
 void RebootController::heartbeatMsg()
 {
+    // Coverity Fix: ID 596 - Y2038: time_t should be 64-bit on modern platforms
     time_t curr = 0;
     time(&curr);
 

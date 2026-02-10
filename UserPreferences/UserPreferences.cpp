@@ -295,7 +295,11 @@ namespace WPEFramework {
 
         void UserPreferences::Deinitialize(PluginHost::IShell* /* service */) {
             LOGINFO("Deinitialize");
-            Exchange::IUserSettings* userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            // Coverity Fix: ID 540 - Dereference before null check: Check _service before dereferencing
+            Exchange::IUserSettings* userSettings = nullptr;
+            if (_service != nullptr) {
+                userSettings = _service->QueryInterfaceByCallsign<Exchange::IUserSettings>("org.rdk.UserSettings");
+            }
             if (nullptr != userSettings) {
                 userSettings->Unregister(&_notification);
                 userSettings->Release();
@@ -339,7 +343,8 @@ namespace WPEFramework {
                     g_key_file_set_string(file, SETTINGS_FILE_GROUP, SETTINGS_FILE_KEY, (gchar *)uiLanguage.c_str());
                     g_autoptr(GError) error = nullptr;
                     if (g_key_file_save_to_file(file, SETTINGS_FILE_NAME, &error)) {
-                        _lastUILanguage = uiLanguage;
+                        // Coverity Fix: ID 67 - COPY_INSTEAD_OF_MOVE: Use std::move for assignment
+                        _lastUILanguage = std::move(uiLanguage);
                     } else {
                         LOGERR("Error saving file '%s': %s", SETTINGS_FILE_NAME, error->message);
                     }

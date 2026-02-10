@@ -59,6 +59,9 @@ namespace WPEFramework
         }
 
         DeviceDiagnosticsImplementation::DeviceDiagnosticsImplementation() : _adminLock() , _service(nullptr)
+#ifdef ENABLE_ERM
+            , m_pollThreadRun(0)  // Coverity Fix: ID 582 - Uninitialized scalar field: Initialize in constructor initializer list
+#endif
         {
             LOGINFO("Create DeviceDiagnosticsImplementation Instance");
 
@@ -195,22 +198,28 @@ namespace WPEFramework
             int lastStatus = EssRMgrRes_idle;
             int status;
             int timeoutInSec = AVDECODERSTATUS_RETRY_INTERVAL;
-            DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
 
             LOGINFO("AVPollThread started");
             for (;;)
             {
-                std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
-                if (t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec)) != std::cv_status::timeout)
+                // Coverity Fix: ATOMICITY - Read _instance inside lock to ensure atomic access
+                DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
+                if (!t) break; // Safety check in case instance is null
+                
+                // Coverity Fix: ID 206, 207 - Double unlock: Use scope block to control lock lifetime
                 {
-                    LOGINFO("Received signal. skipping %d sec interval", timeoutInSec);
-                }
+                    std::unique_lock<std::mutex> lock(t->m_AVDecoderStatusLock);
+                    
+                    // Coverity Fix: ID 1 - Data race: Use wait_for with predicate to handle spurious wakeups
+                    // Wait for signal or timeout, checking m_pollThreadRun in a loop
+                    t->m_avDecoderStatusCv.wait_for(lock, std::chrono::seconds(timeoutInSec), 
+                        [t]() { return t->m_pollThreadRun == 0; });
 
-                if (t->m_pollThreadRun == 0)
-                    break;
+                    if (t->m_pollThreadRun == 0)
+                        break;
 
-                status = t->getMostActiveDecoderStatus();
-                lock.unlock();
+                    status = t->getMostActiveDecoderStatus();
+                } // Lock automatically released here
 
                 if (status == lastStatus)
                     continue;

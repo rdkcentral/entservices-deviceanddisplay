@@ -112,12 +112,6 @@ endmacro()
 #set (DEVICEINFO_SRC tests/test_DeviceAudioCapabilities.cpp tests/test_DeviceInfo.cpp tests/test_DeviceInfoJsonRpc.cpp tests/test_DeviceInfoWeb.cpp test_FirmwareVersion tests/test_DeviceVideoCapabilities.cpp)
 #add_plugin_test_ex(PLUGIN_DEVICEINFO "${DEVICEINFO_SRC}" "${DEVICEINFO_INC}" "${NAMESPACE}DeviceInfo")
 
-# PLUGIN_WAREHOUSE
-set (WAREHOUSE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/Warehouse ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-set (WAREHOUSE_LIBS ${NAMESPACE}Warehouse ${NAMESPACE}WarehouseImplementation)
-add_plugin_test_ex(PLUGIN_WAREHOUSE tests/test_Warehouse.cpp "${WAREHOUSE_INC}" "${WAREHOUSE_LIBS}")
-
-
 # PLUGIN_FRAMERATE
 set (FRAMERATE_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/FrameRate ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 set (FRAMERATE_LIBS ${NAMESPACE}FrameRate ${NAMESPACE}FrameRateImplementation)
@@ -137,16 +131,6 @@ set (POWERMANAGER_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/PowerM
 set (POWERMANAGER_LIBS ${NAMESPACE}PowerManager ${NAMESPACE}PowerManagerImplementation)
 add_plugin_test_ex(PLUGIN_POWERMANAGER "tests/test_PowerManager.cpp;tests/test_PowerManagerSettings.cpp;tests/test_PowerManagerThermalController.cpp" "${POWERMANAGER_INC}" "${POWERMANAGER_LIBS}")
 
-# PLUGIN_DEVICEDIAGNOSTICS
-set (DEVICEDIAGNOSTICS_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceDiagnostics ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-set (DEVICEDIAGNOSTICS_LIBS ${NAMESPACE}DeviceDiagnostics ${NAMESPACE}DeviceDiagnosticsImplementation)
-add_plugin_test_ex(PLUGIN_DEVICEDIAGNOSTICS tests/test_DeviceDiagnostics.cpp "${DEVICEDIAGNOSTICS_INC}" "${DEVICEDIAGNOSTICS_LIBS}")
-
-# PLUGIN_DISPLAYINFO
-set (DISPLAYINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DisplayInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-set (DISPLAYINFO_SRC tests/test_DisplayInfo.cpp)
-add_plugin_test_ex(PLUGIN_DISPLAYINFO "${DISPLAYINFO_SRC}" "${DISPLAYINFO_INC}" "${NAMESPACE}DisplayInfo")
-
 #PLUGIN_DEVICEINFO
 set (DEVICEINFO_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/DeviceInfo ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 set (DEVICEINFO_LIBS ${NAMESPACE}DeviceInfo ${NAMESPACE}DeviceInfoImplementation)
@@ -158,7 +142,6 @@ set_source_files_properties(
         tests/test_DeviceAudioCapabilities.cpp
         tests/test_DeviceVideoCapabilities.cpp
         tests/test_SystemServices.cpp
-        tests/test_Warehouse.cpp
         PROPERTIES COMPILE_FLAGS "-fexceptions")
 
 

@@ -30,7 +30,6 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-#include <interfaces/IDeviceSettings.h>
 //#include <interfaces/IDeviceSettingsManager.h>
 #include <interfaces/IDeviceSettingsAudio.h>
 #include <interfaces/IDeviceSettingsCompositeIn.h>
@@ -50,7 +49,7 @@
 
 namespace WPEFramework {
 namespace Plugin {
-    class DeviceSettingsImp : public Exchange::IDeviceSettings
+    class DeviceSettingsImp
     {
     public:
         // We do not allow this plugin to be copied !!
@@ -63,28 +62,7 @@ namespace Plugin {
         DeviceSettingsImp(const DeviceSettingsImp&)            = delete;
         DeviceSettingsImp& operator=(const DeviceSettingsImp&) = delete;
 
-        // Build QueryInterface implementation, specifying all possible interfaces to be returned.
-        BEGIN_INTERFACE_MAP(DeviceSettingsImp)
-            INTERFACE_ENTRY(Exchange::IDeviceSettings)
-        END_INTERFACE_MAP
-
-        // IDeviceSettings interface implementation
-        Core::hresult Configure(PluginHost::IShell* service) override;
-
     private:
-        void InitializeComponentHandles(PluginHost::IShell* service);
-        
-        // Component interface handles
-        Exchange::IDeviceSettingsAudio* _audioSettings;
-        Exchange::IDeviceSettingsCompositeIn* _compositeInSettings;
-        Exchange::IDeviceSettingsDisplay* _displaySettings;
-        Exchange::IDeviceSettingsFPD* _fpdSettings;
-        Exchange::IDeviceSettingsHDMIIn* _hdmiInSettings;
-        Exchange::IDeviceSettingsHost* _hostSettings;
-        Exchange::IDeviceSettingsVideoDevice* _videoDeviceSettings;
-        Exchange::IDeviceSettingsVideoPort* _videoPortSettings;
-        
-        uint32_t mConnectionId;
         static DeviceSettingsImp* _instance;
     };
 } // namespace Plugin

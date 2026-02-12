@@ -30,7 +30,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <interfaces/IDeviceSettings.h>
 #include <interfaces/IDeviceSettingsAudio.h>
 #include <interfaces/IDeviceSettingsCompositeIn.h>
 #include <interfaces/IDeviceSettingsDisplay.h>
@@ -43,7 +42,6 @@
 #define USE_LEGACY_INTERFACE
 
 #ifdef USE_LEGACY_INTERFACE
-using DeviceSettings               = WPEFramework::Exchange::IDeviceSettings;
 using DeviceSettingsFPD            = WPEFramework::Exchange::IDeviceSettingsFPD;
 using DeviceSettingsHDMIIn         = WPEFramework::Exchange::IDeviceSettingsHDMIIn;
 using DeviceSettingsCompositeIn    = WPEFramework::Exchange::IDeviceSettingsCompositeIn;

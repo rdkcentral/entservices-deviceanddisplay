@@ -95,7 +95,6 @@ if(PLUGIN_SYSTEMMODE)
 endif()
 
 add_subdirectory(DeviceSettings)
-add_subdirectory(UserPlugin)
 
 if(WPEFRAMEWORK_CREATE_IPKG_TARGETS)
     set(CPACK_GENERATOR "DEB")

@@ -18,7 +18,8 @@
  */
 
 #include "DSPwrEventListener.h"
-#include "DSProductTraitsHandler.h"
+#include "DSProductTraitsHandler.h"  
+#include "DSController.h"
 #include "UtilsLogging.h"
 #include "DeviceSettingsTypes.h"
 
@@ -31,14 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-// Forward declaration - profileType is defined in DeviceSettingsImplementation.cpp
-typedef enum profile {
-    NOT_FOUND = -1,
-    STB = 0,
-    TV,
-    MAX
-} profile_t;
-extern profile_t profileType;
+//extern profile_t profileType;
 
 #include "frontPanelIndicator.hpp"
 #include "videoOutputPort.hpp"
@@ -68,7 +62,6 @@ extern IARM_Result_t _dsGetEnablePersist(void *arg);
 extern void _setEASAudioMode();
 extern IARM_Result_t _dsGetVideoPort(void *arg);
 extern IARM_Result_t _dsEnableVideoPort(void *arg);
-extern int isEAS;
 
 namespace WPEFramework {
 namespace Plugin {
@@ -248,12 +241,10 @@ void DSPwrEventListener::registerPowerEventHandler()
     EXIT_LOG;
 }
 
-#if 0
 void PowerManagerNotification::OnPowerModeChanged(const PowerState currentState, const PowerState newState)
 {
     _parent.onPowerModeChanged(currentState, newState);
 }
-#endif
 
 void DSPwrEventListener::onPowerModeChanged(const PowerState currentState, const PowerState newState)
 {
@@ -319,9 +310,9 @@ void DSPwrEventListener::PwrControllerFetchNinitStateValues()
     EXIT_LOG;
 }
 
-#if 0 //Need to remove
 void* DSPwrEventListener::PwrEventHandlingThreadFunc(void* arg)
 {
+#if 0
     LOGINFO("PwrEventHandlingThreadFunc: Entry");
     DSPwrEventListener* listener = static_cast<DSPwrEventListener*>(arg);
 
@@ -359,10 +350,9 @@ void* DSPwrEventListener::PwrEventHandlingThreadFunc(void* arg)
         }
         pthread_mutex_unlock(&listener->_pwrEventQueueMutexLock);
     }
-    
+#endif
     return arg;
 }
-#endif
 
 void DSPwrEventListener::HandlePwrEventData(const PowerState currentState,
                                            const PowerState newState)
@@ -485,7 +475,7 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                     }
                 }
                 
-                if (isEAS == IARM_BUS_SYS_MODE_EAS) {
+                if (DSController::instance()->getEASMode() == IARM_BUS_SYS_MODE_EAS) {
                     LOGINFO("Force Stereo in EAS mode");
                     _setEASAudioMode();
                 }
@@ -582,7 +572,7 @@ IARM_Result_t DSPwrEventListener::GetStandbyVideoState(void* arg)
     return IARM_RESULT_SUCCESS;
 }
 
-#if 0 // need to remove this
+#if 0
 PowerState DSPwrEventListener::PwrMgrToPowerControllerPowerState(int pwrMgrState)
 {
     PowerState powerState = PowerState::POWER_STATE_UNKNOWN;

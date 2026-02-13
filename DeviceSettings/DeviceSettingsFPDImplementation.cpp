@@ -27,7 +27,7 @@ using namespace std;
 namespace WPEFramework {
 namespace Plugin {
 
-    SERVICE_REGISTRATION(DeviceSettingsFPDImpl, 1, 0);
+    //SERVICE_REGISTRATION(DeviceSettingsFPDImpl, 1, 0);
 
     DeviceSettingsFPDImpl* DeviceSettingsFPDImpl::_instance = nullptr;
 

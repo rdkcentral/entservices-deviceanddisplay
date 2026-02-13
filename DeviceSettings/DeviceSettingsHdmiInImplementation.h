@@ -31,15 +31,8 @@
 #include <plugins/plugins.h>
 
 //#include <interfaces/IDeviceSettingsManager.h>
-#include <interfaces/IDeviceSettingsAudio.h>
-#include <interfaces/IDeviceSettingsCompositeIn.h>
-#include <interfaces/IDeviceSettingsDisplay.h>
-#include <interfaces/IDeviceSettingsFPD.h>
-#include <interfaces/IDeviceSettingsHDMIIn.h>
-#include <interfaces/IDeviceSettingsHost.h>
-#include <interfaces/IDeviceSettingsVideoDevice.h>
-#include <interfaces/IDeviceSettingsVideoPort.h>
-
+// Note: Need Exchange interface includes for notification interfaces  
+#include <interfaces/IDeviceSettingsHDMIIn.h>  // For IDeviceSettingsHDMIIn::INotification
 
 #include "fpd.h"
 #include "HdmiIn.h"
@@ -49,16 +42,13 @@
 
 namespace WPEFramework {
 namespace Plugin {
-    class DeviceSettingsHdmiInImp :
-                                   public Exchange::IDeviceSettingsHDMIIn
-                                   , public HdmiIn::INotification
+    class DeviceSettingsHdmiInImp : public HdmiIn::INotification
     {
     public:
-        // Minimal implementations to satisfy IReferenceCounted
-        uint32_t AddRef() const override { return 1; }
-        uint32_t Release() const override { return 1; }
-
-        // We do not allow this plugin to be copied !!
+        // Note: No need to inherit from Exchange::IDeviceSettingsHDMIIn anymore
+        // DeviceSettingsImp handles the WPEFramework interface contract
+        // This class only needs HdmiIn::INotification for hardware callbacks
+        
         DeviceSettingsHdmiInImp();
         ~DeviceSettingsHdmiInImp() override;
 
@@ -68,9 +58,8 @@ namespace Plugin {
         DeviceSettingsHdmiInImp(const DeviceSettingsHdmiInImp&)            = delete;
         DeviceSettingsHdmiInImp& operator=(const DeviceSettingsHdmiInImp&) = delete;
 
-        BEGIN_INTERFACE_MAP(DeviceSettingsHdmiInImp)
-        INTERFACE_ENTRY(Exchange::IDeviceSettingsHDMIIn)
-        END_INTERFACE_MAP
+        // INTERFACE_MAP not needed - this is an implementation class aggregated by DeviceSettingsImp
+        // DeviceSettingsImp handles QueryInterface for all component interfaces
 
     public: 
         class EXTERNAL LambdaJob : public Core::IDispatch {
@@ -106,34 +95,35 @@ namespace Plugin {
         void DeviceManager_Init();
         void InitializeIARM();
 
-        // HDMIIn methods
-        virtual Core::hresult Register(DeviceSettingsHDMIIn::INotification* notification) override;
-        virtual Core::hresult Unregister(DeviceSettingsHDMIIn::INotification* notification) override;
-        Core::hresult GetHDMIInNumbefOfInputs(int32_t &count) override;
-        Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) override;
-        Core::hresult SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) override;
-        Core::hresult ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) override;
-        Core::hresult SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) override;
-        Core::hresult GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) override;
-        Core::hresult GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency) override;
-        Core::hresult GetHDMIInAllmStatus(const HDMIInPort port, bool &allmStatus) override;
-        Core::hresult GetHDMIInEdid2AllmSupport(const HDMIInPort port, bool &allmSupport) override;
-        Core::hresult SetHDMIInEdid2AllmSupport(const HDMIInPort port, bool allmSupport) override;
-        Core::hresult GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) override;
-        Core::hresult GetHDMISPDInformation(const HDMIInPort port, const uint16_t spdBytesLength, uint8_t spdBytes[]) override;
-        Core::hresult GetHDMIEdidVersion(const HDMIInPort port, HDMIInEdidVersion &edidVersion) override;
-        Core::hresult SetHDMIEdidVersion(const HDMIInPort port, const HDMIInEdidVersion edidVersion) override;
-        Core::hresult GetHDMIVideoMode(HDMIVideoPortResolution &videoPortResolution) override;
-        Core::hresult GetHDMIVersion(const HDMIInPort port, HDMIInCapabilityVersion &capabilityVersion) override;
-        Core::hresult SetVRRSupport(const HDMIInPort port, const bool vrrSupport) override;
-        Core::hresult GetVRRSupport(const HDMIInPort port, bool &vrrSupport) override;
-        Core::hresult GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) override;
+        // HDMIIn implementation methods - no longer interface methods, just implementation
+        // These are called by DeviceSettingsImp which implements the Exchange interface
+        Core::hresult Register(Exchange::IDeviceSettingsHDMIIn::INotification* notification);
+        Core::hresult Unregister(Exchange::IDeviceSettingsHDMIIn::INotification* notification);
+        Core::hresult GetHDMIInNumbefOfInputs(int32_t &count);
+        Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);
+        Core::hresult SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType);
+        Core::hresult ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition);
+        Core::hresult SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode);
+        Core::hresult GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList);
+        Core::hresult GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency);
+        Core::hresult GetHDMIInAllmStatus(const HDMIInPort port, bool &allmStatus);
+        Core::hresult GetHDMIInEdid2AllmSupport(const HDMIInPort port, bool &allmSupport);
+        Core::hresult SetHDMIInEdid2AllmSupport(const HDMIInPort port, bool allmSupport);
+        Core::hresult GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]);
+        Core::hresult GetHDMISPDInformation(const HDMIInPort port, const uint16_t spdBytesLength, uint8_t spdBytes[]);
+        Core::hresult GetHDMIEdidVersion(const HDMIInPort port, HDMIInEdidVersion &edidVersion);
+        Core::hresult SetHDMIEdidVersion(const HDMIInPort port, const HDMIInEdidVersion edidVersion);
+        Core::hresult GetHDMIVideoMode(HDMIVideoPortResolution &videoPortResolution);
+        Core::hresult GetHDMIVersion(const HDMIInPort port, HDMIInCapabilityVersion &capabilityVersion);
+        Core::hresult SetVRRSupport(const HDMIInPort port, const bool vrrSupport);
+        Core::hresult GetVRRSupport(const HDMIInPort port, bool &vrrSupport);
+        Core::hresult GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus);
 
         static DeviceSettingsHdmiInImp* _instance;
 
         
     private:
-        std::list<DeviceSettingsHDMIIn::INotification*> _HDMIInNotifications;
+        std::list<Exchange::IDeviceSettingsHDMIIn::INotification*> _HDMIInNotifications;
 
         // lock to guard all apis of DeviceSettings
         mutable Core::CriticalSection _apiLock;

@@ -31,15 +31,8 @@
 #include <plugins/plugins.h>
 
 //#include <interfaces/IDeviceSettingsManager.h>
-#include <interfaces/IDeviceSettingsAudio.h>
-#include <interfaces/IDeviceSettingsCompositeIn.h>
-#include <interfaces/IDeviceSettingsDisplay.h>
-#include <interfaces/IDeviceSettingsFPD.h>
-#include <interfaces/IDeviceSettingsHDMIIn.h>
-#include <interfaces/IDeviceSettingsHost.h>
-#include <interfaces/IDeviceSettingsVideoDevice.h>
-#include <interfaces/IDeviceSettingsVideoPort.h>
-
+// Note: Need Exchange interface includes for notification interfaces
+#include <interfaces/IDeviceSettingsFPD.h>  // For IDeviceSettingsFPD::INotification
 
 #include "fpd.h"
 //#include "HdmiIn.h"
@@ -49,16 +42,13 @@
 
 namespace WPEFramework {
 namespace Plugin {
-    class DeviceSettingsFPDImpl :
-                                   public Exchange::IDeviceSettingsFPD
-                                   , public FPD::INotification
+    class DeviceSettingsFPDImpl : public FPD::INotification
     {
     public:
-        // Minimal implementations to satisfy IReferenceCounted
-        uint32_t AddRef() const override { return 1; }
-        uint32_t Release() const override { return 1; }
-
-        // We do not allow this plugin to be copied !!
+        // Note: No need to inherit from Exchange::IDeviceSettingsFPD anymore
+        // DeviceSettingsImp handles the WPEFramework interface contract
+        // This class only needs FPD::INotification for hardware callbacks
+        
         DeviceSettingsFPDImpl();
         ~DeviceSettingsFPDImpl() override;
 
@@ -68,9 +58,8 @@ namespace Plugin {
         DeviceSettingsFPDImpl(const DeviceSettingsFPDImpl&)            = delete;
         DeviceSettingsFPDImpl& operator=(const DeviceSettingsFPDImpl&) = delete;
 
-        BEGIN_INTERFACE_MAP(DeviceSettingsFPDImpl)
-        INTERFACE_ENTRY(Exchange::IDeviceSettingsFPD)
-        END_INTERFACE_MAP
+        // INTERFACE_MAP not needed - this is an implementation class aggregated by DeviceSettingsImp
+        // DeviceSettingsImp handles QueryInterface for all component interfaces
 
     public:
         class EXTERNAL LambdaJob : public Core::IDispatch {
@@ -106,30 +95,31 @@ namespace Plugin {
         void DeviceManager_Init();
         void InitializeIARM();
 
-        // FPD methods
-        virtual Core::hresult Register(DeviceSettingsFPD::INotification* notification) override;
-        virtual Core::hresult Unregister(DeviceSettingsFPD::INotification* notification) override;
-        Core::hresult SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) override;
-        Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) override;
-        Core::hresult SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) override;
-        Core::hresult SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist) override;
-        Core::hresult GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) override;
-        Core::hresult SetFPDState(const FPDIndicator indicator, const FPDState state) override;
-        Core::hresult GetFPDState(const FPDIndicator indicator, FPDState &state) override;
-        Core::hresult GetFPDColor(const FPDIndicator indicator, uint32_t &color) override;
-        Core::hresult SetFPDColor(const FPDIndicator indicator, const uint32_t color) override;
-        Core::hresult SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess) override;
-        Core::hresult GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess) override;
-        Core::hresult EnableFPDClockDisplay(const bool enable) override;
-        Core::hresult GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) override;
-        Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) override;
-        Core::hresult SetFPDMode(const FPDMode fpdMode) override;
+        // FPD implementation methods - no longer interface methods, just implementation
+        // These are called by DeviceSettingsImp which implements the Exchange interface
+        Core::hresult Register(Exchange::IDeviceSettingsFPD::INotification* notification);
+        Core::hresult Unregister(Exchange::IDeviceSettingsFPD::INotification* notification);
+        Core::hresult SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds);
+        Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations);
+        Core::hresult SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations);
+        Core::hresult SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist);
+        Core::hresult GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess);
+        Core::hresult SetFPDState(const FPDIndicator indicator, const FPDState state);
+        Core::hresult GetFPDState(const FPDIndicator indicator, FPDState &state);
+        Core::hresult GetFPDColor(const FPDIndicator indicator, uint32_t &color);
+        Core::hresult SetFPDColor(const FPDIndicator indicator, const uint32_t color);
+        Core::hresult SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess);
+        Core::hresult GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess);
+        Core::hresult EnableFPDClockDisplay(const bool enable);
+        Core::hresult GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat);
+        Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat);
+        Core::hresult SetFPDMode(const FPDMode fpdMode);
 
         static DeviceSettingsFPDImpl* _instance;
 
         
     private:
-        std::list<DeviceSettingsFPD::INotification*> _FPDNotifications;
+        std::list<Exchange::IDeviceSettingsFPD::INotification*> _FPDNotifications;
 
         // lock to guard all apis of DeviceSettings
         mutable Core::CriticalSection _apiLock;

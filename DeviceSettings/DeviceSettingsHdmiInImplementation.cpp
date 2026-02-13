@@ -27,7 +27,9 @@ using namespace std;
 namespace WPEFramework {
 namespace Plugin {
 
-    SERVICE_REGISTRATION(DeviceSettingsHdmiInImp, 1, 0);
+    // Only DeviceSettingsImp should have SERVICE_REGISTRATION
+    // This implementation is aggregated by DeviceSettingsImp
+    //SERVICE_REGISTRATION(DeviceSettingsHdmiInImp, 1, 0);
 
     DeviceSettingsHdmiInImp* DeviceSettingsHdmiInImp::_instance = nullptr;
 

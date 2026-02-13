@@ -36,6 +36,8 @@
 #include "exception.hpp"
 #include "manager.hpp"
 
+// Include profile definitions before dHdmiInImpl.h to ensure proper access
+#include "../helpers/UtilsSearchRDKProfile.h"
 #include "hal/dHdmiInImpl.h"
 
 class HdmiIn {

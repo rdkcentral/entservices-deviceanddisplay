@@ -43,7 +43,7 @@
 #define USE_LEGACY_INTERFACE
 
 #ifdef USE_LEGACY_INTERFACE
-using DeviceSettings               = WPEFramework::Exchange::IDeviceSettings;
+using DeviceSetting               = WPEFramework::Exchange::IDeviceSettings;
 using DeviceSettingsFPD            = WPEFramework::Exchange::IDeviceSettingsFPD;
 using DeviceSettingsHDMIIn         = WPEFramework::Exchange::IDeviceSettingsHDMIIn;
 using DeviceSettingsCompositeIn    = WPEFramework::Exchange::IDeviceSettingsCompositeIn;

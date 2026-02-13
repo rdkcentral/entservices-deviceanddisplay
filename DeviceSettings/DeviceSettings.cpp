@@ -110,40 +110,23 @@ namespace Plugin
 
 #ifdef USE_LEGACY_INTERFACE
         // Get IDeviceSettingsFPD interface.
-#if 0
-        _mDeviceSettingsFPD = service->Root<Exchange::IDeviceSettingsFPD>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsFPDImpl"));
+        // Get the unified interface that provides both FPD and HDMI functionality
+        _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
 
-
-        if (_mDeviceSettingsFPD == nullptr) {
+        if (_mDeviceSettings == nullptr) {
             SYSLOG(Logging::Startup, (_T("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin")));
             message = _T("DeviceSettings plugin could not be initialised");
-            LOGERR("Failed to get IDeviceSettingsFPD interface");
+            LOGERR("Failed to get IDeviceSettings interface");
         } else {
-            LOGINFO("DeviceSettingsFPD interface obtained successfully");
-            #if 0
-            // Use QueryInterface to get HDMI interface from the same object instance
-            _mDeviceSettingsHDMIIn = _mDeviceSettingsFPD->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
-
-            if (_mDeviceSettingsHDMIIn == nullptr) {
-                SYSLOG(Logging::Startup, (_T("DeviceSettings::Initialize: Failed to query HDMI interface from same object")));
-                message = _T("DeviceSettings HDMI interface could not be queried");
-                LOGERR("Failed to QueryInterface for IDeviceSettingsHDMIIn from same object");
-            } else {
-                LOGINFO("DeviceSettingsHDMIIn interface queried successfully");
+            LOGINFO("DeviceSettingsImp initialized successfully");
+            
+            // Call Configure method on DeviceSettingsImp with the service
+            Core::hresult result = _mDeviceSettings->Configure(service);
+            if (result != Core::ERROR_NONE) {
+                LOGERR("Failed to configure DeviceSettings: %d", result);
+                message = _T("DeviceSettings configuration failed");
             }
-            #endif
         }
-        // Get IDeviceSettingsHDMIIn interface from 
-        _mDeviceSettingsHDMIIn = service->Root<Exchange::IDeviceSettingsHDMIIn>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsHdmiInImp"));
-
-        if (_mDeviceSettingsHDMIIn == nullptr) {
-            SYSLOG(Logging::Startup, (_T("DeviceSettings::Initialize: Failed to get IDeviceSettingsHDMIIn interface")));
-            message = _T("DeviceSettings HDMI interface could not be queried");
-            LOGERR("Failed to get IDeviceSettingsHDMIIn interface");
-        } else {
-            LOGINFO("DeviceSettingsHDMIIn interface queried successfully");
-        }
-#endif
 #else
         // Get the unified interface that provides both FPD and HDMI functionality
         _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));

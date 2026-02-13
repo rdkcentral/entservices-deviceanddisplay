@@ -114,10 +114,13 @@ namespace Plugin {
         uint32_t Start();
         uint32_t Stop();
         void Loop();
-        
+
         // DSMgr functionality methods
         void Init();
         void Deinit();
+
+        // Getter methods
+        int getEASMode() const { return _easMode; }
         
     private:
         // Internal methods migrated from dsMgr daemon

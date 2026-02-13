@@ -99,7 +99,7 @@ static void ScheduleRebootReasonCheck(UXController* controller, unsigned int ret
                     }
                 )
             );
-            #endif 
+            #endif
         } else {
             LOGINFO("Exceeded retry limit");
         }

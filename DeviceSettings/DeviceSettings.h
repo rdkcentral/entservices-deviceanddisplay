@@ -173,9 +173,7 @@ namespace Plugin {
         BEGIN_INTERFACE_MAP(DeviceSettings)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             //INTERFACE_ENTRY(PluginHost::IDispatcher)
-#ifndef USE_LEGACY_INTERFACE
-            INTERFACE_AGGREGATE(Exchange::IDeviceSettings, _mDeviceSettings)
-#endif
+            INTERFACE_AGGREGATE(DeviceSetting, _mDeviceSettings)
             //INTERFACE_AGGREGATE(DeviceSettingsCompositeIn, _mDeviceSettingsCompositeIn)
             //INTERFACE_AGGREGATE(DeviceSettingsAudio, _mDeviceSettingsAudio)
             INTERFACE_AGGREGATE(DeviceSettingsFPD, _mDeviceSettingsFPD)
@@ -201,9 +199,7 @@ namespace Plugin {
     private:
         uint32_t mConnectionId;
         PluginHost::IShell* mService;
-#ifndef USE_LEGACY_INTERFACE
-        Exchange::IDeviceSettings* _mDeviceSettings;
-#endif
+        DeviceSetting* _mDeviceSettings;
         DeviceSettingsCompositeIn* _mDeviceSettingsCompositeIn;
         DeviceSettingsAudio* _mDeviceSettingsAudio;
         DeviceSettingsFPD* _mDeviceSettingsFPD;

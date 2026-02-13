@@ -18,13 +18,6 @@
 **/
 #pragma once
 
-#include <fstream>
-#include <iostream>
-#include <core/core.h>
-#include <string>
-#include <plugins/plugins.h>
-using namespace std;
-
 #define RDK_PROFILE "RDK_PROFILE="
 #define PROFILE_TV "TV"
 #define PROFILE_STB "STB"
@@ -36,40 +29,8 @@ typedef enum profile {
     MAX
 } profile_t;
 
-profile_t profileType = NOT_FOUND;
+// External declaration - actual definition in UtilsSearchRDKProfile.cpp
+extern profile_t profileType;
 
-profile_t searchRdkProfile(void) {
-
-    const char* devPropPath = "/etc/device.properties";
-    char line[256], *rdkProfile = NULL;
-    profile_t ret = NOT_FOUND;
-    FILE* file;
-
-    file = fopen(devPropPath, "r");
-    if (file == NULL) {
-        printf("File not found issue \n");
-        return NOT_FOUND;
-    }
-
-    while (fgets(line, sizeof(line), file)) {
-        rdkProfile = strstr(line, RDK_PROFILE);
-        if (rdkProfile != NULL) {
-            rdkProfile += strlen(RDK_PROFILE); // Move past the 'RDK_PROFILE='
-            printf("Found RDK_PROFILE: %s \n", rdkProfile);
-            break;
-        }
-    }
-
-    if (rdkProfile != NULL) {
-        if (strncmp(rdkProfile, PROFILE_TV, strlen(PROFILE_TV)) == 0) {
-            ret = TV;
-        } else if (strncmp(rdkProfile, PROFILE_STB, strlen(PROFILE_STB)) == 0) {
-            ret = STB;
-        }
-    } else {
-        printf("Found RDK_PROFILE: NOT_FOUND \n");
-        ret = NOT_FOUND;
-    }
-    fclose(file);
-    return ret;
-}
+// Function declaration - actual definition in UtilsSearchRDKProfile.cpp  
+profile_t searchRdkProfile(void);

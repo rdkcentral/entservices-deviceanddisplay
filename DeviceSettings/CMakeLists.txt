@@ -22,6 +22,10 @@ set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Imp)
 set(PLUGIN_DEVICESETTINGS_AUTOSTART "true" CACHE STRING "Automatically start DeviceSettings plugin")
 set(PLUGIN_DEVICESETTINGS_STARTUPORDER "30" CACHE STRING "To configure startup order of DeviceSettings plugin")
 
+set(PLUGIN_DEVICESETTINGS_AUTOSTART "true" CACHE STRING "Automatically start DeviceSettingsManager plugin")
+set(PLUGIN_DEVICESETTINGS_STARTUPORDER "30" CACHE STRING "To configure startup order of DeviceSettingsManager plugin")
+set(PLUGIN_DEVICESETTINGS_MODE "Local" CACHE STRING "Controls if the plugin should run in its own process, in process or remote")
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(${NAMESPACE}Plugins REQUIRED)
@@ -32,6 +36,10 @@ find_library(PROCPS_LIBRARIES NAMES procps)
 add_library(${MODULE_NAME} SHARED
     Module.cpp
     DeviceSettings.cpp)
+
+#add_executable(${MODULE_NAME}
+#    Module.cpp
+#    DeviceSettings.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
@@ -55,7 +63,20 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DSController.cpp
     DSPwrEventListener.cpp
     DSProductTraitsHandler.cpp
+    ../helpers/UtilsSearchRDKProfile.cpp
     )
+
+#add_executable(${PLUGIN_IMPLEMENTATION}
+#    Module.cpp
+#    DeviceSettingsImplementation.cpp
+#    DeviceSettingsFPDImplementation.cpp
+#    DeviceSettingsHdmiInImplementation.cpp
+#    fpd.cpp
+#    HdmiIn.cpp
+#    DSController.cpp
+#    DSPwrEventListener.cpp
+#    DSProductTraitsHandler.cpp
+#    )
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}
@@ -104,7 +125,7 @@ if (DS_FOUND)
     add_definitions(-DDS_FOUND)
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES})
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${DS_LIBRARIES})
 else (DS_FOUND)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 endif(DS_FOUND)
@@ -121,4 +142,3 @@ install(TARGETS ${PLUGIN_IMPLEMENTATION}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)
 
 write_config(${PLUGIN_NAME})
-

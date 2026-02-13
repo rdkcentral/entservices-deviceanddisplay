@@ -38,14 +38,8 @@
 //#include "dsInternal.h"
 #include "dsRpc.h"
 
-// Forward declaration - profileType is defined in DeviceSettingsImplementation.cpp
-typedef enum profile {
-    NOT_FOUND = -1,
-    STB = 0,
-    TV,
-    MAX
-} profile_t;
-extern profile_t profileType;
+// Include profile type definitions
+#include "../helpers/UtilsSearchRDKProfile.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsHDMIIn.h>
 #include "DeviceSettingsTypes.h"

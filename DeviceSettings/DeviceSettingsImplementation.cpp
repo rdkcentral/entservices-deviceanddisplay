@@ -90,6 +90,7 @@ namespace Plugin {
         ENTRY_LOG;
         LOGINFO("Initializing component handles using QueryInterface on self");
 
+#if 0
         if (service == nullptr) {
             LOGERR("Service is null, cannot initialize component handles");
             EXIT_LOG;
@@ -120,6 +121,7 @@ namespace Plugin {
         // _displaySettings = this->QueryInterface<Exchange::IDeviceSettingsDisplay>();
 
         LOGINFO("Component handles initialization completed using QueryInterface");
+#endif
         EXIT_LOG;
     }
 

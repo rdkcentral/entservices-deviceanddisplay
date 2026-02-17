@@ -53,9 +53,9 @@ namespace Plugin
     DeviceSettings::DeviceSettings()
         : mConnectionId(0)
         , mService(nullptr)
-#ifndef USE_LEGACY_INTERFACE
         , _mDeviceSettings(nullptr)
-#endif
+        , _mDeviceSettingsFPD(nullptr)
+        , _mDeviceSettingsHDMIIn(nullptr)
         , mNotificationSink(this)
 
     {
@@ -96,12 +96,9 @@ namespace Plugin
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
-#ifdef USE_LEGACY_INTERFACE
+        ASSERT(_mDeviceSettings == nullptr);
         ASSERT(_mDeviceSettingsFPD == nullptr);
         ASSERT(_mDeviceSettingsHDMIIn == nullptr);
-#else
-        ASSERT(_mDeviceSettings == nullptr);
-#endif
         mService = service;
         mService->AddRef();
 
@@ -125,6 +122,20 @@ namespace Plugin
             if (result != Core::ERROR_NONE) {
                 LOGERR("Failed to configure DeviceSettings: %d", result);
                 message = _T("DeviceSettings configuration failed");
+            } else {
+                // Initialize individual interface pointers for external COM-RPC access
+                _mDeviceSettingsFPD = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
+                if (_mDeviceSettingsFPD == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsFPD interface for external access");
+                }
+                
+                _mDeviceSettingsHDMIIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
+                if (_mDeviceSettingsHDMIIn == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
+                }
+                
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn);
             }
         }
 #else
@@ -143,6 +154,20 @@ namespace Plugin
             if (result != Core::ERROR_NONE) {
                 LOGERR("Failed to configure DeviceSettings: %d", result);
                 message = _T("DeviceSettings configuration failed");
+            } else {
+                // Initialize individual interface pointers for external COM-RPC access
+                _mDeviceSettingsFPD = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
+                if (_mDeviceSettingsFPD == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsFPD interface for external access");
+                }
+                
+                _mDeviceSettingsHDMIIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
+                if (_mDeviceSettingsHDMIIn == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
+                }
+                
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn);
             }
         }
 #endif
@@ -162,12 +187,23 @@ namespace Plugin
             ASSERT(mService == service);
             mService->Unregister(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
             mService->Unregister(mNotificationSink.baseInterface<PluginHost::IShell::ICOMLink::INotification>());
-#ifdef USE_LEGACY_INTERFACE
-            _mDeviceSettingsFPD = nullptr;
-            _mDeviceSettingsHDMIIn = nullptr;
-#else
-            _mDeviceSettings = nullptr;
-#endif
+            
+            // Release individual interface pointers
+            if (_mDeviceSettingsFPD != nullptr) {
+                _mDeviceSettingsFPD->Release();
+                _mDeviceSettingsFPD = nullptr;
+            }
+            
+            if (_mDeviceSettingsHDMIIn != nullptr) {
+                _mDeviceSettingsHDMIIn->Release();
+                _mDeviceSettingsHDMIIn = nullptr;
+            }
+            
+            // Release the main device settings interface
+            if (_mDeviceSettings != nullptr) {
+                _mDeviceSettings->Release();
+                _mDeviceSettings = nullptr;
+            }
             mService->Release();
             mService = nullptr;
             mConnectionId = 0;

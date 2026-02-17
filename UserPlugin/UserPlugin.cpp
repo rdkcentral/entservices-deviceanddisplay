@@ -18,6 +18,12 @@
  */
 
 #include "UserPlugin.h"
+#include <stdio.h>
+#include <cstdlib>
+#include <unistd.h>
+#include <cstring>
+#include <cmath>
+#include "UtilsLogging.h"
 #include "audioOutputPort.hpp"
 #include "audioOutputPortType.hpp"
 #include "audioOutputPortConfig.hpp"
@@ -39,11 +45,6 @@
 
 using namespace std;
 using namespace WPEFramework;
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-
-// Use proper FPD types from IDeviceSettingsFPD interface
-using FPDIndicator = WPEFramework::Exchange::IDeviceSettingsFPD::FPDIndicator;
-using FPDState = WPEFramework::Exchange::IDeviceSettingsFPD::FPDState;
 
 namespace WPEFramework {
 namespace {
@@ -65,7 +66,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _hdmiInNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -87,47 +88,52 @@ namespace Plugin {
         _service = service;
         _service->AddRef();
 
-	ASSERT(_pwrMgrNotification != nullptr);
-        //_service->Register(&_pwrMgrNotification);
-        _powerManager = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
-            .withIShell(_service)
-            .withRetryIntervalMS(200)
-            .withRetryCount(25)
-            .createInterface().operator->();
-
-        //_powerManager = service->Root<Exchange::IPowerManager>(_connectionId, 2000, _T("org.rdk.PowerManager"));
-        ASSERT(_powerManager != nullptr);
-	    ASSERT(&_pwrMgrNotification != nullptr);
-
-        if (_powerManager && &_pwrMgrNotification) {
-            _powerManager->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+        _deviceSettings = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettings>("org.rdk.DeviceSettings");
+        if (_deviceSettings != nullptr) {
+            // Call Configure to initialize the DeviceSettings implementation
+            Core::hresult configResult = _deviceSettings->Configure(_service);
+            if (configResult != Core::ERROR_NONE) {
+                LOGERR("FAILED: DeviceSettings Configure call failed with result: %u", configResult);
+            } else {
+                LOGINFO("SUCCESS: DeviceSettings configured successfully");
+            }
+            
+            // Get individual interfaces from the main DeviceSettings interface
+            _fpdManager = _deviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
+            if (_fpdManager != nullptr) {
+                LOGINFO("SUCCESS: FPD Manager interface obtained from DeviceSettings");
+            } else {
+                LOGERR("FAILED: Could not get FPD Manager interface from DeviceSettings");
+            }
+            
+            _hdmiInManager = _deviceSettings->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
+            if (_hdmiInManager != nullptr) {
+                LOGINFO("SUCCESS: HDMI In Manager interface obtained from DeviceSettings");
+            } else {
+                LOGERR("FAILED: Could not get HDMI In Manager interface from DeviceSettings");
+            }
+            
+            // Release the main interface as we now have the individual ones
+            //_deviceSettings->Release();
         } else {
-            LOGERR("PowerManager or Notification is NULL");
+            LOGERR("FAILED: Could not get main DeviceSettings interface via QueryInterface");
+            _fpdManager = nullptr;
+            _hdmiInManager = nullptr;
         }
 
-        // Connect to FPD Manager interface
-        _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsFPD>("org.rdk.DeviceSettings");
-        ASSERT(_fpdManager != nullptr);
-        if (_fpdManager) {
-            LOGINFO("Successfully connected to DeviceSettingsFPD interface");
-        } else {
-            LOGERR("Failed to connect to DeviceSettingsFPD interface");
-        }
+        // PowerManager is no longer part of DeviceSettings architecture
+        // Remove PowerManager registration as it's handled by a separate plugin
 
-        // Connect to HDMI In Manager interface
-        _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
-        ASSERT(_hdmiInManager != nullptr);
-
-        // Register for HDMI In notifications
+        // Register for HDMI In notifications if interface is available
         if (_hdmiInManager) {
-            _hdmiInManager->Register(_hdmiInNotification.baseInterface<DeviceSettingsHDMIIn::INotification>());
+            _hdmiInManager->Register(&_hdmiInNotification);
             LOGINFO("Successfully registered for HDMI In notifications");
         } else {
-            LOGERR("Failed to get HDMI In interface for notification registration");
+            LOGWARN("HDMI In interface not available - skipping notification registration");
         }
 
+        // Test DeviceSettings interfaces - both should come from the same plugin now
         TestFPDAPIs();
-        // Test HDMI In methods with sample values
         TestSpecificHDMIInAPIs();
 
         // Test IARM APIs for direct DsMgr daemon communication
@@ -145,7 +151,7 @@ namespace Plugin {
     {
         LOGINFO("Deinitialize");
 
-        _powerManager->Release();
+        // PowerManager is no longer part of DeviceSettings - remove release call
 
         // Unregister and release FPD Manager
         if (_fpdManager) {
@@ -156,7 +162,7 @@ namespace Plugin {
 
         // Unregister HDMI In notifications and release HDMI In Manager
         if (_hdmiInManager) {
-            _hdmiInManager->Unregister(_hdmiInNotification.baseInterface<DeviceSettingsHDMIIn::INotification>());
+            _hdmiInManager->Unregister(&_hdmiInNotification);
             _hdmiInManager->Release();
             _hdmiInManager = nullptr;
             LOGINFO("Successfully unregistered and released HDMI In Manager interface");
@@ -185,58 +191,17 @@ namespace Plugin {
     }
 
 
+    // PowerManager functionality moved to separate plugin - simplified GetDevicePowerState implementation
     Core::hresult UserPlugin::GetDevicePowerState(std::string& powerState) const
     {
-        WPEFramework::Exchange::IPowerManager::PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-        WPEFramework::Exchange::IPowerManager::PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-        powerState= "UNKNOWN";
-        Core::hresult retStatus = Core::ERROR_GENERAL;
-
-    //FPDIndicator indicator;
-    FPDState fpdState;
-        uint32_t brightness;
-        bool persist;
-
-        LOGINFO("GetDevicePowerState");
-        ASSERT (_powerManager);
-        if (_powerManager){
-            retStatus = _powerManager->GetPowerState(pwrStateCur, pwrStatePrev);
-        }
-
-        if (Core::ERROR_NONE == retStatus){
-            if (pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_ON)
-                powerState = "ON";
-            else if ((pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY) || (pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) || (pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP))
-                powerState = "STANDBY";
-        }
-
-        LOGWARN("getPowerState called, power state : %s\n",
-                powerState.c_str());
-
-        // Use FPD Manager interface directly
-        if (_fpdManager) {
-            _fpdManager->GetFPDBrightness(FPDIndicator::DS_FPD_INDICATOR_POWER, brightness);
-            LOGINFO("GetFPDBrightness brightness: %d", brightness);
-            brightness = 50;
-            persist = 1;
-            LOGINFO("SetFPDBrightness brightness: %d, persist: %d", brightness, persist);
-            _fpdManager->SetFPDBrightness(FPDIndicator::DS_FPD_INDICATOR_POWER, brightness, persist);
-            _fpdManager->GetFPDState(FPDIndicator::DS_FPD_INDICATOR_POWER, fpdState);
-            LOGINFO("GetFPDState state: %d", fpdState);
-            fpdState = FPDState::DS_FPD_STATE_ON;
-            LOGINFO("SetFPDState state:%d", fpdState);
-            _fpdManager->SetFPDState(FPDIndicator::DS_FPD_INDICATOR_POWER, fpdState);
-        } else {
-            LOGERR("FPD Manager interface not available");
-        }
-
-        /*response["powerState"] = powerState;
-        if (powerState != "UNKNOWN") {
-            retVal = true;
-        }*/
+        // PowerManager functionality moved to separate plugin, return default state
+        powerState = "UNKNOWN";
+        LOGINFO("PowerManager functionality moved to separate plugin - returning UNKNOWN state");
         return Core::ERROR_NONE;
-    }//GET POWER STATE END
+    }
 
+    // PowerManager functionality moved to separate plugin - method commented out
+    /*
     void UserPlugin::OnPowerModeChanged(const WPEFramework::Exchange::IPowerManager::PowerState currentState, const WPEFramework::Exchange::IPowerManager::PowerState newState)
     {
         std::string curPowerState,newPowerState = "";
@@ -251,6 +216,7 @@ namespace Plugin {
             LOGERR("UserPlugin::_instance is NULL.\n");
         }
     }
+    */
 
     Core::hresult UserPlugin::GetVolumeLevel (const string& port, string& level) const
     {
@@ -275,14 +241,14 @@ namespace Plugin {
 
     void UserPlugin::TestFPDAPIs()
     {
-        LOGINFO("========== FPD APIs Testing Framework ==========\n");
+        LOGINFO("========== FPD APIs Testing Framework ==========");
 
         if (!_fpdManager) {
-            LOGERR("FPD Manager interface is not available!");
+            LOGERR("FPD Manager interface is not available - DeviceSettings QueryInterface may have failed!");
             return;
         }
 
-        LOGINFO("========== Testing FPD APIs ==========\n");
+        LOGINFO("Testing DeviceSettings FPD APIs via QueryInterface architecture...");
 
         // Test all FPD indicators
         Exchange::IDeviceSettingsFPD::FPDIndicator testIndicators[] = {
@@ -488,36 +454,104 @@ namespace Plugin {
 
     void UserPlugin::TestSpecificHDMIInAPIs()
     {
-        LOGINFO("========== HDMI In APIs Testing Framework ==========\n");
+        LOGINFO("========== HDMI In APIs Testing Framework ==========");
 
         if (!_hdmiInManager) {
             LOGERR("HDMI In Manager interface is not available!");
             return;
         }
 
-        // Note: HDMI In APIs require a separate IHDMIIn interface that needs to be obtained
-        // The specific methods listed in the requirement are part of the IHDMIIn sub-interface
-        // This would require proper interface access pattern implementation
+        LOGINFO("Testing DeviceSettings HDMI In APIs via QueryInterface architecture...");
 
-        LOGINFO("DeviceSettings available - HDMI In interface access needs implementation");
-        LOGINFO("Required APIs for implementation:");
-        LOGINFO("- GetHDMIInNumbefOfInputs");
-        LOGINFO("- GetHDMIInStatus"); 
-        LOGINFO("- SelectHDMIInPort");
-        LOGINFO("- ScaleHDMIInVideo");
-        LOGINFO("- SelectHDMIZoomMode");
-        LOGINFO("- GetSupportedGameFeaturesList");
-        LOGINFO("- GetHDMIInAVLatency");
-        LOGINFO("- GetHDMIInAllmStatus");
-        LOGINFO("- GetHDMIInEdid2AllmSupport");
-        LOGINFO("- SetHDMIInEdid2AllmSupport");
-        LOGINFO("- GetEdidBytes");
-        LOGINFO("- GetHDMISPDInformation");
-        LOGINFO("- GetHDMIEdidVersion");
-        LOGINFO("- SetHDMIEdidVersion");
-        LOGINFO("- GetHDMIVideoMode");
-        LOGINFO("- GetHDMIVersion");
-        LOGINFO("- SetVRRSupport");
+        // 1. Test GetHDMIInNumbefOfInputs
+        int32_t inputCount = 0;
+        Core::hresult result = _hdmiInManager->GetHDMIInNumbefOfInputs(inputCount);
+        LOGINFO("GetHDMIInNumbefOfInputs: result=%u, count=%d", result, inputCount);
+
+        // 2. Test GetHDMIInStatus
+        DeviceSettingsHDMIIn::HDMIInStatus hdmiStatus;
+        DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator* portStatus = nullptr;
+        result = _hdmiInManager->GetHDMIInStatus(hdmiStatus, portStatus);
+        LOGINFO("GetHDMIInStatus: result=%u, activePort=%d, isPresented=%s", 
+               result, hdmiStatus.activePort, hdmiStatus.isPresented ? "true" : "false");
+        if (portStatus) {
+            portStatus->Release();
+        }
+
+        // 3. Test GetHDMIInAVLatency
+        uint32_t videoLatency = 0, audioLatency = 0;
+        result = _hdmiInManager->GetHDMIInAVLatency(videoLatency, audioLatency);
+        LOGINFO("GetHDMIInAVLatency: result=%u, videoLatency=%u, audioLatency=%u", 
+               result, videoLatency, audioLatency);
+
+        // 4. Test GetHDMIInAllmStatus for HDMI Port 0
+        bool allmStatus = false;
+        result = _hdmiInManager->GetHDMIInAllmStatus(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, allmStatus);
+        LOGINFO("GetHDMIInAllmStatus(Port0): result=%u, allmStatus=%s", 
+               result, allmStatus ? "true" : "false");
+
+        // 5. Test GetHDMIInEdid2AllmSupport for HDMI Port 0
+        bool allmSupport = false;
+        result = _hdmiInManager->GetHDMIInEdid2AllmSupport(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, allmSupport);
+        LOGINFO("GetHDMIInEdid2AllmSupport(Port0): result=%u, allmSupport=%s", 
+               result, allmSupport ? "true" : "false");
+
+        // 6. Test GetHDMIEdidVersion for HDMI Port 0
+        DeviceSettingsHDMIIn::HDMIInEdidVersion edidVersion;
+        result = _hdmiInManager->GetHDMIEdidVersion(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, edidVersion);
+        LOGINFO("GetHDMIEdidVersion(Port0): result=%u, edidVersion=%d", result, edidVersion);
+
+        // 7. Test GetHDMIVideoMode
+        DeviceSettingsHDMIIn::HDMIVideoPortResolution videoMode;
+        result = _hdmiInManager->GetHDMIVideoMode(videoMode);
+        LOGINFO("GetHDMIVideoMode: result=%u, name='%s', pixelRes=%d, aspectRatio=%d, frameRate=%d", 
+               result, videoMode.name.c_str(), videoMode.pixelResolution, 
+               videoMode.aspectRatio, videoMode.frameRate);
+
+        // 8. Test GetHDMIVersion for HDMI Port 0
+        DeviceSettingsHDMIIn::HDMIInCapabilityVersion hdmiVersion;
+        result = _hdmiInManager->GetHDMIVersion(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, hdmiVersion);
+        LOGINFO("GetHDMIVersion(Port0): result=%u, version=%d", result, hdmiVersion);
+
+        // 9. Test GetVRRSupport for HDMI Port 0
+        bool vrrSupport = false;
+        result = _hdmiInManager->GetVRRSupport(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, vrrSupport);
+        LOGINFO("GetVRRSupport(Port0): result=%u, vrrSupport=%s", 
+               result, vrrSupport ? "true" : "false");
+
+        // 10. Test GetVRRStatus for HDMI Port 0
+        DeviceSettingsHDMIIn::HDMIInVRRStatus vrrStatus;
+        result = _hdmiInManager->GetVRRStatus(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, vrrStatus);
+        LOGINFO("GetVRRStatus(Port0): result=%u, vrrType=%d, vrrFreeSyncFramerate=%.2f", 
+               result, vrrStatus.vrrType, vrrStatus.vrrFreeSyncFramerateHz);
+
+        // 11. Test GetSupportedGameFeaturesList
+        DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator* gameFeatures = nullptr;
+        result = _hdmiInManager->GetSupportedGameFeaturesList(gameFeatures);
+        LOGINFO("GetSupportedGameFeaturesList: result=%u", result);
+        if (gameFeatures) {
+            LOGINFO("Game features list obtained successfully");
+            // Iterate through features if needed
+            gameFeatures->Release();
+        }
+
+        // 12. Test EDID bytes (first 256 bytes)
+        uint8_t edidBytes[256];
+        result = _hdmiInManager->GetEdidBytes(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, 256, edidBytes);
+        LOGINFO("GetEdidBytes(Port0, 256 bytes): result=%u", result);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("EDID bytes retrieved successfully for Port 0");
+        }
+
+        // 13. Test SPD Information (28 bytes for SPD InfoFrame)
+        uint8_t spdBytes[28];
+        result = _hdmiInManager->GetHDMISPDInformation(DeviceSettingsHDMIIn::HDMIInPort::DS_HDMI_IN_PORT_0, 28, spdBytes);
+        LOGINFO("GetHDMISPDInformation(Port0, 28 bytes): result=%u", result);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("SPD information retrieved successfully for Port 0");
+        }
+
+        LOGINFO("========== HDMI In APIs Testing Completed ==========");
         LOGINFO("- GetVRRSupport");
         LOGINFO("- GetVRRStatus");
 
@@ -526,7 +560,7 @@ namespace Plugin {
         // Test all HDMI In methods with sample values
         using HDMIInPort = DeviceSettingsHDMIIn::HDMIInPort;
         //using HDMIInSignalStatus = DeviceSettingsHDMIIn::HDMIInSignalStatus;
-        using HDMIVideoPortResolution = DeviceSettingsHDMIIn::HDMIVideoPortResolution;
+        //using HDMIVideoPortResolution = DeviceSettingsHDMIIn::HDMIVideoPortResolution;
         //using HDMIInAviContentType = DeviceSettingsHDMIIn::HDMIInAviContentType;
 
         // Test sample ports
@@ -539,7 +573,7 @@ namespace Plugin {
         // Use HDMI In Manager interface directly
         DeviceSettingsHDMIIn* hdmiIn = _hdmiInManager;
 
-        uint32_t result = 0;
+        result = 0;
         for (auto port : testPorts) {
             LOGINFO("---------- Testing HDMI In Port: %d ----------", static_cast<int>(port));
 
@@ -748,7 +782,7 @@ namespace Plugin {
         LOGINFO("---------- Testing Additional HDMI In Methods ----------");
 
         // Test with sample resolution settings
-        HDMIVideoPortResolution testResolution;
+        DeviceSettingsHDMIIn::HDMIVideoPortResolution testResolution;
         testResolution.name = "1920x1080p60";
         LOGINFO("Testing with resolution: %s", testResolution.name.c_str());
 

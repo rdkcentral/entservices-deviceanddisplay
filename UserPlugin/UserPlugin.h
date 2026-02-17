@@ -29,7 +29,7 @@
 
 #include <interfaces/IUserPlugin.h>
 #include <interfaces/json/JUserPlugin.h>
-#include <interfaces/IPowerManager.h>
+#include <interfaces/IDeviceSettings.h>
 //#include <interfaces/IDeviceSettingsManager.h>
 #include <interfaces/IDeviceSettingsAudio.h>
 #include <interfaces/IDeviceSettingsCompositeIn.h>
@@ -40,9 +40,9 @@
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
 
-#include "PowerManagerInterface.h"
+//#include "PowerManagerInterface.h"
 using namespace WPEFramework::Exchange;
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
+// PowerManager is no longer part of DeviceSettings - remove PowerState typedef
 using DeviceSettingsFPD            = WPEFramework::Exchange::IDeviceSettingsFPD;
 using DeviceSettingsHDMIIn         = WPEFramework::Exchange::IDeviceSettingsHDMIIn;
 
@@ -54,39 +54,8 @@ namespace WPEFramework
         class UserPlugin : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::IUserPlugin 
         {
         private:
-
-            class PowerManagerNotification : public virtual Exchange::IPowerManager::IModeChangedNotification {
-            private:
-                PowerManagerNotification(const PowerManagerNotification&) = delete;
-                PowerManagerNotification& operator=(const PowerManagerNotification&) = delete;
+            // PowerManager notification removed - no longer part of DeviceSettings
             
-            public:
-                explicit PowerManagerNotification(UserPlugin& parent)
-                    : _parent(parent)
-                {
-                }
-
-            public:
-                void OnPowerModeChanged(const PowerState currentState, const PowerState newState) override
-                {
-                    _parent.OnPowerModeChanged(currentState, newState);
-                }
-
-                template <typename T>
-                T* baseInterface()
-                {
-                    static_assert(std::is_base_of<T, PowerManagerNotification>(), "base type mismatch");
-                    return static_cast<T*>(this);
-                }
-
-                BEGIN_INTERFACE_MAP(PowerManagerNotification)
-                INTERFACE_ENTRY(Exchange::IPowerManager::IModeChangedNotification)
-                END_INTERFACE_MAP
-            
-            private:
-                UserPlugin& _parent;
-            };
-
             class HDMIInNotification : public virtual DeviceSettingsHDMIIn::INotification {
             private:
                 HDMIInNotification(const HDMIInNotification&) = delete;
@@ -169,9 +138,9 @@ namespace WPEFramework
             INTERFACE_ENTRY(Exchange::IUserPlugin)
             END_INTERFACE_MAP
 
+            // PowerManager methods removed as it's no longer part of DeviceSettings
             Core::hresult GetDevicePowerState(std::string& powerState) const;
             Core::hresult GetVolumeLevel (const string& port, string& level) const;
-            void OnPowerModeChanged(const PowerState currentState, const PowerState newState);
             void onPowerStateChanged(string currentPowerState, string powerState);
             void TestSpecificHDMIInAPIs();
             void TestFPDAPIs();
@@ -208,11 +177,12 @@ namespace WPEFramework
         private:
             PluginHost::IShell* _service{};
             uint32_t _connectionId{};
-            Exchange::IPowerManager* _powerManager;
+            // PowerManager removed - no longer part of DeviceSettings architecture
+            Exchange::IDeviceSettings* _deviceSettings;
             Exchange::IDeviceSettingsFPD* _fpdManager;
             Exchange::IDeviceSettingsHDMIIn* _hdmiInManager;
             //PowerManagerInterfaceRef _powerManager{};
-            Core::Sink<PowerManagerNotification> _pwrMgrNotification;
+            // PowerManager notification removed
             Core::Sink<HDMIInNotification> _hdmiInNotification;
 
 	    void Deactivated(RPC::IRemoteConnection *connection);

@@ -54,6 +54,7 @@
 
 #if defined(HAS_API_SYSTEM) && defined(HAS_API_POWERSTATE)
 #include "libIBus.h"
+#include "pwrMgr.h"
 #endif /* HAS_API_SYSTEM && HAS_API_POWERSTATE */
 
 #include "mfrMgr.h"
@@ -167,25 +168,23 @@ const char* getWakeupSrcString(uint32_t src)
 {
     switch (src)
     {
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE:
+    case WAKEUPSRC_VOICE:
          return "WAKEUPSRC_VOICE";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_PRESENCEDETECTED:
+    case WAKEUPSRC_PRESENCE_DETECTION:
          return "WAKEUPSRC_PRESENCE_DETECTION";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_BLUETOOTH:
+    case WAKEUPSRC_BLUETOOTH:
          return "WAKEUPSRC_BLUETOOTH";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_RF4CE:
-         return "WAKEUPSRC_RF4CE";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_WIFI:
+    case WAKEUPSRC_WIFI:
          return "WAKEUPSRC_WIFI";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_IR:
+    case WAKEUPSRC_IR:
          return "WAKEUPSRC_IR";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_POWERKEY:
+    case WAKEUPSRC_POWER_KEY:
          return "WAKEUPSRC_POWER_KEY";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_TIMER:
+    case WAKEUPSRC_TIMER:
          return "WAKEUPSRC_TIMER";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_CEC:
+    case WAKEUPSRC_CEC:
          return "WAKEUPSRC_CEC";
-    case WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_LAN:
+    case WAKEUPSRC_LAN:
          return "WAKEUPSRC_LAN";
     default:
          return "";
@@ -275,6 +274,30 @@ void stringToIarmMode(std::string mode, IARM_Bus_Daemon_SysMode_t& iarmMode)
     } else {
         iarmMode = IARM_BUS_SYS_MODE_NORMAL;
     }
+}
+
+bool setPowerState(std::string powerState)
+{
+    IARM_Bus_PWRMgr_SetPowerState_Param_t param;
+    if (powerState == "STANDBY") {
+        param.newState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
+    } else if (powerState == "ON") {
+        param.newState = IARM_BUS_PWRMGR_POWERSTATE_ON;
+    } else if (powerState == "DEEP_SLEEP") {
+        param.newState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP;
+    } else if (powerState == "LIGHT_SLEEP") {
+        param.newState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
+    } else {
+        return false;
+    }
+
+    IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_SetPowerState,
+        (void*)&param, sizeof(param));
+
+    if (res == IARM_RESULT_SUCCESS)
+        return true;
+    else
+        return false;
 }
 
 #endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
@@ -372,8 +395,13 @@ namespace WPEFramework {
 
         IARM_Bus_SYSMgr_GetSystemStates_Param_t SystemServices::paramGetSysState = {};
 
+        static void _powerEventHandler(const char *owner, IARM_EventId_t eventId,
+                void *data, size_t len);
+
 #ifdef ENABLE_THERMAL_PROTECTION
-        static void handleThermalLevelChange(const int &currentThermalLevel, const int &newThermalLevel, const float &currentTemperature);
+        static void handleThermalLevelChange(IARM_Bus_PWRMgr_EventData_t *param);
+        void _thermMgrEventsHandler(const char *owner, IARM_EventId_t eventId,
+                void *data, size_t len);
 #endif /* ENABLE_THERMAL_PROTECTION */
 #ifdef ENABLE_SYSTIMEMGR_SUPPORT
         void _timerStatusEventHandler(const char *owner, IARM_EventId_t eventId,
@@ -398,8 +426,6 @@ namespace WPEFramework {
          */
         SystemServices::SystemServices()
             : PluginHost::JSONRPC()
-            , _pwrMgrNotification(*this)
-            , _registeredEventHandlers(false)
         {
             SystemServices::_instance = this;
             //Updating the standard territory
@@ -565,7 +591,6 @@ namespace WPEFramework {
 #endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
             m_shellService = service;
             m_shellService->AddRef();
-            InitializePowerManager();
 
             //Initialise timer with interval and callback function.
             m_operatingModeTimer.setInterval(updateDuration, MODE_TIMER_UPDATE_INTERVAL);
@@ -616,15 +641,6 @@ namespace WPEFramework {
 
         void SystemServices::Deinitialize(PluginHost::IShell*)
         {
-            if (_powerManagerPlugin) {
-                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
-                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
-                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
-                _powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());		    
-                _powerManagerPlugin.Reset();
-            }
-
-            _registeredEventHandlers = false;
             m_operatingModeTimer.stop();
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
             DeinitializeIARM();
@@ -632,18 +648,6 @@ namespace WPEFramework {
             SystemServices::_instance = nullptr;
             m_shellService->Release();
             m_shellService = nullptr;
-        }
-
-        void SystemServices::InitializePowerManager()
-        {
-            LOGINFO("Connect the COM-RPC socket\n");
-            _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
-                .withIShell(m_shellService)
-                .withRetryIntervalMS(200)
-                .withRetryCount(25)
-                .createInterface();
-
-            registerEventHandlers();
         }
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
@@ -655,6 +659,14 @@ namespace WPEFramework {
                 IARM_CHECK( IARM_Bus_RegisterCall(IARM_BUS_COMMON_API_SysModeChange, _SysModeChange));
                 IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE, _systemStateChanged));
                 IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_DEVICE_UPDATE_RECEIVED, _deviceMgtUpdateReceived));
+                IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, _powerEventHandler));
+                IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_REBOOTING, _powerEventHandler));
+                IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED, _powerEventHandler));
+                
+                
+#ifdef ENABLE_THERMAL_PROTECTION
+                IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_THERMAL_MODECHANGED, _thermMgrEventsHandler));
+#endif //ENABLE_THERMAL_PROTECTION
 #ifdef ENABLE_SYSTIMEMGR_SUPPORT
                 IARM_CHECK( IARM_Bus_RegisterEventHandler(IARM_BUS_SYSTIME_MGR_NAME, cTIMER_STATUS_UPDATE, _timerStatusEventHandler));
 #endif// ENABLE_SYSTIMEMGR_SUPPORT
@@ -668,7 +680,14 @@ namespace WPEFramework {
             {
                 IARM_Result_t res;
                 IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE, _systemStateChanged));
-		        IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_DEVICE_UPDATE_RECEIVED, _deviceMgtUpdateReceived));
+		IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_DEVICE_UPDATE_RECEIVED, _deviceMgtUpdateReceived));
+                IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, _powerEventHandler));
+                IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_REBOOTING, _powerEventHandler));
+                IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED,_powerEventHandler ));
+
+    #ifdef ENABLE_THERMAL_PROTECTION
+                IARM_CHECK( IARM_Bus_RemoveEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_THERMAL_MODECHANGED, _thermMgrEventsHandler));
+    #endif //ENABLE_THERMAL_PROTECTION
             }
         }
 #endif /* defined(USE_IARMBUS) || defined(USE_IARM_BUS) */
@@ -687,85 +706,9 @@ namespace WPEFramework {
         }
 #endif /* DEBUG */
 
-
-        IPowerManager* SystemServices::getPwrMgrPluginInstance()
-        {
-            return _powerManagerPlugin.operator->();
-        }
-
-        void SystemServices::registerEventHandlers()
-        {
-            ASSERT (_powerManagerPlugin);
-
-            if(!_registeredEventHandlers && _powerManagerPlugin) {
-                _registeredEventHandlers = true;
-                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::INetworkStandbyModeChangedNotification>());
-                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IThermalModeChangedNotification>());
-                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IRebootNotification>());
-                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
-            }
-        }
-
-        void SystemServices::onPowerModeChanged(const PowerState currentState, const PowerState newState)
-        {
-            std::string curPowerState,newPowerState = "";
-
-            curPowerState = powerModeEnumToString(currentState);
-            newPowerState = powerModeEnumToString(newState);
-
-            LOGWARN("IARM Event triggered for PowerStateChange.\
-                    Old State %s, New State: %s\n",
-                    curPowerState.c_str() , newPowerState.c_str());
-            if (SystemServices::_instance) {
-                SystemServices::_instance->onSystemPowerStateChanged(curPowerState, newPowerState);
-            } else {
-                LOGERR("SystemServices::_instance is NULL.\n");
-            }
-        }
-
-        std::string SystemServices::powerModeEnumToString(PowerState state)
-        {
-            std::string powerState = "";
-            switch (state) 
-            {
-                case WPEFramework::Exchange::IPowerManager::POWER_STATE_ON: powerState = "ON"; break;
-                case WPEFramework::Exchange::IPowerManager::POWER_STATE_OFF: powerState = "OFF"; break;
-                case WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY: powerState = "LIGHT_SLEEP"; break;
-                case WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP: powerState = "LIGHT_SLEEP"; break;
-                case WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP: powerState = "DEEP_SLEEP"; break;
-                default: break;
-            }
-            return powerState;
-        }
-
-
-        void SystemServices::onNetworkStandbyModeChanged(const bool enabled)
-        {
-            if (SystemServices::_instance) {
-                SystemServices::_instance->onNetworkModeChanged(enabled);
-            } else {
-                LOGERR("SystemServices::_instance is NULL.\n");
-            }
-        }
-
-        void SystemServices::onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature)
-        {
-            handleThermalLevelChange(currentThermalLevel, newThermalLevel, currentTemperature);
-        }
-
-        void SystemServices::onRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor)
-        {
-            if (SystemServices::_instance) {
-                SystemServices::_instance->onPwrMgrReboot(rebootRequestor, rebootReasonOther);
-            } else {
-                LOGERR("SystemServices::_instance is NULL.\n");
-            }
-        }
-
         uint32_t SystemServices::requestSystemReboot(const JsonObject& parameters,
                 JsonObject& response)
         {
-            Core::hresult status = Core::ERROR_GENERAL;
             bool nfxResult = false;
             string customReason = "No custom reason provided";
             string otherReason = "No other reason supplied";
@@ -788,23 +731,23 @@ namespace WPEFramework {
                 otherReason = customReason;
             }
 
-            LOGINFO("requestSystemReboot: custom reason: %s, other reason: %s\n", customReason.c_str(),
-                otherReason.c_str());
+            IARM_Bus_PWRMgr_RebootParam_t rebootParam;
+            strncpy(rebootParam.requestor, "SystemServices", sizeof(rebootParam.requestor));
+            rebootParam.requestor[sizeof(rebootParam.requestor) - 1] = '\0';
+            strncpy(rebootParam.reboot_reason_custom, customReason.c_str(), sizeof(rebootParam.reboot_reason_custom));
+            rebootParam.reboot_reason_custom[sizeof(rebootParam.reboot_reason_custom) - 1] = '\0';
+            strncpy(rebootParam.reboot_reason_other, otherReason.c_str(), sizeof(rebootParam.reboot_reason_other));
+            rebootParam.reboot_reason_other[sizeof(rebootParam.reboot_reason_other) - 1] = '\0';
+            LOGINFO("requestSystemReboot: custom reason: %s, other reason: %s\n", rebootParam.reboot_reason_custom,
+                rebootParam.reboot_reason_other);
 
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                status = _powerManagerPlugin->Reboot(requestor, customReason, otherReason);
-                result = true;
-            } else {
-                status = Core::ERROR_ILLEGAL_STATE;
+            IARM_Result_t iarmcallstatus = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                    IARM_BUS_PWRMGR_API_Reboot, &rebootParam, sizeof(rebootParam));
+            if(IARM_RESULT_SUCCESS != iarmcallstatus) {
+                LOGWARN("requestSystemReboot: IARM_BUS_PWRMGR_API_Reboot failed with code %d.\n", iarmcallstatus); 
             }
-
-            if (status != Core::ERROR_NONE){
-                 LOGWARN("requestSystemReboot: powerManagerPlugin->rebooot failed\n");
-            }
-
-            response["IARM_Bus_Call_STATUS"] = static_cast <int32_t> (status);
-
+            response["IARM_Bus_Call_STATUS"] = static_cast <int32_t> (iarmcallstatus);
+            result = true;
             returnResponse(result);
         }//end of requestSystemReboot
 
@@ -2126,25 +2069,24 @@ namespace WPEFramework {
          */
         uint32_t SystemServices::setDeepSleepTimer(const JsonObject& parameters,
                 JsonObject& response)
-    {
-        Core::hresult retStatus = Core::ERROR_GENERAL;
-        bool status = false;
+	{
+		bool status = false;
+		IARM_Bus_PWRMgr_SetDeepSleepTimeOut_Param_t param;
+		if (parameters.HasLabel("seconds")) {
+			param.timeout = static_cast<unsigned int>(parameters["seconds"].Number());
+			IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+					IARM_BUS_PWRMGR_API_SetDeepSleepTimeOut, (void *)&param,
+					sizeof(param));
 
-        if (parameters.HasLabel("seconds")) {
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->SetDeepSleepTimer(static_cast<unsigned int>(parameters["seconds"].Number()));
-            }
-
-            if (Core::ERROR_NONE == retStatus) {
-                status = true;
-            } else {
-                status = false;
-            }
-        } else {
-            populateResponseWithError(SysSrv_MissingKeyValues, response);
-        }
-        returnResponse(status);
+			if (IARM_RESULT_SUCCESS == res) {
+				status = true;
+			} else {
+				status = false;
+			}
+		} else {
+			populateResponseWithError(SysSrv_MissingKeyValues, response);
+		}
+		returnResponse(status);
         }
 
         /***
@@ -2159,20 +2101,16 @@ namespace WPEFramework {
              JsonObject& response)
          {
              bool status = false;
-             bool bStandbyMode = false;
-             Core::hresult retStatus = Core::ERROR_GENERAL;
-
+             IARM_Bus_PWRMgr_NetworkStandbyMode_Param_t param;
              if (parameters.HasLabel("nwStandby")) {
-                 bStandbyMode = parameters["nwStandby"].Boolean();
+                 param.bStandbyMode = parameters["nwStandby"].Boolean();
                  LOGWARN("setNetworkStandbyMode called, with NwStandbyMode : %s\n",
-                          (bStandbyMode)?("Enabled"):("Disabled"));
+                          (param.bStandbyMode)?("Enabled"):("Disabled"));
+                 IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                                        IARM_BUS_PWRMGR_API_SetNetworkStandbyMode, (void *)&param,
+                                        sizeof(param));
 
-                 ASSERT (_powerManagerPlugin);
-                 if (_powerManagerPlugin){
-                     retStatus = _powerManagerPlugin->SetNetworkStandbyMode(bStandbyMode);
-                 }
-
-                 if (Core::ERROR_NONE == retStatus) {
+                 if (IARM_RESULT_SUCCESS == res) {
                      status = true;
                      m_networkStandbyModeValid = false;
                  } else {
@@ -2193,7 +2131,6 @@ namespace WPEFramework {
         uint32_t SystemServices::getNetworkStandbyMode(const JsonObject& parameters,
             JsonObject& response)
         {
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool retVal = false;
 
             if (m_networkStandbyModeValid) {
@@ -2202,16 +2139,16 @@ namespace WPEFramework {
                 LOGINFO("Got cached NetworkStandbyMode: '%s'", m_networkStandbyMode ? "true" : "false");
             }
             else {
-                bool nwStandby = false;
-                ASSERT (_powerManagerPlugin);
-                if (_powerManagerPlugin){
-                    retStatus = _powerManagerPlugin->GetNetworkStandbyMode(nwStandby);
-                }
-
+                IARM_Bus_PWRMgr_NetworkStandbyMode_Param_t param;
+                IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                                       IARM_BUS_PWRMGR_API_GetNetworkStandbyMode, (void *)&param,
+                                       sizeof(param));
+                bool nwStandby = param.bStandbyMode;
+    
                 LOGWARN("getNetworkStandbyMode called, current NwStandbyMode is: %s\n",
                          nwStandby?("Enabled"):("Disabled"));
                 response["nwStandby"] = nwStandby;
-                if (Core::ERROR_NONE == retStatus) {
+                if (IARM_RESULT_SUCCESS == res) {
                     retVal = true;
                     m_networkStandbyMode = nwStandby;
                     m_networkStandbyModeValid = true;
@@ -2295,21 +2232,52 @@ namespace WPEFramework {
         uint32_t SystemServices::getWakeupReason(const JsonObject& parameters,
                 JsonObject& response)
         {
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool status = false;
-            WakeupReason param = WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_UNKNOWN;
-            std::string wakeupReason = "WAKEUP_REASON_UNKNOWN";
+	    DeepSleep_WakeupReason_t param;
+	    std::string wakeupReason = "WAKEUP_REASON_UNKNOWN";
 
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetLastWakeupReason(param);
-            }
+	    IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+			IARM_BUS_PWRMGR_API_GetLastWakeupReason, (void *)&param,
+			sizeof(param));
 
-
-            if (Core::ERROR_NONE == retStatus)
+            if (IARM_RESULT_SUCCESS == res)
             {
                 status = true;
-                wakeupReason = getWakeupReasonString(param);
+                if (param == DEEPSLEEP_WAKEUPREASON_IR) {
+                   wakeupReason = "WAKEUP_REASON_IR";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_RCU_BT) {
+                   wakeupReason = "WAKEUP_REASON_RCU_BT";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_RCU_RF4CE) {
+                   wakeupReason = "WAKEUP_REASON_RCU_RF4CE";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_GPIO) {
+                   wakeupReason = "WAKEUP_REASON_GPIO";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_LAN) {
+                   wakeupReason = "WAKEUP_REASON_LAN";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_WLAN) {
+                   wakeupReason = "WAKEUP_REASON_WLAN";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_TIMER) {
+                   wakeupReason = "WAKEUP_REASON_TIMER";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_FRONT_PANEL) {
+                   wakeupReason = "WAKEUP_REASON_FRONT_PANEL";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_WATCHDOG) {
+                   wakeupReason = "WAKEUP_REASON_WATCHDOG";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_SOFTWARE_RESET) {
+                   wakeupReason = "WAKEUP_REASON_SOFTWARE_RESET";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_THERMAL_RESET) {
+                   wakeupReason = "WAKEUP_REASON_THERMAL_RESET";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_WARM_RESET) {
+                   wakeupReason = "WAKEUP_REASON_WARM_RESET";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_COLDBOOT) {
+                   wakeupReason = "WAKEUP_REASON_COLDBOOT";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_STR_AUTH_FAILURE) {
+                   wakeupReason = "WAKEUP_REASON_STR_AUTH_FAILURE";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_CEC) {
+                   wakeupReason = "WAKEUP_REASON_CEC";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_PRESENCE) {
+                   wakeupReason = "WAKEUP_REASON_PRESENCE";
+                } else if (param == DEEPSLEEP_WAKEUPREASON_VOICE) {
+                   wakeupReason = "WAKEUP_REASON_VOICE";
+                }
             }
             else
             {
@@ -2328,62 +2296,30 @@ namespace WPEFramework {
           * @return      : Core::<StatusCode>
           */
 
-        uint32_t SystemServices::getLastWakeupKeyCode(const JsonObject& parameters, JsonObject& response)
-        {
-          Core::hresult retStatus = Core::ERROR_GENERAL;
-          bool status = false;
-          int keyCode = 0;
-          uint32_t wakeupKeyCode = 0;
+         uint32_t SystemServices::getLastWakeupKeyCode(const JsonObject& parameters, JsonObject& response)
+         {
+              bool status = false;
+              DeepSleepMgr_WakeupKeyCode_Param_t param;
+              uint32_t wakeupKeyCode = 0;
 
-          ASSERT (_powerManagerPlugin);
-          if (_powerManagerPlugin){
-              retStatus = _powerManagerPlugin->GetLastWakeupKeyCode(keyCode);
-          }
+              IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                         IARM_BUS_PWRMGR_API_GetLastWakeupKeyCode, (void *)&param,
+                         sizeof(param));
+              if (IARM_RESULT_SUCCESS == res)
+              {
+                  status = true;
+                  wakeupKeyCode = param.keyCode;
+              }
+              else
+              {
+                  status = false;
+              }
 
-          if (Core::ERROR_NONE == retStatus)
-          {
-              status = true;
-              wakeupKeyCode = keyCode;
-          }
-          else
-          {
-              status = false;
-          }
+              LOGWARN("WakeupKeyCode : %d\n", wakeupKeyCode);
+              response["wakeupKeyCode"] = wakeupKeyCode;
 
-          LOGWARN("WakeupKeyCode : %d\n", wakeupKeyCode);
-          response["wakeupKeyCode"] = wakeupKeyCode;
-
-          returnResponse(status);
-        }
-
-
-        std::string SystemServices::getWakeupReasonString(WakeupReason reason)
-        {
-            std::string reasonString = "";
-            switch (reason) 
-            {
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_IR: reasonString = "WAKEUP_REASON_IR"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_BLUETOOTH : reasonString = "WAKEUP_REASON_RCU_BT"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_RF4CE : reasonString = "WAKEUP_REASON_RCU_RF4CE"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_GPIO : reasonString = "WAKEUP_REASON_GPIO"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_LAN : reasonString = "WAKEUP_REASON_LAN"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_WIFI : reasonString = "WAKEUP_REASON_WLAN"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_TIMER : reasonString = "WAKEUP_REASON_TIMER"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_FRONTPANEL : reasonString = "WAKEUP_REASON_FRONT_PANEL"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_WATCHDOG : reasonString = "WAKEUP_REASON_WATCHDOG"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_SOFTWARERESET : reasonString = "WAKEUP_REASON_SOFTWARE_RESET"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_THERMALRESET : reasonString = "WAKEUP_REASON_THERMAL_RESET"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_WARMRESET : reasonString = "WAKEUP_REASON_WARM_RESET"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_COLDBOOT : reasonString = "WAKEUP_REASON_COLDBOOT"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_STRAUTHFAIL : reasonString = "WAKEUP_REASON_STR_AUTH_FAILURE"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_CEC : reasonString = "WAKEUP_REASON_CEC"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_PRESENCE : reasonString = "WAKEUP_REASON_PRESENCE"; break;
-                case WPEFramework::Exchange::IPowerManager::WAKEUP_REASON_VOICE : reasonString = "WAKEUP_REASON_VOICE"; break;
-                default: break;
-            }
-            return reasonString;
-        }
-
+              returnResponse(status);
+         }
 
 #endif
 
@@ -3475,19 +3411,8 @@ namespace WPEFramework {
             bool resp = false;
             float temperature = 0.0;
 #ifdef ENABLE_THERMAL_PROTECTION
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetThermalState(temperature);
-            }
-            if (Core::ERROR_NONE == retStatus) {
-                LOGINFO("Current core temperature is : %f ",temperature);
-                resp = true;
-            } else {
-                LOGWARN("[%s] PWRMGR GetThermalState Call failed.", __FUNCTION__);
-            }
-            LOGINFO("core temperature is %.1f degrees centigrade\n",
+            resp = CThermalMonitor::instance()->getCoreTemperature(temperature);
+            LOGWARN("core temperature is %.1f degrees centigrade\n",
                     temperature);
 #else
             temperature = -1;
@@ -3624,31 +3549,9 @@ namespace WPEFramework {
         {
             JsonObject value;
             float high = 0.0, critical = 0.0, temperature = 0.0;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-            bool resp1 = false;
-            bool resp2 = false;
-
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetTemperatureThresholds(high, critical);
-            }
-
-            if (Core::ERROR_NONE == retStatus) {
-                LOGINFO("Got current temperature thresholds: high: %f, critical: %f ", high, critical);
-                resp1 = true;
-                retStatus = _powerManagerPlugin->GetThermalState(temperature);
-            } else {
-                high = critical = 0;
-                LOGWARN("[%s] PwrMgr Call GetTemperatureThresholds failed.", __FUNCTION__);
-            }
-
-            if (Core::ERROR_NONE == retStatus) {
-                LOGINFO("GetThermalState Got current temperature %f", temperature);
-                resp2 = true;
-            } else {
-                LOGWARN("[%s] PwrMgr Call GetThermalState failed.", __FUNCTION__);
-            }
-            LOGINFO("Got current temperature thresholds: WARN: %f, MAX: %f, ret[resp1 = %d resp = %d]\n",
+            bool resp1 = CThermalMonitor::instance()->getCoreTempThresholds(high, critical);
+            bool resp2 = CThermalMonitor::instance()->getCoreTemperature(temperature);
+            LOGWARN("Got current temperature thresholds: WARN: %f, MAX: %f, ret[resp1 = %d resp = %d]\n",
                     high, critical, resp1, resp2);
             if (resp1) {
                 value["WARN"] = to_string(high);
@@ -3675,9 +3578,7 @@ namespace WPEFramework {
             JsonObject args;
             float high = 0.0;
             float critical = 0.0;
-            bool resp = false;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-
+	    bool resp = false;
 	    if (parameters.HasLabel("thresholds")) {
 		    args.FromString(parameters["thresholds"].String());
 		    string warn = args["WARN"].String();
@@ -3686,17 +3587,8 @@ namespace WPEFramework {
 		    high = atof(warn.c_str());
 		    critical = atof(max.c_str());
 
-		    ASSERT (_powerManagerPlugin);
-		    if (_powerManagerPlugin){
-		        retStatus = _powerManagerPlugin->SetTemperatureThresholds(high, critical);
-		    }
-
-		    if (Core::ERROR_NONE == retStatus) {
-		        resp = true;
-		    } else {
-		        LOGWARN("[%s] PwrMgr Call SetTemperatureThresholds failed.", __FUNCTION__);
-		    }
-		    LOGINFO("Set temperature thresholds: WARN: %f, MAX: %f resp: %d\n", high, critical,resp);
+		    resp =  CThermalMonitor::instance()->setCoreTempThresholds(high, critical);
+		    LOGWARN("Set temperature thresholds: WARN: %f, MAX: %f\n", high, critical);
 	    } else {
 		    populateResponseWithError(SysSrv_MissingKeyValues, response);
 	    }
@@ -3714,22 +3606,8 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             int graceInterval = 0;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-            bool resp=false;
-
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetOvertempGraceInterval(graceInterval);
-            }
-
-            if (Core::ERROR_NONE == retStatus) {
-                LOGINFO("Got current overtemparature grace inetrval: %d", graceInterval);
-                resp = true;
-            } else {
-                graceInterval = 0;
-                LOGWARN("[%s] PwrMgr GetOvertempGraceInterval Call failed.", __FUNCTION__);
-            }
-            LOGINFO("Got current grace interval: %d ret[resp = %d]\n",
+            bool resp = CThermalMonitor::instance()->getOvertempGraceInterval(graceInterval);
+            LOGWARN("Got current grace interval: %d ret[resp = %d]\n",
                     graceInterval, resp);
             if (resp) {
                 response["graceInterval"] = to_string(graceInterval);
@@ -3748,24 +3626,13 @@ namespace WPEFramework {
         {
             int graceInterval  = 0;
             bool resp = false;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             if (parameters.HasLabel("graceInterval")) {
                     string grace = parameters["graceInterval"].String();
 
                     graceInterval = atoi(grace.c_str());
 
-                    ASSERT (_powerManagerPlugin);
-                    if (_powerManagerPlugin){
-                        retStatus = _powerManagerPlugin->SetOvertempGraceInterval(graceInterval);
-                    }
-
-                    if (Core::ERROR_NONE == retStatus) {
-                        LOGINFO("Set new overtemparature grace interval: %d", graceInterval);
-                        resp = true;
-                    } else {
-                        LOGWARN("[%s] PwrMgr SetOvertempGraceInterval Call failed", __FUNCTION__);
-                    }
-                    LOGINFO("Set Grace Interval : %d\n", graceInterval);
+                    resp =  CThermalMonitor::instance()->setOvertempGraceInterval(graceInterval);
+                    LOGWARN("Set Grace Interval : %d\n", graceInterval);
             } else {
                     populateResponseWithError(SysSrv_MissingKeyValues, response);
             }
@@ -4130,22 +3997,22 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             bool retVal = false;
-            PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            string powerState= "UNKNOWN";
-            Core::hresult retStatus = Core::ERROR_GENERAL;
+            string powerState;
 
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetPowerState(pwrStateCur, pwrStatePrev);
-            }
+            {
+                std::string currentState = "UNKNOWN";
+                IARM_Bus_PWRMgr_GetPowerState_Param_t param;
+                IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState,
+                    (void*)&param, sizeof(param));
 
-
-            if (Core::ERROR_NONE == retStatus){
-                if (pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_ON)
-                    powerState = "ON";
-                else if ((pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY) || (pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) || (pwrStateCur == WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP))
-                    powerState = "STANDBY";
+                if (res == IARM_RESULT_SUCCESS) {
+                    if (param.curState == IARM_BUS_PWRMGR_POWERSTATE_ON)
+                        currentState = "ON";
+                    else if ((param.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY) || (param.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP) || (param.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP))
+                        currentState = "STANDBY";
+                }
+                
+                powerState = currentState;
             }
 
             LOGWARN("getPowerState called, power state : %s\n",
@@ -4212,37 +4079,6 @@ namespace WPEFramework {
 		}
 		returnResponse(retVal);
 	}//end of setPower State
-
-    bool SystemServices::setPowerState(std::string powerState)
-    {
-        Core::hresult status = Core::ERROR_GENERAL;
-        WPEFramework::Exchange::IPowerManager::PowerState pwrMgrState;
-        int keyCode = 0;
-
-        if (powerState == "STANDBY") {
-            pwrMgrState = WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY;
-        } else if (powerState == "ON") {
-            pwrMgrState = WPEFramework::Exchange::IPowerManager::POWER_STATE_ON;
-        } else if (powerState == "DEEP_SLEEP") {
-            pwrMgrState = WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP;
-        } else if (powerState == "LIGHT_SLEEP") {
-            pwrMgrState = WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY;
-        } else {
-            return false;
-        }
-
-        ASSERT (_powerManagerPlugin);
-
-        if (_powerManagerPlugin) {
-            status = _powerManagerPlugin->SetPowerState(keyCode, pwrMgrState, "random");
-        }
-
-        if (status == Core::ERROR_GENERAL)
-            return false;
-        else
-            return true;
-    }
-
 #endif /* HAS_API_SYSTEM && HAS_API_POWERSTATE */
 
         /***
@@ -4555,25 +4391,23 @@ namespace WPEFramework {
             JsonObject& response)
         {
             bool retVal = false;
-            PowerState pwrStateBeforeReboot = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
 
             if (m_powerStateBeforeRebootValid) {
                 response["state"] = m_powerStateBeforeReboot;
                 retVal = true;
                 LOGINFO("Got cached powerStateBeforeReboot: '%s'", m_powerStateBeforeReboot.c_str());
             } else {
-                Core::hresult retStatus = Core::ERROR_GENERAL;
-                ASSERT (_powerManagerPlugin);
-                if (_powerManagerPlugin){
-                    retStatus = _powerManagerPlugin->GetPowerStateBeforeReboot(pwrStateBeforeReboot);
-                }
-                LOGWARN("getPowerStateBeforeReboot called, current powerStateBeforeReboot is: %d\n",
-                         pwrStateBeforeReboot);
-                response["state"] = powerModeEnumToString(pwrStateBeforeReboot);
-
-                if (Core::ERROR_NONE == retStatus){
+                IARM_Bus_PWRMgr_GetPowerStateBeforeReboot_Param_t param;
+                IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                                       IARM_BUS_PWRMGR_API_GetPowerStateBeforeReboot, (void *)&param,
+                                       sizeof(param));
+    
+                LOGWARN("getPowerStateBeforeReboot called, current powerStateBeforeReboot is: %s\n",
+                         param.powerStateBeforeReboot);
+                response["state"] = string (param.powerStateBeforeReboot);
+                if (IARM_RESULT_SUCCESS == res) {
                     retVal = true;
-                    m_powerStateBeforeReboot = response["state"];
+                    m_powerStateBeforeReboot = param.powerStateBeforeReboot;
                     m_powerStateBeforeRebootValid = true;
                 } else {
                     retVal = false;
@@ -4595,40 +4429,39 @@ namespace WPEFramework {
             unsigned int srcType = 0x0;
             unsigned int config = 0x0;
             unsigned int powerState = 0x0;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             LOGWARN(" %s: %d Entry \n",__FUNCTION__,__LINE__);
             if (parameters.HasLabel("powerState")) 
             {
                 string state = parameters["powerState"].String();
                 if(!state.compare("LIGHT_SLEEP"))
-                    powerState = 1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP;
+                    powerState = 1 << IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP;
                 if(!state.compare("DEEP_SLEEP"))
-                    powerState =  1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP;
+                    powerState =  1 << IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP;
                 if(!state.compare("DEFAULT"))
-                    powerState = (1<<WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) | \
-                                             (1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP);
+                    powerState = (1<<IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP) | \
+                                             (1 << IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
             }
             else{
-                    powerState = (1<<WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) | \
-                                             (1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP);
+                    powerState = (1<<IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP) | \
+                                             (1 << IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
             }
-            LOGWARN("%s: %d Power State stored:%x \n",__FUNCTION__,__LINE__,powerState);
+            LOGWARN("%s: %d Power State stored:%x \r\n",__FUNCTION__,__LINE__,powerState);
             if (parameters.HasLabel("wakeupSources")) 
             {
                 JsonArray wakeupSrcs = parameters["wakeupSources"].Array();
                 for(uint32_t i =0; i<wakeupSrcs.Length();i++)
                 {
                     JsonObject wakeupSrc = wakeupSrcs.Get(i).Object();
-                    for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <= WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_RF4CE; src++)
+                    for(uint32_t src = WAKEUPSRC_VOICE; src < WAKEUPSRC_MAX; src++)
                     {
                         if(wakeupSrc.HasLabel(getWakeupSrcString(src)))
                         {
                             srcType |= (1<<src);
-                            if (wakeupSrc[getWakeupSrcString(src)].Boolean())
+                            if(wakeupSrc[getWakeupSrcString(src)].Boolean())
                             {
                                 config |= (1<<src);
                             }
-                            if ((WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_WIFI == src) || (WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_LAN == src))
+                            if((src == WAKEUPSRC_WIFI) || (src == WAKEUPSRC_LAN))
                             {
                                 m_networkStandbyModeValid = false;
                             }
@@ -4639,12 +4472,14 @@ namespace WPEFramework {
                 }
                 LOGWARN(" %s: %d srcType:%x  config :%x \n",__FUNCTION__,__LINE__,srcType ,config);
                 if(srcType) {
-                    ASSERT (_powerManagerPlugin);
-                    if (_powerManagerPlugin) {
-                        retStatus = _powerManagerPlugin->SetWakeupSrcConfig(powerState, srcType, config);
-                    }
-
-                    if (Core::ERROR_NONE == retStatus) {
+                    IARM_Bus_PWRMgr_WakeupSrcConfig_Param_t param;
+                    param.pwrMode = powerState;
+                    param.srcType = srcType;
+                    param.config = config;
+                    IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                                           IARM_BUS_PWRMGR_API_SetWakeupSrcConfig, (void *)&param,
+                                           sizeof(param));
+                    if (IARM_RESULT_SUCCESS == res) {
                         status = true;
                     } else {
                         status = false;
@@ -4665,35 +4500,28 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             JsonArray wakeupSrc;
-            int srcType = 0x0;
-            int config = 0x0;
-            int powerState = 0x0;
+            IARM_Bus_PWRMgr_WakeupSrcConfig_Param_t param;
             bool status = false;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-
-            ASSERT (_powerManagerPlugin);
-
-            if (_powerManagerPlugin) {
-                retStatus = _powerManagerPlugin->GetWakeupSrcConfig(powerState, srcType, config);
-            }
-
-            if (Core::ERROR_NONE == retStatus) {
-                LOGWARN(" %s: %d retStatus:%d srcType :%x  config :%x \n",__FUNCTION__,__LINE__,retStatus,srcType,config);
+            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                                  IARM_BUS_PWRMGR_API_GetWakeupSrcConfig, (void *)&param,
+                                  sizeof(param));
+            if (IARM_RESULT_SUCCESS == res) {
+                LOGWARN(" %s: %d res:%d srcType :%x  config :%x \n",__FUNCTION__,__LINE__,res,param.srcType,param.config);
                 status = true;
-                for(uint32_t src = WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_VOICE; src <=  WPEFramework::Exchange::IPowerManager::WAKEUP_SRC_RF4CE; src++)
+                for(uint32_t src = WAKEUPSRC_VOICE; src <  WAKEUPSRC_MAX; src++)
                 {
                      JsonObject sourceConfig;
-                     if(srcType & (1<<src))
+                     if(param.srcType & (1<<src))
                      {
-                        sourceConfig[getWakeupSrcString(src)] = (config & (1<<src))?true:false;
+                        sourceConfig[getWakeupSrcString(src)] = (param.config & (1<<src))?true:false;
                         wakeupSrc.Add(sourceConfig);
                      }
                 }
-                if(powerState == (1<<WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_LIGHT_SLEEP) )
+                if(param.pwrMode == (1<<IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP) )
                 {
                     response["powerState"] = "LIGHT_SLEEP";
                 }
-                else if(powerState == (1 << WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY_DEEP_SLEEP))
+                else if(param.pwrMode == (1 << IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP))
                 {
                     response["powerState"] = "DEEP_SLEEP";
                 }
@@ -4710,6 +4538,90 @@ namespace WPEFramework {
                status = false;
             }
             returnResponse(status);
+        }
+
+
+        /***
+         * @brief : To handle the event of Power State change.
+         *     The event is registered to the IARM event handle on powerStateChange.
+         *     Connects the change event to SystemServices::onSystemPowerStateChanged()
+         *
+         * @param1[in]  : owner of the event
+         * @param2[in]  : eventID of the event
+         * @param3[in]  : data passed from the IARMBUS event
+         * @param4[in]  : len
+         * @param2[out] : connect call to onSystemPowerStateChanged
+         * @return      : <void>
+         */
+        void _powerEventHandler(const char *owner, IARM_EventId_t eventId,
+                void *data, size_t len)
+        {
+            switch (eventId) {
+                case  IARM_BUS_PWRMGR_EVENT_MODECHANGED:
+                    {
+                        IARM_Bus_PWRMgr_EventData_t *eventData = (IARM_Bus_PWRMgr_EventData_t *)data;
+			std::string curState,newState = "";
+
+			if(eventData->data.state.curState == IARM_BUS_PWRMGR_POWERSTATE_ON) {
+				curState = "ON";
+            } else if (eventData->data.state.curState == IARM_BUS_PWRMGR_POWERSTATE_OFF) {
+                curState = "OFF";
+			} else if ((eventData->data.state.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY)||
+				   (eventData->data.state.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP)) {
+				curState = "LIGHT_SLEEP";
+			} else if (eventData->data.state.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP) {
+				curState = "DEEP_SLEEP";
+			} else if (eventData->data.state.curState == IARM_BUS_PWRMGR_POWERSTATE_OFF) {
+				curState = "OFF";
+			}
+
+			if(eventData->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_ON) {
+				newState = "ON";
+            } else if(eventData->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_OFF) {
+                newState = "OFF";
+			} else if((eventData->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY)||
+				  (eventData->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP)) {
+                                newState = "LIGHT_SLEEP";
+			} else if(eventData->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP) {
+                                newState = "DEEP_SLEEP";
+			}
+                        LOGWARN("IARM Event triggered for PowerStateChange.\
+                                Old State %s, New State: %s\n",
+                                curState.c_str() , newState.c_str());
+                        if (SystemServices::_instance) {
+                            SystemServices::_instance->onSystemPowerStateChanged(curState, newState);
+                        } else {
+                            LOGERR("SystemServices::_instance is NULL.\n");
+                        }
+                    }
+                    
+                    break;
+                case  IARM_BUS_PWRMGR_EVENT_REBOOTING:
+                    {
+                        IARM_Bus_PWRMgr_RebootParam_t *eventData = (IARM_Bus_PWRMgr_RebootParam_t *)data;
+
+                        if (SystemServices::_instance) {
+                            SystemServices::_instance->onPwrMgrReboot(eventData->requestor, eventData->reboot_reason_other);
+                        } else {
+                            LOGERR("SystemServices::_instance is NULL.\n");
+                        }
+                    }
+
+                    break;
+
+            case  IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED:
+                {
+                    IARM_Bus_PWRMgr_EventData_t *eventData = (IARM_Bus_PWRMgr_EventData_t *)data;
+
+                    if (SystemServices::_instance) {
+                        SystemServices::_instance->onNetorkModeChanged(eventData->data.bNetworkStandbyMode);
+                    } else {
+                        LOGERR("SystemServices::_instance is NULL.\n");
+                    }
+                }
+
+                break;
+            }
         }
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
@@ -4846,27 +4758,49 @@ namespace WPEFramework {
 #endif// ENABLE_SYSTIMEMGR_SUPPORT
 #ifdef ENABLE_THERMAL_PROTECTION
         /***
+         * @brief : To handle the event of Thermal Level change. THe event is registered
+         *	       to the IARM event handle on _EVENT_THERMAL_MODECHANGED.
+         *
+         * @param1[in]  : owner of the event
+         * @param2[in]  : eventID of the event
+         * @param3[in]  : data passed from the IARMBUS event
+         * @param4[in]  : len
+
+         * @param2[out] : connect call to onTemperatureThresholdChanged
+         * @return      : <void>
+         */
+        void _thermMgrEventsHandler(const char *owner, IARM_EventId_t eventId,
+                void *data, size_t len)
+        {
+            if (!strcmp(IARM_BUS_PWRMGR_NAME, owner)) {
+                if (IARM_BUS_PWRMGR_EVENT_THERMAL_MODECHANGED  == eventId) {
+                    LOGWARN("IARM_BUS_PWRMGR_EVENT_THERMAL_MODECHANGED event received\n");
+                    handleThermalLevelChange((IARM_Bus_PWRMgr_EventData_t *)data);
+                }
+            }
+        }
+
+        /***
          * @brief : To validate the parameters in event data send from the IARMBUS, so as
          *		   to initiate  onTemperatureThresholdChanged event.
          *
-         * @param1[in]  : int , currentThermalLevel from PowerManager callback
-         * @param2[in]  : int , newThermalLevel from PowerManager callback
-         * @param3[in]  : int , currentTemperature from PowerManager callback
-         * @param4[out] : connect call to onTemperatureThresholdChanged
+         * @param1[in]  : data passed from the IARMBUS event
+
+         * @param2[out] : connect call to onTemperatureThresholdChanged
          * @return      : <void>
          */
-        static void handleThermalLevelChange(const int &currentThermalLevel, const int &newThermalLevel, const float &currentTemperature)
+        static void handleThermalLevelChange(IARM_Bus_PWRMgr_EventData_t *param)
         {
             bool crossOver;
             bool validparams = true;
             std::string thermLevel;
 
-            switch (newThermalLevel) {
-                case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_NORMAL:
+            switch (param->data.therm.newLevel) {
+                case IARM_BUS_PWRMGR_TEMPERATURE_NORMAL:
                     {
-                        switch (currentThermalLevel) {
-                            case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_HIGH:
-                            case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_CRITICAL:
+                        switch (param->data.therm.curLevel) {
+                            case IARM_BUS_PWRMGR_TEMPERATURE_HIGH:
+                            case IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL:
                                 crossOver = false;
                                 thermLevel = "WARN";
                                 break;
@@ -4877,14 +4811,14 @@ namespace WPEFramework {
 
                     }
                     break;
-                case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_HIGH:
+                case IARM_BUS_PWRMGR_TEMPERATURE_HIGH:
                     {
-                        switch (currentThermalLevel) {
-                            case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_NORMAL:
+                        switch (param->data.therm.curLevel) {
+                            case IARM_BUS_PWRMGR_TEMPERATURE_NORMAL:
                                 crossOver = true;
                                 thermLevel = "WARN";
                                 break;
-                            case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_CRITICAL:
+                            case IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL:
                                 crossOver = false;
                                 thermLevel = "MAX";
                                 break;
@@ -4895,11 +4829,11 @@ namespace WPEFramework {
 
                     }
                     break;
-                case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_CRITICAL:
+                case IARM_BUS_PWRMGR_TEMPERATURE_CRITICAL:
                     {
-                        switch (currentThermalLevel) {
-                            case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_HIGH:
-                            case WPEFramework::Exchange::IPowerManager::THERMAL_TEMPERATURE_NORMAL:
+                        switch (param->data.therm.curLevel) {
+                            case IARM_BUS_PWRMGR_TEMPERATURE_HIGH:
+                            case IARM_BUS_PWRMGR_TEMPERATURE_NORMAL:
                                 crossOver = true;
                                 thermLevel = "MAX";
                                 break;
@@ -4918,7 +4852,7 @@ namespace WPEFramework {
                 LOGWARN("Invalid temperature levels \n");
                 if (SystemServices::_instance) {
                     SystemServices::_instance->onTemperatureThresholdChanged(thermLevel,
-                            crossOver, currentTemperature);
+                            crossOver, param->data.therm.curTemperature);
                 } else {
                     LOGERR("SystemServices::_instance is NULL.\n");
                 }

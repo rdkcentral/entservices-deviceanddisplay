@@ -4904,9 +4904,23 @@ void DisplaySettings::sendMsgThread()
             LOGINFO("[ARC Audio Status Event], %s : %s", __FUNCTION__, C_STR(message));
 
             if (parameters.HasLabel("muteStatus") && parameters.HasLabel("volumeLevel")) {
-                hdmiArcVolumeLevel =  stoi(parameters["volumeLevel"].String());
-		hdmiArcMuteStatus = stoi(parameters["muteStatus"].String());
-		LOGINFO("[ARC Audio Status Event], %s  mute strings : %s  ", __FUNCTION__,parameters["muteStatus"].String().c_str());
+                int iArcVolumeLevel =  stoi(parameters["volumeLevel"].String());
+                if(iArcVolumeLevel != hdmiArcVolumeLevel)
+		{
+		    hdmiArcVolumeLevel = iArcVolumeLevel;
+                    JsonObject volParams;
+                    volParams["volumeLevel"] = (int)hdmiArcVolumeLevel;
+                    sendNotify("volumeLevelChanged", volParams);
+		}
+
+		bool bMuteStatus = stoi(parameters["muteStatus"].String());
+                if( bMuteStatus != hdmiArcMuteStatus )
+		{
+                    hdmiArcMuteStatus = bMuteStatus;
+		    JsonObject params;
+                    params["muted"] = hdmiArcMuteStatus;
+                    sendNotify("muteStatusChanged", params);
+		}
             } else {
                 LOGERR("Field 'muteStatus' and 'volumeLevel' could not be found in the event's payload.");
             }

@@ -40,7 +40,7 @@ namespace Plugin {
         class NotificationHandler : public RPC::IRemoteConnection::INotification
                                   , public PluginHost::IShell::ICOMLink::INotification
                                 //  , public DeviceSettingsManagerCompositeIn::INotification
-                                //  , public DeviceSettingsManagerAudio::INotification
+                                  , public DeviceSettingsManagerAudio::INotification
                                   , public DeviceSettingsManagerFPD::INotification
                                 // , public DeviceSettingsManagerVideoDevice::INotification
                                 // , public DeviceSettingsManagerDisplay::INotification
@@ -73,6 +73,7 @@ namespace Plugin {
 
             BEGIN_INTERFACE_MAP(NotificationHandler)
             //INTERFACE_ENTRY(DeviceSettingsManagerCompositeIn::INotification)
+            INTERFACE_ENTRY(DeviceSettingsManagerAudio::INotification)
             INTERFACE_ENTRY(DeviceSettingsManagerFPD::INotification)
             //INTERFACE_ENTRY(DeviceSettingsManagerVideoDevice::INotification)
             //INTERFACE_ENTRY(DeviceSettingsManagerDisplay::INotification)
@@ -148,6 +149,56 @@ namespace Plugin {
                 LOGINFO("OnHDMIInVRRStatus");
             }
 
+            // Audio notification handlers
+            void OnAssociatedAudioMixingChanged(bool mixing) override
+            {
+                LOGINFO("OnAssociatedAudioMixingChanged: mixing %d", mixing);
+            }
+
+            void OnAudioFaderControlChanged(int32_t mixerBalance) override
+            {
+                LOGINFO("OnAudioFaderControlChanged: mixerBalance %d", mixerBalance);
+            }
+
+            void OnAudioPrimaryLanguageChanged(const string& primaryLanguage) override
+            {
+                LOGINFO("OnAudioPrimaryLanguageChanged: primaryLanguage %s", primaryLanguage.c_str());
+            }
+
+            void OnAudioSecondaryLanguageChanged(const string& secondaryLanguage) override
+            {
+                LOGINFO("OnAudioSecondaryLanguageChanged: secondaryLanguage %s", secondaryLanguage.c_str());
+            }
+
+            void OnAudioOutHotPlug(AudioPortType portType, uint32_t uiPortNumber, bool isPortConnected) override
+            {
+                LOGINFO("OnAudioOutHotPlug: portType %d, port %d, connected %d", portType, uiPortNumber, isPortConnected);
+            }
+
+            void OnAudioFormatUpdate(AudioFormat audioFormat) override
+            {
+                LOGINFO("OnAudioFormatUpdate: audioFormat %d", audioFormat);
+            }
+
+            void OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCapability, bool status) override
+            {
+                LOGINFO("OnDolbyAtmosCapabilitiesChanged: capability %d, status %d", atmosCapability, status);
+            }
+
+            void OnAudioPortStateChanged(AudioPortState audioPortState) override
+            {
+                LOGINFO("OnAudioPortStateChanged: state %d", audioPortState);
+            }
+
+            void OnAudioLevelChangedEvent(int32_t audioLevel) override
+            {
+                LOGINFO("OnAudioLevelChangedEvent: level %d", audioLevel);
+            }
+
+            void OnAudioModeEvent(AudioPortType audioPortType, StereoModes audioMode)
+            {
+                LOGINFO("OnAudioModeEvent: portType %d, mode %d", audioPortType, audioMode);
+            }
         private:
             DeviceSettingsManager& mParent;
         };
@@ -168,7 +219,7 @@ namespace Plugin {
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsManager, _mDeviceSettingsManager)
 #endif
             //INTERFACE_AGGREGATE(DeviceSettingsManagerCompositeIn, _mDeviceSettingsManagerCompositeIn)
-            //INTERFACE_AGGREGATE(DeviceSettingsManagerAudio, _mDeviceSettingsManagerAudio)
+            INTERFACE_AGGREGATE(DeviceSettingsManagerAudio, _mDeviceSettingsManagerAudio)
             INTERFACE_AGGREGATE(DeviceSettingsManagerFPD, _mDeviceSettingsManagerFPD)
             //INTERFACE_AGGREGATE(DeviceSettingsManagerVideoDevice, _mDeviceSettingsManagerVideoDevice)
             //INTERFACE_AGGREGATE(DeviceSettingsManagerDisplay, _mDeviceSettingsManagerDisplay)

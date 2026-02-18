@@ -65,7 +65,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _pwrMgrNotification(*this), _hdmiInNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -126,9 +126,20 @@ namespace Plugin {
             LOGERR("Failed to get HDMI In interface for notification registration");
         }
 
+        // Connect to Audio Manager interface
+        _audioManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsManagerAudio>("org.rdk.DeviceSettingsManager");
+        ASSERT(_audioManager != nullptr);
+        if (_audioManager) {
+            LOGINFO("Successfully connected to DeviceSettingsManagerAudio interface");
+        } else {
+            LOGERR("Failed to connect to DeviceSettingsManagerAudio interface");
+        }
+
         TestFPDAPIs();
         // Test HDMI In methods with sample values
         TestSpecificHDMIInAPIs();
+        // Test Audio APIs with comprehensive coverage
+        TestAudioAPIs();
 
         // Test IARM APIs for direct DsMgr daemon communication
         TestIARMHdmiInAPIs();
@@ -160,6 +171,13 @@ namespace Plugin {
             _hdmiInManager->Release();
             _hdmiInManager = nullptr;
             LOGINFO("Successfully unregistered and released HDMI In Manager interface");
+        }
+
+        // Release Audio Manager
+        if (_audioManager) {
+            _audioManager->Release();
+            _audioManager = nullptr;
+            LOGINFO("Successfully released Audio Manager interface");
         }
         Exchange::JUserPlugin::Unregister(*this);
         _service = nullptr;
@@ -1157,6 +1175,375 @@ namespace Plugin {
         TestIARMGetVRRSupport(1);
 
         LOGINFO("=== IARM Advanced Tests Complete ===");
+    }
+
+    void UserPlugin::TestAudioAPIs()
+    {
+        LOGINFO("========== Audio APIs Testing Framework ==========\n");
+
+        if (!_audioManager) {
+            LOGERR("Audio Manager interface is not available!");
+            return;
+        }
+
+        LOGINFO("========== Testing Audio APIs ==========\n");
+
+        // Test all audio port types
+        WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType testPortTypes[] = {
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_SPDIF,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_SPEAKER,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HEADPHONE,
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMIARC,
+        };
+
+        const char* portTypeNames[] = {
+            "HDMI",
+            "SPDIF", 
+            "ANALOG",
+            "HEADPHONE"
+        };
+
+        for (size_t i = 0; i < sizeof(testPortTypes)/sizeof(testPortTypes[0]); i++) {
+            auto portType = testPortTypes[i];
+            const char* portTypeName = portTypeNames[i];
+
+            LOGINFO("---------- Testing Audio Port Type: %s ----------", portTypeName);
+
+            // 1. Test GetAudioPort
+            int32_t handle = 0;
+            Core::hresult result = _audioManager->GetAudioPort(portType, 0, handle);
+            LOGINFO("GetAudioPort: portType=%s, index=0, result=%u, handle=%d", portTypeName, result, handle);
+
+            if (result != Core::ERROR_NONE || handle <= 0) {
+                LOGINFO("Skipping tests for %s port as it's not available", portTypeName);
+                continue;
+            }
+
+            // 2. Test IsAudioPortEnabled (get original state)
+            bool originalEnabled = false;
+            result = _audioManager->IsAudioPortEnabled(handle, originalEnabled);
+            LOGINFO("IsAudioPortEnabled: handle=%d, result=%u, enabled=%s", handle, result, originalEnabled ? "true" : "false");
+
+            // 3. Test EnableAudioPort with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                bool newEnabled = !originalEnabled; // Toggle state
+                result = _audioManager->EnableAudioPort(handle, newEnabled);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS EnableAudioPort completed: handle=%d, enabled=%s", handle, newEnabled ? "true" : "false");
+                } else {
+                    LOGERR("FAILED EnableAudioPort call: handle=%d", handle);
+                }
+
+                // Restore original state
+                result = _audioManager->EnableAudioPort(handle, originalEnabled);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio port enable state restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Audio port enable state restore: handle=%d", handle);
+                }
+            }
+
+            // 4. Test IsAudioMuted (get original state)
+            bool originalMuted = false;
+            result = _audioManager->IsAudioMuted(handle, originalMuted);
+            LOGINFO("IsAudioMuted: handle=%d, result=%u, muted=%s", handle, result, originalMuted ? "true" : "false");
+
+            // 5. Test SetAudioMute with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                bool newMuted = !originalMuted; // Toggle state
+                result = _audioManager->SetAudioMute(handle, newMuted);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioMute completed: handle=%d, muted=%s", handle, newMuted ? "true" : "false");
+                } else {
+                    LOGERR("FAILED SetAudioMute call: handle=%d", handle);
+                }
+
+                // Restore original mute state
+                result = _audioManager->SetAudioMute(handle, originalMuted);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio mute state restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Audio mute state restore: handle=%d", handle);
+                }
+            }
+
+            // 6. Test GetAudioLevel (get original level)
+            float originalLevel = 0.0f;
+            result = _audioManager->GetAudioLevel(handle, originalLevel);
+            LOGINFO("GetAudioLevel: handle=%d, result=%u, level=%.2f", handle, result, originalLevel);
+
+            // 7. Test SetAudioLevel with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                float newLevel = (originalLevel >= 50.0f) ? 25.0f : 75.0f; // Use different level
+                result = _audioManager->SetAudioLevel(handle, newLevel);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioLevel completed: handle=%d, level=%.2f", handle, newLevel);
+                } else {
+                    LOGERR("FAILED SetAudioLevel call: handle=%d", handle);
+                }
+
+                // Restore original level
+                result = _audioManager->SetAudioLevel(handle, originalLevel);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio level restored: handle=%d, level=%.2f", handle, originalLevel);
+                } else {
+                    LOGERR("FAILED Audio level restore: handle=%d", handle);
+                }
+            }
+
+            // 8. Test GetAudioGain (get original gain)
+            float originalGain = 0.0f;
+            result = _audioManager->GetAudioGain(handle, originalGain);
+            LOGINFO("GetAudioGain: handle=%d, result=%u, gain=%.2f", handle, result, originalGain);
+
+            // 9. Test SetAudioGain with get-set-restore pattern
+            if (result == Core::ERROR_NONE) {
+                float newGain = (originalGain >= 0.0f) ? -6.0f : 6.0f; // Use different gain
+                result = _audioManager->SetAudioGain(handle, newGain);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetAudioGain completed: handle=%d, gain=%.2f", handle, newGain);
+                } else {
+                    LOGERR("FAILED SetAudioGain call: handle=%d", handle);
+                }
+
+                // Restore original gain
+                result = _audioManager->SetAudioGain(handle, originalGain);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio gain restored: handle=%d, gain=%.2f", handle, originalGain);
+                } else {
+                    LOGERR("FAILED Audio gain restore: handle=%d", handle);
+                }
+            }
+
+            // 10. Test GetAudioFormat
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioFormat audioFormat;
+            result = _audioManager->GetAudioFormat(handle, audioFormat);
+            LOGINFO("GetAudioFormat: handle=%d, result=%u, format=%d", handle, result, static_cast<int>(audioFormat));
+
+            // 11. Test GetAudioEncoding
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioEncoding audioEncoding;
+            result = _audioManager->GetAudioEncoding(handle, audioEncoding);
+            LOGINFO("GetAudioEncoding: handle=%d, result=%u, encoding=%d", handle, result, static_cast<int>(audioEncoding));
+
+            // 12. Test GetSupportedARCTypes (for HDMI ports)
+            if (portType == WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI) {
+                int32_t arcTypes = 0;
+                result = _audioManager->GetSupportedARCTypes(handle, arcTypes);
+                LOGINFO("GetSupportedARCTypes: handle=%d, result=%u, arcTypes=0x%X", handle, result, arcTypes);
+
+                // 13. Test SetSAD with sample data
+                uint8_t sadData[] = {0x09, 0x07, 0x07}; // Sample SAD data
+                uint8_t sadCount = sizeof(sadData);
+                result = _audioManager->SetSAD(handle, sadData, sadCount);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetSAD completed: handle=%d, count=%d", handle, sadCount);
+                } else {
+                    LOGERR("FAILED SetSAD call: handle=%d", handle);
+                }
+
+                // 14. Test EnableARC with get-set-restore pattern (if applicable)
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus arcStatus;
+                arcStatus.arcType = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus::ARCType::AUDIO_ARCTYPE_ARC;
+                arcStatus.status = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus::ARCStatus::AUDIO_ARCTYPE_NONE;
+                
+                result = _audioManager->EnableARC(handle, arcStatus);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS EnableARC completed: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED EnableARC call: handle=%d", handle);
+                }
+
+                // Disable ARC to restore state
+                arcStatus.status = WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioARCStatus::ARCStatus::AUDIO_ARCTYPE_NONE;
+                result = _audioManager->EnableARC(handle, arcStatus);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS ARC state restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED ARC state restore: handle=%d", handle);
+                }
+            }
+
+            // 15. Test Stereo Mode APIs with get-set-restore pattern
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode originalStereoMode;
+            result = _audioManager->GetStereoMode(handle, originalStereoMode);
+            LOGINFO("GetStereoMode: handle=%d, result=%u, mode=%d", handle, result, static_cast<int>(originalStereoMode));
+
+            if (result == Core::ERROR_NONE) {
+                // Test different stereo modes
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode testMode = 
+                    (originalStereoMode == WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode::AUDIO_STEREO_STEREO) ?
+                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode::AUDIO_STEREO_MONO :
+                    WPEFramework::Exchange::IDeviceSettingsManagerAudio::StereoMode::AUDIO_STEREO_STEREO;
+
+                result = _audioManager->SetStereoMode(handle, testMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetStereoMode completed: handle=%d, mode=%d", handle, static_cast<int>(testMode));
+                } else {
+                    LOGERR("FAILED SetStereoMode call: handle=%d", handle);
+                }
+
+                // Restore original stereo mode
+                result = _audioManager->SetStereoMode(handle, originalStereoMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Stereo mode restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Stereo mode restore: handle=%d", handle);
+                }
+            }
+
+            // 16. Test Stereo Auto APIs with get-set-restore pattern
+            int32_t originalAutoMode = 0;
+            result = _audioManager->GetStereoAuto(handle, originalAutoMode);
+            LOGINFO("GetStereoAuto: handle=%d, result=%u, autoMode=%d", handle, result, originalAutoMode);
+
+            if (result == Core::ERROR_NONE) {
+                int32_t newAutoMode = (originalAutoMode == 0) ? 1 : 0; // Toggle auto mode
+                result = _audioManager->SetStereoAuto(handle, newAutoMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetStereoAuto completed: handle=%d, autoMode=%d", handle, newAutoMode);
+                } else {
+                    LOGERR("FAILED SetStereoAuto call: handle=%d", handle);
+                }
+
+                // Restore original auto mode
+                result = _audioManager->SetStereoAuto(handle, originalAutoMode, false);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Stereo auto mode restored: handle=%d", handle);
+                } else {
+                    LOGERR("FAILED Stereo auto mode restore: handle=%d", handle);
+                }
+            }
+
+            LOGINFO("---------- Completed testing Audio Port Type: %s ----------\n", portTypeName);
+        }
+
+        // Test advanced audio features with get-set-restore patterns
+        LOGINFO("---------- Testing Advanced Audio Features ----------");
+
+        // Test with HDMI port for advanced features
+        int32_t hdmiHandle = 0;
+        Core::hresult result = _audioManager->GetAudioPort(WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI, 0, hdmiHandle);
+        
+        if (result == Core::ERROR_NONE && hdmiHandle > 0) {
+            // Test Volume Leveller with get-set-restore pattern
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::VolumeLeveller originalLeveller;
+            result = _audioManager->GetVolumeLeveller(hdmiHandle, originalLeveller);
+            LOGINFO("GetVolumeLeveller: handle=%d, result=%u, mode=%d, level=%d", hdmiHandle, result, originalLeveller.mode, originalLeveller.level);
+
+            if (result == Core::ERROR_NONE) {
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::VolumeLeveller newLeveller;
+                newLeveller.mode = (originalLeveller.mode == 0) ? 1 : 0;
+                newLeveller.level = (originalLeveller.level >= 50) ? 25 : 75;
+
+                result = _audioManager->SetVolumeLeveller(hdmiHandle, newLeveller);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetVolumeLeveller completed: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED SetVolumeLeveller call: handle=%d", hdmiHandle);
+                }
+
+                // Restore original settings
+                result = _audioManager->SetVolumeLeveller(hdmiHandle, originalLeveller);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Volume leveller restored: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED Volume leveller restore: handle=%d", hdmiHandle);
+                }
+            }
+
+            // Test Surround Virtualizer with get-set-restore pattern
+            WPEFramework::Exchange::IDeviceSettingsManagerAudio::SurroundVirtualizer originalVirtualizer;
+            result = _audioManager->GetSurroundVirtualizer(hdmiHandle, originalVirtualizer);
+            LOGINFO("GetSurroundVirtualizer: handle=%d, result=%u, mode=%d, boost=%d", hdmiHandle, result, originalVirtualizer.mode, originalVirtualizer.boost);
+
+            if (result == Core::ERROR_NONE) {
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::SurroundVirtualizer newVirtualizer;
+                newVirtualizer.mode = (originalVirtualizer.mode == 0) ? 1 : 0;
+                newVirtualizer.boost = (originalVirtualizer.boost >= 50) ? 25 : 75;
+
+                result = _audioManager->SetSurroundVirtualizer(hdmiHandle, newVirtualizer);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS SetSurroundVirtualizer completed: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED SetSurroundVirtualizer call: handle=%d", hdmiHandle);
+                }
+
+                // Restore original settings
+                result = _audioManager->SetSurroundVirtualizer(hdmiHandle, originalVirtualizer);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Surround virtualizer restored: handle=%d", hdmiHandle);
+                } else {
+                    LOGERR("FAILED Surround virtualizer restore: handle=%d", hdmiHandle);
+                }
+            }
+
+            // Test MS11/MS12 Decoding queries
+            bool hasMS11Decode = false;
+            result = _audioManager->IsAudioMSDecoding(hdmiHandle, hasMS11Decode);
+            LOGINFO("IsAudioMSDecoding: handle=%d, result=%u, hasMS11=%s", hdmiHandle, result, hasMS11Decode ? "true" : "false");
+
+            bool hasMS12Decode = false;
+            result = _audioManager->IsAudioMS12Decoding(hdmiHandle, hasMS12Decode);
+            LOGINFO("IsAudioMS12Decoding: handle=%d, result=%u, hasMS12=%s", hdmiHandle, result, hasMS12Decode ? "true" : "false");
+
+            // Test Audio Ducking
+            result = _audioManager->SetAudioDucking(hdmiHandle, 
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingType::AUDIO_DUCKINGTYPE_RELATIVE,
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingAction::AUDIO_DUCKINGACTION_START,
+                50);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS SetAudioDucking START completed: handle=%d", hdmiHandle);
+            } else {
+                LOGERR("FAILED SetAudioDucking START call: handle=%d", hdmiHandle);
+            }
+
+            // Stop ducking to restore state
+            result = _audioManager->SetAudioDucking(hdmiHandle, 
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingType::AUDIO_DUCKINGTYPE_RELATIVE,
+                WPEFramework::Exchange::IDeviceSettingsManagerAudio::AudioDuckingAction::AUDIO_DUCKINGACTION_STOP,
+                0);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS Audio ducking restored: handle=%d", hdmiHandle);
+            } else {
+                LOGERR("FAILED Audio ducking restore: handle=%d", hdmiHandle);
+            }
+        }
+
+        LOGINFO("---------- Completed Advanced Audio Features Testing ----------\n");
+
+        // Test comprehensive audio level variations with get-set-restore pattern
+        LOGINFO("---------- Testing Audio Level Variations ----------");
+        
+        if (hdmiHandle > 0) {
+            // Get original level for restoration
+            float originalTestLevel = 0.0f;
+            _audioManager->GetAudioLevel(hdmiHandle, originalTestLevel);
+            
+            float levelValues[] = {0.0f, 25.0f, 50.0f, 75.0f, 100.0f};
+
+            for (size_t i = 0; i < sizeof(levelValues)/sizeof(levelValues[0]); i++) {
+                float level = levelValues[i];
+                Core::hresult result = _audioManager->SetAudioLevel(hdmiHandle, level);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("SUCCESS Audio level test completed: level=%.1f", level);
+                } else {
+                    LOGERR("FAILED Audio level test: level=%.1f", level);
+                }
+            }
+
+            // Restore original level
+            result = _audioManager->SetAudioLevel(hdmiHandle, originalTestLevel);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS Audio level variations restored");
+            } else {
+                LOGERR("FAILED Audio level variations restore");
+            }
+        }
+
+        LOGINFO("---------- Completed Audio Level Variations Testing ----------\n");
+
+        LOGINFO("========== Audio APIs Testing Completed ==========\n");
     }
 
 } // namespace Plugin

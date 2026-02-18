@@ -347,38 +347,84 @@ namespace Plugin {
         LOGINFO("       Command: ps aux | grep -i devicesettings");
         LOGINFO("       Command: pgrep -f DeviceSettings");
 
-        // CRITICAL: Skip FPD API calls to prevent crashes
-        LOGERR("CRITICAL: Skipping FPD API calls - they cause segmentation faults!");
-        LOGERR("ROOT CAUSE IDENTIFIED: DeviceSettingsImp library loading issue!");
-        LOGERR("DETAILS: Failed to load from /opt/persistent/rdkservices/org.rdk.DeviceSettings/");
-        LOGERR("FALLBACK: Loaded from /usr/lib/wpeframework/plugins/libWPEFrameworkDeviceSettingsImp.so");
-        LOGERR("ISSUE: Fallback library has broken/incomplete IDeviceSettingsFPD implementation");
-        
-        LOGINFO("========== DIAGNOSTIC SUMMARY ==========");
-        LOGINFO("✅ DeviceSettings plugin: LOADED (fallback library)");
-        LOGINFO("✅ Main interface RPC: WORKING");
-        LOGINFO("✅ Interface pointers: VALID (_fpdManager=0x%p, _deviceSettings=0x%p)", _fpdManager, _deviceSettings);
-        LOGINFO("❌ FPD implementation: BROKEN (crashes on API calls)");
-        LOGINFO("❌ Library path issue: Primary path missing, using fallback");
-        LOGINFO("========================================");
-        
-        LOGINFO("REQUIRED FIXES:");
-        LOGINFO("1. Install correct DeviceSettingsImp at /opt/persistent/rdkservices/org.rdk.DeviceSettings/");
-        LOGINFO("2. OR fix IDeviceSettingsFPD implementation in /usr/lib/wpeframework/plugins/");
-        LOGINFO("3. Check for version mismatch between plugin and implementation");
-        LOGINFO("4. Verify DeviceSettingsImp properly implements all required interfaces");
-        LOGINFO("5. Commands to check:");
-        LOGINFO("   ls -la /opt/persistent/rdkservices/org.rdk.DeviceSettings/");
-        LOGINFO("   ls -la /usr/lib/wpeframework/plugins/libWPEFrameworkDeviceSettingsImp.so*");
-        LOGINFO("   ldd /usr/lib/wpeframework/plugins/libWPEFrameworkDeviceSettingsImp.so");
-        
-        LOGINFO("REQUIRED ACTIONS:");
-        LOGINFO("1. Check DeviceSettingsImp process: ps aux | grep -i devicesettings");
-        LOGINFO("2. Verify IDeviceSettingsFPD implementation in DeviceSettingsImp");
-        LOGINFO("3. Check if DeviceSettingsImp properly aggregates FPD interface");
-        LOGINFO("4. Consider in-process implementation if out-of-process continues failing");
-        
-        LOGINFO("========== FPD Brightness Testing SKIPPED ==========\n");
+        LOGINFO("FPD Manager interface available - testing brightness APIs only...");
+
+        // Test with POWER indicator only (safest option)
+        Exchange::IDeviceSettingsFPD::FPDIndicator testIndicator = Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
+        const char* indicatorName = "POWER";
+
+        LOGINFO("---------- Testing FPD Brightness APIs for %s ----------", indicatorName);
+        LOGINFO("WARNING: Out-of-Process RPC call - may timeout if DeviceSettingsImp process issues exist");
+
+        // Re-validate pointer before testing
+        if (!_fpdManager) {
+            LOGERR("CRITICAL: _fpdManager became null before brightness testing!");
+            return;
+        }
+
+        try {
+            // 1. Test GetFPDBrightness with RPC timeout awareness
+            LOGINFO("DEBUG: About to call GetFPDBrightness for %s (Out-of-Process RPC call)...", indicatorName);
+            LOGINFO("DEBUG: If this hangs, DeviceSettingsImp process may be unresponsive");
+            
+            uint32_t currentBrightness = 0;
+            Core::hresult result = Core::ERROR_GENERAL;
+            
+            // Add timing to detect RPC timeouts
+            auto startTime = std::chrono::steady_clock::now();
+            result = _fpdManager->GetFPDBrightness(testIndicator, currentBrightness);
+            auto endTime = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+            
+            LOGINFO("DEBUG: GetFPDBrightness RPC call completed in %lld ms", duration.count());
+            
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS: GetFPDBrightness (RPC) - indicator=%s, brightness=%u", indicatorName, currentBrightness);
+            } else {
+                LOGERR("FAILED: GetFPDBrightness (RPC) - indicator=%s, result=%u", indicatorName, result);
+                LOGERR("This may indicate DeviceSettingsImp out-of-process communication failure");
+                return; // Don't proceed to set if get failed
+            }
+
+            // 2. Test SetFPDBrightness with get-set-restore pattern
+            LOGINFO("DEBUG: About to test SetFPDBrightness for %s...", indicatorName);
+            uint32_t originalBrightness = currentBrightness; // Save original
+            uint32_t newBrightness = (currentBrightness == 50) ? 75 : 50; // Use safe values
+            bool persist = false; // Don't persist to avoid permanent changes
+
+            result = _fpdManager->SetFPDBrightness(testIndicator, newBrightness, persist);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS: SetFPDBrightness - set brightness to %u", newBrightness);
+
+                // Verify the change by reading it back
+                uint32_t verifyBrightness = 0;
+                result = _fpdManager->GetFPDBrightness(testIndicator, verifyBrightness);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("VERIFY: New brightness value = %u (expected %u)", verifyBrightness, newBrightness);
+                } else {
+                    LOGERR("FAILED: Could not verify brightness change");
+                }
+            } else {
+                LOGERR("FAILED: SetFPDBrightness - result=%u", result);
+            }
+
+            // 3. Restore original brightness
+            LOGINFO("DEBUG: Restoring original brightness %u...", originalBrightness);
+            result = _fpdManager->SetFPDBrightness(testIndicator, originalBrightness, persist);
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("SUCCESS: Original brightness restored to %u", originalBrightness);
+            } else {
+                LOGERR("FAILED: Could not restore original brightness");
+            }
+
+        } catch (const std::exception& e) {
+            LOGERR("EXCEPTION: FPD Brightness API call threw exception: %s", e.what());
+        } catch (...) {
+            LOGERR("EXCEPTION: FPD Brightness API call threw unknown exception");
+        }
+
+        LOGINFO("---------- Completed FPD Brightness Testing for %s ----------", indicatorName);
+        LOGINFO("========== FPD Brightness APIs Testing Completed ==========\n");
     }
 
     void UserPlugin::TestSpecificHDMIInAPIs()

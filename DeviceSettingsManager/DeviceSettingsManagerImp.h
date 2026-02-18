@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <chrono>
 #include <cstdint>
+#include <type_traits>
 
 #include <com/com.h>
 #include <core/core.h>
@@ -39,6 +40,13 @@
 #include "list.hpp"
 #include "DeviceSettingsManagerTypes.h"
 
+// Forward declaration for static assertions
+namespace WPEFramework {
+namespace Plugin {
+    class DeviceSettingsManagerImp;
+}
+}
+
 namespace WPEFramework {
 namespace Plugin {
     class DeviceSettingsManagerImp :
@@ -51,6 +59,9 @@ namespace Plugin {
                                    , public HdmiIn::INotification
                                    , public FPD::INotification
                                    , public Audio::INotification
+                                   , public Exchange::IDeviceSettingsManagerHDMIIn::INotification
+                                   , public Exchange::IDeviceSettingsManagerAudio::INotification
+                                   , public Exchange::IDeviceSettingsManagerFPD::INotification
     {
     public:
         // Minimal implementations to satisfy IReferenceCounted
@@ -268,7 +279,7 @@ namespace Plugin {
         // FPD notification method
         virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override;
 
-        // Audio notification methods
+        // Audio notification methods from Audio::INotification interface
         virtual void OnAssociatedAudioMixingChangedNotification(bool mixing) override;
         virtual void OnAudioFaderControlChangedNotification(int32_t mixerBalance) override;
         virtual void OnAudioPrimaryLanguageChangedNotification(const string& primaryLanguage) override;
@@ -277,12 +288,13 @@ namespace Plugin {
         virtual void OnAudioFormatUpdateNotification(AudioFormat audioFormat) override;
         virtual void OnDolbyAtmosCapabilitiesChangedNotification(DolbyAtmosCapability atmosCapability, bool status) override;
         virtual void OnAudioPortStateChangedNotification(AudioPortState audioPortState) override;
-        virtual void OnAudioLevelChangedEventNotification(int32_t audioLevel) override;
         virtual void OnAudioModeEventNotification(AudioPortType audioPortType, StereoModes audioMode) override;
+        virtual void OnAudioLevelChangedEventNotification(int32_t audioLevel) override;
 
         FPD _fpd;
         HdmiIn _hdmiIn;
         Audio _audio;
     };
+
 } // namespace Plugin
 } // namespace WPEFramework

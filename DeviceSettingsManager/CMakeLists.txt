@@ -53,6 +53,9 @@ install(TARGETS ${MODULE_NAME}
 add_library(${PLUGIN_IMPLEMENTATION} SHARED
     Module.cpp
     DeviceSettingsManagerImp.cpp
+    DeviceSettingsManagerFPD.cpp
+    DeviceSettingsManagerHDMIIn.cpp
+    DeviceSettingsManagerAudio.cpp
     fpd.cpp
     HdmiIn.cpp
     Audio.cpp

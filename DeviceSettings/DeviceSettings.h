@@ -172,14 +172,14 @@ namespace Plugin {
         // Build QueryInterface implementation, specifying all possible interfaces to be returned.
         BEGIN_INTERFACE_MAP(DeviceSettings)
             INTERFACE_ENTRY(PluginHost::IPlugin)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettings, _mDeviceSettings)
             //INTERFACE_ENTRY(PluginHost::IDispatcher)
-            INTERFACE_AGGREGATE(DeviceSetting, _mDeviceSettings)
             //INTERFACE_AGGREGATE(DeviceSettingsCompositeIn, _mDeviceSettingsCompositeIn)
             //INTERFACE_AGGREGATE(DeviceSettingsAudio, _mDeviceSettingsAudio)
-            INTERFACE_AGGREGATE(DeviceSettingsFPD, _mDeviceSettingsFPD)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsFPD, _mDeviceSettingsFPD)
             //INTERFACE_AGGREGATE(DeviceSettingsVideoDevice, _mDeviceSettingsVideoDevice)
             //INTERFACE_AGGREGATE(DeviceSettingsDisplay, _mDeviceSettingsDisplay)
-            INTERFACE_AGGREGATE(DeviceSettingsHDMIIn, _mDeviceSettingsHDMIIn)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsHDMIIn, _mDeviceSettingsHDMIIn)
             //INTERFACE_AGGREGATE(DeviceSettingsHost, _mDeviceSettingsHost)
             //INTERFACE_AGGREGATE(DeviceSettingsVideoPort, _mDeviceSettingsVideoPort)
         END_INTERFACE_MAP
@@ -199,13 +199,13 @@ namespace Plugin {
     private:
         uint32_t mConnectionId;
         PluginHost::IShell* mService;
-        DeviceSetting* _mDeviceSettings;
+        Exchange::IDeviceSettings* _mDeviceSettings;
         DeviceSettingsCompositeIn* _mDeviceSettingsCompositeIn;
         DeviceSettingsAudio* _mDeviceSettingsAudio;
-        DeviceSettingsFPD* _mDeviceSettingsFPD;
+        Exchange::IDeviceSettingsFPD* _mDeviceSettingsFPD;
         DeviceSettingsVideoDevice* _mDeviceSettingsVideoDevice;
         DeviceSettingsDisplay* _mDeviceSettingsDisplay;
-        DeviceSettingsHDMIIn* _mDeviceSettingsHDMIIn;
+        Exchange::IDeviceSettingsHDMIIn* _mDeviceSettingsHDMIIn;
         DeviceSettingsHost* _mDeviceSettingsHost;
         DeviceSettingsVideoPort* _mDeviceSettingsVideoPort;
         Core::Sink<NotificationHandler> mNotificationSink;

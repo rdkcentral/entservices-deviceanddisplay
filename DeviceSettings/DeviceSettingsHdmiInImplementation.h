@@ -52,7 +52,10 @@ namespace Plugin {
         DeviceSettingsHdmiInImp();
         ~DeviceSettingsHdmiInImp() override;
 
-        static DeviceSettingsHdmiInImp* instance(DeviceSettingsHdmiInImp* DeviceSettingsImpl = nullptr);
+        static DeviceSettingsHdmiInImp* Create()
+        {
+            return new DeviceSettingsHdmiInImp();
+        }
 
         // We do not allow this plugin to be copied !!
         DeviceSettingsHdmiInImp(const DeviceSettingsHdmiInImp&)            = delete;
@@ -119,10 +122,7 @@ namespace Plugin {
         Core::hresult GetVRRSupport(const HDMIInPort port, bool &vrrSupport);
         Core::hresult GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus);
 
-        static DeviceSettingsHdmiInImp* _instance;
-
-        
-    private:
+        private:
         std::list<Exchange::IDeviceSettingsHDMIIn::INotification*> _HDMIInNotifications;
 
         // lock to guard all apis of DeviceSettings

@@ -40,8 +40,8 @@
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
 
-// Forward declarations are no longer needed since we use QueryInterface
-// to get interface handles from the WPEFramework service system
+// Forward declarations for implementation classes  
+// Since we now store implementation class pointers directly instead of interface pointers
 
 
 //#include "fpd.h"
@@ -52,6 +52,10 @@
 
 namespace WPEFramework {
 namespace Plugin {
+    // Forward declare implementation classes
+    class DeviceSettingsFPDImpl;
+    class DeviceSettingsHdmiInImp;
+
     class DeviceSettingsImp : public Exchange::IDeviceSettings
                              , public Exchange::IDeviceSettingsFPD
                              , public Exchange::IDeviceSettingsHDMIIn
@@ -141,12 +145,9 @@ namespace Plugin {
         // IDeviceSettingsVideoPort - not implemented yet
 
     private:
-        void InitializeComponentHandles(PluginHost::IShell* service);
-        
-        // Component interface handles (obtained via QueryInterface on this instance)
-        // Only for interfaces we actually implement
-        Exchange::IDeviceSettingsFPD* _fpdSettings;
-        Exchange::IDeviceSettingsHDMIIn* _hdmiInSettings;
+        // Component implementation instances
+        DeviceSettingsFPDImpl* _fpdSettings;
+        DeviceSettingsHdmiInImp* _hdmiInSettings;
         
         // Interface pointers for future implementation (currently unused)
         // Exchange::IDeviceSettingsAudio* _audioSettings;

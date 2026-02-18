@@ -31,13 +31,10 @@ namespace Plugin {
     // This implementation is aggregated by DeviceSettingsImp
     //SERVICE_REGISTRATION(DeviceSettingsHdmiInImp, 1, 0);
 
-    DeviceSettingsHdmiInImp* DeviceSettingsHdmiInImp::_instance = nullptr;
-
     DeviceSettingsHdmiInImp::DeviceSettingsHdmiInImp()
         : _hdmiIn(HdmiIn::Create(*this))
     {
         ENTRY_LOG;
-        DeviceSettingsHdmiInImp::_instance = this;
         LOGINFO("DeviceSettingsHdmiInImp Constructor - Instance Address: %p", this);
         EXIT_LOG;
     }
@@ -61,7 +58,6 @@ namespace Plugin {
         _callbackLock.Unlock();
         LOGINFO("<<");
     }
-
 
     template <typename T>
     Core::hresult DeviceSettingsHdmiInImp::Register(std::list<T*>& list, T* notification)
@@ -204,7 +200,7 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMIInNumberOfInputs(count);
         _apiLock.Unlock();
-        LOGINFO("GetHDMIInNumberOfInputs: count=%d", count);
+        LOGINFO("GetHDMIInNumberOfInputs: SUCCESS - count=%d", count);
         EXIT_LOG;
 
         return Core::ERROR_NONE;
@@ -218,6 +214,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMIInStatus(hdmiStatus, portConnectionStatus);
         _apiLock.Unlock();
+        
+        LOGINFO("GetHDMIInStatus: SUCCESS - platform call completed");
         LOGINFO("GetHDMIInStatus: activePort=%d, isPresented=%s", hdmiStatus.activePort, hdmiStatus.isPresented ? "true" : "false");
 
         EXIT_LOG;
@@ -233,6 +231,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.SelectHDMIInPort(port, requestAudioMix, topMostPlane, videoPlaneType);
         _apiLock.Unlock();
+        
+        LOGINFO("SelectHDMIInPort: SUCCESS - platform call completed");
 
         EXIT_LOG;
 
@@ -246,6 +246,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.ScaleHDMIInVideo(videoPosition);
         _apiLock.Unlock();
+        
+        LOGINFO("ScaleHDMIInVideo: SUCCESS - platform call completed");
 
         EXIT_LOG;
 
@@ -259,6 +261,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.SelectHDMIZoomMode(zoomMode);
         _apiLock.Unlock();
+        
+        LOGINFO("SelectHDMIZoomMode: SUCCESS - platform call completed");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -271,6 +275,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetSupportedGameFeaturesList(gameFeatureList);
         _apiLock.Unlock();
+        
+        LOGINFO("GetSupportedGameFeaturesList: SUCCESS - platform call completed");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -283,7 +289,7 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMIInAVLatency(videoLatency, audioLatency);
         _apiLock.Unlock();
-        LOGINFO("GetHDMIInAVLatency: videoLatency=%u, audioLatency=%u", videoLatency, audioLatency);
+        LOGINFO("GetHDMIInAVLatency: SUCCESS - videoLatency=%u, audioLatency=%u", videoLatency, audioLatency);
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -296,6 +302,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMIInAllmStatus(port, allmStatus);
         _apiLock.Unlock();
+        
+        LOGINFO("GetHDMIInAllmStatus: SUCCESS - port=%d, allmStatus=%s", port, allmStatus ? "true" : "false");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -308,6 +316,9 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMIInEdid2AllmSupport(port, allmSupport);
         _apiLock.Unlock();
+        
+        LOGINFO("GetHDMIInEdid2AllmSupport: SUCCESS - port=%d, allmSupport=%s", port, allmSupport ? "true" : "false");
+        LOGINFO("GetHDMIInEdid2AllmSupport: SUCCESS - port=%d, allmSupport=%s", port, allmSupport ? "true" : "false");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -320,6 +331,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.SetHDMIInEdid2AllmSupport(port, allmSupport);
         _apiLock.Unlock();
+        
+        LOGINFO("SetHDMIInEdid2AllmSupport: SUCCESS - platform call completed");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -332,7 +345,7 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetEdidBytes(port, edidBytesLength, edidBytes);
         _apiLock.Unlock();
-        LOGINFO("GetEdidBytes: port=%d, edidBytes[0]=0x%X", port, edidBytes[0]);
+        LOGINFO("GetEdidBytes: SUCCESS - port=%d, edidBytes[0]=0x%X", port, edidBytes[0]);
 
         EXIT_LOG;
 
@@ -349,6 +362,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMISPDInformation(port, spdBytesLength, spdBytes);
         _apiLock.Unlock();
+        
+        LOGINFO("GetHDMISPDInformation: SUCCESS - platform call completed");
         LOGINFO("GetHDMISPDInformation: port=%d, spdBytes[0]=0x%X", port, spdBytes[0]);
 
         EXIT_LOG;
@@ -363,7 +378,7 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMIEdidVersion(port, edidVersion);
         _apiLock.Unlock();
-        LOGINFO("GetHDMIEdidVersion: port=%d, edidVersion=%d", port, edidVersion);
+        LOGINFO("GetHDMIEdidVersion: SUCCESS - port=%d, edidVersion=%d", port, edidVersion);
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -376,6 +391,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.SetHDMIEdidVersion(port, edidVersion);
         _apiLock.Unlock();
+        
+        LOGINFO("SetHDMIEdidVersion: SUCCESS - platform call completed");
 
         EXIT_LOG;
 
@@ -390,7 +407,7 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetHDMIVideoMode(videoPortResolution);
         _apiLock.Unlock();
-        LOGINFO("GetHDMIVideoMode: resolution=%s", videoPortResolution.name.c_str());
+        LOGINFO("GetHDMIVideoMode: SUCCESS - resolution=%s", videoPortResolution.name.c_str());
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -404,7 +421,7 @@ namespace Plugin {
         _hdmiIn.GetHDMIVersion(port, capabilityVersion);
         _apiLock.Unlock();
 
-        LOGINFO("GetHDMIVersion: port=%d, capabilityVersion=%d", port, capabilityVersion);
+        LOGINFO("GetHDMIVersion: SUCCESS - port=%d, capabilityVersion=%d", port, capabilityVersion);
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -417,7 +434,7 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetVRRSupport(port, vrrSupport);
         _apiLock.Unlock();
-        LOGINFO("GetVRRSupport: port=%d, vrrSupport=%s", port, vrrSupport ? "true" : "false");
+        LOGINFO("GetVRRSupport: SUCCESS - port=%d, vrrSupport=%s", port, vrrSupport ? "true" : "false");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -430,6 +447,8 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.SetVRRSupport(port, vrrSupport);
         _apiLock.Unlock();
+        
+        LOGINFO("SetVRRSupport: SUCCESS - platform call completed");
 
         EXIT_LOG;
         return Core::ERROR_NONE;
@@ -442,7 +461,7 @@ namespace Plugin {
         _apiLock.Lock();
         _hdmiIn.GetVRRStatus(port, vrrStatus);
         _apiLock.Unlock();
-        LOGINFO("GetVRRStatus: port=%d, vrrStatus.vrrType=%d", port, vrrStatus.vrrType);
+        LOGINFO("GetVRRStatus: SUCCESS - port=%d, vrrStatus.vrrType=%d", port, vrrStatus.vrrType);
 
         EXIT_LOG;
         return Core::ERROR_NONE;

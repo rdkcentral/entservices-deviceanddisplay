@@ -144,7 +144,6 @@ namespace WPEFramework
             void onPowerStateChanged(string currentPowerState, string powerState);
             void TestSpecificHDMIInAPIs();
             void TestFPDAPIs();
-            void TestFPDBrightnessAPIs();
             
             // HDMI In Event Handlers
             void OnHDMIInEventHotPlug(const DeviceSettingsHDMIIn::HDMIInPort port, const bool isConnected);

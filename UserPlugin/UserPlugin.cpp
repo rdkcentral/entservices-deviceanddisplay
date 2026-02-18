@@ -90,22 +90,9 @@ namespace Plugin {
         // Get DeviceSettings interface
         _deviceSettings = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettings>("org.rdk.DeviceSettings");
         if (_deviceSettings != nullptr) {
-            LOGINFO("DeviceSettings interface obtained successfully");
-            
             // Get individual interfaces from the main DeviceSettings interface
-            _fpdManager = _deviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
-            if (_fpdManager != nullptr) {
-                LOGINFO("FPD Manager interface obtained from DeviceSettings");
-            } else {
-                LOGERR("Could not get FPD Manager interface from DeviceSettings");
-            }
-            
-            _hdmiInManager = _deviceSettings->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
-            if (_hdmiInManager != nullptr) {
-                LOGINFO("HDMI In Manager interface obtained from DeviceSettings");
-            } else {
-                LOGERR("Could not get HDMI In Manager interface from DeviceSettings");
-            }
+            _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsFPD>("org.rdk.DeviceSettings");
+            _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
         } else {
             LOGERR("Could not obtain DeviceSettings interface");
         }
@@ -113,18 +100,10 @@ namespace Plugin {
         // Register for HDMI In notifications if interface is available
         if (_hdmiInManager) {
             _hdmiInManager->Register(&_hdmiInNotification);
-            LOGINFO("Registered for HDMI In notifications");
         }
 
         // Test DeviceSettings interfaces
-        LOGINFO("DEBUG: Starting interface testing...");
-        LOGINFO("DEBUG: Will skip full FPD testing due to crashes - using focused brightness test");
-        
-        // TestFPDAPIs(); // DISABLED - causes segfault
-        LOGINFO("DEBUG: Testing only FPD brightness APIs for safety");
-        TestFPDBrightnessAPIs();
-        
-        LOGINFO("DEBUG: Starting HDMI In testing...");
+        TestFPDAPIs();
         TestSpecificHDMIInAPIs();
 
         // Test IARM APIs for direct DsMgr daemon communication
@@ -147,21 +126,18 @@ namespace Plugin {
             _hdmiInManager->Unregister(&_hdmiInNotification);
             _hdmiInManager->Release();
             _hdmiInManager = nullptr;
-            LOGINFO("Successfully unregistered and released HDMI In Manager interface");
         }
 
-        // Unregister and release FPD Manager
+        // Release FPD Manager
         if (_fpdManager) {
             _fpdManager->Release();
             _fpdManager = nullptr;
-            LOGINFO("Successfully released FPD Manager interface");
         }
 
-        // Release main DeviceSettings interface if we have it
+        // Release main DeviceSettings interface
         if (_deviceSettings) {
             _deviceSettings->Release();
             _deviceSettings = nullptr;
-            LOGINFO("Successfully released main DeviceSettings interface");
         }
 
         Exchange::JUserPlugin::Unregister(*this);
@@ -240,22 +216,14 @@ namespace Plugin {
     {
         LOGINFO("========== FPD APIs Testing Framework ==========");
 
-        // Enhanced null pointer checking with detailed diagnostics
-        LOGINFO("DEBUG: Checking interface availability...");
-        LOGINFO("DEBUG: _fpdManager pointer = %p", _fpdManager);
-        LOGINFO("DEBUG: _deviceSettings pointer = %p", _deviceSettings);
-        LOGINFO("DEBUG: _hdmiInManager pointer = %p", _hdmiInManager);
-
         if (!_fpdManager) {
-            LOGERR("FPD Manager interface is not available - interface acquisition failed!");
-            LOGERR("This indicates DeviceSettings plugin is not properly exposing IDeviceSettingsFPD interface");
+            LOGERR("FPD Manager interface is not available");
             return;
         }
 
-        LOGINFO("FPD Manager interface available (DeviceSettings: %s)", _deviceSettings ? "Available" : "Not Available");
-        LOGINFO("Testing DeviceSettings FPD APIs via QueryInterface architecture...");
+        LOGINFO("Testing DeviceSettings FPD APIs...");
 
-        // Test all FPD indicators with enhanced error checking
+        // Test all FPD indicators
         Exchange::IDeviceSettingsFPD::FPDIndicator testIndicators[] = {
             Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_MESSAGE,
             Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER,
@@ -265,166 +233,132 @@ namespace Plugin {
         };
 
         const char* indicatorNames[] = {
-            "MESSAGE",
-            "POWER", 
-            "RECORD",
-            "REMOTE",
-            "RFBYPASS"
+            "MESSAGE", "POWER", "RECORD", "REMOTE", "RFBYPASS"
         };
 
+        // Test FPD Brightness APIs
         for (size_t i = 0; i < sizeof(testIndicators)/sizeof(testIndicators[0]); i++) {
             auto indicator = testIndicators[i];
             const char* indicatorName = indicatorNames[i];
 
             LOGINFO("---------- Testing FPD Indicator: %s ----------", indicatorName);
 
-            // Re-validate pointer before each API call
-            if (!_fpdManager) {
-                LOGERR("CRITICAL: _fpdManager became null during testing at indicator %s!", indicatorName);
-                return;
-            }
-
-            // 1. Test GetFPDBrightness with enhanced error handling
-            LOGINFO("DEBUG: About to call GetFPDBrightness for %s...", indicatorName);
+            // Get current brightness
             uint32_t currentBrightness = 0;
-            Core::hresult result = Core::ERROR_GENERAL;
-            
-            try {
-                result = _fpdManager->GetFPDBrightness(indicator, currentBrightness);
-                LOGINFO("DEBUG: GetFPDBrightness call completed with result = %u", result);
-            } catch (...) {
-                LOGERR("EXCEPTION: GetFPDBrightness call threw an exception for indicator %s", indicatorName);
-                return;
-            }
-
+            Core::hresult result = _fpdManager->GetFPDBrightness(indicator, currentBrightness);
             LOGINFO("GetFPDBrightness: indicator=%s, result=%u, brightness=%u", indicatorName, result, currentBrightness);
 
-            // Skip other API calls for now to avoid further crashes - focus on basic interface validation
-            LOGINFO("DEBUG: Skipping other FPD API calls for %s to focus on interface validation", indicatorName);
-
-            LOGINFO("---------- Completed basic testing FPD Indicator: %s ----------\n", indicatorName);
-        }
-
-        LOGINFO("========== FPD APIs Basic Testing Completed ==========\n");
-    }
-
-    void UserPlugin::TestFPDBrightnessAPIs()
-    {
-        LOGINFO("========== FPD Brightness APIs Testing ==========");
-        LOGINFO("IMPORTANT: DeviceSettings is Out-of-Process - checking RPC communication...");
-
-        // Enhanced null pointer checking
-        LOGINFO("DEBUG: Checking FPD interface availability...");
-        LOGINFO("DEBUG: _fpdManager pointer = %p", _fpdManager);
-        LOGINFO("DEBUG: _deviceSettings pointer = %p", _deviceSettings);
-
-        if (!_fpdManager) {
-            LOGERR("FPD Manager interface is not available - cannot test brightness APIs!");
-            return;
-        }
-
-        // CHECK 1: Verify DeviceSettings main interface is responsive
-        LOGINFO("DEBUG: Testing DeviceSettings main interface responsiveness...");
-        if (_deviceSettings) {
-            try {
-                // Try a simple interface query to test RPC communication
-                LOGINFO("DEBUG: Attempting QueryInterface test on main DeviceSettings interface...");
-                auto testInterface = _deviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
-                if (testInterface) {
-                    LOGINFO("SUCCESS: Main DeviceSettings interface is responsive via RPC");
-                    testInterface->Release();
-                } else {
-                    LOGERR("WARNING: Main DeviceSettings interface RPC query returned null");
-                }
-            } catch (...) {
-                LOGERR("CRITICAL: Main DeviceSettings interface RPC communication failed!");
-                return;
-            }
-        }
-
-        // CHECK 2: Test if DeviceSettingsImp process is running
-        LOGINFO("DEBUG: You should verify DeviceSettingsImp process is running:");
-        LOGINFO("       Command: ps aux | grep -i devicesettings");
-        LOGINFO("       Command: pgrep -f DeviceSettings");
-
-        LOGINFO("FPD Manager interface available - testing brightness APIs only...");
-
-        // Test with POWER indicator only (safest option)
-        Exchange::IDeviceSettingsFPD::FPDIndicator testIndicator = Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER;
-        const char* indicatorName = "POWER";
-
-        LOGINFO("---------- Testing FPD Brightness APIs for %s ----------", indicatorName);
-        LOGINFO("WARNING: Out-of-Process RPC call - may timeout if DeviceSettingsImp process issues exist");
-
-        // Re-validate pointer before testing
-        if (!_fpdManager) {
-            LOGERR("CRITICAL: _fpdManager became null before brightness testing!");
-            return;
-        }
-
-        try {
-            // 1. Test GetFPDBrightness with RPC timeout awareness
-            LOGINFO("DEBUG: About to call GetFPDBrightness for %s (Out-of-Process RPC call)...", indicatorName);
-            LOGINFO("DEBUG: If this hangs, DeviceSettingsImp process may be unresponsive");
-            
-            uint32_t currentBrightness = 0;
-            Core::hresult result = Core::ERROR_GENERAL;
-            
-            // Add timing to detect RPC timeouts
-            auto startTime = std::chrono::steady_clock::now();
-            result = _fpdManager->GetFPDBrightness(testIndicator, currentBrightness);
-            auto endTime = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-            
-            LOGINFO("DEBUG: GetFPDBrightness RPC call completed in %lld ms", duration.count());
-            
             if (result == Core::ERROR_NONE) {
-                LOGINFO("SUCCESS: GetFPDBrightness (RPC) - indicator=%s, brightness=%u", indicatorName, currentBrightness);
-            } else {
-                LOGERR("FAILED: GetFPDBrightness (RPC) - indicator=%s, result=%u", indicatorName, result);
-                LOGERR("This may indicate DeviceSettingsImp out-of-process communication failure");
-                return; // Don't proceed to set if get failed
+                // Test Set brightness
+                uint32_t testBrightness = (currentBrightness == 50) ? 75 : 50;
+                result = _fpdManager->SetFPDBrightness(indicator, testBrightness, false);
+                LOGINFO("SetFPDBrightness: indicator=%s, result=%u, brightness=%u", indicatorName, result, testBrightness);
+
+                // Restore original brightness
+                _fpdManager->SetFPDBrightness(indicator, currentBrightness, false);
             }
-
-            // 2. Test SetFPDBrightness with get-set-restore pattern
-            LOGINFO("DEBUG: About to test SetFPDBrightness for %s...", indicatorName);
-            uint32_t originalBrightness = currentBrightness; // Save original
-            uint32_t newBrightness = (currentBrightness == 50) ? 75 : 50; // Use safe values
-            bool persist = false; // Don't persist to avoid permanent changes
-
-            result = _fpdManager->SetFPDBrightness(testIndicator, newBrightness, persist);
-            if (result == Core::ERROR_NONE) {
-                LOGINFO("SUCCESS: SetFPDBrightness - set brightness to %u", newBrightness);
-
-                // Verify the change by reading it back
-                uint32_t verifyBrightness = 0;
-                result = _fpdManager->GetFPDBrightness(testIndicator, verifyBrightness);
-                if (result == Core::ERROR_NONE) {
-                    LOGINFO("VERIFY: New brightness value = %u (expected %u)", verifyBrightness, newBrightness);
-                } else {
-                    LOGERR("FAILED: Could not verify brightness change");
-                }
-            } else {
-                LOGERR("FAILED: SetFPDBrightness - result=%u", result);
-            }
-
-            // 3. Restore original brightness
-            LOGINFO("DEBUG: Restoring original brightness %u...", originalBrightness);
-            result = _fpdManager->SetFPDBrightness(testIndicator, originalBrightness, persist);
-            if (result == Core::ERROR_NONE) {
-                LOGINFO("SUCCESS: Original brightness restored to %u", originalBrightness);
-            } else {
-                LOGERR("FAILED: Could not restore original brightness");
-            }
-
-        } catch (const std::exception& e) {
-            LOGERR("EXCEPTION: FPD Brightness API call threw exception: %s", e.what());
-        } catch (...) {
-            LOGERR("EXCEPTION: FPD Brightness API call threw unknown exception");
         }
 
-        LOGINFO("---------- Completed FPD Brightness Testing for %s ----------", indicatorName);
-        LOGINFO("========== FPD Brightness APIs Testing Completed ==========\n");
+        // Test FPD State APIs
+        for (size_t i = 0; i < sizeof(testIndicators)/sizeof(testIndicators[0]); i++) {
+            auto indicator = testIndicators[i];
+            const char* indicatorName = indicatorNames[i];
+
+            // Get current state
+            Exchange::IDeviceSettingsFPD::FPDState currentState;
+            Core::hresult result = _fpdManager->GetFPDState(indicator, currentState);
+            LOGINFO("GetFPDState: indicator=%s, result=%u, state=%u", indicatorName, result, (uint32_t)currentState);
+
+            if (result == Core::ERROR_NONE) {
+                // Test Set state
+                Exchange::IDeviceSettingsFPD::FPDState testState = Exchange::IDeviceSettingsFPD::FPDState::DS_FPD_STATE_ON;
+                result = _fpdManager->SetFPDState(indicator, testState);
+                LOGINFO("SetFPDState: indicator=%s, result=%u, state=ON", indicatorName, result);
+
+                // Restore original state
+                _fpdManager->SetFPDState(indicator, currentState);
+            }
+        }
+
+        // Test FPD Color APIs
+        for (size_t i = 0; i < sizeof(testIndicators)/sizeof(testIndicators[0]); i++) {
+            auto indicator = testIndicators[i];
+            const char* indicatorName = indicatorNames[i];
+
+            // Get current color
+            uint32_t currentColor = 0;
+            Core::hresult result = _fpdManager->GetFPDColor(indicator, currentColor);
+            LOGINFO("GetFPDColor: indicator=%s, result=%u, color=0x%X", indicatorName, result, currentColor);
+
+            if (result == Core::ERROR_NONE) {
+                // Test Set color
+                uint32_t testColor = 0xFF0000; // Red
+                result = _fpdManager->SetFPDColor(indicator, testColor);
+                LOGINFO("SetFPDColor: indicator=%s, result=%u, color=0x%X", indicatorName, result, testColor);
+
+                // Restore original color
+                _fpdManager->SetFPDColor(indicator, currentColor);
+            }
+        }
+
+        // Test FPD Time Format APIs
+        Exchange::IDeviceSettingsFPD::FPDTimeFormat currentTimeFormat;
+        Core::hresult result = _fpdManager->GetFPDTimeFormat(currentTimeFormat);
+        LOGINFO("GetFPDTimeFormat: result=%u, format=%u", result, (uint32_t)currentTimeFormat);
+
+        if (result == Core::ERROR_NONE) {
+            // Test Set time format
+            Exchange::IDeviceSettingsFPD::FPDTimeFormat testFormat = Exchange::IDeviceSettingsFPD::FPDTimeFormat::DS_FPD_TIMEFORMAT_24_HOUR;
+            result = _fpdManager->SetFPDTimeFormat(testFormat);
+            LOGINFO("SetFPDTimeFormat: result=%u, format=24_HOUR", result);
+
+            // Restore original format
+            _fpdManager->SetFPDTimeFormat(currentTimeFormat);
+        }
+
+        // Test FPD Text Brightness APIs
+        Exchange::IDeviceSettingsFPD::FPDTextDisplay textDisplay = Exchange::IDeviceSettingsFPD::FPDTextDisplay::DS_FPD_TEXTDISPLAY_TEXT;
+        const char* displayName = "TEXT";
+
+        // Get current text brightness
+        uint32_t currentTextBrightness = 0;
+        result = _fpdManager->GetFPDTextBrightness(textDisplay, currentTextBrightness);
+        LOGINFO("GetFPDTextBrightness: display=%s, result=%u, brightness=%u", displayName, result, currentTextBrightness);
+
+        if (result == Core::ERROR_NONE) {
+            // Test Set text brightness
+            uint32_t testTextBrightness = (currentTextBrightness == 50) ? 75 : 50;
+            result = _fpdManager->SetFPDTextBrightness(textDisplay, testTextBrightness);
+            LOGINFO("SetFPDTextBrightness: display=%s, result=%u, brightness=%u", displayName, result, testTextBrightness);
+
+            // Restore original text brightness
+            _fpdManager->SetFPDTextBrightness(textDisplay, currentTextBrightness);
+        }
+
+        // Test FPD Clock Display
+        result = _fpdManager->EnableFPDClockDisplay(true);
+        LOGINFO("EnableFPDClockDisplay(true): result=%u", result);
+        
+        result = _fpdManager->EnableFPDClockDisplay(false);
+        LOGINFO("EnableFPDClockDisplay(false): result=%u", result);
+
+        // Test FPD Blink API
+        result = _fpdManager->SetFPDBlink(Exchange::IDeviceSettingsFPD::FPDIndicator::DS_FPD_INDICATOR_POWER, 1000, 3);
+        LOGINFO("SetFPDBlink: result=%u (duration=1000ms, iterations=3)", result);
+
+        // Test FPD Scroll API
+        result = _fpdManager->SetFPDScroll(2000, 2, 2);
+        LOGINFO("SetFPDScroll: result=%u (hold=2000ms, h_scroll=2, v_scroll=2)", result);
+
+        // Test FPD Time API
+        result = _fpdManager->SetFPDTime(Exchange::IDeviceSettingsFPD::FPDTimeFormat::DS_FPD_TIMEFORMAT_12_HOUR, 30, 45);
+        LOGINFO("SetFPDTime: result=%u (12_HOUR format, 30:45)", result);
+
+        // Test FPD Mode API
+        result = _fpdManager->SetFPDMode(Exchange::IDeviceSettingsFPD::FPDMode::DS_FPD_MODE_CLOCK);
+        LOGINFO("SetFPDMode: result=%u (CLOCK mode)", result);
+
+        LOGINFO("========== FPD APIs Testing Completed ==========\\n");
     }
 
     void UserPlugin::TestSpecificHDMIInAPIs()

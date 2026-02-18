@@ -54,6 +54,11 @@ uint32_t FPD::SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes,
     if (_platform) {
         result = this->platform().SetFPDTime(timeFormat, minutes, seconds);
     }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDTime: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDTime: FAILED - result=%u", result);
+    }
     EXIT_LOG;
     return result;
 }
@@ -64,6 +69,11 @@ uint32_t FPD::SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHo
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetFPDScroll(scrollHoldDuration, nHorizontalScrollIterations, nVerticalScrollIterations);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDScroll: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDScroll: FAILED - result=%u", result);
     }
     EXIT_LOG;
     return result;
@@ -76,6 +86,11 @@ uint32_t FPD::SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint3
     if (_platform) {
         result = this->platform().SetFPDTextBrightness(textDisplay, brightNess);
     }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDTextBrightness: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDTextBrightness: FAILED - result=%u", result);
+    }
     EXIT_LOG;
     return result;
 }
@@ -86,6 +101,11 @@ uint32_t FPD::GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &b
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetFPDTextBrightness(textDisplay, brightNess);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("GetFPDTextBrightness: SUCCESS - textDisplay=%d, brightNess=%u", textDisplay, brightNess);
+    } else {
+        LOGERR("GetFPDTextBrightness: FAILED - result=%u", result);
     }
     EXIT_LOG;
     return result;
@@ -98,6 +118,11 @@ uint32_t FPD::EnableFPDClockDisplay(const bool enable) {
     if (_platform) {
         result = this->platform().EnableFPDClockDisplay(enable);
     }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("EnableFPDClockDisplay: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("EnableFPDClockDisplay: FAILED - result=%u", result);
+    }
     EXIT_LOG;
     return result;
 }
@@ -109,6 +134,11 @@ uint32_t FPD::GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) {
     if (_platform) {
         result = this->platform().GetFPDTimeFormat(fpdTimeFormat);
     }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("GetFPDTimeFormat: SUCCESS - fpdTimeFormat=%d", fpdTimeFormat);
+    } else {
+        LOGERR("GetFPDTimeFormat: FAILED - result=%u", result);
+    }
     EXIT_LOG;
     return result;
 }
@@ -119,6 +149,11 @@ uint32_t FPD::SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) {
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetFPDTimeFormat(fpdTimeFormat);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDTimeFormat: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDTimeFormat: FAILED - result=%u", result);
     }
     EXIT_LOG;
     return result;
@@ -133,6 +168,11 @@ uint32_t FPD::SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDura
     if (_platform) {
         result = this->platform().SetFPDBlink(indicator, blinkDuration, blinkIterations);
     }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDBlink: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDBlink: FAILED - result=%u", result);
+    }
 
     EXIT_LOG;
     return result;
@@ -145,7 +185,11 @@ uint32_t FPD::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNes
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetFPDBrightness(indicator, brightNess);
-        LOGINFO("GetFPDBrightness: indicator=%d, brightNess=%d", indicator, brightNess);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("GetFPDBrightness: SUCCESS - indicator=%d, brightNess=%d", indicator, brightNess);
+    } else {
+        LOGERR("GetFPDBrightness: FAILED - result=%u", result);
     }
 
     EXIT_LOG;
@@ -160,6 +204,11 @@ uint32_t FPD::SetFPDBrightness(const FPDIndicator indicator, const uint32_t brig
     if (_platform) {
         result = this->platform().SetFPDBrightness(indicator, brightNess, persist);
     }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDBrightness: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDBrightness: FAILED - result=%u", result);
+    }
 
     EXIT_LOG;
     return result;
@@ -172,7 +221,11 @@ uint32_t FPD::GetFPDState(const FPDIndicator indicator, FPDState &state) {
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetFPDState(indicator, state);
-        LOGINFO("GetFPDState: indicator=%d, state=%d", indicator, state);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("GetFPDState: SUCCESS - indicator=%d, state=%d", indicator, state);
+    } else {
+        LOGERR("GetFPDState: FAILED - result=%u", result);
     }
 
     EXIT_LOG;
@@ -187,6 +240,11 @@ uint32_t FPD::SetFPDState(const FPDIndicator indicator, const FPDState state) {
     if (_platform) {
         result = this->platform().SetFPDState(indicator, state);
     }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDState: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDState: FAILED - result=%u", result);
+    }
 
     EXIT_LOG;
     return result;
@@ -199,7 +257,11 @@ uint32_t FPD::GetFPDColor(const FPDIndicator indicator, uint32_t &color) {
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetFPDColor(indicator, color);
-        LOGINFO("GetFPDColor: indicator=%d, colour=%d", indicator, color);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("GetFPDColor: SUCCESS - indicator=%d, colour=%d", indicator, color);
+    } else {
+        LOGERR("GetFPDColor: FAILED - result=%u", result);
     }
     EXIT_LOG;
     return result;
@@ -212,7 +274,11 @@ uint32_t FPD::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetFPDColor(indicator, color);
-        LOGINFO("SetFPDColor: indicator=%d, colour=%d - result=%d", indicator, color, result);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDColor: SUCCESS - indicator=%d, colour=%d", indicator, color);
+    } else {
+        LOGERR("SetFPDColor: FAILED - indicator=%d, colour=%d, result=%u", indicator, color, result);
     }
 
     EXIT_LOG;
@@ -225,6 +291,11 @@ uint32_t FPD::SetFPDMode(const FPDMode fpdMode) {
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetFPDMode(fpdMode);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetFPDMode: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetFPDMode: FAILED - result=%u", result);
     }
     EXIT_LOG;
     return result;

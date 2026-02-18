@@ -35,10 +35,10 @@
 //extern profile_t profileType;
 
 #include "frontPanelIndicator.hpp"
-#include "videoOutputPort.hpp"
+//#include "videoOutputPort.hpp"
 #include "host.hpp"
-#include "audioOutputPortType.hpp"
-#include "videoOutputPortType.hpp"
+//#include "audioOutputPortType.hpp"
+//#include "videoOutputPortType.hpp"
 #include "exception.hpp"
 #include "manager.hpp"
 #include "UtilsLogging.h"
@@ -411,7 +411,7 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
     try {
         if (PowerState::POWER_STATE_ON != powerState) {
             // Handle video ports
-            try {
+            /*try {
                 device::List<device::VideoOutputPort> videoPorts = device::Host::getInstance().getVideoOutputPorts();
                 LOGINFO("Number of Video Ports: %zu", videoPorts.size());
                 
@@ -433,10 +433,10 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 }
             } catch (...) {
                 LOGERR("Video port exception");
-            }
+            }*/
 
             // Handle audio ports
-            try {
+            /*try {
                 device::List<device::AudioOutputPort> aPorts = device::Host::getInstance().getAudioOutputPorts();
                 LOGINFO("Number of Audio Ports: %zu", aPorts.size());
                 
@@ -451,10 +451,10 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 }
             } catch (...) {
                 LOGERR("Audio port exception");
-            }
+            }*/
         } else {
             // Power ON - Enable ports
-            try {
+            /*try {
                 device::List<device::VideoOutputPort> videoPorts = device::Host::getInstance().getVideoOutputPorts();
                 for (size_t i = 0; i < videoPorts.size(); i++) {
                     try {
@@ -481,7 +481,7 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 }
             } catch (...) {
                 LOGERR("Exception during power ON");
-            }
+            }*/
         }
     } catch (...) {
         LOGERR("Exception Caught during SetAVPortsPowerState");

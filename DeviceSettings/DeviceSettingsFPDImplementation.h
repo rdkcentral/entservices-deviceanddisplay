@@ -52,7 +52,10 @@ namespace Plugin {
         DeviceSettingsFPDImpl();
         ~DeviceSettingsFPDImpl() override;
 
-        static DeviceSettingsFPDImpl* instance(DeviceSettingsFPDImpl* DeviceSettingsFPDImpll = nullptr);
+        static DeviceSettingsFPDImpl* Create()
+        {
+            return new DeviceSettingsFPDImpl();
+        }
 
         // We do not allow this plugin to be copied !!
         DeviceSettingsFPDImpl(const DeviceSettingsFPDImpl&)            = delete;
@@ -115,10 +118,7 @@ namespace Plugin {
         Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat);
         Core::hresult SetFPDMode(const FPDMode fpdMode);
 
-        static DeviceSettingsFPDImpl* _instance;
-
-        
-    private:
+        private:
         std::list<Exchange::IDeviceSettingsFPD::INotification*> _FPDNotifications;
 
         // lock to guard all apis of DeviceSettings

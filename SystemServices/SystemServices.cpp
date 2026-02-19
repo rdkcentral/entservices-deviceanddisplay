@@ -73,9 +73,6 @@
 
 using namespace std;
 using namespace WPEFramework;
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
-using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
 #define API_VERSION_NUMBER_MAJOR 3
 #define API_VERSION_NUMBER_MINOR 4
@@ -4614,7 +4611,7 @@ namespace WPEFramework {
                     IARM_Bus_PWRMgr_EventData_t *eventData = (IARM_Bus_PWRMgr_EventData_t *)data;
 
                     if (SystemServices::_instance) {
-                        SystemServices::_instance->onNetorkModeChanged(eventData->data.bNetworkStandbyMode);
+                        SystemServices::_instance->onNetworkModeChanged(eventData->data.bNetworkStandbyMode);
                     } else {
                         LOGERR("SystemServices::_instance is NULL.\n");
                     }

@@ -4675,29 +4675,29 @@ namespace WPEFramework {
             audioPortInitActive = false;
         }
 
-        void DisplaySettings::powerEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
-        {
-            if(!DisplaySettings::_instance)
-                 return;
-            if (strcmp(owner, IARM_BUS_PWRMGR_NAME) != 0)
-                 return;
+    void DisplaySettings::powerEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
+    {
+        if(!DisplaySettings::_instance)
+            return;
+        if (strcmp(owner, IARM_BUS_PWRMGR_NAME) != 0)
+            return;
 
-            switch (eventId) {
+        switch (eventId) {
             case  IARM_BUS_PWRMGR_EVENT_MODECHANGED:
             {
                 IARM_Bus_PWRMgr_EventData_t *eventData = (IARM_Bus_PWRMgr_EventData_t *)data;
                 LOGWARN("Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: State Changed %d --> %d\r",
-                             eventData->data.state.curState, eventData->data.state.newState);
+                eventData->data.state.curState, eventData->data.state.newState);
                 m_powerState = eventData->data.state.newState;
                 if (eventData->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_ON) {
                     isResCacheUpdated = false;
                     isDisplayConnectedCacheUpdated = false;
                     isStbHDRcapabilitiesCache = false;
-	            try
+                    try
                     {
-		        LOGWARN("creating worker thread for initAudioPortsWorker ");
-		        std::thread audioPortInitThread = std::thread(initAudioPortsWorker);
-			audioPortInitThread.detach();
+                        LOGWARN("creating worker thread for initAudioPortsWorker ");
+                        std::thread audioPortInitThread = std::thread(initAudioPortsWorker);
+                        audioPortInitThread.detach();
                     }
                     catch(const std::system_error& e)
                     {
@@ -4708,91 +4708,79 @@ namespace WPEFramework {
                         LOGERR("exception in thread creation : %s", e.what());
                     }
                 }
-                catch(const std::system_error& e)
+                else
                 {
-                    LOGERR("system_error exception in thread creation: %s", e.what());
-                }
-                catch(const std::exception& e)
-                {
-                    LOGERR("exception in thread creation : %s", e.what());
+                    LOGINFO("%s: Current Power state: %d\n",__FUNCTION__,eventData->data.state.newState);
+                    try
+                    {
+                        device::List<device::AudioOutputPort> aPorts = device::Host::getInstance().getAudioOutputPorts();
+                        bool hdmi_arc_supported = false;
+                        for (size_t i = 0; i < aPorts.size(); i++)
+                        {
+                            device::AudioOutputPort &aPort = aPorts.at(i);
+                            string portName  = aPort.getName();
+                            if(portName == "HDMI_ARC0") {
+                                hdmi_arc_supported = true;
+                                break;    
+                            }
+                        }
+
+                        if(hdmi_arc_supported) {
+                            LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
+                            DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
+                            {
+                                std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
+                                LOGINFO("%s: Cleanup ARC/eARC state\n",__FUNCTION__);
+                                if(DisplaySettings::_instance->m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED)
+                                    DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
+                                DisplaySettings::_instance->m_requestSadRetrigger = false;
+                                {
+                                    if(DisplaySettings::_instance->m_hdmiInAudioDeviceConnected !=  false) {
+                                        DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
+                                        DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+                                        DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
+                                    }
+
+                                    if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) {
+                                        device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
+                                        LOGINFO("%s: Disable ARC/eARC Audio\n",__FUNCTION__);
+                                        aPort.enableARC(dsAUDIOARCSUPPORT_ARC, false);
+                                        DisplaySettings::_instance->m_arcEarcAudioEnabled = false;
+                                    }
+                                    if((DisplaySettings::_instance->m_hdmiInAudioDeviceType != dsAUDIOARCSUPPORT_NONE))
+                                        DisplaySettings::_instance->m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
+                                }
+                            }//Release Mutex m_AudioDeviceStatesUpdateMutex
+
+                            {
+                                std::lock_guard<mutex> lck(DisplaySettings::_instance->m_callMutex);
+                                if ( DisplaySettings::_instance->m_timer.isActive()) {
+                                    DisplaySettings::_instance->m_timer.stop();
+                                }
+
+                                if ( DisplaySettings::_instance->m_AudioDeviceDetectTimer.isActive()) {
+                                    DisplaySettings::_instance->m_AudioDeviceDetectTimer.stop();
+                                }
+                                if ( DisplaySettings::_instance->m_SADDetectionTimer.isActive()) {
+                                    DisplaySettings::_instance->m_SADDetectionTimer.stop();
+                                }
+                                if ( DisplaySettings::_instance->m_ArcDetectionTimer.isActive()) {
+                                    DisplaySettings::_instance->m_ArcDetectionTimer.stop();
+                                }
+                                if ( DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.isActive()) {
+                                    DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.stop();
+                                }
+                            }
+                        }
+                    }
+                    catch(const device::Exception& err)
+                    {
+                        LOG_DEVICE_EXCEPTION0();
+                    }
                 }
             }
-
-		else {
-		    LOGINFO("%s: Current Power state: %d\n",__FUNCTION__,eventData->data.state.newState);
-            try
-            {
-                device::List<device::AudioOutputPort> aPorts = device::Host::getInstance().getAudioOutputPorts();
-                bool hdmi_arc_supported = false;
-                for (size_t i = 0; i < aPorts.size(); i++)
-                {
-                    device::AudioOutputPort &aPort = aPorts.at(i);
-                    string portName  = aPort.getName();
-                    if(portName == "HDMI_ARC0") {
-                        hdmi_arc_supported = true;
-                        break;    
-                    }
-                }
-
-                if(hdmi_arc_supported) {
-          LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
-                  DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
-                  {
-                std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
-                        LOGINFO("%s: Cleanup ARC/eARC state\n",__FUNCTION__);
-                        if(DisplaySettings::_instance->m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED)
-                            DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
-            DisplaySettings::_instance->m_requestSadRetrigger = false;
-              {
-                        if(DisplaySettings::_instance->m_hdmiInAudioDeviceConnected !=  false) {
-                            DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
-                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
-                DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
-             }
-                    
-                if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) {
-                            device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
-                            LOGINFO("%s: Disable ARC/eARC Audio\n",__FUNCTION__);
-                            aPort.enableARC(dsAUDIOARCSUPPORT_ARC, false);
-                            DisplaySettings::_instance->m_arcEarcAudioEnabled = false;
-                        }
-            if((DisplaySettings::_instance->m_hdmiInAudioDeviceType != dsAUDIOARCSUPPORT_NONE))
-                DisplaySettings::_instance->m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
-
-              }
-                  }//Release Mutex m_AudioDeviceStatesUpdateMutex
-
-          {
-                    std::lock_guard<mutex> lck(DisplaySettings::_instance->m_callMutex);
-                    if ( DisplaySettings::_instance->m_timer.isActive()) {
-                        DisplaySettings::_instance->m_timer.stop();
-                    }
-
-                    if ( DisplaySettings::_instance->m_AudioDeviceDetectTimer.isActive()) {
-                        DisplaySettings::_instance->m_AudioDeviceDetectTimer.stop();
-                    }
-                    if ( DisplaySettings::_instance->m_SADDetectionTimer.isActive()) {
-                        DisplaySettings::_instance->m_SADDetectionTimer.stop();
-                    }
-                    if ( DisplaySettings::_instance->m_ArcDetectionTimer.isActive()) {
-                        DisplaySettings::_instance->m_ArcDetectionTimer.stop();
-                    }
-                    if ( DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.isActive()) {
-                        DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.stop();
-                    }
-                  }
-
-                }
-              }
-              catch(const device::Exception& err)
-              {
-                LOG_DEVICE_EXCEPTION0();
-              }
         }
-
-
-        }
-
+    }
 
 	/* Message wrapper function to push the message to queue  */
 	void DisplaySettings::sendMsgToQueue(msg_t msg, void *param )

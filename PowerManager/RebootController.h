@@ -20,8 +20,11 @@
 
 #include "UtilsLogging.h"
 #include <core/WorkerPool.h>
-
+#include <interfaces/IPowerManager.h>
 #include "Settings.h"
+
+using namespace WPEFramework;
+using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
 class RebootController {
 
@@ -81,7 +84,7 @@ class RebootController {
     };
 
 public:
-    RebootController(const Settings& settings);
+    RebootController(const Settings& settings, PowerState& currentState);
     ~RebootController();
 
 private:
@@ -93,6 +96,7 @@ private:
 private:
     WPEFramework::Core::IWorkerPool& _workerPool;
     const Settings& _settings;
+    PowerState& _currentPowerState;
     Threshold _standbyRebootThreshold;
     Threshold _forcedRebootThreshold;
     WPEFramework::Core::ProxyType<WPEFramework::Core::IDispatch> _heartbeatJob;

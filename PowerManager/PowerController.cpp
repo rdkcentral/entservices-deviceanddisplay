@@ -48,7 +48,7 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _deepSleep(deepSleep)
 #ifdef OFFLINE_MAINT_REBOOT
-    , _rebootController(_settings)
+    , _rebootController(_settings,_lastKnownPowerState)
 #endif
 {
     ASSERT(nullptr != _platform);

@@ -36,11 +36,12 @@
 
 using Timestamp = std::chrono::steady_clock::time_point;
 using TimestampSec = std::chrono::time_point<std::chrono::steady_clock, std::chrono::seconds>;
-static constexpr const int HEARTBEAT_INTERVAL_SEC = 300;
+static constexpr const int HEARTBEAT_INTERVAL_SEC = 30;
 
-RebootController::RebootController(const Settings& settings)
+RebootController::RebootController(const Settings& settings,PowerState& currentState)
     : _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _settings(settings)
+    , _currentPowerState(currentState)
     , _standbyRebootThreshold(86400 * 3, 300)
     , _forcedRebootThreshold(172800 * 3)
     , _rfcUpdated(false)
@@ -73,7 +74,7 @@ void RebootController::heartbeatMsg()
     time_t curr = 0;
     time(&curr);
 
-    LOGINFO("PowerManager plugin: HeartBeat at %s", ctime(&curr));
+    LOGINFO("PowerManager plugin: HeartBeat at %s Amit Power state: %d ", ctime(&curr),_currentPowerState);
 
     if (!_rfcUpdated) {
         bool enabled = isStandbyRebootEnabled();
@@ -83,7 +84,7 @@ void RebootController::heartbeatMsg()
         if (-1 != val) {
             _standbyRebootThreshold.SetThreshold(val);
         }
-
+ _standbyRebootThreshold.SetThreshold(200);
         val = fetchRFCValueInt(FORCE_REBOOT);
         if (-1 != val) {
             _forcedRebootThreshold.SetThreshold(val);
@@ -97,7 +98,8 @@ void RebootController::heartbeatMsg()
     if (isStandbyRebootEnabled()) {
         auto uptime = now<std::chrono::seconds>();
         if (_standbyRebootThreshold.IsThresholdExceeded(uptime)) {
-            if (_standbyRebootThreshold.IsGraceIntervalExceeded(_settings.InactiveDuration())) {
+		    LOGINFO("PowerManager plugin: inside standby thereashold exceed  Amit Power state: %d standby :%d ",_currentPowerState,PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+            if (_standbyRebootThreshold.IsGraceIntervalExceeded(_settings.InactiveDuration()) && (_currentPowerState == PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP)) {
                 LOGINFO("Going to reboot after %lld\n", uptime);
                 v_secure_system("sh /rebootNow.sh -s PwrMgr -o 'Standby Maintenance reboot'");
             }

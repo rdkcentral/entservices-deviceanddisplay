@@ -469,6 +469,25 @@ TEST_F(SystemMode_L2test, StateTransition_VIDEO_GAME_VIDEO)
 // Client activation / deactivation lifecycle
 TEST_F(SystemMode_L2test, ClientActivationLifecycle)
 {
+    // Deactivate SystemMode to reset the implementation's internal COM-RPC client
+    EXPECT_EQ(Core::ERROR_NONE, DeactivateService("org.rdk.SystemMode"));
+
+    if (m_sysmodeplugin) {
+        m_sysmodeplugin->Release();
+        m_sysmodeplugin = nullptr;
+    }
+    if (m_controller_sysmode) {
+        m_controller_sysmode->Release();
+        m_controller_sysmode = nullptr;
+    }
+
+    // Clear the file to prevent constructor from calling ClientActivated for DisplaySettings
+    removeFile(SYSTEM_MODE_FILE);
+
+    // Reactivate SystemMode with a clean state
+    EXPECT_EQ(Core::ERROR_NONE, ActivateService("org.rdk.SystemMode"));
+    ASSERT_EQ(Core::ERROR_NONE, CreateSystemModeInterfaceObject());
+
     ASSERT_TRUE(m_sysmodeplugin != nullptr);
     // The textual name of system mode as per @text: device_optimize
     const std::string modeName = "DEVICE_OPTIMIZE";

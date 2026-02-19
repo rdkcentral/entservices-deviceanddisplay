@@ -105,7 +105,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: L2TestPlugin_COMRPC
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout entservices-deviceanddisplay
@@ -160,7 +160,7 @@ jobs:
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
-          -DBUILD_TYPE=${{env.BUILD_TYPE}}
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DBINDING=127.0.0.1
           -DPORT=9998
           -DEXCEPTIONS_ENABLE=ON
@@ -174,7 +174,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: ${{env.INTERFACES_REF}}
+          ref: ${{ env.INTERFACES_REF }}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
       - name: Copy all mock interface headers to entservices-apis
@@ -191,6 +191,12 @@ jobs:
           cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IRfc.h" "$GITHUB_WORKSPACE/entservices-apis/apis/Rfc/"
           cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IPowerManagerHal.h" "$GITHUB_WORKSPACE/entservices-apis/apis/PowerManagerHal/"
           cp "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/interfaces/IMfr.h" "$GITHUB_WORKSPACE/entservices-apis/apis/Mfr/"
+
+      - name: Apply patches entservices-apis
+        run: |
+          cd $GITHUB_WORKSPACE/entservices-apis
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/comrpc-support-for-l2tests-plugin.patch
+          cd -
 
       - name: Build entservices-apis
         run: >
@@ -315,6 +321,8 @@ jobs:
           -DL2_TEST_OOP_RPC=ON
           -DCMAKE_CXX_FLAGS="
           -DL2_TEST_OOP_RPC=ON
+          -Wno-error=format
+          -Wno-error=return-type
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/install/usr/include"
           &&
@@ -447,7 +455,7 @@ jobs:
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsExtODM.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvSettingsODM.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tvTypes.h
-          -Werror -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
+          -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format -Wno-error=return-type
           -Wl,--no-as-needed
           -DUSE_IARMBUS
           -DRDK_SERVICE_L2_TEST

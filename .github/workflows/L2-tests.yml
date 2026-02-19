@@ -100,14 +100,14 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: L2TestPlugin_COMRPC
 
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: L2TestPlugin_COMRPC
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout googletest
@@ -157,7 +157,7 @@ jobs:
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DBINDING=127.0.0.1
           -DPORT=9998
           -DEXCEPTIONS_ENABLE=ON
@@ -171,13 +171,14 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: ${{env.INTERFACES_REF}}
+          ref: ${{ env.INTERFACES_REF }}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
       - name: Apply patches entservices-apis
         run: |
           cd $GITHUB_WORKSPACE/entservices-apis
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/RDKEMW-1007.patch
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/comrpc-support-for-l2tests-plugin.patch
           cd -
 
       - name: Build entservices-apis
@@ -322,6 +323,7 @@ jobs:
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           -DCMAKE_CXX_FLAGS="
+          -DNDEBUG
           -DEXCEPTIONS_ENABLE=ON
           -fprofile-arcs
           -ftest-coverage

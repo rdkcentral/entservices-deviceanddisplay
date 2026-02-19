@@ -51,17 +51,9 @@ using std::ofstream;
 #include "cSettings.h"
 #include "cTimer.h"
 #include "rfcapi.h"
-#include <interfaces/IPowerManager.h>
 #include <core/core.h>
 #include <core/JSON.h>
 #include "mfrMgr.h"
-
-#include "PowerManagerInterface.h"
-
-using namespace WPEFramework::Exchange;
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
-using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 
 
 /* System Services Triggered Events. */
@@ -117,58 +109,6 @@ namespace WPEFramework {
 
         class SystemServices : public PluginHost::IPlugin, public PluginHost::JSONRPC {
             private:
-
-                class PowerManagerNotification : public Exchange::IPowerManager::INetworkStandbyModeChangedNotification,
-                                                     public Exchange::IPowerManager::IThermalModeChangedNotification,
-                                                     public Exchange::IPowerManager::IRebootNotification,
-                                                     public Exchange::IPowerManager::IModeChangedNotification {
-                private:
-                    PowerManagerNotification(const PowerManagerNotification&) = delete;
-                    PowerManagerNotification& operator=(const PowerManagerNotification&) = delete;
-
-                public:
-                    explicit PowerManagerNotification(SystemServices& parent)
-                        : _parent(parent)
-                    {
-                    }
-                    ~PowerManagerNotification() override = default;
-
-                public:
-                    void OnPowerModeChanged(const PowerState currentState, const PowerState newState) override
-                    {
-                        _parent.onPowerModeChanged(currentState, newState);
-                    }
-                    void OnNetworkStandbyModeChanged(const bool enabled) override
-                    {
-                        _parent.onNetworkStandbyModeChanged(enabled);
-                    }
-                    void OnThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature) override
-                    {
-                        _parent.onThermalModeChanged(currentThermalLevel, newThermalLevel, currentTemperature);
-                    }
-                    void OnRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor) override
-                    {
-                        _parent.onRebootBegin(rebootReasonCustom, rebootReasonOther, rebootRequestor);
-                    }
-
-                    template <typename T>
-                    T* baseInterface()
-                    {
-                        static_assert(std::is_base_of<T, PowerManagerNotification>(), "base type mismatch");
-                        return static_cast<T*>(this);
-                    }
-
-                    BEGIN_INTERFACE_MAP(PowerManagerNotification)
-                    INTERFACE_ENTRY(Exchange::IPowerManager::INetworkStandbyModeChangedNotification)
-                    INTERFACE_ENTRY(Exchange::IPowerManager::IThermalModeChangedNotification)
-                    INTERFACE_ENTRY(Exchange::IPowerManager::IRebootNotification)
-                    INTERFACE_ENTRY(Exchange::IPowerManager::IModeChangedNotification)
-                    END_INTERFACE_MAP
-
-                private:
-                    SystemServices& _parent;
-                };
-
                 typedef Core::JSON::String JString;
                 typedef Core::JSON::ArrayType<JString> JStringArray;
                 typedef Core::JSON::Boolean JBool;
@@ -227,10 +167,7 @@ namespace WPEFramework {
 #endif
                 pid_t m_uploadLogsPid;
                 std::mutex m_uploadLogsMutex;
-                PowerManagerInterfaceRef _powerManagerPlugin;
-                Core::Sink<PowerManagerNotification> _pwrMgrNotification;
-                bool _registeredEventHandlers;
-                void InitializePowerManager();
+
             public:
                 SystemServices();
                 virtual ~SystemServices();
@@ -239,20 +176,12 @@ namespace WPEFramework {
                 virtual const string Initialize(PluginHost::IShell* service) override;
                 virtual void Deinitialize(PluginHost::IShell* service) override;
                 virtual string Information() const override { return {}; }
-                IPowerManager* getPwrMgrPluginInstance();
-                void registerEventHandlers();
-                void onPowerModeChanged(const PowerState currentState, const PowerState newState);
-                std::string powerModeEnumToString(PowerState state);
-                void onNetworkStandbyModeChanged(const bool enabled);
-                void onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature);
-                void onRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor);
 
                 BEGIN_INTERFACE_MAP(SystemServices)
                 INTERFACE_ENTRY(PluginHost::IPlugin)
                 INTERFACE_ENTRY(PluginHost::IDispatcher)
                 END_INTERFACE_MAP
 
-                bool setPowerState(std::string powerState);
                 std::string getStbVersionString();
                 std::string getClientVersionString();
                 std::string getStbTimestampString();
@@ -329,7 +258,6 @@ namespace WPEFramework {
 #ifdef ENABLE_DEEP_SLEEP
 		uint32_t getWakeupReason(const JsonObject& parameters, JsonObject& response);
                 uint32_t getLastWakeupKeyCode(const JsonObject& parameters, JsonObject& response);
-                std::string getWakeupReasonString(WakeupReason reason);
 #endif
                 uint32_t getFriendlyName(const JsonObject& parameters, JsonObject& response);
                 uint32_t setFriendlyName(const JsonObject& parameters, JsonObject& response);

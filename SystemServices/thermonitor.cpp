@@ -31,6 +31,7 @@
 #include "libIARM.h"
 
 #include "libIBus.h"
+#include "pwrMgr.h"
 
 /**
 Requirement: a generic IARMBus thermal monitoring class
@@ -60,17 +61,15 @@ namespace WPEFramework {
 
         bool CThermalMonitor::getCoreTemperature(float& temperature) const
         {
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             temperature = 0;
             bool result = false;
-            WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
+            IARM_Bus_PWRMgr_GetThermalState_Param_t param;
 
-            ASSERT (nullptr != _powerManagerPlugin);
-            if (nullptr != _powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetThermalState(temperature);
-            }
+            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                    IARM_BUS_PWRMGR_API_GetThermalState, (void *)&param, sizeof(param));
 
-            if (Core::ERROR_NONE == retStatus) {
+            if (res == IARM_RESULT_SUCCESS) {
+                temperature = param.curTemperature;
                 LOGWARN("Current core temperature is : %f ",temperature);
                 result = true;
             } else {
@@ -82,16 +81,17 @@ namespace WPEFramework {
 
         bool CThermalMonitor::getCoreTempThresholds(float& high, float& critical) const
         {
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool result = false;
-            WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
+            IARM_Bus_PWRMgr_GetTempThresholds_Param_t param;
 
-            ASSERT (nullptr != _powerManagerPlugin);
-            if (nullptr != _powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetTemperatureThresholds(high, critical);
-            }
+            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                    IARM_BUS_PWRMGR_API_GetTemperatureThresholds,
+                    (void *)&param,
+                    sizeof(param));
 
-            if (Core::ERROR_NONE == retStatus) {
+            if (res == IARM_RESULT_SUCCESS) {
+                high = param.tempHigh;
+                critical = param.tempCritical;
                 LOGWARN("Got current temperature thresholds: high: %f, critical: %f", high, critical);
                 result = true;
             } else {
@@ -104,17 +104,17 @@ namespace WPEFramework {
 
         bool CThermalMonitor::setCoreTempThresholds(float high, float critical) const
         {
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool result = false;
-            WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
+            IARM_Bus_PWRMgr_SetTempThresholds_Param_t param;
+            param.tempHigh = high;
+            param.tempCritical = critical;
 
-            ASSERT (nullptr != _powerManagerPlugin);
-            if (nullptr != _powerManagerPlugin){
-                retStatus = _powerManagerPlugin->SetTemperatureThresholds(high, critical);
-            }
+            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                    IARM_BUS_PWRMGR_API_SetTemperatureThresholds,
+                    (void *)&param,
+                    sizeof(param));
 
-
-            if (Core::ERROR_NONE == retStatus) {
+            if (res == IARM_RESULT_SUCCESS) {
                 LOGWARN("Set new temperature thresholds: high: %f, critical: %f", high, critical);
                 result = true;
             } else {
@@ -126,16 +126,16 @@ namespace WPEFramework {
 
         bool CThermalMonitor::getOvertempGraceInterval(int& graceInterval) const
         {
-            Core::hresult retStatus = Core::ERROR_GENERAL;
             bool result = false;
-            WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
+            IARM_Bus_PWRMgr_GetOvertempGraceInterval_Param_t param;
 
-            ASSERT (nullptr != _powerManagerPlugin);
-            if (nullptr != _powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetOvertempGraceInterval(graceInterval);
-            }
+            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                    IARM_BUS_PWRMGR_API_GetOvertempGraceInterval,
+                    (void *)&param,
+                    sizeof(param));
 
-            if (Core::ERROR_NONE == retStatus) {
+            if (res == IARM_RESULT_SUCCESS) {
+                graceInterval = param.graceInterval;
                 LOGWARN("Got current overtemparature grace inetrval: %d", graceInterval);
                 result = true;
             } else {
@@ -149,15 +149,15 @@ namespace WPEFramework {
         bool CThermalMonitor::setOvertempGraceInterval(int graceInterval) const
         {
             bool result = false;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-            WPEFramework::Exchange::IPowerManager* _powerManagerPlugin = SystemServices::_instance->getPwrMgrPluginInstance();
+            IARM_Bus_PWRMgr_SetOvertempGraceInterval_Param_t param;
+            param.graceInterval = graceInterval;
 
-            ASSERT (nullptr != _powerManagerPlugin);
-            if (nullptr != _powerManagerPlugin){
-                retStatus = _powerManagerPlugin->SetOvertempGraceInterval(graceInterval);
-            }
+            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                    IARM_BUS_PWRMGR_API_SetOvertempGraceInterval,
+                    (void *)&param,
+                    sizeof(param));
 
-            if (Core::ERROR_NONE == retStatus) {
+            if (res == IARM_RESULT_SUCCESS) {
                 LOGWARN("Set new overtemparature grace interval: %d", graceInterval);
                 result = true;
             } else {

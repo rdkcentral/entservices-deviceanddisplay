@@ -37,6 +37,8 @@
 #include "dsError.h"
 #include "list.hpp"
 #include "dsDisplay.h"
+#include "rdk/iarmmgrs-hal/pwrMgr.h"
+#include "pwrMgr.h"
 
 #include "tr181api.h"
 
@@ -97,8 +99,6 @@ static int retryPowerRequestCount = 0;
 static int  hdmiArcVolumeLevel = 0;
 bool audioPortInitActive = false;
 std::vector<int> sad_list;
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 #ifdef USE_IARM
 namespace
 {
@@ -240,12 +240,10 @@ namespace WPEFramework {
         SERVICE_REGISTRATION(DisplaySettings, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
         DisplaySettings* DisplaySettings::_instance = nullptr;
-        WPEFramework::Exchange::IPowerManager::PowerState DisplaySettings::m_powerState = WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY;
+        IARM_Bus_PWRMgr_PowerState_t DisplaySettings::m_powerState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
 
         DisplaySettings::DisplaySettings()
             : PluginHost::JSONRPC()
-            , _pwrMgrNotification(*this)
-            , _registeredEventHandlers(false)
         {
             LOGINFO("constructor");
             DisplaySettings::_instance = this;
@@ -357,6 +355,7 @@ namespace WPEFramework {
             m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;// Power state of AVR
 	    m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED; // Maintains the ARC state
 	    m_requestSadRetrigger = false;
+            m_isPwrMgr2RFCEnabled = false;
 	    m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;// Maintains the Audio device type whether Arc/eArc ocnnected
 	    m_AudioDeviceSADState = AUDIO_DEVICE_SAD_UNKNOWN;// maintains the SAD state
 	    m_sendMsgThreadExit = false;
@@ -551,9 +550,8 @@ namespace WPEFramework {
 	    m_AudioDevicePowerOnStatusTimer.connect(std::bind(&DisplaySettings::checkAudioDevicePowerStatusTimer, this));
 
             InitializeIARM();
-            InitializePowerManager();
 
-            if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == getSystemPowerState())
+            if (IARM_BUS_PWRMGR_POWERSTATE_ON == getSystemPowerState())
             {
                 InitAudioPorts();
             }
@@ -588,13 +586,7 @@ namespace WPEFramework {
         {
             Exchange::ISystemMode* _remotStoreObject1 = nullptr;
             LOGINFO("Enetering DisplaySettings::Deinitialize");
-            if (_powerManagerPlugin) {
-		// Unregister from PowerManagerPlugin Notification
-		_powerManagerPlugin->Unregister(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
-                _powerManagerPlugin.Reset();
-            }
 
-            _registeredEventHandlers = false;
             //During DisplaySettings plugin  activation the SystemMode may not be added .But it will be added /tmp/SystemMode.txt . If after 5 min SystemMode got activated then SystemMode fill the client map from /tmp/SystemMode.txt. In this case if we deactivate DisplaySettings then _remotStoreObject will be null here . So we try to QueryInterface the ISystemMode one more time 
 		if(_remotStoreObject1 == nullptr)
 		{
@@ -654,26 +646,13 @@ namespace WPEFramework {
             m_service = nullptr;
         }
 
-        void DisplaySettings::InitializePowerManager()
-        {
-            LOGINFO("Connect the COM-RPC socket\n");
-            _powerManagerPlugin = PowerManagerInterfaceBuilder(_T("org.rdk.PowerManager"))
-                .withIShell(m_service)
-                .withRetryIntervalMS(200)
-                .withRetryCount(25)
-                .createInterface();
-
-            registerEventHandlers();
-        }
-
         void DisplaySettings::InitializeIARM()
         {
-            PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
-            IARM_Result_t res;
             if (Utils::IARM::init())
             {
+                IARM_Result_t res;
+                IARM_Bus_PWRMgr_GetPowerState_Param_t param;
+
                 // RegisterLockedIarmHandler(UsingClass *mutexOwner, const char *ownerName, IARM_EventId_t eventId, IARM_EventHandler_t handler)
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_RX_SENSE, DisplResolutionHandler) );
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS, DisplResolutionHandler) );
@@ -687,23 +666,26 @@ namespace WPEFramework {
 		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE, formatUpdateEventHandler) );
 		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE, formatUpdateEventHandler) );
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED, checkAtmosCapsEventHandler) );
+		IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, powerEventHandler) );
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE, audioPortStateEventHandler) );
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED, dsSettingsChangeEventHandler) );
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED, dsSettingsChangeEventHandler) );
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) );
                 IARM_CHECK( Utils::Synchro::RegisterLockedIarmEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED, dsSettingsChangeEventHandler) ); 
-
-                ASSERT (_powerManagerPlugin);
-                if (_powerManagerPlugin){
-                    retStatus = _powerManagerPlugin->GetPowerState(pwrStateCur, pwrStatePrev);
-                }
-                if (Core::ERROR_NONE == retStatus)
+ 
+                res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState, (void *)&param, sizeof(param));
+                if (res == IARM_RESULT_SUCCESS)
                 {
-                    m_powerState = pwrStateCur;
+                    m_powerState = param.curState;
                     LOGINFO("DisplaySettings::m_powerState:%d", m_powerState);
                 }
             }
-
+            RFC_ParamData_t param = {0};
+            WDMP_STATUS status = getRFCParameter(NULL, RFC_PWRMGR2, &param);
+            if(WDMP_SUCCESS == status && param.type == WDMP_BOOLEAN && (strncasecmp(param.value,"true",4) == 0))
+            {
+                m_isPwrMgr2RFCEnabled = true;
+            }
             try
             {
                 //TODO(MROLLINS) this is probably per process so we either need to be running in our own process or be carefull no other plugin is calling it
@@ -732,6 +714,7 @@ namespace WPEFramework {
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE, formatUpdateEventHandler) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE, formatUpdateEventHandler) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED, checkAtmosCapsEventHandler) );
+                IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, powerEventHandler) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME,IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE, audioPortStateEventHandler) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED, dsSettingsChangeEventHandler) );
                 IARM_CHECK( Utils::Synchro::RemoveLockedEventHandler<DisplaySettings>(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED, dsSettingsChangeEventHandler) );
@@ -750,16 +733,6 @@ namespace WPEFramework {
             catch(...)
             {
                 LOGINFO("device::Manager::DeInitialize failed");
-            }
-        }
-
-        void DisplaySettings::registerEventHandlers()
-        {
-            ASSERT (nullptr != _powerManagerPlugin);
-
-            if(!_registeredEventHandlers && _powerManagerPlugin) {
-                _registeredEventHandlers = true;
-                _powerManagerPlugin->Register(_pwrMgrNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
             }
         }
 
@@ -2175,22 +2148,43 @@ namespace WPEFramework {
 
             bool enabled = parameters["enabled"].Boolean();
             bool success = true;
-
-            dsMgrStandbyVideoStateParam_t param;
-            param.isEnabled = enabled;
-            strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
-            param.port[sizeof(param.port) - 1] = '\0';
-            if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_SetStandbyVideoState, &param, sizeof(param)))
+            if(!m_isPwrMgr2RFCEnabled)
             {
-                LOGERR("Port: %s. enable: %d", param.port, param.isEnabled);
-                response["error_message"] = "Bus failure";
-                success = false;
+                IARM_Bus_PWRMgr_StandbyVideoState_Param_t param;
+                param.isEnabled = enabled;
+                strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+                param.port[sizeof(param.port) - 1] = '\0';
+                if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_SetStandbyVideoState, &param, sizeof(param)))
+                {
+                    LOGERR("Port: %s. enable: %d", param.port, param.isEnabled);
+                    response["error_message"] = "Bus failure";
+                    success = false;
+                }
+                else if(0 != param.result)
+                {
+                    LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
+                    response["error_message"] = "internal error";
+                    success = false;
+                }
             }
-            else if(0 != param.result)
+            else
             {
-                LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
-                response["error_message"] = "internal error";
-                success = false;
+                dsMgrStandbyVideoStateParam_t param;
+                param.isEnabled = enabled;
+                strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+                param.port[sizeof(param.port) - 1] = '\0';
+                if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_SetStandbyVideoState, &param, sizeof(param)))
+                {
+                    LOGERR("Port: %s. enable: %d", param.port, param.isEnabled);
+                    response["error_message"] = "Bus failure";
+                    success = false;
+                }
+                else if(0 != param.result)
+                {
+                    LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
+                    response["error_message"] = "internal error";
+                    success = false;
+                }
             }
             returnResponse(success);
         }
@@ -2203,27 +2197,54 @@ namespace WPEFramework {
             string portname = parameters["portName"].String();
 
             bool success = true;
-
-            dsMgrStandbyVideoStateParam_t param;
-            strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
-	    param.port[sizeof(param.port) - 1] = '\0';
-            if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_GetStandbyVideoState, &param, sizeof(param)))
+            if(!m_isPwrMgr2RFCEnabled)
             {
-                LOGERR("Port: %s. enable:%d", param.port, param.isEnabled);
-                response["error_message"] = "Bus failure";
-                success = false;
-            }
-            else if(0 != param.result)
-            {
-                LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
-                response["error_message"] = "internal error";
-                success = false;
+                IARM_Bus_PWRMgr_StandbyVideoState_Param_t param;
+                strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+                param.port[sizeof(param.port) - 1] = '\0';
+                if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetStandbyVideoState, &param, sizeof(param)))
+                {
+                    LOGERR("Port: %s. enable:%d", param.port, param.isEnabled);
+                    response["error_message"] = "Bus failure";
+                    success = false;
+                }
+                else if(0 != param.result)
+                {
+                    LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
+                    response["error_message"] = "internal error";
+                    success = false;
+                }
+                else
+                {
+                    bool enabled(0 != param.isEnabled);
+                    LOGINFO("video port is %s", enabled ? "enabled" : "disabled");
+                    response["videoPortStatusInStandby"] = enabled;
+                }
             }
             else
             {
-                bool enabled(0 != param.isEnabled);
-                LOGINFO("video port is %s", enabled ? "enabled" : "disabled");
-                response["videoPortStatusInStandby"] = enabled;
+                dsMgrStandbyVideoStateParam_t param;
+                strncpy(param.port, portname.c_str(), PWRMGR_MAX_VIDEO_PORT_NAME_LENGTH);
+                param.port[sizeof(param.port) - 1] = '\0';
+                if(IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_API_GetStandbyVideoState, &param, sizeof(param)))
+                {
+                    LOGERR("Port: %s. enable:%d", param.port, param.isEnabled);
+                    response["error_message"] = "Bus failure";
+                    success = false;
+                }
+                else if(0 != param.result)
+                {
+                    LOGERR("Result %d. Port: %s. enable:%d", param.result, param.port, param.isEnabled);
+                    response["error_message"] = "internal error";
+                    success = false;
+                }
+                else
+                {
+                    bool enabled(0 != param.isEnabled);
+                    LOGINFO("video port is %s", enabled ? "enabled" : "disabled");
+                    response["videoPortStatusInStandby"] = enabled;
+                }
+
             }
 
             returnResponse(success);
@@ -4334,7 +4355,7 @@ namespace WPEFramework {
                     returnResponse(false);
             }
 
-            if (true == pEnable && WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == getSystemPowerState()) {
+            if (true == pEnable && IARM_BUS_PWRMGR_POWERSTATE_STANDBY == getSystemPowerState()) {
                 LOGWARN("Ignoring the setEnableAudioPort(true) request based on the power state");
                 returnResponse(false);
             }
@@ -4627,19 +4648,15 @@ namespace WPEFramework {
         }
 
 
-        PowerState DisplaySettings::getSystemPowerState()
+        IARM_Bus_PWRMgr_PowerState_t DisplaySettings::getSystemPowerState()
         {
-            PowerState pwrStateCur = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            PowerState pwrStatePrev = WPEFramework::Exchange::IPowerManager::POWER_STATE_UNKNOWN;
-            Core::hresult retStatus = Core::ERROR_GENERAL;
+            IARM_Result_t res;
+            IARM_Bus_PWRMgr_GetPowerState_Param_t param;
 
-            ASSERT (_powerManagerPlugin);
-            if (_powerManagerPlugin){
-                retStatus = _powerManagerPlugin->GetPowerState(pwrStateCur, pwrStatePrev);
-            }
-            if (Core::ERROR_NONE == retStatus)
+            res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState, (void *)&param, sizeof(param));
+            if (res == IARM_RESULT_SUCCESS)
             {
-                m_powerState = pwrStateCur;
+                m_powerState = param.curState;
                 LOGWARN("DisplaySettings::m_powerState: %d", m_powerState);
             }
 
@@ -4658,106 +4675,112 @@ namespace WPEFramework {
             audioPortInitActive = false;
         }
 
-        void DisplaySettings::onPowerModeChanged(const PowerState currentState, const PowerState newState)
-        {
-            LOGWARN("onPowerModeChanged: State Changed %d --> %d\r",
-                         currentState, newState);
-            m_powerState = newState;
-            if (newState == WPEFramework::Exchange::IPowerManager::POWER_STATE_ON){
-                isResCacheUpdated = false;
-                isDisplayConnectedCacheUpdated = false;
-                isStbHDRcapabilitiesCache = false;
-            try
-                {
-            LOGWARN("creating worker thread for initAudioPortsWorker ");
-            std::thread audioPortInitThread = std::thread(initAudioPortsWorker);
-        audioPortInitThread.detach();
+    void DisplaySettings::powerEventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
+    {
+        if(!DisplaySettings::_instance)
+            return;
+        if (strcmp(owner, IARM_BUS_PWRMGR_NAME) != 0)
+            return;
+
+        switch (eventId) {
+            case  IARM_BUS_PWRMGR_EVENT_MODECHANGED:
+            {
+                IARM_Bus_PWRMgr_EventData_t *eventData = (IARM_Bus_PWRMgr_EventData_t *)data;
+                LOGWARN("Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: State Changed %d --> %d\r",
+                eventData->data.state.curState, eventData->data.state.newState);
+                m_powerState = eventData->data.state.newState;
+                if (eventData->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_ON) {
+                    isResCacheUpdated = false;
+                    isDisplayConnectedCacheUpdated = false;
+                    isStbHDRcapabilitiesCache = false;
+                    try
+                    {
+                        LOGWARN("creating worker thread for initAudioPortsWorker ");
+                        std::thread audioPortInitThread = std::thread(initAudioPortsWorker);
+                        audioPortInitThread.detach();
+                    }
+                    catch(const std::system_error& e)
+                    {
+                        LOGERR("system_error exception in thread creation: %s", e.what());
+                    }
+                    catch(const std::exception& e)
+                    {
+                        LOGERR("exception in thread creation : %s", e.what());
+                    }
                 }
-                catch(const std::system_error& e)
+                else
                 {
-                    LOGERR("system_error exception in thread creation: %s", e.what());
-                }
-                catch(const std::exception& e)
-                {
-                    LOGERR("exception in thread creation : %s", e.what());
+                    LOGINFO("%s: Current Power state: %d\n",__FUNCTION__,eventData->data.state.newState);
+                    try
+                    {
+                        device::List<device::AudioOutputPort> aPorts = device::Host::getInstance().getAudioOutputPorts();
+                        bool hdmi_arc_supported = false;
+                        for (size_t i = 0; i < aPorts.size(); i++)
+                        {
+                            device::AudioOutputPort &aPort = aPorts.at(i);
+                            string portName  = aPort.getName();
+                            if(portName == "HDMI_ARC0") {
+                                hdmi_arc_supported = true;
+                                break;    
+                            }
+                        }
+
+                        if(hdmi_arc_supported) {
+                            LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
+                            DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
+                            {
+                                std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
+                                LOGINFO("%s: Cleanup ARC/eARC state\n",__FUNCTION__);
+                                if(DisplaySettings::_instance->m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED)
+                                    DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
+                                DisplaySettings::_instance->m_requestSadRetrigger = false;
+                                {
+                                    if(DisplaySettings::_instance->m_hdmiInAudioDeviceConnected !=  false) {
+                                        DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
+                                        DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
+                                        DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
+                                    }
+
+                                    if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) {
+                                        device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
+                                        LOGINFO("%s: Disable ARC/eARC Audio\n",__FUNCTION__);
+                                        aPort.enableARC(dsAUDIOARCSUPPORT_ARC, false);
+                                        DisplaySettings::_instance->m_arcEarcAudioEnabled = false;
+                                    }
+                                    if((DisplaySettings::_instance->m_hdmiInAudioDeviceType != dsAUDIOARCSUPPORT_NONE))
+                                        DisplaySettings::_instance->m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
+                                }
+                            }//Release Mutex m_AudioDeviceStatesUpdateMutex
+
+                            {
+                                std::lock_guard<mutex> lck(DisplaySettings::_instance->m_callMutex);
+                                if ( DisplaySettings::_instance->m_timer.isActive()) {
+                                    DisplaySettings::_instance->m_timer.stop();
+                                }
+
+                                if ( DisplaySettings::_instance->m_AudioDeviceDetectTimer.isActive()) {
+                                    DisplaySettings::_instance->m_AudioDeviceDetectTimer.stop();
+                                }
+                                if ( DisplaySettings::_instance->m_SADDetectionTimer.isActive()) {
+                                    DisplaySettings::_instance->m_SADDetectionTimer.stop();
+                                }
+                                if ( DisplaySettings::_instance->m_ArcDetectionTimer.isActive()) {
+                                    DisplaySettings::_instance->m_ArcDetectionTimer.stop();
+                                }
+                                if ( DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.isActive()) {
+                                    DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.stop();
+                                }
+                            }
+                        }
+                    }
+                    catch(const device::Exception& err)
+                    {
+                        LOG_DEVICE_EXCEPTION0();
+                    }
                 }
             }
-
-        else {
-            LOGINFO("%s: Current Power state: %d\n",__FUNCTION__,newState);
-            try
-            {
-                device::List<device::AudioOutputPort> aPorts = device::Host::getInstance().getAudioOutputPorts();
-                bool hdmi_arc_supported = false;
-                for (size_t i = 0; i < aPorts.size(); i++)
-                {
-                    device::AudioOutputPort &aPort = aPorts.at(i);
-                    string portName  = aPort.getName();
-                    if(portName == "HDMI_ARC0") {
-                        hdmi_arc_supported = true;
-                        break;    
-                    }
-                }
-
-                if(hdmi_arc_supported) {
-          LOGINFO("Current Arc/eArc states m_currentArcRoutingState = %d, m_hdmiInAudioDeviceConnected =%d, m_arcEarcAudioEnabled =%d, m_hdmiInAudioDeviceType = %d\n", DisplaySettings::_instance->m_currentArcRoutingState, DisplaySettings::_instance->m_hdmiInAudioDeviceConnected, \
-                  DisplaySettings::_instance->m_arcEarcAudioEnabled, DisplaySettings::_instance->m_hdmiInAudioDeviceType);
-                  {
-                std::lock_guard<std::mutex> lock(DisplaySettings::_instance->m_AudioDeviceStatesUpdateMutex);
-                        LOGINFO("%s: Cleanup ARC/eARC state\n",__FUNCTION__);
-                        if(DisplaySettings::_instance->m_currentArcRoutingState != ARC_STATE_ARC_TERMINATED)
-                            DisplaySettings::_instance->m_currentArcRoutingState = ARC_STATE_ARC_TERMINATED;
-            DisplaySettings::_instance->m_requestSadRetrigger = false;
-              {
-                        if(DisplaySettings::_instance->m_hdmiInAudioDeviceConnected !=  false) {
-                            DisplaySettings::_instance->m_hdmiInAudioDeviceConnected =  false;
-                DisplaySettings::_instance->connectedAudioPortUpdated(dsAUDIOPORT_TYPE_HDMI_ARC, false);
-                DisplaySettings::_instance->m_hdmiInAudioDevicePowerState = AUDIO_DEVICE_POWER_STATE_UNKNOWN;
-             }
-                    
-                if(DisplaySettings::_instance->m_arcEarcAudioEnabled == true) {
-                            device::AudioOutputPort aPort = device::Host::getInstance().getAudioOutputPort("HDMI_ARC0");
-                            LOGINFO("%s: Disable ARC/eARC Audio\n",__FUNCTION__);
-                            aPort.enableARC(dsAUDIOARCSUPPORT_ARC, false);
-                            DisplaySettings::_instance->m_arcEarcAudioEnabled = false;
-                        }
-            if((DisplaySettings::_instance->m_hdmiInAudioDeviceType != dsAUDIOARCSUPPORT_NONE))
-                DisplaySettings::_instance->m_hdmiInAudioDeviceType = dsAUDIOARCSUPPORT_NONE;
-
-              }
-                  }//Release Mutex m_AudioDeviceStatesUpdateMutex
-
-          {
-                    std::lock_guard<mutex> lck(DisplaySettings::_instance->m_callMutex);
-                    if ( DisplaySettings::_instance->m_timer.isActive()) {
-                        DisplaySettings::_instance->m_timer.stop();
-                    }
-
-                    if ( DisplaySettings::_instance->m_AudioDeviceDetectTimer.isActive()) {
-                        DisplaySettings::_instance->m_AudioDeviceDetectTimer.stop();
-                    }
-                    if ( DisplaySettings::_instance->m_SADDetectionTimer.isActive()) {
-                        DisplaySettings::_instance->m_SADDetectionTimer.stop();
-                    }
-                    if ( DisplaySettings::_instance->m_ArcDetectionTimer.isActive()) {
-                        DisplaySettings::_instance->m_ArcDetectionTimer.stop();
-                    }
-                    if ( DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.isActive()) {
-                        DisplaySettings::_instance->m_AudioDevicePowerOnStatusTimer.stop();
-                    }
-                  }
-
-                }
-              }
-              catch(const device::Exception& err)
-              {
-                LOG_DEVICE_EXCEPTION0();
-              }
         }
-
-
-        }
-
+    }
 
 	/* Message wrapper function to push the message to queue  */
 	void DisplaySettings::sendMsgToQueue(msg_t msg, void *param )

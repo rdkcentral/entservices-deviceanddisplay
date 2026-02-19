@@ -20,6 +20,7 @@
 #include "DeviceSettingsImplementation.h"
 #include "DeviceSettingsFPDImplementation.h"
 #include "DeviceSettingsHdmiInImplementation.h"
+#include "DeviceSettingsAudioImplementation.h"
 
 #include "UtilsLogging.h"
 #include "UtilsSearchRDKProfile.h"
@@ -37,6 +38,7 @@ namespace Plugin {
     DeviceSettingsImp::DeviceSettingsImp()
         : _fpdSettings(DeviceSettingsFPDImpl::Create())
         , _hdmiInSettings(DeviceSettingsHdmiInImp::Create())
+        , _audioSettings(DeviceSettingsAudioImpl::Create())
         , mConnectionId(0)
     {
         ENTRY_LOG;
@@ -49,6 +51,7 @@ namespace Plugin {
 
         LOGINFO("FPD implementation instance: %p", _fpdSettings);
         LOGINFO("HDMIIn implementation instance: %p", _hdmiInSettings);
+        LOGINFO("Audio implementation instance: %p", _audioSettings);
 
         EXIT_LOG;
     }
@@ -66,6 +69,11 @@ namespace Plugin {
         if (_hdmiInSettings != nullptr) {
             delete _hdmiInSettings;
             _hdmiInSettings = nullptr;
+        }
+        
+        if (_audioSettings != nullptr) {
+            delete _audioSettings;
+            _audioSettings = nullptr;
         }
         
         EXIT_LOG;
@@ -385,6 +393,581 @@ namespace Plugin {
     Core::hresult DeviceSettingsImp::GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) {
         ENTRY_LOG;
         Core::hresult result = (_hdmiInSettings != nullptr) ? _hdmiInSettings->GetVRRStatus(port, vrrStatus) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+
+    // ============================================================================
+    // IDeviceSettingsAudio interface implementation - delegate to _audioSettings interface
+    // ============================================================================
+    
+    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsAudio::INotification* notification) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->Register(notification) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsAudio::INotification* notification) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->Unregister(notification) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioPort(type, index, handle) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
+
+    Core::hresult DeviceSettingsImp::GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioPortConfig(audioPort, audioConfig) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+
+    Core::hresult DeviceSettingsImp::SetAudioPortConfig(const AudioPortType audioPort, const AudioConfig audioConfig) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioPortConfig(audioPort, audioConfig) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioCapabilities(const int32_t handle, int32_t &capabilities) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioCapabilities(handle, capabilities) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioMS12Capabilities(handle, capabilities) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioFormat(handle, audioFormat) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioEncoding(handle, encoding) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetSupportedCompressions(handle, compressions) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetCompression(const int32_t handle, AudioCompression &compression) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetCompression(handle, compression) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetCompression(const int32_t handle, const AudioCompression compression) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetCompression(handle, compression) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioLevel(const int32_t handle, const float audioLevel) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioLevel(handle, audioLevel) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioLevel(const int32_t handle, float &audioLevel) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioLevel(handle, audioLevel) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioGain(const int32_t handle, const float gainLevel) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioGain(handle, gainLevel) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioGain(const int32_t handle, float &gainLevel) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioGain(handle, gainLevel) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioMute(const int32_t handle, const bool mute) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioMute(handle, mute) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::IsAudioMuted(const int32_t handle, bool &muted) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->IsAudioMuted(handle, muted) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioDucking(handle, duckingType, duckingAction, level) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetStereoMode(const int32_t handle, AudioStereoMode &mode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetStereoMode(handle, mode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetStereoMode(handle, mode, persist) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAssociatedAudioMixing(const int32_t handle, const bool mixing) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAssociatedAudioMixing(handle, mixing) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAssociatedAudioMixing(const int32_t handle, bool &mixing) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAssociatedAudioMixing(handle, mixing) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioFaderControl(handle, mixerBalance) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioFaderControl(handle, mixerBalance) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioPrimaryLanguage(const int32_t handle, const string primaryAudioLanguage) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioPrimaryLanguage(handle, primaryAudioLanguage) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioPrimaryLanguage(const int32_t handle, string &primaryAudioLanguage) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioPrimaryLanguage(handle, primaryAudioLanguage) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioSecondaryLanguage(const int32_t handle, const string secondaryAudioLanguage) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioSecondaryLanguage(handle, secondaryAudioLanguage) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioSecondaryLanguage(const int32_t handle, string &secondaryAudioLanguage) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioSecondaryLanguage(handle, secondaryAudioLanguage) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::IsAudioOutputConnected(const int32_t handle, bool &isConnected) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->IsAudioOutputConnected(handle, isConnected) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioSinkDeviceAtmosCapability(handle, atmosCapability) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioAtmosOutputMode(const int32_t handle, const bool enable) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioAtmosOutputMode(handle, enable) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+
+    // Missing Audio interface delegation methods
+    
+    Core::hresult DeviceSettingsImp::IsAudioPortEnabled(const int32_t handle, bool &enabled) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->IsAudioPortEnabled(handle, enabled) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::EnableAudioPort(const int32_t handle, const bool enable) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->EnableAudioPort(handle, enable) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetSupportedARCTypes(const int32_t handle, int32_t &types) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetSupportedARCTypes(handle, types) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetSAD(const int32_t handle, const uint8_t sadList[], const uint8_t count) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetSAD(handle, sadList, count) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::EnableARC(const int32_t handle, const AudioARCStatus arcStatus) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->EnableARC(handle, arcStatus) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetStereoAuto(const int32_t handle, int32_t &mode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetStereoAuto(handle, mode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetStereoAuto(handle, mode, persist) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioEnablePersist(const int32_t handle, bool &enabled, string &portName) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioEnablePersist(handle, enabled, portName) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioEnablePersist(const int32_t handle, const bool enable, const string portName) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioEnablePersist(handle, enable, portName) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::IsAudioMSDecoded(const int32_t handle, bool &hasms11Decode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->IsAudioMSDecoded(handle, hasms11Decode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::IsAudioMS12Decoded(const int32_t handle, bool &hasms12Decode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->IsAudioMS12Decoded(handle, hasms12Decode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioLEConfig(const int32_t handle, bool &enabled) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioLEConfig(handle, enabled) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::EnableAudioLEConfig(const int32_t handle, const bool enable) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->EnableAudioLEConfig(handle, enable) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioDelay(const int32_t handle, const uint32_t audioDelay) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioDelay(handle, audioDelay) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioDelay(const int32_t handle, uint32_t &audioDelay) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioDelay(handle, audioDelay) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioDelayOffset(const int32_t handle, const uint32_t delayOffset) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioDelayOffset(handle, delayOffset) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioDelayOffset(const int32_t handle, uint32_t &delayOffset) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioDelayOffset(handle, delayOffset) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioCompression(const int32_t handle, const int32_t compressionLevel) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioCompression(handle, compressionLevel) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioCompression(const int32_t handle, int32_t &compressionLevel) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioCompression(handle, compressionLevel) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioDialogEnhancement(const int32_t handle, const int32_t level) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioDialogEnhancement(handle, level) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioDialogEnhancement(const int32_t handle, int32_t &level) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioDialogEnhancement(handle, level) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioDolbyVolumeMode(const int32_t handle, const bool enable) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioDolbyVolumeMode(handle, enable) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioDolbyVolumeMode(const int32_t handle, bool &enabled) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioDolbyVolumeMode(handle, enabled) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioIntelligentEqualizerMode(const int32_t handle, const int32_t mode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioIntelligentEqualizerMode(handle, mode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioIntelligentEqualizerMode(const int32_t handle, int32_t &mode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioIntelligentEqualizerMode(handle, mode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioVolumeLeveller(const int32_t handle, const VolumeLeveller volumeLeveller) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioVolumeLeveller(handle, volumeLeveller) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioVolumeLeveller(const int32_t handle, VolumeLeveller &volumeLeveller) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioVolumeLeveller(handle, volumeLeveller) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioBassEnhancer(const int32_t handle, const int32_t boost) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioBassEnhancer(handle, boost) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioBassEnhancer(const int32_t handle, int32_t &boost) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioBassEnhancer(handle, boost) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::EnableAudioSurroudDecoder(const int32_t handle, const bool enable) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->EnableAudioSurroudDecoder(handle, enable) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->IsAudioSurroudDecoderEnabled(handle, enabled) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioDRCMode(const int32_t handle, const int32_t drcMode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioDRCMode(handle, drcMode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioDRCMode(const int32_t handle, int32_t &drcMode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioDRCMode(handle, drcMode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioSurroudVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioSurroudVirtualizer(handle, surroundVirtualizer) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioSurroudVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioSurroudVirtualizer(handle, surroundVirtualizer) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioMISteering(const int32_t handle, const bool enable) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioMISteering(handle, enable) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioMISteering(const int32_t handle, bool &enable) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioMISteering(handle, enable) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioGraphicEqualizerMode(const int32_t handle, const int32_t mode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioGraphicEqualizerMode(handle, mode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioGraphicEqualizerMode(const int32_t handle, int32_t &mode) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioGraphicEqualizerMode(handle, mode) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioMS12ProfileList(const int32_t handle, IDeviceSettingsAudioMS12AudioProfileIterator*& ms12ProfileList) const {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioMS12ProfileList(handle, ms12ProfileList) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioMS12Profile(const int32_t handle, string &profile) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioMS12Profile(handle, profile) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioMS12Profile(const int32_t handle, const string profile) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioMS12Profile(handle, profile) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioMixerLevels(handle, audioInput, volume) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetAudioMS12SettingsOverride(const int32_t handle, const string profileName, const string profileSettingsName, const string profileSettingValue, const string profileState) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->SetAudioMS12SettingsOverride(handle, profileName, profileSettingsName, profileSettingValue, profileState) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::ResetAudioDialogEnhancement(const int32_t handle) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->ResetAudioDialogEnhancement(handle) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::ResetAudioBassEnhancer(const int32_t handle) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->ResetAudioBassEnhancer(handle) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::ResetAudioSurroundVirtualizer(const int32_t handle) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->ResetAudioSurroundVirtualizer(handle) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::ResetAudioVolumeLeveller(const int32_t handle) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->ResetAudioVolumeLeveller(handle) : Core::ERROR_UNAVAILABLE;
+        EXIT_LOG;
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId) {
+        ENTRY_LOG;
+        Core::hresult result = (_audioSettings != nullptr) ? _audioSettings->GetAudioHDMIARCPortId(handle, portId) : Core::ERROR_UNAVAILABLE;
         EXIT_LOG;
         return result;
     }

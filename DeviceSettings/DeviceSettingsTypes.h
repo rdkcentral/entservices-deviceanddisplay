@@ -91,6 +91,32 @@ using FPDTextDisplay = DeviceSettingsFPD::FPDTextDisplay;
 using FPDMode = DeviceSettingsFPD::FPDMode;
 using FDPLEDState = DeviceSettingsFPD::FDPLEDState;
 
+// Audio type aliases for convenience
+using AudioPortType = DeviceSettingsAudio::AudioPortType;
+using AudioPortState = DeviceSettingsAudio::AudioPortState;
+using AudioFormat = DeviceSettingsAudio::AudioFormat;
+using AudioEncoding = DeviceSettingsAudio::AudioEncoding;
+using AudioConfig = DeviceSettingsAudio::AudioConfig;
+using AudioStereoMode = DeviceSettingsAudio::StereoMode;
+using AudioDuckingType = DeviceSettingsAudio::AudioDuckingType;
+using AudioDuckingAction = DeviceSettingsAudio::AudioDuckingAction;
+using DolbyAtmosCapability = DeviceSettingsAudio::DolbyAtmosCapability;
+using AudioCompression = DeviceSettingsAudio::AudioCompression;
+using AudioCapabilities = DeviceSettingsAudio::AudioCapabilities;
+using AudioARCType = DeviceSettingsAudio::AudioARCType;
+using AudioInput = DeviceSettingsAudio::AudioInput;
+using MS12Capabilities = DeviceSettingsAudio::MS12Capabilities;
+using MS12AudioProfile = DeviceSettingsAudio::MS12AudioProfile;
+using VolumeLeveller = DeviceSettingsAudio::VolumeLeveller;
+using SurroundVirtualizer = DeviceSettingsAudio::SurroundVirtualizer;
+using SurroundMode = DeviceSettingsAudio::SurroundMode;
+using MS12Feature = DeviceSettingsAudio::MS12Feature;
+using AudioARCStatus = DeviceSettingsAudio::AudioARCStatus;
+using IDeviceSettingsAudioEncodingIterator = DeviceSettingsAudio::IDeviceSettingsAudioEncodingIterator;
+using IDeviceSettingsAudioCompressionIterator = DeviceSettingsAudio::IDeviceSettingsAudioCompressionIterator;
+using IDeviceSettingsStereoModeIterator = DeviceSettingsAudio::IDeviceSettingsStereoModeIterator;
+using IDeviceSettingsAudioMS12AudioProfileIterator = DeviceSettingsAudio::IDeviceSettingsAudioMS12AudioProfileIterator;
+
 // Common constants
 #define API_VERSION_MAJOR 1
 #define API_VERSION_MINOR 0

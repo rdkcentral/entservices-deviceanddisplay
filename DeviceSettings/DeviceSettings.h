@@ -49,7 +49,7 @@ namespace Plugin {
         class NotificationHandler : public RPC::IRemoteConnection::INotification
                                   , public PluginHost::IShell::ICOMLink::INotification
                                 //  , public DeviceSettingsCompositeIn::INotification
-                                //  , public DeviceSettingsAudio::INotification
+                                  , public DeviceSettingsAudio::INotification
                                   , public DeviceSettingsFPD::INotification
                                 // , public DeviceSettingsVideoDevice::INotification
                                 // , public DeviceSettingsDisplay::INotification
@@ -82,6 +82,7 @@ namespace Plugin {
 
             BEGIN_INTERFACE_MAP(NotificationHandler)
             //INTERFACE_ENTRY(DeviceSettingsCompositeIn::INotification)
+            INTERFACE_ENTRY(DeviceSettingsAudio::INotification)
             INTERFACE_ENTRY(DeviceSettingsFPD::INotification)
             //INTERFACE_ENTRY(DeviceSettingsVideoDevice::INotification)
             //INTERFACE_ENTRY(DeviceSettingsDisplay::INotification)
@@ -115,6 +116,57 @@ namespace Plugin {
             void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override
             {
                 LOGINFO("OnFPDTimeFormatChanged: timeFormat %d", timeFormat);
+            }
+
+            // Audio notification handlers
+            void OnAssociatedAudioMixingChanged(bool mixing) override
+            {
+                LOGINFO("OnAssociatedAudioMixingChanged: mixing %d", mixing);
+            }
+
+            void OnAudioFaderControlChanged(int32_t mixerBalance) override
+            {
+                LOGINFO("OnAudioFaderControlChanged: mixerBalance %d", mixerBalance);
+            }
+
+            void OnAudioPrimaryLanguageChanged(const string& primaryLanguage) override
+            {
+                LOGINFO("OnAudioPrimaryLanguageChanged: primaryLanguage %s", primaryLanguage.c_str());
+            }
+
+            void OnAudioSecondaryLanguageChanged(const string& secondaryLanguage) override
+            {
+                LOGINFO("OnAudioSecondaryLanguageChanged: secondaryLanguage %s", secondaryLanguage.c_str());
+            }
+
+            void OnAudioOutHotPlug(AudioPortType portType, uint32_t uiPortNumber, bool isPortConnected) override
+            {
+                LOGINFO("OnAudioOutHotPlug: portType %d, port %d, connected %d", portType, uiPortNumber, isPortConnected);
+            }
+
+            void OnAudioFormatUpdate(AudioFormat audioFormat) override
+            {
+                LOGINFO("OnAudioFormatUpdate: audioFormat %d", audioFormat);
+            }
+
+            void OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCapability, bool status) override
+            {
+                LOGINFO("OnDolbyAtmosCapabilitiesChanged: capability %d, status %d", atmosCapability, status);
+            }
+
+            void OnAudioPortStateChanged(AudioPortState audioPortState) override
+            {
+                LOGINFO("OnAudioPortStateChanged: state %d", audioPortState);
+            }
+
+            void OnAudioLevelChangedEvent(int32_t audioLevel) override
+            {
+                LOGINFO("OnAudioLevelChangedEvent: level %d", audioLevel);
+            }
+
+            void OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode) override
+            {
+                LOGINFO("OnAudioModeEvent: portType %d, mode %d", audioPortType, audioMode);
             }
 
             void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) override 

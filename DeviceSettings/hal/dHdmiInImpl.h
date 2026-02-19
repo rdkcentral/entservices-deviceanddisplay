@@ -85,7 +85,8 @@ public:
     void InitialiseHAL()
     {
         getDynamicAutoLatencyConfig();
-        // profileType is already initialized in DeviceSettingsImplementation.cpp
+
+        profileType = searchRdkProfile();
         LOGINFO("profileType %d", profileType);
 
         if (TV == profileType)

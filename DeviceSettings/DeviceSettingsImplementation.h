@@ -55,11 +55,12 @@ namespace Plugin {
     // Forward declare implementation classes
     class DeviceSettingsFPDImpl;
     class DeviceSettingsHdmiInImp;
+    class DeviceSettingsAudioImpl;
 
     class DeviceSettingsImp : public Exchange::IDeviceSettings
                              , public Exchange::IDeviceSettingsFPD
                              , public Exchange::IDeviceSettingsHDMIIn
-                             // , public Exchange::IDeviceSettingsAudio         // Not implemented yet
+                             , public Exchange::IDeviceSettingsAudio
                              // , public Exchange::IDeviceSettingsCompositeIn   // Not implemented yet
                              // , public Exchange::IDeviceSettingsDisplay       // Not implemented yet
                              // , public Exchange::IDeviceSettingsHost          // Not implemented yet
@@ -82,8 +83,8 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IDeviceSettings)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsFPD)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsHDMIIn)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsAudio)
             // Future interface entries when implemented:
-            // INTERFACE_ENTRY(Exchange::IDeviceSettingsAudio)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsCompositeIn)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsHost)
@@ -136,8 +137,134 @@ namespace Plugin {
         Core::hresult GetVRRSupport(const HDMIInPort port, bool &vrrSupport) override;
         Core::hresult GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) override;
         
+        // IDeviceSettingsAudio interface implementation - delegate to _audioSettings interface
+        Core::hresult Register(Exchange::IDeviceSettingsAudio::INotification* notification) override;
+        Core::hresult Unregister(Exchange::IDeviceSettingsAudio::INotification* notification) override;
+        Core::hresult GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) override;
+        // Removed GetAudioPorts and GetSupportedAudioPorts - iterator type doesn't exist
+        Core::hresult GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig);
+        Core::hresult SetAudioPortConfig(const AudioPortType audioPort, const AudioConfig audioConfig);
+        Core::hresult GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
+        Core::hresult GetAudioCapabilities(const int32_t handle, int32_t &capabilities);
+        Core::hresult GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities);
+        Core::hresult GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) override;
+        Core::hresult GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) override;
+        Core::hresult GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
+        Core::hresult GetCompression(const int32_t handle, AudioCompression &compression);
+        Core::hresult SetCompression(const int32_t handle, const AudioCompression compression);
+        Core::hresult SetAudioLevel(const int32_t handle, const float audioLevel) override;
+        Core::hresult GetAudioLevel(const int32_t handle, float &audioLevel) override;
+        Core::hresult SetAudioGain(const int32_t handle, const float gainLevel) override;
+        Core::hresult GetAudioGain(const int32_t handle, float &gainLevel) override;
+        Core::hresult SetAudioMute(const int32_t handle, const bool mute) override;
+        Core::hresult IsAudioMuted(const int32_t handle, bool &muted) override;
+        Core::hresult SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) override;
+        Core::hresult GetStereoMode(const int32_t handle, AudioStereoMode &mode) override;
+        Core::hresult SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) override;
+        Core::hresult GetStereoAuto(const int32_t handle, int32_t &mode) override;
+        Core::hresult SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist) override;
+        Core::hresult SetAssociatedAudioMixing(const int32_t handle, const bool mixing);
+        Core::hresult GetAssociatedAudioMixing(const int32_t handle, bool &mixing);
+        Core::hresult SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance);
+        Core::hresult GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance);
+        Core::hresult SetAudioPrimaryLanguage(const int32_t handle, const string primaryAudioLanguage);
+        Core::hresult GetAudioPrimaryLanguage(const int32_t handle, string &primaryAudioLanguage);
+        Core::hresult SetAudioSecondaryLanguage(const int32_t handle, const string secondaryAudioLanguage);
+        Core::hresult GetAudioSecondaryLanguage(const int32_t handle, string &secondaryAudioLanguage);
+        Core::hresult IsAudioOutputConnected(const int32_t handle, bool &isConnected);
+        Core::hresult GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability);
+        Core::hresult SetAudioAtmosOutputMode(const int32_t handle, const bool enable);
+
+        // Additional Audio Port Methods
+        Core::hresult IsAudioPortEnabled(const int32_t handle, bool &enabled) override;
+        Core::hresult EnableAudioPort(const int32_t handle, const bool enable) override;
+        Core::hresult GetSupportedARCTypes(const int32_t handle, int32_t &types) override;
+        Core::hresult SetSAD(const int32_t handle, const uint8_t sadList[], const uint8_t count) override;
+        Core::hresult EnableARC(const int32_t handle, const AudioARCStatus arcStatus) override;
+
+        // Audio Persistence Configuration
+        Core::hresult GetAudioEnablePersist(const int32_t handle, bool &enabled, string &portName) override;
+        Core::hresult SetAudioEnablePersist(const int32_t handle, const bool enable, const string portName) override;
+
+        // Audio Decoder Status
+        Core::hresult IsAudioMSDecoded(const int32_t handle, bool &hasms11Decode) override;
+        Core::hresult IsAudioMS12Decoded(const int32_t handle, bool &hasms12Decode) override;
+
+        // Loudness Equivalence Configuration
+        Core::hresult GetAudioLEConfig(const int32_t handle, bool &enabled) override;
+        Core::hresult EnableAudioLEConfig(const int32_t handle, const bool enable) override;
+
+        // Audio Delay Controls
+        Core::hresult SetAudioDelay(const int32_t handle, const uint32_t audioDelay) override;
+        Core::hresult GetAudioDelay(const int32_t handle, uint32_t &audioDelay) override;
+        Core::hresult SetAudioDelayOffset(const int32_t handle, const uint32_t delayOffset) override;
+        Core::hresult GetAudioDelayOffset(const int32_t handle, uint32_t &delayOffset) override;
+
+        // Audio Dynamic Range Control
+        Core::hresult SetAudioCompression(const int32_t handle, const int32_t compressionLevel) override;
+        Core::hresult GetAudioCompression(const int32_t handle, int32_t &compressionLevel) override;
+
+        // Dialog Enhancement
+        Core::hresult SetAudioDialogEnhancement(const int32_t handle, const int32_t level) override;
+        Core::hresult GetAudioDialogEnhancement(const int32_t handle, int32_t &level) override;
+
+        // Dolby Volume Mode
+        Core::hresult SetAudioDolbyVolumeMode(const int32_t handle, const bool enable) override;
+        Core::hresult GetAudioDolbyVolumeMode(const int32_t handle, bool &enabled) override;
+
+        // Intelligent Equalizer
+        Core::hresult SetAudioIntelligentEqualizerMode(const int32_t handle, const int32_t mode) override;
+        Core::hresult GetAudioIntelligentEqualizerMode(const int32_t handle, int32_t &mode) override;
+
+        // Volume Leveller
+        Core::hresult SetAudioVolumeLeveller(const int32_t handle, const VolumeLeveller volumeLeveller) override;
+        Core::hresult GetAudioVolumeLeveller(const int32_t handle, VolumeLeveller &volumeLeveller) override;
+
+        // Bass Enhancer
+        Core::hresult SetAudioBassEnhancer(const int32_t handle, const int32_t boost) override;
+        Core::hresult GetAudioBassEnhancer(const int32_t handle, int32_t &boost) override;
+
+        // Surround Decoder
+        Core::hresult EnableAudioSurroudDecoder(const int32_t handle, const bool enable) override;
+        Core::hresult IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled) override;
+
+        // DRC Mode
+        Core::hresult SetAudioDRCMode(const int32_t handle, const int32_t drcMode) override;
+        Core::hresult GetAudioDRCMode(const int32_t handle, int32_t &drcMode) override;
+
+        // Surround Virtualizer
+        Core::hresult SetAudioSurroudVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) override;
+        Core::hresult GetAudioSurroudVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) override;
+
+        // MI Steering
+        Core::hresult SetAudioMISteering(const int32_t handle, const bool enable) override;
+        Core::hresult GetAudioMISteering(const int32_t handle, bool &enable) override;
+
+        // Graphic Equalizer
+        Core::hresult SetAudioGraphicEqualizerMode(const int32_t handle, const int32_t mode) override;
+        Core::hresult GetAudioGraphicEqualizerMode(const int32_t handle, int32_t &mode) override;
+
+        // MS12 Profile Management
+        Core::hresult GetAudioMS12ProfileList(const int32_t handle, IDeviceSettingsAudioMS12AudioProfileIterator*& ms12ProfileList) const override;
+        Core::hresult GetAudioMS12Profile(const int32_t handle, string &profile) override;
+        Core::hresult SetAudioMS12Profile(const int32_t handle, const string profile) override;
+
+        // Audio Mixer Levels
+        Core::hresult SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume) override;
+
+        // MS12 Settings Override
+        Core::hresult SetAudioMS12SettingsOverride(const int32_t handle, const string profileName, const string profileSettingsName, const string profileSettingValue, const string profileState) override;
+
+        // Reset Functions
+        Core::hresult ResetAudioDialogEnhancement(const int32_t handle) override;
+        Core::hresult ResetAudioBassEnhancer(const int32_t handle) override;
+        Core::hresult ResetAudioSurroundVirtualizer(const int32_t handle) override;
+        Core::hresult ResetAudioVolumeLeveller(const int32_t handle) override;
+
+        // HDMI ARC
+        Core::hresult GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId) override;
+        
         // Other interface implementations - stub implementations for now
-        // IDeviceSettingsAudio - not implemented yet
         // IDeviceSettingsCompositeIn - not implemented yet  
         // IDeviceSettingsDisplay - not implemented yet
         // IDeviceSettingsHost - not implemented yet
@@ -148,9 +275,9 @@ namespace Plugin {
         // Component implementation instances
         DeviceSettingsFPDImpl* _fpdSettings;
         DeviceSettingsHdmiInImp* _hdmiInSettings;
+        DeviceSettingsAudioImpl* _audioSettings;
         
         // Interface pointers for future implementation (currently unused)
-        // Exchange::IDeviceSettingsAudio* _audioSettings;
         // Exchange::IDeviceSettingsCompositeIn* _compositeInSettings;
         // Exchange::IDeviceSettingsDisplay* _displaySettings;
         // Exchange::IDeviceSettingsHost* _hostSettings;

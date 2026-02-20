@@ -100,7 +100,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: feature/workflow-L1-L2test
+          ref: develop
 
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3

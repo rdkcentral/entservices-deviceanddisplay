@@ -150,7 +150,6 @@ DeviceDiagnostics_L2test::DeviceDiagnostics_L2test()
         if (m_controller_devdiag) {
             EXPECT_TRUE(m_devdiagplugin != nullptr);
             if (m_devdiagplugin) {
-                m_devdiagplugin->AddRef();
                 m_devdiagplugin->Register(&notify);
             } else {
                 TEST_LOG("m_devdiagplugin is NULL");
@@ -220,9 +219,6 @@ uint32_t DeviceDiagnostics_L2test::CreateDeviceDiagnosticsInterfaceObject()
     DeviceDiagnostics_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(DeviceDiagnostics_Engine));
 
     TEST_LOG("Creating DeviceDiagnostics_Engine Announcements");
-#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
-    DeviceDiagnostics_Engine->Announcements(mDeviceDiagnostics_Client->Announcement());
-#endif
     if (!DeviceDiagnostics_Client.IsValid()) {
         TEST_LOG("Invalid DeviceDiagnostics_Client");
     } else {
@@ -348,23 +344,23 @@ TEST_F(DeviceDiagnostics_L2test, ACTIVE_GetAVDecoderStatus_JSONRPC)
     uint32_t signalled = DeviceDiagnostics_StateInvalid;
     JsonObject expected_status;
 
-    /* Register for onAVDecoderStatusChanged event. */
-    status = jsonrpc.Subscribe<JsonObject>(AV_POLL_TIMEOUT,
-        _T("onAVDecoderStatusChanged"),
-        &AsyncHandlerMock_DevDiag::onAVDecoderStatusChanged,
-        &async_handler);
-    EXPECT_EQ(Core::ERROR_NONE, status);
+    // Change the AVDecoderstatus from IDLE to ACTIVE
+    EXPECT_CALL(*p_essRMgrMock, EssRMgrGetAVState(::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::DoAll(
+            ::testing::SetArgPointee<1>(EssRMgrRes_active),
+            ::testing::Return(true)));
 
     message = "{\"avDecoderStatusChange\":\"{\\\"avDecoderStatusChange\\\":\\\"ACTIVE\\\"}\"}";
     expected_status.FromString(message);
     EXPECT_CALL(async_handler, onAVDecoderStatusChanged(MatchRequestStatus(expected_status)))
     .WillRepeatedly(Invoke(this, &DeviceDiagnostics_L2test::onAVDecoderStatusChanged));
 
-    // Change the AVDecoderstatus from IDLE to ACTIVE
-    EXPECT_CALL(*p_essRMgrMock, EssRMgrGetAVState(::testing::_, ::testing::_))
-        .WillRepeatedly(::testing::DoAll(
-            ::testing::SetArgPointee<1>(EssRMgrRes_active),
-            ::testing::Return(true)));
+    /* Register for onAVDecoderStatusChanged event. */
+    status = jsonrpc.Subscribe<JsonObject>(AV_POLL_TIMEOUT,
+        _T("onAVDecoderStatusChanged"),
+        &AsyncHandlerMock_DevDiag::onAVDecoderStatusChanged,
+        &async_handler);
+    EXPECT_EQ(Core::ERROR_NONE, status);
 
     JsonObject param, result;
     param["avDecoderStatus"] = "";

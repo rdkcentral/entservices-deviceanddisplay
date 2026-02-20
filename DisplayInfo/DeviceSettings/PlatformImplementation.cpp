@@ -227,17 +227,15 @@ public:
             }
             else
             {
-                TRACE(Trace::Information, (_T("EDID Verification failed")));
-                ret = Core::ERROR_GENERAL;
+                TRACE(Trace::Error, (_T("EDID Verification failed")));
             }
             delete[] edidbytes;
         }
         else
         {
-            TRACE(Trace::Information, (_T("HDMI not connected")));
-            ret = Core::ERROR_GENERAL;
+            TRACE(Trace::Error, (_T("HDMI not connected")));
         }
-        return ret;
+        return (Core::ERROR_NONE);
     }
     Core::hresult Height(uint32_t& value) const override
     {
@@ -257,17 +255,15 @@ public:
             }
             else
             {
-                TRACE(Trace::Information, (_T("EDID Verification failed")));
-                ret = Core::ERROR_GENERAL;
+                TRACE(Trace::Error, (_T("EDID Verification failed")));
             }
             delete[] edidbytes;
         }
         else
         {
-            TRACE(Trace::Information, (_T("HDMI not connected")));
-            ret = Core::ERROR_GENERAL;
+            TRACE(Trace::Error, (_T("HDMI not connected")));
         }
-        return ret;
+        return (Core::ERROR_NONE);
     }
     Core::hresult VerticalFreq(uint32_t& value) const override
     {

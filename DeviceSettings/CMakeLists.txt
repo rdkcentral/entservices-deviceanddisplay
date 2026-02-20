@@ -21,7 +21,7 @@ set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Imp)
 
 set(PLUGIN_DEVICESETTINGS_AUTOSTART "true" CACHE STRING "Automatically start DeviceSettingsManager plugin")
 set(PLUGIN_DEVICESETTINGS_STARTUPORDER "30" CACHE STRING "To configure startup order of DeviceSettingsManager plugin")
-set(PLUGIN_DEVICESETTINGS_MODE "Local" CACHE STRING "Controls if the plugin should run in its own process, in process or remote")
+#set(PLUGIN_DEVICESETTINGS_MODE "Local" CACHE STRING "Controls if the plugin should run in its own process, in process or remote")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 

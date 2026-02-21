@@ -828,7 +828,9 @@ namespace WPEFramework {
 
         void SystemServices::onThermalModeChanged(const ThermalTemperature currentThermalLevel, const ThermalTemperature newThermalLevel, const float currentTemperature)
         {
-            handleThermalLevelChange(currentThermalLevel, newThermalLevel, currentTemperature);
+			#ifdef ENABLE_THERMAL_PROTECTION
+            	handleThermalLevelChange(currentThermalLevel, newThermalLevel, currentTemperature);
+			#endif
         }
 
         void SystemServices::onRebootBegin(const string &rebootReasonCustom, const string &rebootReasonOther, const string &rebootRequestor)

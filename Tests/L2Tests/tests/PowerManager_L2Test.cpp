@@ -684,7 +684,7 @@ void PowerManager_L2Test::Test_NetworkStandbyMode( Exchange::IPowerManager* Powe
     signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT,POWERMANAGERL2TEST_NETWORK_STANDBYMODECHANGED);
     EXPECT_TRUE(signalled & POWERMANAGERL2TEST_NETWORK_STANDBYMODECHANGED);
 
-    bool standbyMode1;
+    bool standbyMode1 = false;
 
     status = PowerManagerPlugin->GetNetworkStandbyMode(standbyMode1);
     EXPECT_EQ(standbyMode, standbyMode1);

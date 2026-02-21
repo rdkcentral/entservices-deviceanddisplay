@@ -193,7 +193,7 @@ namespace WPEFramework
         void *DeviceDiagnosticsImplementation::AVPollThread(void *arg)
         {
             int lastStatus = EssRMgrRes_idle;
-            int status;
+            int status = 0;
             int timeoutInSec = AVDECODERSTATUS_RETRY_INTERVAL;
             DeviceDiagnosticsImplementation* t = DeviceDiagnosticsImplementation::_instance;
 

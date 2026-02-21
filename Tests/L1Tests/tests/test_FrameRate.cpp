@@ -532,7 +532,7 @@ TEST_F(FrameRateTest, OnReportFpsTimer_WithUpdates)
 
     Plugin::FrameRateImplementation::_instance->Register(notificationHandler);
     
-    bool success;
+    bool success = false;
     Plugin::FrameRateImplementation::_instance->UpdateFps(60, success);
     Plugin::FrameRateImplementation::_instance->UpdateFps(58, success);
     Plugin::FrameRateImplementation::_instance->UpdateFps(62, success);

@@ -124,10 +124,6 @@ set (FRAMERATE_LIBS ${NAMESPACE}FrameRate ${NAMESPACE}FrameRateImplementation)
 add_plugin_test_ex(PLUGIN_FRAMERATE tests/test_FrameRate.cpp "${FRAMERATE_INC}" "${FRAMERATE_LIBS}")
 
 
-# PLUGIN_USERPREFERENCES
-set (USERPREFERENCES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/UserPreferences ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
-add_plugin_test_ex(PLUGIN_USERPREFERENCES tests/test_UserPreferences.cpp "${USERPREFERENCES_INC}" "${NAMESPACE}UserPreferences")
-
 # PLUGIN_SYSTEMSERVICES
 #set (SYSTEMSERVICES_INC ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/SystemServices ${CMAKE_SOURCE_DIR}/../entservices-deviceanddisplay/helpers)
 #add_plugin_test_ex(PLUGIN_SYSTEMSERVICES tests/test_SystemServices.cpp "${SYSTEMSERVICES_INC}" "${NAMESPACE}SystemServices")

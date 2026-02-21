@@ -4849,9 +4849,9 @@ namespace WPEFramework {
             if ((!strcmp(IARM_BUS_SYSTIME_MGR_NAME, owner)) && (0 == eventId)) {
                     LOGWARN("IARM_BUS_SYSTIME_MGR_NAME event received\n");
                     TimerMsg* pMsg = (TimerMsg*)data;
-                    string timequality = std::string(pMsg->message,cTIMER_STATUS_MESSAGE_LENGTH);
-                    string timersrc = std::string(pMsg->timerSrc,cTIMER_STATUS_MESSAGE_LENGTH);
-                    string timerStr = std::string(pMsg->currentTime,cTIMER_STATUS_MESSAGE_LENGTH);
+                    # string timequality = std::string(pMsg->message,cTIMER_STATUS_MESSAGE_LENGTH);
+                    # string timersrc = std::string(pMsg->timerSrc,cTIMER_STATUS_MESSAGE_LENGTH);
+                    # string timerStr = std::string(pMsg->currentTime,cTIMER_STATUS_MESSAGE_LENGTH);
 					LOGWARN("IARM_BUS_SYSTIME_MGR_NAME event received -override with Poor\n");
 				    string timequality = std::string("Poor");
 					string timersrc = std::string("Last Known");

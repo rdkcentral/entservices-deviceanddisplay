@@ -104,6 +104,10 @@ protected:
 		    return Core::ERROR_NONE;
                 }));
 
+        ON_CALL(service, COMLink())
+            .WillByDefault(::testing::Return(static_cast<WPEFramework::PluginHost::IShell::ICOMLink*>(&service)));
+
+
 #ifdef USE_THUNDER_R4
         ON_CALL(comLinkMock, Instantiate(::testing::_, ::testing::_, ::testing::_))
                 .WillByDefault(::testing::Invoke(

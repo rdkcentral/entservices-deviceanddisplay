@@ -12,6 +12,7 @@
 #include <mutex>
 
 #include "ThermalController.h"
+#include "WorkerPoolImplementation.h"
 
 // mocks
 #include "IarmBusMock.h"
@@ -66,6 +67,8 @@ public:
     MOCK_METHOD(void, onDeepSleepForThermalChange, (), (override));
 
     TestThermalController()
+        : workerPool(Core::ProxyType<WorkerPoolImplementation>::Create(
+              2, Core::Thread::DefaultStackSize(), 16))
     {
         p_wrapsImplMock = new testing::NiceMock<WrapsImplMock>;
         Wraps::setImpl(p_wrapsImplMock);
@@ -81,6 +84,9 @@ public:
 
         p_iarmBusMock = new testing::NiceMock<IarmBusImplMock>;
         IarmBus::setImpl(p_iarmBusMock);
+
+        Core::IWorkerPool::Assign(&(*workerPool));
+        workerPool->Run();
 
         setupDefaultMocks();
     }
@@ -121,6 +127,9 @@ public:
 
     ~TestThermalController() override
     {
+        Core::IWorkerPool::Assign(nullptr);
+        workerPool.Release();
+
         Wraps::setImpl(nullptr);
         if (p_wrapsImplMock != nullptr) {
             delete p_wrapsImplMock;
@@ -153,6 +162,7 @@ public:
     }
 
 protected:
+    Core::ProxyType<WorkerPoolImplementation> workerPool;
     WrapsImplMock* p_wrapsImplMock     = nullptr;
     RfcApiImplMock* p_rfcApiImplMock   = nullptr;
     PowerManagerHalMock* p_powerManagerHalMock = nullptr;

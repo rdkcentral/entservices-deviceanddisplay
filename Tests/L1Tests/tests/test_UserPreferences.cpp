@@ -94,6 +94,8 @@ protected:
         ON_CALL(*p_userSettingsMock, Register(::testing::_))
             .WillByDefault(Return(Core::ERROR_NONE));
 
+        ON_CALL(service, COMLink())
+            .WillByDefault(::testing::Return(static_cast<WPEFramework::PluginHost::IShell::ICOMLink*>(&service)));
 
         // Initialize plugin with mock service
         plugin->Initialize(&service);

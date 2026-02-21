@@ -115,6 +115,9 @@ protected:
                     return Core::ERROR_NONE;
                 });
 
+        ON_CALL(service, COMLink())
+            .WillByDefault(::testing::Return(static_cast<WPEFramework::PluginHost::IShell::ICOMLink*>(&service)));
+
         PluginHost::IFactories::Assign(&factoriesImplementation);
     }
 

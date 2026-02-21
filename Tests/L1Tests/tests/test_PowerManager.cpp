@@ -100,6 +100,7 @@ private:
 class TestPowerManager : public ::testing::Test {
 
 protected:
+    Core::ProxyType<WorkerPoolImplementation> workerPool;
     WrapsImplMock* p_wrapsImplMock     = nullptr;
     RfcApiImplMock* p_rfcApiImplMock   = nullptr;
     PowerManagerHalMock* p_powerManagerHalMock = nullptr;
@@ -154,8 +155,13 @@ public:
     };
 
     TestPowerManager()
-        : _wakeupSources(0xFF)
+        : workerPool(Core::ProxyType<WorkerPoolImplementation>::Create(
+              4, 64 * 1024, 16))
+        , _wakeupSources(0xFF)
     {
+        Core::IWorkerPool::Assign(&(*workerPool));
+        workerPool->Run();
+
         SetUpMocks();
 
         setupWg.Add(1);
@@ -302,6 +308,9 @@ public:
 
         wg.Wait();
 
+        Core::IWorkerPool::Assign(nullptr);
+        workerPool.Release();
+
         Wraps::setImpl(nullptr);
         if (p_wrapsImplMock != nullptr) {
             delete p_wrapsImplMock;
@@ -351,14 +360,6 @@ public:
         if (0 != system("sync")) {
             // do nothig
         }
-    }
-
-    static void SetUpTestSuite()
-    {
-        // static WorkerPoolImplementation workerPool(4, WPEFramework::Core::Thread::DefaultStackSize(), 16);
-        static WorkerPoolImplementation workerPool(4, 64 * 1024, 16);
-        WPEFramework::Core::WorkerPool::Assign(&workerPool);
-        workerPool.Run();
     }
 
     PowerState initialPowerState()

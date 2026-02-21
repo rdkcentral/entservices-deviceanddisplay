@@ -85,11 +85,7 @@ namespace WPEFramework {
 
                     public:
                         static Core::ProxyType<Core::IDispatch> Create(FrameRateImplementation* framerateImplementation, Event event, JsonValue params) {
-#ifndef USE_THUNDER_R4
-                           return (Core::proxy_cast<Core::IDispatch>(Core::ProxyType<Job>::Create(framerateImplementation, event, params)));
-#else
                            return (Core::ProxyType<Core::IDispatch>(Core::ProxyType<Job>::Create(framerateImplementation, event, params)));
-#endif
                         }
 
                         virtual void Dispatch() {

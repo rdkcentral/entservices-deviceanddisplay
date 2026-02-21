@@ -48,14 +48,7 @@ SystemModeImplementation::SystemModeImplementation()
      {
          LOGWARN("Invalid _communicatorClient\n");
     }
-    else
-    {
 
-#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
-        _engine->Announcements(_communicatorClient->Announcement());
-#endif
-
-    }
 
     //set default value for each  SystemMode
 

@@ -212,6 +212,7 @@ public:
     Core::hresult Width(uint32_t& value) const override
     {
         std::vector<uint8_t> edidVec;
+        value = 0;
         uint32_t ret = GetEdidBytes(edidVec);
         if (ret == Core::ERROR_NONE)
         {
@@ -240,6 +241,7 @@ public:
     Core::hresult Height(uint32_t& value) const override
     {
         std::vector<uint8_t> edidVec;
+        value = 0;
         uint32_t ret = GetEdidBytes(edidVec);
         if (ret == Core::ERROR_NONE)
         {

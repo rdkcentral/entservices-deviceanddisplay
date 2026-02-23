@@ -51,6 +51,9 @@ typedef struct _dsFPDSettings_t_
 
 static _FPDSettings_t srvFPDSettings[dsFPD_INDICATOR_MAX];
 
+// Power brightness setting similar to RPC layer
+static dsFPDBrightness_t _dsPowerBrightness = dsFPD_BRIGHTNESS_MAX;
+
 class dFPDImpl : public hal::dFPD::IPlatform {
 
     // delete copy constructor and assignment operator
@@ -146,6 +149,16 @@ public:
             LOGINFO("SetFPDBrightness: dsSetFPBrightness returned %d", eError);
             if (eError == dsERR_NONE) {
                 srvFPDSettings[static_cast<int>(indicator)].brightness = brightNess;
+                
+                // Update global power brightness when POWER indicator is set
+                if (static_cast<int>(indicator) == dsFPD_INDICATOR_POWER) {
+                    LOGINFO("SetFPDBrightness: Power Brightness From App is %d", brightNess);
+                    if (persist) {
+                        _dsPowerBrightness = brightNess;
+                        LOGINFO("SetFPDBrightness: Updated global _dsPowerBrightness to %d", _dsPowerBrightness);
+                    }
+                }
+                
                 retCode = WPEFramework::Core::ERROR_NONE;
             } else {
                 LOGERR("SetFPDBrightness: dsSetFPBrightness failed with error %d", eError);
@@ -188,13 +201,28 @@ public:
         LOGINFO("SetFPDState: indicator %d, state %d", static_cast<int>(indicator), static_cast<int>(state));
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
-            dsError_t eError = dsSetFPState(static_cast<dsFPDIndicator_t>(indicator), static_cast<dsFPDState_t>(state));
-            LOGINFO("SetFPDState: dsSetFPState returned %d", eError);
+            dsError_t eError = dsERR_NONE;
+            
+            // Match RPC layer approach - use dsSetFPBrightness based on state
+            if (state == FPDState::DS_FPD_STATE_ON) {
+                // Power LED Indicator Brightness is the Global LED brightness for all indicators
+                eError = dsSetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), _dsPowerBrightness);
+                if (static_cast<int>(indicator) == dsFPD_INDICATOR_POWER) {
+                    LOGINFO("SetFPDState: Setting Power LED to ON with Brightness %d", _dsPowerBrightness);
+                }
+            } else if (state == FPDState::DS_FPD_STATE_OFF) {
+                eError = dsSetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), 0);
+                if (static_cast<int>(indicator) == dsFPD_INDICATOR_POWER) {
+                    LOGINFO("SetFPDState: Setting Power LED to OFF with Brightness 0");
+                }
+            }
+            
+            LOGINFO("SetFPDState: dsSetFPBrightness returned %d", eError);
             if (eError == dsERR_NONE) {
                 srvFPDSettings[static_cast<int>(indicator)].state = static_cast<dsFPDState_t>(state);
                 retCode = WPEFramework::Core::ERROR_NONE;
             } else {
-                LOGERR("SetFPDState: dsSetFPState failed with error %d", eError);
+                LOGERR("SetFPDState: dsSetFPBrightness failed with error %d", eError);
             }
         } else {
             LOGERR("SetFPDState: Invalid indicator %d", static_cast<int>(indicator));
@@ -208,20 +236,10 @@ public:
         LOGINFO("GetFPDState: indicator %d", static_cast<int>(indicator));
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
-            dsFPDState_t halState = dsFPD_STATE_OFF;
-            dsError_t eError = dsGetFPState(static_cast<dsFPDIndicator_t>(indicator), &halState);
-            LOGINFO("GetFPDState: dsGetFPState returned %d", eError);
-            if (eError == dsERR_NONE) {
-                state = static_cast<FPDState>(halState);
-                srvFPDSettings[static_cast<int>(indicator)].state = halState;
-                LOGINFO("GetFPDState: indicator %d state %d", static_cast<int>(indicator), static_cast<int>(state));
-                retCode = WPEFramework::Core::ERROR_NONE;
-            } else {
-                LOGERR("GetFPDState: dsGetFPState failed with error %d", eError);
-                // Fallback to cached value
-                state = static_cast<FPDState>(srvFPDSettings[static_cast<int>(indicator)].state);
-                retCode = WPEFramework::Core::ERROR_NONE;
-            }
+            // Match RPC layer approach - read from internal cache instead of hardware call
+            state = static_cast<FPDState>(srvFPDSettings[static_cast<int>(indicator)].state);
+            LOGINFO("GetFPDState: indicator %d state %d (from cache)", static_cast<int>(indicator), static_cast<int>(state));
+            retCode = WPEFramework::Core::ERROR_NONE;
         } else {
             LOGERR("GetFPDState: Invalid indicator %d", static_cast<int>(indicator));
         }

@@ -142,8 +142,9 @@ namespace WPEFramework
             Core::hresult GetDevicePowerState(std::string& powerState) const;
             Core::hresult GetVolumeLevel (const string& port, string& level) const;
             void onPowerStateChanged(string currentPowerState, string powerState);
-            void TestSpecificHDMIInAPIs();
-            void TestFPDAPIs();
+            void TestSimplifiedHDMIInAPIs();
+            void TestSimplifiedFPDAPIs();
+            void TestSelectHDMIInPortAPI();
             
             // HDMI In Event Handlers
             void OnHDMIInEventHotPlug(const DeviceSettingsHDMIIn::HDMIInPort port, const bool isConnected);

@@ -493,6 +493,7 @@ protected:
                     res.refresh = 60;
                     res.width = 70;
                     res.height = 35;
+                    res.progressive = 0;
                     data_ptr->res = res; // Set the expected width and height
                     return edid_parser::EDID_STATUS_OK;
                 }));

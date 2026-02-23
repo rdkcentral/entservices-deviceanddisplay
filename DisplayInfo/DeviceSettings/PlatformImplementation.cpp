@@ -364,6 +364,7 @@ public:
 
     Core::hresult WidthInCentimeters(uint8_t& width /* @out */) const override
     {
+        width = 0;
         try
         {
             std::string strVideoPort = device::Host::getInstance().getDefaultVideoPortName();

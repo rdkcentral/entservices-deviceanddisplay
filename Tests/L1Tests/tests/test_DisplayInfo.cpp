@@ -489,11 +489,10 @@ protected:
             .WillByDefault(::testing::Invoke(
                 [&](unsigned char* bytes, size_t count, edid_parser::edid_data_t* data_ptr) {
                     // Mocked parsing logic
-                    edid_parser::edid_res_t res;
+                    edid_parser::edid_res_t res = {0};
                     res.refresh = 60;
                     res.width = 70;
                     res.height = 35;
-                    res.progressive = 0;
                     data_ptr->res = res; // Set the expected width and height
                     return edid_parser::EDID_STATUS_OK;
                 }));

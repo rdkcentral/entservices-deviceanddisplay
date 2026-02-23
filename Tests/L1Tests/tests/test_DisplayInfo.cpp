@@ -503,7 +503,8 @@ protected:
         ASSERT_NE(connectionProperties, nullptr);
 
         uint32_t width = 0;
-        uint32_t result = connectionProperties->Width(width);
+        uint32_t result = Core::ERROR_GENERAL;
+		result = connectionProperties->Width(width);
 
         uint32_t widthVal = 70;
 
@@ -511,7 +512,7 @@ protected:
         EXPECT_EQ(width, widthVal); // Change 70 to the expected value for your test/mocks
 
         uint32_t height = 0;
-        uint32_t result = connectionProperties->Height(height);
+        result = connectionProperties->Height(height);
 
         uint32_t heightVal = 35;
 

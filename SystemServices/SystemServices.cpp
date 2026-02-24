@@ -1254,14 +1254,32 @@ namespace WPEFramework {
                 returnResponse(true);
 
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
-            if (!queryParams.compare(MODEL_NAME) || !queryParams.compare(HARDWARE_ID)) {
-                returnResponse(getManufacturerData(queryParams, response));
-		}
+            /*
+            Temporary fix for 8.4.4.0 release to overrite the modelName same as PMI data for NA STB devices.
+            For all other devices, inluding UK STBs, TV Panels same logic as before.
+            */
+            if (!queryParams.compare(MODEL_NAME)) {
 
-	    if(!queryParams.compare(FRIENDLY_ID))
-	    {
-		    if(getModelName(queryParams, response))
-			    returnResponse(true);
+                // Read MODEL_NUM from device.properties file and if the it is any one if the below then respond with same value.
+                // NA devices: COESST11AEI, COESST11BEI, WNXI11AEI, SCXI11AIC, SCXI11BEI
+                std::string model_num;
+                GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MODEL_NUM", model_num);
+                if (model_num == "COESST11AEI" || model_num == "COESST11BEI" || model_num == "WNXI11AEI" || model_num == "SCXI11AIC" || model_num == "SCXI11BEI") {
+                    response[MODEL_NAME] = model_num;
+                    returnResponse(true);
+                }
+
+                returnResponse(getManufacturerData(queryParams, response));
+		    }
+
+            if (!queryParams.compare(HARDWARE_ID)) {
+                returnResponse(getManufacturerData(queryParams, response));
+		    }
+
+            if(!queryParams.compare(FRIENDLY_ID))
+            {
+                if(getModelName(queryParams, response))
+                    returnResponse(true);
             }
 #endif
             std::string cmd = "";

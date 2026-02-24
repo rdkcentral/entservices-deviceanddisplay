@@ -1255,12 +1255,12 @@ namespace WPEFramework {
 
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
             /*
-            Temporary fix for 8.4.4.0 release to overrite the modelName same as PMI data for NA STB devices.
-            For all other devices, inluding UK STBs, TV Panels same logic as before.
+            Temporary fix for 8.4.4.0 release to overwrite the modelName same as PMI data for NA STB devices.
+            For all other devices, including UK STBs, TV Panels same logic as before.
             */
             if (!queryParams.compare(MODEL_NAME)) {
 
-                // Read MODEL_NUM from device.properties file and if the it is any one if the below then respond with same value.
+                // Read MODEL_NUM from device.properties file and if any one of the below, then respond with same value.
                 // NA devices: COESST11AEI, COESST11BEI, WNXI11AEI, SCXI11AIC, SCXI11BEI
                 std::string model_num;
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MODEL_NUM", model_num);

@@ -182,12 +182,13 @@ uint32_t DeepSleepWakeupSettings::getWakeupTime() const
 DeepSleepController::DeepSleepController(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _parent(parent)
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
+    , _deepsleepStartTime()
+    , _lastWakeupTime(MonotonicClock::now())
     , _platform(std::move(platform))
     , _deepSleepState(DeepSleepState::NotStarted)
     , _deepSleepDelaySec(0)
     , _deepSleepWakeupTimeoutSec(0)
     , _nwStandbyMode(false)
-    , _lastWakeupTime(MonotonicClock::now())
 {
     LOGINFO(">> CTOR <<");
 }

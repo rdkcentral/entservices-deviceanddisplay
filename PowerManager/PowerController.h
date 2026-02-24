@@ -88,7 +88,7 @@ public:
     uint32_t Reboot(const string& requestor, const string& reasonCustom, const string& reasonOther);
     uint32_t SetDeepSleepTimer(const int timeOut);
     
-    inline uint32_t GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const
+    inline uint32_t GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
     {
         return _deepSleep.GetTimeSinceWakeup(secondsSinceWakeup);
     }

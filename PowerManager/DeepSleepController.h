@@ -155,7 +155,7 @@ public:
 
     uint32_t GetLastWakeupKeyCode(int& keyCode) const;
 
-    uint32_t GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const;
+    uint32_t GetTimeSinceWakeup(uint32_t& secondsSinceWakeup);
 
     // Update wakeup timestamp (called when resuming from any standby state)
     void UpdateWakeupTime();

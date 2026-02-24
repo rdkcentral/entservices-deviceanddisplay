@@ -612,7 +612,7 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const
+    Core::hresult PowerManagerImplementation::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
     {
         LOGINFO(">>");
 

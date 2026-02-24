@@ -214,7 +214,7 @@ uint32_t DeepSleepController::GetLastWakeupKeyCode(int& keyCode) const
     return platform().GetLastWakeupKeyCode(keyCode);
 }
 
-uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const
+uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
 {
     if (_lastWakeupTime.time_since_epoch() == std::chrono::steady_clock::duration::zero()) {
         // No wakeup has occurred yet

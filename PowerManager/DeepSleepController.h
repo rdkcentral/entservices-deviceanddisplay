@@ -155,6 +155,11 @@ public:
 
     uint32_t GetLastWakeupKeyCode(int& keyCode) const;
 
+    uint32_t GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const;
+
+    // Update wakeup timestamp (called when resuming from any standby state)
+    void UpdateWakeupTime();
+
     // activate deep sleep mode
     uint32_t Activate(uint32_t timeOut, bool nwStandbyMode);
 
@@ -188,6 +193,7 @@ private:
     INotification& _parent;
     WPEFramework::Core::IWorkerPool& _workerPool;
     Timestamp _deepsleepStartTime;
+    Timestamp _lastWakeupTime;
     std::shared_ptr<IPlatform> _platform;
     DeepSleepState _deepSleepState;
     uint32_t _deepSleepDelaySec;         // Duration to wait before entering deep sleep mode

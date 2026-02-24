@@ -187,6 +187,7 @@ DeepSleepController::DeepSleepController(INotification& parent, std::shared_ptr<
     , _deepSleepDelaySec(0)
     , _deepSleepWakeupTimeoutSec(0)
     , _nwStandbyMode(false)
+    , _lastWakeupTime(MonotonicClock::now())
 {
     LOGINFO(">> CTOR <<");
 }
@@ -211,6 +212,26 @@ uint32_t DeepSleepController::GetLastWakeupReason(WakeupReason& wakeupReason) co
 uint32_t DeepSleepController::GetLastWakeupKeyCode(int& keyCode) const
 {
     return platform().GetLastWakeupKeyCode(keyCode);
+}
+
+uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const
+{
+    if (_lastWakeupTime.time_since_epoch() == std::chrono::steady_clock::duration::zero()) {
+        // No wakeup has occurred yet
+        secondsSinceWakeup = 0;
+        return WPEFramework::Core::ERROR_GENERAL;
+    }
+
+    auto elapsed = MonotonicClock::now() - _lastWakeupTime;
+    secondsSinceWakeup = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(elapsed).count());
+    
+    return WPEFramework::Core::ERROR_NONE;
+}
+
+void DeepSleepController::UpdateWakeupTime()
+{
+    _lastWakeupTime = MonotonicClock::now();
+    LOGINFO("Wakeup timestamp updated");
 }
 
 // activate deep sleep mode
@@ -238,6 +259,9 @@ uint32_t DeepSleepController::Deactivate()
     uint32_t errorCode = platform().DeepSleepWakeup();
 
     _deepSleepState = DeepSleepState::NotStarted;
+    
+    // Update wakeup timestamp when device resumes from deep sleep
+    UpdateWakeupTime();
 
     LOGINFO("Deepsleep wakeup completed, errorCode: %u", errorCode);
 
@@ -288,6 +312,9 @@ void DeepSleepController::enterDeepSleepDelayed()
 
     _deepSleepState = DeepSleepState::Completed;
 
+    // Update wakeup timestamp
+    UpdateWakeupTime();
+
     if (userWakeup) {
         LOGINFO("DeeSleep wakeupReason: user action");
         _parent.onDeepSleepUserWakeup(userWakeup);
@@ -323,6 +350,8 @@ void DeepSleepController::enterDeepSleepNow()
             }
         } else {
             _deepSleepState = DeepSleepState::Completed;
+            // Update wakeup timestamp
+            UpdateWakeupTime();
             LOGINFO("Device entered to Deep sleep Mode..");
         }
     }

@@ -87,6 +87,11 @@ public:
     uint32_t GetWakeupSourceConfig(int& powerMode, int& srcType, int& config) const;
     uint32_t Reboot(const string& requestor, const string& reasonCustom, const string& reasonOther);
     uint32_t SetDeepSleepTimer(const int timeOut);
+    
+    inline uint32_t GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const
+    {
+        return _deepSleep.GetTimeSinceWakeup(secondsSinceWakeup);
+    }
 
     template <typename IMPL = DefaultImpl, typename... Args>
     static PowerController Create(DeepSleepController& deepSleep, Args&&... args)

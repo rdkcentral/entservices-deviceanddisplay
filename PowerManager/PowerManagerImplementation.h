@@ -131,6 +131,7 @@ namespace Plugin {
         Core::hresult SetDeepSleepTimer(const int timeOut) override;
         Core::hresult GetLastWakeupReason(WakeupReason& wakeupReason) const override;
         Core::hresult GetLastWakeupKeyCode(int& keycode) const override;
+        Core::hresult GetTimeSinceWakeup(uint32_t& secondsSinceWakeup) const override;
         Core::hresult Reboot(const string& rebootRequestor, const string& rebootReasonCustom, const string& rebootReasonOther) override;
         Core::hresult SetNetworkStandbyMode(const bool standbyMode) override;
         Core::hresult GetNetworkStandbyMode(bool& standbyMode) override;

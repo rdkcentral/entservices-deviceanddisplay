@@ -1265,6 +1265,7 @@ namespace WPEFramework {
                 std::string model_num;
                 GetValueFromPropertiesFile(DEVICE_PROPERTIES_FILE, "MODEL_NUM", model_num);
                 if (model_num == "COESST11AEI" || model_num == "COESST11BEI" || model_num == "WNXI11AEI" || model_num == "SCXI11AIC" || model_num == "SCXI11BEI") {
+                    LOGINFO("MODEL_NUM found as %s\n", model_num.c_str());
                     response[MODEL_NAME] = model_num;
                     returnResponse(true);
                 }

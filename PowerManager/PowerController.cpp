@@ -131,6 +131,14 @@ uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powe
             _deepSleep.UpdateWakeupTime();
             LOGINFO("Wakeup timestamp updated: transition from %s to ON", util::str(curState));
         }
+        // Reset wakeup timestamp when going from ON to any standby state
+        else if (curState == PowerState::POWER_STATE_ON &&
+                 (powerState == PowerState::POWER_STATE_STANDBY ||
+                  powerState == PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP ||
+                  powerState == PowerState::POWER_STATE_STANDBY_DEEP_SLEEP)) {
+            _deepSleep.ResetWakeupTime();
+            LOGINFO("Wakeup timestamp reset: transition from ON to %s", util::str(powerState));
+        }
     }
 
     return errCode;

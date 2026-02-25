@@ -160,6 +160,9 @@ public:
     // Update wakeup timestamp (called when resuming from any standby state)
     void UpdateWakeupTime();
 
+    // Reset wakeup timestamp to zero (called when entering standby from ON)
+    void ResetWakeupTime();
+
     // activate deep sleep mode
     uint32_t Activate(uint32_t timeOut, bool nwStandbyMode);
 

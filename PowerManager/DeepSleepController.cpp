@@ -218,9 +218,9 @@ uint32_t DeepSleepController::GetLastWakeupKeyCode(int& keyCode) const
 uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
 {
     if (_lastWakeupTime.time_since_epoch() == std::chrono::steady_clock::duration::zero()) {
-        // No wakeup has occurred yet
+        // Device is in standby or no wakeup has occurred yet
         secondsSinceWakeup = 0;
-        return WPEFramework::Core::ERROR_GENERAL;
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     auto elapsed = MonotonicClock::now() - _lastWakeupTime;
@@ -233,6 +233,12 @@ void DeepSleepController::UpdateWakeupTime()
 {
     _lastWakeupTime = MonotonicClock::now();
     LOGINFO("Wakeup timestamp updated");
+}
+
+void DeepSleepController::ResetWakeupTime()
+{
+    _lastWakeupTime = Timestamp();
+    LOGINFO("Wakeup timestamp reset to zero");
 }
 
 // activate deep sleep mode

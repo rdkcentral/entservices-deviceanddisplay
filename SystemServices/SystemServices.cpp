@@ -1255,7 +1255,7 @@ namespace WPEFramework {
 
 #ifdef ENABLE_DEVICE_MANUFACTURER_INFO
             /*
-            Temporary fix for 8.4.4.0 release to overwrite the modelName same as PMI data for NA STB devices.
+            Temporary fix for a release to overwrite the modelName same as PMI data for NA STB devices.
             For all other devices, including UK STBs, TV Panels same logic as before.
             */
             if (!queryParams.compare(MODEL_NAME)) {

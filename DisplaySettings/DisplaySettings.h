@@ -31,11 +31,7 @@
 #include <interfaces/IDeviceOptimizeStateActivator.h>
 #include <iostream>
 #include <fstream>
-#include <interfaces/IPowerManager.h>
-#include "PowerManagerInterface.h"
 
-using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
-using ThermalTemperature = WPEFramework::Exchange::IPowerManager::ThermalTemperature;
 namespace WPEFramework {
 
     namespace Plugin {
@@ -57,39 +53,6 @@ namespace WPEFramework {
             typedef Core::JSON::String JString;
             typedef Core::JSON::ArrayType<JString> JStringArray;
             typedef Core::JSON::Boolean JBool;
-            class PowerManagerNotification : public Exchange::IPowerManager::IModeChangedNotification {
-            private:
-                PowerManagerNotification(const PowerManagerNotification&) = delete;
-                PowerManagerNotification& operator=(const PowerManagerNotification&) = delete;
-            
-            public:
-                explicit PowerManagerNotification(DisplaySettings& parent)
-                    : _parent(parent)
-                {
-                }
-                ~PowerManagerNotification() override = default;
-
-            public:
-                void OnPowerModeChanged(const PowerState currentState, const PowerState newState) override
-                {
-                    _parent.onPowerModeChanged(currentState, newState);
-                }
-
-                template <typename T>
-                T* baseInterface()
-                {
-                    static_assert(std::is_base_of<T, PowerManagerNotification>(), "base type mismatch");
-                    return static_cast<T*>(this);
-                }
-
-                BEGIN_INTERFACE_MAP(PowerManagerNotification)
-                INTERFACE_ENTRY(Exchange::IPowerManager::IModeChangedNotification)
-                END_INTERFACE_MAP
-            
-            private:
-                DisplaySettings& _parent;
-            };
-
 
             // We do not allow this plugin to be copied !!
             DisplaySettings(const DisplaySettings&) = delete;
@@ -226,8 +189,7 @@ namespace WPEFramework {
             virtual const string Initialize(PluginHost::IShell* service) override;
             virtual void Deinitialize(PluginHost::IShell* service) override;
             virtual string Information() const override { return {}; }
-            void onPowerModeChanged(const PowerState currentState, const PowerState newState);
-            void registerEventHandlers();
+
             BEGIN_INTERFACE_MAP(DisplaySettings)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
@@ -254,7 +216,7 @@ namespace WPEFramework {
             dsHDRStandard_t getVideoFormatTypeFromString(const char *mode);
             JsonArray getSupportedVideoFormats();
             bool checkPortName(std::string& name) const;
-            PowerState getSystemPowerState();
+            IARM_Bus_PWRMgr_PowerState_t getSystemPowerState();
 
 	    void getHdmiCecSinkPlugin();
 	    WPEFramework::JSONRPC::LinkType<WPEFramework::Core::JSON::IElement>* m_client;
@@ -289,16 +251,13 @@ namespace WPEFramework {
 	    bool m_hdmiInAudioDeviceConnected;
             bool m_arcEarcAudioEnabled;
             bool m_arcPendingSADRequest;   
+            bool m_isPwrMgr2RFCEnabled;
 	    bool m_hdmiCecAudioDeviceDetected;
 	    bool m_systemAudioMode_Power_RequestedAndReceived;
 	    dsAudioARCTypes_t m_hdmiInAudioDeviceType;
 	    JsonObject m_audioOutputPortConfig;
-        PowerManagerInterfaceRef _powerManagerPlugin;
-        Core::Sink<PowerManagerNotification> _pwrMgrNotification;
-        bool _registeredEventHandlers;
-        void InitializePowerManager();
             JsonObject getAudioOutputPortConfig() { return m_audioOutputPortConfig; }
-            static PowerState m_powerState;
+            static IARM_Bus_PWRMgr_PowerState_t m_powerState;
 
             enum {
                 ARC_STATE_REQUEST_ARC_INITIATION,

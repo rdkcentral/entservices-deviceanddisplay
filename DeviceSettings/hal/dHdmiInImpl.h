@@ -332,8 +332,8 @@ public:
         if (0 != dsGetEdidVersionFunc) {
             tv_hdmi_edid_version_t EdidVersion;
             eRet = dsGetEdidVersionFunc (iHdmiPort, &EdidVersion);
-            int tmp = static_cast<int>(EdidVersion);
-            *iEdidVersion = tmp;
+            int EdidVer = static_cast<int>(EdidVersion);
+            *iEdidVersion = EdidVer;
             LOGINFO("dsGetEdidVersionFunc eRet: %d", eRet);
         }
         else {

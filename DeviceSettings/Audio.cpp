@@ -41,8 +41,132 @@ Audio::Audio(INotification& parent, std::shared_ptr<IPlatform> platform)
 void Audio::Platform_init()
 {
     ENTRY_LOG;
-    // Initialize Audio platform
-    LOGINFO("Audio Init");
+    CallbackBundle bundle;
+    bundle.OnAudioOutHotPlug = [this](AudioPortType portType, uint32_t portNumber, bool isConnected) {
+        this->OnAudioOutHotPlug(portType, portNumber, isConnected);
+    };
+    bundle.OnAudioFormatUpdate = [this](AudioFormat audioFormat) {
+        this->OnAudioFormatUpdate(audioFormat);
+    };
+    bundle.OnDolbyAtmosCapabilitiesChanged = [this](DolbyAtmosCapability atmosCaps, bool status) {
+        this->OnDolbyAtmosCapabilitiesChanged(atmosCaps, status);
+    };
+    bundle.OnAssociatedAudioMixingChanged = [this](bool mixing) {
+        this->OnAssociatedAudioMixingChanged(mixing);
+    };
+    bundle.OnAudioFaderControlChanged = [this](int32_t mixerBalance) {
+        this->OnAudioFaderControlChanged(mixerBalance);
+    };
+    bundle.OnAudioPrimaryLanguageChanged = [this](const std::string& primaryLanguage) {
+        this->OnAudioPrimaryLanguageChanged(primaryLanguage);
+    };
+    bundle.OnAudioSecondaryLanguageChanged = [this](const std::string& secondaryLanguage) {
+        this->OnAudioSecondaryLanguageChanged(secondaryLanguage);
+    };
+    bundle.OnAudioPortStateChanged = [this](AudioPortState audioPortState) {
+        this->OnAudioPortStateChanged(audioPortState);
+    };
+    bundle.OnAudioLevelChanged = [this](float audioLevel) {
+        this->OnAudioLevelChanged(audioLevel);
+    };
+    bundle.OnAudioModeChanged = [this](AudioPortType portType, AudioStereoMode mode) {
+        this->OnAudioModeChanged(portType, mode);
+    };
+    if (_platform) {
+        this->platform().setAllCallbacks(bundle);
+        this->platform().getPersistenceValue();
+    }
+    EXIT_LOG;
+}
+
+void Audio::OnAudioOutHotPlug(AudioPortType portType, uint32_t portNumber, bool isConnected)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioOutHotPlug: portType=%d, portNumber=%u, connected=%s", static_cast<int>(portType), portNumber, isConnected ? "true" : "false");
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAudioOutHotPlug(portType, portNumber, isConnected);
+    EXIT_LOG;
+}
+
+void Audio::OnAudioFormatUpdate(AudioFormat audioFormat)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioFormatUpdate: format=%d", static_cast<int>(audioFormat));
+    // Trigger notification to parent for callback dispatch  
+    _parent.OnAudioFormatUpdate(audioFormat);
+    EXIT_LOG;
+}
+
+void Audio::OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCaps, bool status)
+{
+    ENTRY_LOG;
+    LOGINFO("OnDolbyAtmosCapabilitiesChanged: caps=%d, status=%s", static_cast<int>(atmosCaps), status ? "true" : "false");
+    // Trigger notification to parent for callback dispatch
+    _parent.OnDolbyAtmosCapabilitiesChanged(atmosCaps, status);
+    EXIT_LOG;
+}
+
+void Audio::OnAudioModeChanged(AudioPortType portType, AudioStereoMode mode)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioModeChanged: portType=%d, mode=%d", static_cast<int>(portType), static_cast<int>(mode));
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAudioModeEvent(portType, mode);
+    EXIT_LOG;
+}
+
+// Event handler methods for audio state changes
+void Audio::OnAssociatedAudioMixingChanged(bool mixing)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAssociatedAudioMixingChanged: mixing=%s", mixing ? "enabled" : "disabled");
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAssociatedAudioMixingChanged(mixing);
+    EXIT_LOG;
+}
+
+void Audio::OnAudioFaderControlChanged(int32_t mixerBalance)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioFaderControlChanged: mixerBalance=%d", mixerBalance);
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAudioFaderControlChanged(mixerBalance);
+    EXIT_LOG;
+}
+
+void Audio::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioPrimaryLanguageChanged: primaryLanguage=%s", primaryLanguage.c_str());
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAudioPrimaryLanguageChanged(primaryLanguage);
+    EXIT_LOG;
+}
+
+void Audio::OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioSecondaryLanguageChanged: secondaryLanguage=%s", secondaryLanguage.c_str());
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAudioSecondaryLanguageChanged(secondaryLanguage);
+    EXIT_LOG;
+}
+
+void Audio::OnAudioPortStateChanged(AudioPortState audioPortState)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioPortStateChanged: audioPortState=%d", static_cast<int>(audioPortState));
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAudioPortStateChanged(audioPortState);
+    EXIT_LOG;
+}
+
+void Audio::OnAudioLevelChanged(float audioLevel)
+{
+    ENTRY_LOG;
+    LOGINFO("OnAudioLevelChanged: audioLevel=%.2f", audioLevel);
+    // Trigger notification to parent for callback dispatch
+    _parent.OnAudioLevelChangedEvent(static_cast<int32_t>(audioLevel));
     EXIT_LOG;
 }
 
@@ -303,8 +427,6 @@ uint32_t Audio::SetAssociatedAudioMixing(const int32_t handle, const bool mixing
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("SetAssociatedAudioMixing: SUCCESS - platform call completed successfully");
-        // Trigger notification to parent for callback dispatch
-        _parent.OnAssociatedAudioMixingChanged(mixing);
     } else {
         LOGERR("SetAssociatedAudioMixing: FAILED - result=%u", result);
     }
@@ -337,8 +459,6 @@ uint32_t Audio::SetAudioFaderControl(const int32_t handle, const int32_t mixerBa
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("SetAudioFaderControl: SUCCESS - platform call completed successfully");
-        // Trigger notification to parent for callback dispatch
-        _parent.OnAudioFaderControlChanged(mixerBalance);
     } else {
         LOGERR("SetAudioFaderControl: FAILED - result=%u", result);
     }
@@ -371,8 +491,6 @@ uint32_t Audio::SetAudioPrimaryLanguage(const int32_t handle, const std::string 
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("SetAudioPrimaryLanguage: SUCCESS - platform call completed successfully");
-        // Trigger notification to parent for callback dispatch
-        _parent.OnAudioPrimaryLanguageChanged(primaryAudioLanguage);
     } else {
         LOGERR("SetAudioPrimaryLanguage: FAILED - result=%u", result);
     }
@@ -405,8 +523,6 @@ uint32_t Audio::SetAudioSecondaryLanguage(const int32_t handle, const std::strin
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("SetAudioSecondaryLanguage: SUCCESS - platform call completed successfully");
-        // Trigger notification to parent for callback dispatch
-        _parent.OnAudioSecondaryLanguageChanged(secondaryAudioLanguage);
     } else {
         LOGERR("SetAudioSecondaryLanguage: FAILED - result=%u", result);
     }

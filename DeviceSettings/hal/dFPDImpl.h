@@ -36,8 +36,6 @@
 #include <WPEFramework/interfaces/IDeviceSettingsFPD.h>
 #include "DeviceSettingsTypes.h"
 
-#define RDK_DSHAL_NAME "libds-hal.so"
-
 static int fpd_isInitialized = 0;
 static int fpd_isPlatInitialized = 0;
 

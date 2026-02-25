@@ -41,12 +41,73 @@ namespace dAudio {
     public:
         virtual ~IPlatform() = default;
 
+        // Callback management
+        virtual void setAllCallbacks(const CallbackBundle bundle) = 0;
+        virtual void getPersistenceValue() = 0;
+        
+        // Static callback functions for HAL events
+        static void audioOutPortConnectCallback(dsAudioPortType_t portType, unsigned int uiPortNo, bool isPortConnected);
+        static void audioFormatUpdateCallback(dsAudioFormat_t audioFormat);
+        static void audioAtmosCapsChangeCallback(dsATMOSCapability_t atmosCaps, bool status);
+        
+        // Event notification functions (static helpers)
+        static void notifyAssociatedAudioMixingChanged(bool mixing);
+        static void notifyAudioFaderControlChanged(int32_t mixerBalance);
+        static void notifyAudioPrimaryLanguageChanged(const std::string& primaryLanguage);
+        static void notifyAudioSecondaryLanguageChanged(const std::string& secondaryLanguage);
+        static void notifyAudioPortStateChanged(AudioPortType portType, bool enabled);
+        static void notifyAudioLevelChanged(int32_t audioLevel);
+        static void notifyAudioModeChanged(AudioPortType portType, AudioStereoMode mode);
+
         // Audio Platform interface methods - all pure virtual
         virtual uint32_t GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) = 0;
         // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist in interface
         virtual uint32_t GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) = 0;
         virtual uint32_t GetAudioCapabilities(const int32_t handle, int32_t &capabilities) = 0;
         virtual uint32_t GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities) = 0;
+
+        // Audio format and encoding
+        virtual uint32_t GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) = 0;
+        virtual uint32_t GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) = 0;
+        virtual uint32_t GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) = 0;
+        virtual uint32_t GetCompression(const int32_t handle, AudioCompression &compression) = 0;
+        virtual uint32_t SetCompression(const int32_t handle, const AudioCompression compression) = 0;
+
+        // Audio level and volume control
+        virtual uint32_t SetAudioLevel(const int32_t handle, const float audioLevel) = 0;
+        virtual uint32_t GetAudioLevel(const int32_t handle, float &audioLevel) = 0;
+        virtual uint32_t SetAudioGain(const int32_t handle, const float gainLevel) = 0;
+        virtual uint32_t GetAudioGain(const int32_t handle, float &gainLevel) = 0;
+        virtual uint32_t SetAudioMute(const int32_t handle, const bool mute) = 0;
+        virtual uint32_t IsAudioMuted(const int32_t handle, bool &muted) = 0;
+
+        // Audio ducking
+        virtual uint32_t SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) = 0;
+
+        // Stereo mode (needs to use AudioStereoMode to avoid HAL conflict)
+        virtual uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode) = 0;
+        virtual uint32_t SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) = 0;
+
+        // Associated audio mixing
+        virtual uint32_t SetAssociatedAudioMixing(const int32_t handle, const bool mixing) = 0;
+        virtual uint32_t GetAssociatedAudioMixing(const int32_t handle, bool &mixing) = 0;
+
+        // Audio fader control
+        virtual uint32_t SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance) = 0;
+        virtual uint32_t GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance) = 0;
+
+        // Audio language settings
+        virtual uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage) = 0;
+        virtual uint32_t GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage) = 0;
+        virtual uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage) = 0;
+        virtual uint32_t GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage) = 0;
+
+        // Output connection status
+        virtual uint32_t IsAudioOutputConnected(const int32_t handle, bool &isConnected) = 0;
+
+        // Dolby Atmos
+        virtual uint32_t GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability) = 0;
+        virtual uint32_t SetAudioAtmosOutputMode(const int32_t handle, const bool enable) = 0;
 
         // Audio port control
         virtual uint32_t IsAudioPortEnabled(const int32_t handle, bool &enabled) = 0;
@@ -140,49 +201,6 @@ namespace dAudio {
         // Stereo auto mode
         virtual uint32_t GetStereoAuto(const int32_t handle, int32_t &mode) = 0;
         virtual uint32_t SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist) = 0;
-
-        // Audio format and encoding
-        virtual uint32_t GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) = 0;
-        virtual uint32_t GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) = 0;
-        virtual uint32_t GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) = 0;
-        virtual uint32_t GetCompression(const int32_t handle, AudioCompression &compression) = 0;
-        virtual uint32_t SetCompression(const int32_t handle, const AudioCompression compression) = 0;
-
-        // Audio level and volume control
-        virtual uint32_t SetAudioLevel(const int32_t handle, const float audioLevel) = 0;
-        virtual uint32_t GetAudioLevel(const int32_t handle, float &audioLevel) = 0;
-        virtual uint32_t SetAudioGain(const int32_t handle, const float gainLevel) = 0;
-        virtual uint32_t GetAudioGain(const int32_t handle, float &gainLevel) = 0;
-        virtual uint32_t SetAudioMute(const int32_t handle, const bool mute) = 0;
-        virtual uint32_t IsAudioMuted(const int32_t handle, bool &muted) = 0;
-
-        // Audio ducking
-        virtual uint32_t SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) = 0;
-
-        // Stereo mode (needs to use AudioStereoMode to avoid HAL conflict)
-        virtual uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode) = 0;
-        virtual uint32_t SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) = 0;
-
-        // Associated audio mixing
-        virtual uint32_t SetAssociatedAudioMixing(const int32_t handle, const bool mixing) = 0;
-        virtual uint32_t GetAssociatedAudioMixing(const int32_t handle, bool &mixing) = 0;
-
-        // Audio fader control
-        virtual uint32_t SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance) = 0;
-        virtual uint32_t GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance) = 0;
-
-        // Audio language settings
-        virtual uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage) = 0;
-        virtual uint32_t GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage) = 0;
-        virtual uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage) = 0;
-        virtual uint32_t GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage) = 0;
-
-        // Output connection status
-        virtual uint32_t IsAudioOutputConnected(const int32_t handle, bool &isConnected) = 0;
-
-        // Dolby Atmos
-        virtual uint32_t GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability) = 0;
-        virtual uint32_t SetAudioAtmosOutputMode(const int32_t handle, const bool enable) = 0;
     };
 
 } // namespace dAudio

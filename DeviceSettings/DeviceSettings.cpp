@@ -133,9 +133,14 @@ namespace Plugin
                 if (_mDeviceSettingsHDMIIn == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
                 }
-                
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p", 
-                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn);
+
+                _mDeviceSettingsAudio = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsAudio>();
+                if (_mDeviceSettingsAudio == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsAudio interface for external access");
+                }
+
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio);
             }
         }
 #else

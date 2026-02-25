@@ -221,6 +221,18 @@ public:
     // HDMI ARC
     uint32_t GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId);
 
+    // Event handler methods for audio state changes
+    void OnAssociatedAudioMixingChanged(bool mixing);
+    void OnAudioFaderControlChanged(int32_t mixerBalance);
+    void OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage);
+    void OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage);
+    void OnAudioPortStateChanged(AudioPortState audioPortState);
+    void OnAudioLevelChanged(float audioLevel);
+    void OnAudioModeChanged(AudioPortType portType, AudioStereoMode mode);
+    void OnAudioFormatUpdate(AudioFormat audioFormat);
+    void OnAudioOutHotPlug(AudioPortType portType, uint32_t portNumber, bool isPortConnected);
+    void OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCapability, bool status);
+
     template <typename IMPL = DefaultImpl, typename... Args>
     static Audio Create(INotification& parent, Args&&... args)
     {

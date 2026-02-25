@@ -355,5 +355,17 @@ struct CallbackBundle {
     std::function<void(HDMIInPort, HDMIInAviContentType)> OnHDMIInAVIContentTypeEvent;
     std::function<void(int32_t, int32_t)> OnHDMIInAVLatencyEvent;
     std::function<void(HDMIInPort, HDMIInVRRType)> OnHDMIInVRRStatusEvent;
+    
+    // Audio callbacks
+    std::function<void(AudioPortType, uint32_t, bool)> OnAudioOutHotPlug;
+    std::function<void(AudioFormat)> OnAudioFormatUpdate;
+    std::function<void(DolbyAtmosCapability, bool)> OnDolbyAtmosCapabilitiesChanged;
+    std::function<void(bool)> OnAssociatedAudioMixingChanged;
+    std::function<void(int32_t)> OnAudioFaderControlChanged;
+    std::function<void(const std::string&)> OnAudioPrimaryLanguageChanged;
+    std::function<void(const std::string&)> OnAudioSecondaryLanguageChanged;
+    std::function<void(AudioPortState)> OnAudioPortStateChanged;
+    std::function<void(float)> OnAudioLevelChanged;
+    std::function<void(AudioPortType, AudioStereoMode)> OnAudioModeChanged;
     // Add other callbacks as needed
 };

@@ -266,9 +266,6 @@ uint32_t DeepSleepController::Deactivate()
     uint32_t errorCode = platform().DeepSleepWakeup();
 
     _deepSleepState = DeepSleepState::NotStarted;
-    
-    // Update wakeup timestamp when device resumes from deep sleep
-    UpdateWakeupTime();
 
     LOGINFO("Deepsleep wakeup completed, errorCode: %u", errorCode);
 
@@ -319,9 +316,6 @@ void DeepSleepController::enterDeepSleepDelayed()
 
     _deepSleepState = DeepSleepState::Completed;
 
-    // Update wakeup timestamp
-    UpdateWakeupTime();
-
     if (userWakeup) {
         LOGINFO("DeeSleep wakeupReason: user action");
         _parent.onDeepSleepUserWakeup(userWakeup);
@@ -357,8 +351,6 @@ void DeepSleepController::enterDeepSleepNow()
             }
         } else {
             _deepSleepState = DeepSleepState::Completed;
-            // Update wakeup timestamp
-            UpdateWakeupTime();
             LOGINFO("Device entered to Deep sleep Mode..");
         }
     }

@@ -367,6 +367,9 @@ namespace Plugin {
 
         // Process request only if requested state is not same as current state
         if (currState != newState) {
+            char telementryPwrChange[64];
+            snprintf(telementryPwrChange, sizeof(telementryPwrChange), "Power Mode Change from %s to %s", util::str(prevState), util::str(newState));
+            TELEMENTRY_EVENT_STRING("SYST_INFO_POWER_CHANGE", telementryPwrChange);
 
             // Check if sync state change required
             isSync = isSyncStateChange(currState, newState);
@@ -377,6 +380,11 @@ namespace Plugin {
 
                     LOGINFO("deepsleep in  progress  ignoring %s request, elapsed: %" PRId64 " sec",
                             util::str(newState), std::chrono::duration_cast<std::chrono::seconds>(_deepSleepController.Elapsed()).count());
+                    char telementryMsg[128];
+                    snprintf(telementryMsg, sizeof(telementryMsg), "Ignore Power Mode Change to %s as device is in transient deep sleep state, elapsed: %" PRId64 " sec",
+                            util::str(newState), std::chrono::duration_cast<std::chrono::seconds>(_deepSleepController.Elapsed()).count());
+                    TELEMENTRY_EVENT_STRING("SYST_ERR_SetPwrStateFail", telementryMsg);
+                    
 
                     selfLock.Unlock();
                     LOGINFO("selfLock Released isSync: na");
@@ -637,6 +645,9 @@ namespace Plugin {
     Core::hresult PowerManagerImplementation::SetNetworkStandbyMode(const bool standbyMode)
     {
         LOGINFO(">> nwStandbyMode: %s", (standbyMode ? "enabled" : "disabled"));
+        char telementryMsg[64];
+        snprintf(telementryMsg, sizeof(telementryMsg), "Set Network Standby Mode: %s", (standbyMode ? "enabled" : "disabled"));
+        TELEMENTRY_EVENT_STRING("SYS_INFO_STANDBYMODE", telementryMsg);
 
         _apiLock.Lock();
 

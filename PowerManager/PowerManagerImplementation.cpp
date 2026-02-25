@@ -612,17 +612,17 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult PowerManagerImplementation::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
+    Core::hresult PowerManagerImplementation::GetTimeSinceWakeup(TimeSinceWakeup& timeSinceWakeup)
     {
         LOGINFO(">>");
 
         _apiLock.Lock();
 
-        uint32_t errorCode = _powerController.GetTimeSinceWakeup(secondsSinceWakeup);
+        uint32_t errorCode = _powerController.GetTimeSinceWakeup(timeSinceWakeup.secondsSinceWakeup);
 
         _apiLock.Unlock();
 
-        LOGINFO("<< secondsSinceWakeup: %u, errorCode: %u", secondsSinceWakeup, errorCode);
+        LOGINFO("<< secondsSinceWakeup: %u, errorCode: %u", timeSinceWakeup.secondsSinceWakeup, errorCode);
 
         return errorCode;
     }

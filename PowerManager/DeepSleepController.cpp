@@ -183,7 +183,7 @@ DeepSleepController::DeepSleepController(INotification& parent, std::shared_ptr<
     : _parent(parent)
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _deepsleepStartTime()
-    , _lastWakeupTime(MonotonicClock::now())
+    , _lastWakeupTime()
     , _platform(std::move(platform))
     , _deepSleepState(DeepSleepState::NotStarted)
     , _deepSleepDelaySec(0)

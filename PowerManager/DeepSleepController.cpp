@@ -184,6 +184,7 @@ DeepSleepController::DeepSleepController(INotification& parent, std::shared_ptr<
     , _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _deepsleepStartTime()
     , _lastWakeupTime()
+    , _wakeupTimeMutex(std::make_shared<std::mutex>())
     , _platform(std::move(platform))
     , _deepSleepState(DeepSleepState::NotStarted)
     , _deepSleepDelaySec(0)
@@ -217,6 +218,7 @@ uint32_t DeepSleepController::GetLastWakeupKeyCode(int& keyCode) const
 
 uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
 {
+    std::lock_guard<std::mutex> lock(*_wakeupTimeMutex);
     if (_lastWakeupTime.time_since_epoch() == std::chrono::steady_clock::duration::zero()) {
         // Device is in standby or no wakeup has occurred yet
         secondsSinceWakeup = 0;
@@ -239,12 +241,14 @@ uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
 
 void DeepSleepController::UpdateWakeupTime()
 {
+    std::lock_guard<std::mutex> lock(*_wakeupTimeMutex);
     _lastWakeupTime = MonotonicClock::now();
     LOGINFO("Wakeup timestamp updated");
 }
 
 void DeepSleepController::ResetWakeupTime()
 {
+    std::lock_guard<std::mutex> lock(*_wakeupTimeMutex);
     _lastWakeupTime = Timestamp();
     LOGINFO("Wakeup timestamp reset to zero");
 }

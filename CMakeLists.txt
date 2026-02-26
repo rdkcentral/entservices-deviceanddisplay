@@ -62,10 +62,6 @@ if(PLUGIN_SYSTEMSERVICES)
     add_subdirectory(SystemServices)
 endif()
 
-if(PLUGIN_POWERMANAGER)
-    add_subdirectory(PowerManager)
-endif()
-
 if(PLUGIN_USERPREFERENCES)
     add_subdirectory(UserPreferences)
 endif()

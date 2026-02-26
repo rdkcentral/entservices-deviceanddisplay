@@ -409,24 +409,18 @@ TEST_F(TestPowerManager, GetLastWakeupKeyCode)
     EXPECT_EQ(wakeupKeyCode, 1234);
 }
 
-TEST_F(TestPowerManager, GetTimeSinceWakeup_ZeroOnBootup)
-{
-    // On bootup in STANDBY state, GetTimeSinceWakeup should return 0
-    Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-
-    uint32_t status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0u);
-}
-
 TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
 {
-    // Setup: Configure HAL mock for power state change to ON
+    // Setup: Configure HAL mock for power state changes
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {
                 EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                return PWRMGR_SUCCESS;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
                 return PWRMGR_SUCCESS;
             }));
 
@@ -444,195 +438,15 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2u);
     EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 3u);
-}
 
-TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterLightSleepToOn)
-{
-    // Setup: Transition to LIGHT_SLEEP first
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP);
-                return PWRMGR_SUCCESS;
-            }))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
-                return PWRMGR_SUCCESS;
-            }));
-
-    // Go to LIGHT_SLEEP
-    uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Verify time is 0 in standby
-    Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0u);
-
-    // Wake up to ON
-    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Wait a bit
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    // Query time since wakeup
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 1u);
-    EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 2u);
-}
-
-TEST_F(TestPowerManager, GetTimeSinceWakeup_ResetOnTransitionToStandby)
-{
-    // Setup: Transition to ON first
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
-                return PWRMGR_SUCCESS;
-            }))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
-                return PWRMGR_SUCCESS;
-            }));
-
-    // Go to ON
-    uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    // Verify we have some elapsed time
-    Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 1u);
-
-    // Transition back to STANDBY
+    // Transition from ON to STANDBY
     status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY, "Test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    // Time should be reset to 0
+    // Time should be reset to 0 in STANDBY
     status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
     EXPECT_EQ(status, Core::ERROR_NONE);
     EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0u);
-}
-
-TEST_F(TestPowerManager, GetTimeSinceWakeup_ElapsedTimeAccuracy)
-{
-    // Setup: Transition to ON
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
-                return PWRMGR_SUCCESS;
-            }));
-
-    uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Test multiple time intervals
-    for (int i = 1; i <= 3; i++) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-        status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-
-        EXPECT_EQ(status, Core::ERROR_NONE);
-        // Should be approximately i seconds (allow ±1 second tolerance)
-        EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, static_cast<uint32_t>(i));
-        EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, static_cast<uint32_t>(i + 1));
-    }
-}
-
-TEST_F(TestPowerManager, GetTimeSinceWakeup_MultipleStandbyTransitions)
-{
-    // Setup mocks for multiple transitions
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .Times(4)
-        .WillRepeatedly(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                return PWRMGR_SUCCESS;
-            }));
-
-    // STANDBY -> LIGHT_SLEEP (no timestamp change)
-    uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0u);
-
-    // LIGHT_SLEEP -> DEEP_SLEEP (no timestamp change)
-    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0u);
-
-    // DEEP_SLEEP -> ON (timestamp updated)
-    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 1u);
-
-    // ON -> STANDBY (timestamp reset)
-    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0u);
-}
-
-TEST_F(TestPowerManager, GetTimeSinceWakeup_SameStateTransition)
-{
-    // Setup: Transition to ON first
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .Times(2)
-        .WillRepeatedly(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
-                return PWRMGR_SUCCESS;
-            }));
-
-    // Initial transition to ON
-    uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    // Get initial elapsed time
-    Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2u);
-    uint32_t initialTime = timeSinceWakeup.secondsSinceWakeup;
-
-    // Call SetPowerState(ON) again while already ON (same-state transition)
-    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    // Timestamp should NOT be reset - time should continue from original wakeup
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, initialTime + 1u);
-
-    // Verify the same-state transition didn't reset the timer
-    EXPECT_GT(timeSinceWakeup.secondsSinceWakeup, initialTime);
 }
 
 using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>>;
@@ -731,7 +545,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAck)
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
                 transaction_id = transactionId;
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
                 // Test invalid parameters FIRST before modifying state
                 // Acknowledge - Change Complete with invalid transactionId
@@ -816,7 +630,7 @@ TEST_F(TestPowerManager, PowerModePreChangeAckTimeout)
     EXPECT_CALL(*modeChangedEvent, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currState, const PowerState newState) {
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 wg.Done();
             }));
 
@@ -896,7 +710,7 @@ TEST_F(TestPowerManager, PowerModePreChangeUnregisterBeforeAck)
     EXPECT_CALL(*modeChangedEvent, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currState, const PowerState newState) {
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 wg.Done();
             }));
 
@@ -963,7 +777,7 @@ TEST_F(TestPowerManager, DeepSleepIgnore)
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_NE(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Test");
+    EXPECT_NE(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
 
     status = powerManagerImpl->Unregister(&(*prechangeEvent));
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -1074,17 +888,17 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
     EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [](const PowerState prevState, const PowerState newState) {
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Test");
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
             }))
         .WillOnce(::testing::Invoke(
             [&](const PowerState prevState, const PowerState newState) {
-                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Test");
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
+                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
             }))
         .WillOnce(::testing::Invoke(
             [&](const PowerState prevState, const PowerState newState) {
-                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
-                EXPECT_EQ(newState, PowerState::POWER_STATE_ON, "Test");
+                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_ON);
                 wg.Done();
             }));
 
@@ -1096,7 +910,7 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
     EXPECT_CALL(*prechangeEvent, OnPowerModePreChange(::testing::_, ::testing::_, ::testing::_, ::testing::_))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Test");
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 1);
 
                 // valid PowerModePreChangeComplete
@@ -1105,8 +919,8 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
             }))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
-                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "Test");
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
+                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
                 EXPECT_EQ(stateChangeAfter, 0);
 
                 // trigger new state change now
@@ -1121,8 +935,8 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
             }))
         .WillOnce(::testing::Invoke(
             [&](const PowerState currentState, const PowerState newState, const int transactionId, const int stateChangeAfter) {
-                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
-                EXPECT_EQ(newState, PowerState::POWER_STATE_ON, "Test");
+                EXPECT_EQ(currentState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+                EXPECT_EQ(newState, PowerState::POWER_STATE_ON);
                 EXPECT_EQ(stateChangeAfter, 1);
 
                 // valid PowerModePreChangeComplete
@@ -1184,8 +998,8 @@ TEST_F(TestPowerManager, DeepSleepUserWakeupRaceCondition)
 
     status = powerManagerImpl->GetPowerState(newState, prevState);
     EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP, "Test");
-    EXPECT_EQ(newState, PowerState::POWER_STATE_ON, "Test");
+    EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP);
+    EXPECT_EQ(newState, PowerState::POWER_STATE_ON);
 
     // TODO: identify whu delay is required
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

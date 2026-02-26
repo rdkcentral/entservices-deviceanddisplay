@@ -123,21 +123,18 @@ uint32_t PowerController::SetPowerState(const int keyCode, const PowerState powe
         _settings.Save(m_settingsFile);
         _lastKnownPowerState = curState;
 
-        // Track wakeup timestamp when resuming from any standby state to ON
+        // Track wakeup timestamp when entering ON from any non-ON state
+        // This includes boot to ON, OFF->ON, UNKNOWN->ON, and STANDBY*->ON transitions
         // Note: Same-state transitions (e.g., ON->ON) intentionally do not update
-        // the timestamp, as they don't represent actual wakeup events from standby
+        // the timestamp, as they don't represent actual wakeup/boot events
         if (powerState == PowerState::POWER_STATE_ON &&
-            (curState == PowerState::POWER_STATE_STANDBY ||
-             curState == PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP ||
-             curState == PowerState::POWER_STATE_STANDBY_DEEP_SLEEP)) {
+            curState != PowerState::POWER_STATE_ON) {
             _deepSleep.UpdateWakeupTime();
             LOGINFO("Wakeup timestamp updated: transition from %s to ON", util::str(curState));
         }
-        // Reset wakeup timestamp when going from ON to any standby state
+        // Reset wakeup timestamp when leaving ON state
         else if (curState == PowerState::POWER_STATE_ON &&
-                 (powerState == PowerState::POWER_STATE_STANDBY ||
-                  powerState == PowerState::POWER_STATE_STANDBY_LIGHT_SLEEP ||
-                  powerState == PowerState::POWER_STATE_STANDBY_DEEP_SLEEP)) {
+                 powerState != PowerState::POWER_STATE_ON) {
             _deepSleep.ResetWakeupTime();
             LOGINFO("Wakeup timestamp reset: transition from ON to %s", util::str(powerState));
         }

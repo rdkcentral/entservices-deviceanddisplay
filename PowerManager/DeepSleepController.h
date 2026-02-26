@@ -198,7 +198,6 @@ private:
     WPEFramework::Core::IWorkerPool& _workerPool;
     Timestamp _deepsleepStartTime;
     Timestamp _lastWakeupTime;
-    mutable std::mutex _wakeupTimeMutex;  // Protects _lastWakeupTime access
     std::shared_ptr<IPlatform> _platform;
     DeepSleepState _deepSleepState;
     uint32_t _deepSleepDelaySec;         // Duration to wait before entering deep sleep mode

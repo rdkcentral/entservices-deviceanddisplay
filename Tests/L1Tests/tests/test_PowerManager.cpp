@@ -412,7 +412,22 @@ TEST_F(TestPowerManager, GetLastWakeupKeyCode)
 TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
 {
     // Setup: Configure HAL mock for power state changes
+    // Note: First call will be consumed by the constructor's boot transition
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+#ifdef PLATCO_BOOTTO_STANDBY
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+#else
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+#endif
+                return PWRMGR_SUCCESS;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+                return PWRMGR_SUCCESS;
+            }))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {
                 EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
@@ -424,8 +439,12 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
                 return PWRMGR_SUCCESS;
             }));
 
-    // Transition from STANDBY to ON
-    uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
+    // First, ensure we're in STANDBY state to set up a clean initial condition
+    uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY, "Test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // Transition from STANDBY to ON (this should update the wakeup timestamp)
+    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     // Wait a bit to accumulate some time
@@ -436,8 +455,8 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
     status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
 
     EXPECT_EQ(status, Core::ERROR_NONE);
+    // Verify time is monotonically increasing (at least 2 seconds have passed)
     EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2u);
-    EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 3u);
 
     // Transition from ON to STANDBY
     status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY, "Test");

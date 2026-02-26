@@ -217,6 +217,8 @@ uint32_t DeepSleepController::GetLastWakeupKeyCode(int& keyCode) const
 
 uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
 {
+    std::lock_guard<std::mutex> lock(_wakeupTimeMutex);
+
     if (_lastWakeupTime.time_since_epoch() == std::chrono::steady_clock::duration::zero()) {
         // Device is in standby or no wakeup has occurred yet
         secondsSinceWakeup = 0;
@@ -224,19 +226,29 @@ uint32_t DeepSleepController::GetTimeSinceWakeup(uint32_t& secondsSinceWakeup)
     }
 
     auto elapsed = MonotonicClock::now() - _lastWakeupTime;
-    secondsSinceWakeup = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(elapsed).count());
-    
+    auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+
+    // Use saturating cast to prevent overflow: cap at UINT32_MAX (~136 years)
+    // This handles the unlikely case where the device stays awake for extremely long periods
+    if (elapsedSeconds > static_cast<decltype(elapsedSeconds)>(UINT32_MAX)) {
+        secondsSinceWakeup = UINT32_MAX;
+    } else {
+        secondsSinceWakeup = static_cast<uint32_t>(elapsedSeconds);
+    }
+
     return WPEFramework::Core::ERROR_NONE;
 }
 
 void DeepSleepController::UpdateWakeupTime()
 {
+    std::lock_guard<std::mutex> lock(_wakeupTimeMutex);
     _lastWakeupTime = MonotonicClock::now();
     LOGINFO("Wakeup timestamp updated");
 }
 
 void DeepSleepController::ResetWakeupTime()
 {
+    std::lock_guard<std::mutex> lock(_wakeupTimeMutex);
     _lastWakeupTime = Timestamp();
     LOGINFO("Wakeup timestamp reset to zero");
 }

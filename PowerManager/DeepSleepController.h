@@ -20,7 +20,6 @@
 
 #include <map>         // for map
 #include <memory>      // for unique_ptr, operator!=
-#include <mutex>       // for mutex, lock_guard
 #include <stdint.h>    // for uint32_t
 #include <string>      // for string
 #include <type_traits> // for is_base_of

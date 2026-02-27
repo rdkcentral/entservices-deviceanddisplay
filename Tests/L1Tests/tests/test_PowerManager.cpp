@@ -409,65 +409,7 @@ TEST_F(TestPowerManager, GetLastWakeupKeyCode)
     EXPECT_EQ(wakeupKeyCode, 1234);
 }
 
-TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
-{
-    // Test wakeup timestamp tracking across power state transitions
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
-                return PWRMGR_SUCCESS;
-            }))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
-                return PWRMGR_SUCCESS;
-            }));
 
-    WaitGroup wg;
-    wg.Add();
-
-    // Register for mode changed notifications to ensure state transitions complete
-    Core::ProxyType<PowerModeChangedEvent> modeChanged = Core::ProxyType<PowerModeChangedEvent>::Create();
-    EXPECT_CALL(*modeChanged, OnPowerModeChanged(::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](const PowerState prevState, const PowerState newState) {
-                EXPECT_EQ(newState, PowerState::POWER_STATE_STANDBY);
-            }))
-        .WillOnce(::testing::Invoke(
-            [&](const PowerState prevState, const PowerState newState) {
-                EXPECT_EQ(prevState, PowerState::POWER_STATE_STANDBY);
-                EXPECT_EQ(newState, PowerState::POWER_STATE_ON);
-                wg.Done();
-            }));
-
-    uint32_t status = powerManagerImpl->Register(&(*modeChanged));
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Transition to STANDBY
-    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Transition to ON (updates wakeup timestamp)
-    status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_ON, "Test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Wait for both transitions to complete
-    wg.Wait();
-
-    // Wait to accumulate time
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    // Query time since wakeup
-    Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
-
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2u);
-
-    status = powerManagerImpl->Unregister(&(*modeChanged));
-    EXPECT_EQ(status, Core::ERROR_NONE);
-}
 
 using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>>;
 

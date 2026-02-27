@@ -200,7 +200,6 @@ jobs:
           cmake --install build/Thunder
 
       - name: Checkout entservices-apis
-        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-apis
@@ -223,6 +222,7 @@ jobs:
           -DEXCEPTIONS_ENABLE=ON
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DPYTHON_EXECUTABLE="$(which python3)"
           &&
           cmake --build build/entservices-apis -j8
           &&

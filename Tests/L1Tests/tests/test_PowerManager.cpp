@@ -411,18 +411,9 @@ TEST_F(TestPowerManager, GetLastWakeupKeyCode)
 
 TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
 {
-    // Setup: Configure HAL mock for power state changes
-    // Note: First call will be consumed by the constructor's boot transition
+    // After fixture construction, device is in ON state (constructor synced OFF→ON)
+    // Test flow: ON → STANDBY → ON → STANDBY (3 transitions)
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-#ifdef PLATCO_BOOTTO_STANDBY
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
-#else
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
-#endif
-                return PWRMGR_SUCCESS;
-            }))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {
                 EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
@@ -439,7 +430,7 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterStandbyToOn)
                 return PWRMGR_SUCCESS;
             }));
 
-    // First, ensure we're in STANDBY state to set up a clean initial condition
+    // Transition to STANDBY first
     uint32_t status = powerManagerImpl->SetPowerState(0, Exchange::IPowerManager::PowerState::POWER_STATE_STANDBY, "Test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 

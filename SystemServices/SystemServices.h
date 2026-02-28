@@ -259,6 +259,7 @@ namespace WPEFramework {
                 std::string getStbTimestampString();
 		std::string getStbBranchString();
                 bool makePersistentDir();
+                std::string retrieveModelNumber();
                 std::string safeExtractAfterColon(const std::string& inputLine);
 
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)

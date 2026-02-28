@@ -227,7 +227,7 @@ namespace Plugin {
             INTERFACE_AGGREGATE(Exchange::IDeviceSettings, _mDeviceSettings)
             //INTERFACE_ENTRY(PluginHost::IDispatcher)
             //INTERFACE_AGGREGATE(DeviceSettingsCompositeIn, _mDeviceSettingsCompositeIn)
-            //INTERFACE_AGGREGATE(DeviceSettingsAudio, _mDeviceSettingsAudio)
+            INTERFACE_AGGREGATE(DeviceSettingsAudio, _mDeviceSettingsAudio)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsFPD, _mDeviceSettingsFPD)
             //INTERFACE_AGGREGATE(DeviceSettingsVideoDevice, _mDeviceSettingsVideoDevice)
             //INTERFACE_AGGREGATE(DeviceSettingsDisplay, _mDeviceSettingsDisplay)

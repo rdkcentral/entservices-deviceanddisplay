@@ -123,6 +123,83 @@ namespace WPEFramework
                 UserPlugin& _parent;
             };
 
+            class AudioNotification : public virtual Exchange::IDeviceSettingsAudio::INotification {
+            private:
+                AudioNotification(const AudioNotification&) = delete;
+                AudioNotification& operator=(const AudioNotification&) = delete;
+            
+            public:
+                explicit AudioNotification(UserPlugin& parent)
+                    : _parent(parent)
+                {
+                }
+
+            public:
+                void OnAssociatedAudioMixingChanged(bool mixing) override
+                {
+                    _parent.OnAssociatedAudioMixingChanged(mixing);
+                }
+
+                void OnAudioFaderControlChanged(int32_t mixerBalance) override
+                {
+                    _parent.OnAudioFaderControlChanged(mixerBalance);
+                }
+
+                void OnAudioPrimaryLanguageChanged(const string& primaryLanguage) override
+                {
+                    _parent.OnAudioPrimaryLanguageChanged(primaryLanguage);
+                }
+
+                void OnAudioSecondaryLanguageChanged(const string& secondaryLanguage) override
+                {
+                    _parent.OnAudioSecondaryLanguageChanged(secondaryLanguage);
+                }
+
+                void OnAudioOutHotPlug(Exchange::IDeviceSettingsAudio::AudioPortType portType, uint32_t uiPortNumber, bool isPortConnected) override
+                {
+                    _parent.OnAudioOutHotPlug(portType, uiPortNumber, isPortConnected);
+                }
+
+                void OnAudioFormatUpdate(Exchange::IDeviceSettingsAudio::AudioFormat audioFormat) override
+                {
+                    _parent.OnAudioFormatUpdate(audioFormat);
+                }
+
+                void OnDolbyAtmosCapabilitiesChanged(Exchange::IDeviceSettingsAudio::DolbyAtmosCapability atmosCapability, bool status) override
+                {
+                    _parent.OnDolbyAtmosCapabilitiesChanged(atmosCapability, status);
+                }
+
+                void OnAudioPortStateChanged(Exchange::IDeviceSettingsAudio::AudioPortState audioPortState) override
+                {
+                    _parent.OnAudioPortStateChanged(audioPortState);
+                }
+
+                void OnAudioModeEvent(Exchange::IDeviceSettingsAudio::AudioPortType audioPortType, Exchange::IDeviceSettingsAudio::StereoMode audioMode) override
+                {
+                    _parent.OnAudioModeEvent(audioPortType, audioMode);
+                }
+
+                void OnAudioLevelChangedEvent(int32_t audioLevel) override
+                {
+                    _parent.OnAudioLevelChangedEvent(audioLevel);
+                }
+
+                template <typename T>
+                T* baseInterface()
+                {
+                    static_assert(std::is_base_of<T, AudioNotification>(), "base type mismatch");
+                    return static_cast<T*>(this);
+                }
+
+                BEGIN_INTERFACE_MAP(AudioNotification)
+                INTERFACE_ENTRY(Exchange::IDeviceSettingsAudio::INotification)
+                END_INTERFACE_MAP
+            
+            private:
+                UserPlugin& _parent;
+            };
+
         public:
             static UserPlugin* _instance;
             // We do not allow this plugin to be copied !!
@@ -145,6 +222,7 @@ namespace WPEFramework
             void TestSimplifiedHDMIInAPIs();
             void TestSimplifiedFPDAPIs();
             void TestSelectHDMIInPortAPI();
+            void TestAudioAPIs();
             
             // HDMI In Event Handlers
             void OnHDMIInEventHotPlug(const DeviceSettingsHDMIIn::HDMIInPort port, const bool isConnected);
@@ -155,6 +233,18 @@ namespace WPEFramework
             void OnHDMIInAVIContentType(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInAviContentType aviContentType);
             void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay);
             void OnHDMIInVRRStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInVRRType vrrType);
+
+            // Audio Event Handlers
+            void OnAssociatedAudioMixingChanged(bool mixing);
+            void OnAudioFaderControlChanged(int32_t mixerBalance);
+            void OnAudioPrimaryLanguageChanged(const string& primaryLanguage);
+            void OnAudioSecondaryLanguageChanged(const string& secondaryLanguage);
+            void OnAudioOutHotPlug(Exchange::IDeviceSettingsAudio::AudioPortType portType, uint32_t uiPortNumber, bool isPortConnected);
+            void OnAudioFormatUpdate(Exchange::IDeviceSettingsAudio::AudioFormat audioFormat);
+            void OnDolbyAtmosCapabilitiesChanged(Exchange::IDeviceSettingsAudio::DolbyAtmosCapability atmosCapability, bool status);
+            void OnAudioPortStateChanged(Exchange::IDeviceSettingsAudio::AudioPortState audioPortState);
+            void OnAudioModeEvent(Exchange::IDeviceSettingsAudio::AudioPortType audioPortType, Exchange::IDeviceSettingsAudio::StereoMode audioMode);
+            void OnAudioLevelChangedEvent(int32_t audioLevel);
 
             // IARM API methods for direct DsMgr daemon communication
             Core::hresult TestIARMHdmiInSelectPort(const int port, const bool requestAudioMix, const bool topMostPlane, const int videoPlaneType);
@@ -182,9 +272,11 @@ namespace WPEFramework
             Exchange::IDeviceSettings* _deviceSettings;
             Exchange::IDeviceSettingsFPD* _fpdManager;
             Exchange::IDeviceSettingsHDMIIn* _hdmiInManager;
+            Exchange::IDeviceSettingsAudio* _audioManager;
             //PowerManagerInterfaceRef _powerManager{};
             // PowerManager notification removed
             Core::Sink<HDMIInNotification> _hdmiInNotification;
+            Core::Sink<AudioNotification> _audioNotification;
 
 	    void Deactivated(RPC::IRemoteConnection *connection);
         };

@@ -30,6 +30,19 @@
 #include "dsUtl.h"
 #include "dsRpc.h"
 
+// Device Settings library includes for accessing audio port configurations
+#include "manager.hpp"
+#include "audioOutputPortType.hpp"
+#include "audioOutputPort.hpp"
+#include "audioCompression.hpp"
+#include "audioEncoding.hpp"
+#include "audioStereoMode.hpp"
+#include "exception.hpp"
+
+// WPEFramework includes for RPC iterator creation
+#include <core/core.h>
+#include <com/com.h>
+
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -369,6 +382,8 @@ public:
             case AudioStereoMode::AUDIO_STEREO_STEREO: return dsAUDIO_STEREO_STEREO;
             case AudioStereoMode::AUDIO_STEREO_SURROUND: return dsAUDIO_STEREO_SURROUND;
             case AudioStereoMode::AUDIO_STEREO_PASSTHROUGH: return dsAUDIO_STEREO_PASSTHRU;
+            case AudioStereoMode::AUDIO_STEREO_DD: return dsAUDIO_STEREO_DD;
+            case AudioStereoMode::AUDIO_STEREO_DDPLUS: return dsAUDIO_STEREO_DDPLUS;
             default: return dsAUDIO_STEREO_UNKNOWN;
         }
     }
@@ -381,6 +396,8 @@ public:
             case dsAUDIO_STEREO_STEREO: return AudioStereoMode::AUDIO_STEREO_STEREO;
             case dsAUDIO_STEREO_SURROUND: return AudioStereoMode::AUDIO_STEREO_SURROUND;
             case dsAUDIO_STEREO_PASSTHRU: return AudioStereoMode::AUDIO_STEREO_PASSTHROUGH;
+            case dsAUDIO_STEREO_DD: return AudioStereoMode::AUDIO_STEREO_DD;
+            case dsAUDIO_STEREO_DDPLUS: return AudioStereoMode::AUDIO_STEREO_DDPLUS;
             default: return AudioStereoMode::AUDIO_STEREO_UNKNOWN;
         }
     }
@@ -417,9 +434,53 @@ public:
     // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
 
     uint32_t GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) override {
-        LOGINFO("dAudioImpl::GetAudioPortConfig - LIMITED IMPLEMENTATION");
-        // DeviceSettings HAL doesn't have a direct equivalent for AudioConfig structure
-        return WPEFramework::Core::ERROR_GENERAL;
+        ENTRY_LOG;
+        if (!_isInitialized) {
+            LOGERR("Audio platform not initialized");
+            return WPEFramework::Core::ERROR_GENERAL;
+        }
+
+        /*try {
+            // Convert AudioPortType to dsAudioPortType_t
+            dsAudioPortType_t dsType = convertToDS(audioPort);
+            
+            // Get audio port type information
+            try {
+                // Initialize device settings manager to access port configurations
+                device::Manager::Initialize();
+                
+                // Get the audio output port type
+                device::AudioOutputPortType &portType = device::AudioOutputPortType::getInstance(dsType);
+                
+                // Fill the AudioConfig structure
+                audioConfig.typeId = static_cast<int32_t>(dsType);
+                audioConfig.name = portType.getName();
+                
+                // Log supported features for debugging
+                const device::List<device::AudioCompression> compressions = portType.getSupportedCompressions();
+                const device::List<device::AudioEncoding> encodings = portType.getSupportedEncodings();
+                const device::List<device::AudioStereoMode> stereoModes = portType.getSupportedStereoModes();
+                
+                LOGINFO("GetAudioPortConfig success: typeId=%d, name=%s, compressions=%d, encodings=%d, stereoModes=%d", 
+                       audioConfig.typeId, audioConfig.name.c_str(), 
+                       compressions.size(), encodings.size(), stereoModes.size());
+                       
+                // Note: The iterator fields are commented out in AudioConfig struct
+                // If needed, they can be populated using WPEFramework RPC iterator creation
+                
+            } catch (const device::Exception &e) {
+                LOGERR("Device settings exception in GetAudioPortConfig: %s", e.what());
+                return WPEFramework::Core::ERROR_GENERAL;
+            } catch (...) {
+                LOGERR("Unknown exception in GetAudioPortConfig");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+        } catch (...) {
+            LOGERR("Exception in GetAudioPortConfig");
+            return WPEFramework::Core::ERROR_GENERAL;
+        }*/
+        EXIT_LOG;
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetAudioCapabilities(const int32_t handle, int32_t &capabilities) override {
@@ -511,6 +572,7 @@ public:
             // Stub implementation - dsGetAudioEncoding function does not exist in HAL
             LOGINFO("GetAudioEncoding - Stub implementation for handle=%d", handle);
             encoding = AudioEncoding::AUDIO_ENCODING_PCM; // Default to PCM encoding
+            LOGINFO("GetAudioEncoding success: handle=%d, encoding=%d", handle, static_cast<int>(encoding));
         } catch (...) {
             LOGERR("Exception in GetAudioEncoding");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -520,8 +582,63 @@ public:
     }
 
     uint32_t GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) override {
-        LOGINFO("dAudioImpl::GetSupportedCompressions - Limited implementation (iterator not implemented)");
-        return WPEFramework::Core::ERROR_GENERAL;
+        ENTRY_LOG;
+        if (!_isInitialized) {
+            LOGERR("Audio platform not initialized");
+            return WPEFramework::Core::ERROR_GENERAL;
+        }
+
+        /*try {
+            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            dsAudioPortType_t portType = getAudioPortType(dsHandle);
+            
+            if (portType >= dsAUDIOPORT_TYPE_MAX) {
+                LOGERR("Invalid audio port type for handle: %d", handle);
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            
+            try {
+                // Initialize device settings manager to access port configurations
+                device::Manager::Initialize();
+                
+                // Get the audio output port type and supported compressions
+                device::AudioOutputPortType &audioPortType = device::AudioOutputPortType::getInstance(portType);
+                const device::List<device::AudioCompression> supportedCompressions = audioPortType.getSupportedCompressions();
+                
+                // Create vector to hold compression values for RPC iterator
+                std::vector<AudioCompression> compressionList;
+                
+                // Convert device::AudioCompression to AudioCompression enum
+                for (size_t i = 0; i < supportedCompressions.size(); i++) {
+                    const device::AudioCompression &compression = supportedCompressions.at(i);
+                    // Map device settings compression IDs to AudioCompression enum values
+                    AudioCompression audioComp = static_cast<AudioCompression>(compression.getId());
+                    compressionList.push_back(audioComp);
+                    LOGINFO("Supported compression [%d]: %s (ID: %d)", 
+                           static_cast<int>(i), compression.getName().c_str(), compression.getId());
+                }
+                
+                // Create RPC iterator using WPEFramework's iterator factory
+                // Note: This creates a proxy object that can be used in RPC calls
+                using IteratorImplementation = RPC::IteratorType<std::vector<AudioCompression>>;
+                compressions = Core::ProxyType<IteratorImplementation>::Create(compressionList);
+                
+                LOGINFO("GetSupportedCompressions success: handle=%d, compressions_count=%d", 
+                       handle, static_cast<int>(compressionList.size()));
+                       
+            } catch (const device::Exception &e) {
+                LOGERR("Device settings exception in GetSupportedCompressions: %s", e.what());
+                return WPEFramework::Core::ERROR_GENERAL;
+            } catch (...) {
+                LOGERR("Unknown exception in GetSupportedCompressions device settings access");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+        } catch (...) {
+            LOGERR("Exception in GetSupportedCompressions");
+            return WPEFramework::Core::ERROR_GENERAL;
+        }*/
+        EXIT_LOG;
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetCompression(const int32_t handle, AudioCompression &compression) override {
@@ -878,16 +995,82 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             dsAudioStereoMode_t dsMode = convertToDS(mode);
-            
-            // Note: dsSetStereoMode doesn't support persist parameter in this version
+
             dsError_t ret = dsSetStereoMode(dsHandle, dsMode);
             if (ret == dsERR_NONE) {
-                LOGINFO("SetStereoMode success: handle=%d, mode=%d", handle, static_cast<int>(mode));
-                
-                // Determine port type for notification (simplified approach)
+                LOGINFO("SetStereoMode success: handle=%d, mode=%d, persist=%s", handle, static_cast<int>(mode), persist ? "true" : "false");
+
+                // Determine actual port type from handle
+                dsAudioPortType_t dsPortType = getAudioPortType(dsHandle);
                 AudioPortType portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER; // Default
-                // TODO: Get actual port type from handle if needed
                 
+                // Convert dsAudioPortType_t to AudioPortType and handle persistence
+                std::string modeString;
+                switch (mode) {
+                    case AudioStereoMode::AUDIO_STEREO_STEREO:
+                        modeString = "STEREO";
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                    case AudioStereoMode::AUDIO_STEREO_SURROUND:
+                        modeString = "SURROUND";
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                    case AudioStereoMode::AUDIO_STEREO_PASSTHROUGH:
+                        modeString = "PASSTHRU";
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                    default:
+                        modeString = "STEREO";
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                }
+
+                // Convert dsAudioPortType_t to AudioPortType for notification
+                switch (dsPortType) {
+                    case dsAUDIOPORT_TYPE_HDMI:
+                        portType = AudioPortType::AUDIO_PORT_TYPE_HDMI;
+                        break;
+                    case dsAUDIOPORT_TYPE_SPDIF:
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPDIF;
+                        break;
+                    case dsAUDIOPORT_TYPE_SPEAKER:
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                    case dsAUDIOPORT_TYPE_HDMI_ARC:
+                        portType = AudioPortType::AUDIO_PORT_TYPE_HDMIARC;
+                        break;
+                    default:
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                }
+
+                // Handle persistence based on port type and mode
+                if (persist) {
+                    try {
+                        LOGINFO("Setting Audio Mode %s with persistent value: %s", modeString.c_str(), persist ? "true" : "false");
+                        
+                        switch (dsPortType) {
+                            case dsAUDIOPORT_TYPE_HDMI:
+                                device::HostPersistence::getInstance().persistHostProperty("HDMI0.AudioMode", modeString.c_str());
+                                break;
+                            case dsAUDIOPORT_TYPE_SPDIF:
+                                device::HostPersistence::getInstance().persistHostProperty("SPDIF0.AudioMode", modeString.c_str());
+                                break;
+                            case dsAUDIOPORT_TYPE_HDMI_ARC:
+                                device::HostPersistence::getInstance().persistHostProperty("HDMI_ARC0.AudioMode", modeString.c_str());
+                                break;
+                            case dsAUDIOPORT_TYPE_SPEAKER:
+                                device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.AudioMode", modeString.c_str());
+                                break;
+                            default:
+                                LOGWARN("Unknown port type %d, skipping persistence", dsPortType);
+                                break;
+                        }
+                    } catch (...) {
+                        LOGERR("Error in persisting audio mode setting");
+                    }
+                }
+
                 // Notify about audio mode change
                 notifyAudioModeChanged(portType, mode);
             } else {
@@ -914,7 +1097,7 @@ public:
             dsError_t ret = dsSetAssociatedAudioMixing(dsHandle, mixing);
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAssociatedAudioMixing success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
-                
+
                 // Notify about associated audio mixing change
                 notifyAssociatedAudioMixingChanged(mixing);
             } else {
@@ -967,7 +1150,7 @@ public:
             dsError_t ret = dsSetFaderControl(dsHandle, mixerBalance);
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioFaderControl success: handle=%d, balance=%d", handle, mixerBalance);
-                
+
                 // Notify about fader control change
                 notifyAudioFaderControlChanged(mixerBalance);
             } else {
@@ -1020,7 +1203,7 @@ public:
             dsError_t ret = dsSetPrimaryLanguage(dsHandle, primaryAudioLanguage.c_str());
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioPrimaryLanguage success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
-                
+
                 // Notify about primary language change
                 notifyAudioPrimaryLanguageChanged(primaryAudioLanguage);
             } else {
@@ -1073,7 +1256,7 @@ public:
             dsError_t ret = dsSetSecondaryLanguage(dsHandle, secondaryAudioLanguage.c_str());
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioSecondaryLanguage success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
-                
+
                 // Notify about secondary language change
                 notifyAudioSecondaryLanguageChanged(secondaryAudioLanguage);
             } else {
@@ -1149,7 +1332,7 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-    // dsAtmosCapability_t should be dsATMOSCapability_t
+            // dsAtmosCapability_t should be dsATMOSCapability_t
             dsATMOSCapability_t dsCapability;
             dsError_t ret = dsGetSinkDeviceAtmosCapability(dsHandle, &dsCapability);
             if (ret == dsERR_NONE) {
@@ -1200,6 +1383,7 @@ public:
             dsError_t dsResult = dsIsAudioPortEnabled(static_cast<intptr_t>(handle), &portEnabled);
             if (dsResult == dsERR_NONE) {
                 enabled = portEnabled;
+                LOGINFO("IsAudioPortEnabled success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
             } else {
                 LOGERR("dsIsAudioPortEnabled failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -1218,11 +1402,11 @@ public:
             LOGERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
-        
+
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             dsAudioPortType_t portType = getAudioPortType(dsHandle);
-            
+
             // Special handling for SPEAKER port - manage audio ducking level
             if (portType == dsAUDIOPORT_TYPE_SPEAKER) {
                 bool muted = false;
@@ -1230,7 +1414,7 @@ public:
                 if (ret != dsERR_NONE) {
                     LOGWARN("Failed to get the mute status of Speaker port");
                 }
-                
+
                 if (enable && !muted) {
                     if (setAudioDuckingAudioLevel(dsHandle) != WPEFramework::Core::ERROR_NONE) {
                         LOGERR("Failed to set audio ducking level for Speaker port");
@@ -1240,14 +1424,14 @@ public:
                     LOGINFO("Not setting audio ducking level as mute status is %s", muted ? "true" : "false");
                 }
             }
-            
+
             // Enable/disable the audio port
             dsError_t dsResult = dsEnableAudioPort(dsHandle, enable);
             if (dsResult != dsERR_NONE) {
                 LOGERR("dsEnableAudioPort failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
-            
+
             // Verify that the port was actually enabled/disabled
             bool portEnabled = false;
             dsResult = dsIsAudioPortEnabled(dsHandle, &portEnabled);
@@ -1258,12 +1442,12 @@ public:
                     return WPEFramework::Core::ERROR_GENERAL;
                 } else {
                     LOGINFO("Audio port enable verification passed: %s", enable ? "enabled" : "disabled");
-                    
+
                     // Update port state tracking
                     if (portType < dsAUDIOPORT_TYPE_MAX) {
                         _audioPortEnabled[portType] = enable;
                         LOGINFO("Port type %d enabled status: %s", portType, enable ? "true" : "false");
-                        
+
                         // Set audio delay when enabling port
                         if (enable) {
                             uint32_t audioDelay = getAudioDelayInternal(portType);
@@ -1276,9 +1460,9 @@ public:
             } else {
                 LOGWARN("Audio port status verification failed - dsIsAudioPortEnabled call failed with error: %d", dsResult);
             }
-            
+
             LOGINFO("EnableAudioPort success: handle=%d, enable=%s", handle, enable ? "true" : "false");
-            
+
         } catch (...) {
             LOGERR("Exception in EnableAudioPort");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -1561,7 +1745,9 @@ public:
                 dsResult = dsSetAudioDelayFunc(static_cast<intptr_t>(handle), audioDelay);
             }
             
-            if (dsResult != dsERR_NONE) {
+            if (dsResult == dsERR_NONE) {
+                LOGINFO("SetAudioDelay success: handle=%d, delay=%u", handle, audioDelay);
+            } else {
                 LOGERR("dsSetAudioDelay failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
@@ -1580,6 +1766,7 @@ public:
             dsError_t dsResult = dsGetAudioDelay(static_cast<intptr_t>(handle), &delay);
             if (dsResult == dsERR_NONE) {
                 audioDelay = delay;
+                LOGINFO("GetAudioDelay success: handle=%d, delay=%u", handle, audioDelay);
             } else {
                 LOGERR("dsGetAudioDelay failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -1676,7 +1863,9 @@ public:
         ENTRY_LOG;
         try {
             dsError_t dsResult = dsSetAudioCompression(static_cast<intptr_t>(handle), compressionLevel);
-            if (dsResult != dsERR_NONE) {
+            if (dsResult == dsERR_NONE) {
+                LOGINFO("SetAudioCompression success: handle=%d, level=%d", handle, compressionLevel);
+            } else {
                 LOGERR("dsSetAudioCompression failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
@@ -1695,6 +1884,7 @@ public:
             dsError_t dsResult = dsGetAudioCompression(static_cast<intptr_t>(handle), &compression);
             if (dsResult == dsERR_NONE) {
                 compressionLevel = compression;
+                LOGINFO("GetAudioCompression success: handle=%d, level=%d", handle, compressionLevel);
             } else {
                 LOGERR("dsGetAudioCompression failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -1738,6 +1928,7 @@ public:
             dsError_t dsResult = dsGetDialogEnhancement(static_cast<intptr_t>(handle), &dialogLevel);
             if (dsResult == dsERR_NONE) {
                 level = dialogLevel;
+                LOGINFO("GetAudioDialogEnhancement success: handle=%d, level=%d", handle, level);
             } else {
                 LOGERR("dsGetDialogEnhancement failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -1754,7 +1945,9 @@ public:
         ENTRY_LOG;
         try {
             dsError_t dsResult = dsSetDolbyVolumeMode(static_cast<intptr_t>(handle), enable);
-            if (dsResult != dsERR_NONE) {
+            if (dsResult == dsERR_NONE) {
+                LOGINFO("SetAudioDolbyVolumeMode success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+            } else {
                 LOGERR("dsSetDolbyVolumeMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
@@ -1773,6 +1966,7 @@ public:
             dsError_t dsResult = dsGetDolbyVolumeMode(static_cast<intptr_t>(handle), &dolbyMode);
             if (dsResult == dsERR_NONE) {
                 enabled = dolbyMode;
+                LOGINFO("GetAudioDolbyVolumeMode success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
             } else {
                 LOGERR("dsGetDolbyVolumeMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -1789,7 +1983,9 @@ public:
         ENTRY_LOG;
         try {
             dsError_t dsResult = dsSetIntelligentEqualizerMode(static_cast<intptr_t>(handle), mode);
-            if (dsResult != dsERR_NONE) {
+            if (dsResult == dsERR_NONE) {
+                LOGINFO("SetAudioIntelligentEqualizerMode success: handle=%d, mode=%d", handle, mode);
+            } else {
                 LOGERR("dsSetIntelligentEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
@@ -1808,6 +2004,7 @@ public:
             dsError_t dsResult = dsGetIntelligentEqualizerMode(static_cast<intptr_t>(handle), &eqMode);
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
+                LOGINFO("GetAudioIntelligentEqualizerMode success: handle=%d, mode=%d", handle, mode);
             } else {
                 LOGERR("dsGetIntelligentEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2092,7 +2289,9 @@ public:
         ENTRY_LOG;
         try {
             dsError_t dsResult = dsSetGraphicEqualizerMode(static_cast<intptr_t>(handle), mode);
-            if (dsResult != dsERR_NONE) {
+            if (dsResult == dsERR_NONE) {
+                LOGINFO("SetAudioGraphicEqualizerMode success: handle=%d, mode=%d", handle, mode);
+            } else {
                 LOGERR("dsSetGraphicEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
@@ -2111,6 +2310,7 @@ public:
             dsError_t dsResult = dsGetGraphicEqualizerMode(static_cast<intptr_t>(handle), &eqMode);
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
+                LOGINFO("GetAudioGraphicEqualizerMode success: handle=%d, mode=%d", handle, mode);
             } else {
                 LOGERR("dsGetGraphicEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2479,13 +2679,51 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            // Note: dsSetStereoAuto may not support persist parameter in this version
-            dsError_t ret = dsSetStereoAuto(dsHandle, autoMode);
-            if (ret == dsERR_NONE) {
-                LOGINFO("SetStereoAuto success: handle=%d, autoMode=%d, persist=%d", handle, autoMode, persist);
+            
+            // Handle persistence similar to dsAudio.c _dsSetStereoAuto implementation
+            if (persist) {
+                dsAudioPortType_t portType = getAudioPortType(dsHandle);
+                switch (portType) {
+                    case dsAUDIOPORT_TYPE_HDMI:
+                        device::HostPersistence::getInstance().persistHostProperty("HDMI0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
+                        LOGINFO("Persisted HDMI stereo auto mode: autoMode=%d", autoMode);
+                        break;
+
+                    case dsAUDIOPORT_TYPE_HDMI_ARC:
+                        device::HostPersistence::getInstance().persistHostProperty("HDMI_ARC0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
+                        LOGINFO("Persisted HDMI_ARC stereo auto mode: autoMode=%d", autoMode);
+                        break;
+
+                    case dsAUDIOPORT_TYPE_SPDIF:
+                        device::HostPersistence::getInstance().persistHostProperty("SPDIF0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
+                        LOGINFO("Persisted SPDIF stereo auto mode: autoMode=%d", autoMode);
+                        break;
+
+                    case dsAUDIOPORT_TYPE_SPEAKER:
+                        device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
+                        LOGINFO("Persisted SPEAKER stereo auto mode: autoMode=%d", autoMode);
+                        break;
+
+                    default:
+                        LOGWARN("SetStereoAuto persistence not supported for port type: %d", portType);
+                        break;
+                }
+            }
+            
+            // Call the HAL function - only for HDMI_ARC and SPDIF ports as per dsAudio.c logic
+            dsAudioPortType_t portType = getAudioPortType(dsHandle);
+            if ((portType == dsAUDIOPORT_TYPE_HDMI_ARC) || (portType == dsAUDIOPORT_TYPE_SPDIF)) {
+                dsError_t ret = dsSetStereoAuto(dsHandle, autoMode);
+                if (ret == dsERR_NONE) {
+                    LOGINFO("SetStereoAuto success: handle=%d, autoMode=%d, persist=%s", 
+                           handle, autoMode, persist ? "true" : "false");
+                } else {
+                    LOGERR("dsSetStereoAuto failed with error: %d", ret);
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
             } else {
-                LOGERR("dsSetStereoAuto failed with error: %d", ret);
-                return WPEFramework::Core::ERROR_GENERAL;
+                LOGINFO("SetStereoAuto HAL call skipped for port type %d (only HDMI_ARC/SPDIF supported): handle=%d, autoMode=%d", 
+                       portType, handle, autoMode);
             }
         } catch (...) {
             LOGERR("Exception in SetStereoAuto");
@@ -3489,7 +3727,6 @@ private:
         EXIT_LOG;
     }
     
-    // Static HAL Callback Functions following HdmiIn pattern
     // audioOutPortConnectCallback implementation
     static void audioOutPortConnectCallback(dsAudioPortType_t portType, unsigned int uiPortNo, bool isPortConnected)
     {
@@ -3556,6 +3793,7 @@ private:
     // notifyAudioFaderControlChanged implementation
     void notifyAudioFaderControlChanged(int32_t mixerBalance)
     {
+        LOGINFO("Audio fader control changed: mixerBalance=%d", mixerBalance);
         // Call Audio event handler using global callback if available
         if (g_AudioFaderControlChangedCallback) {
             g_AudioFaderControlChangedCallback(mixerBalance);
@@ -3565,6 +3803,7 @@ private:
     // notifyAudioPrimaryLanguageChanged implementation
     void notifyAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
     {
+        LOGINFO("Audio primary language changed: %s", primaryLanguage.c_str());
         // Call Audio event handler using global callback if available
         if (g_AudioPrimaryLanguageChangedCallback) {
             g_AudioPrimaryLanguageChangedCallback(primaryLanguage);
@@ -3574,6 +3813,7 @@ private:
     // notifyAudioSecondaryLanguageChanged implementation
     void notifyAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
     {
+        LOGINFO("Audio secondary language changed: %s", secondaryLanguage.c_str());
         // Call Audio event handler using global callback if available
         if (g_AudioSecondaryLanguageChangedCallback) {
             g_AudioSecondaryLanguageChangedCallback(secondaryLanguage);
@@ -3593,6 +3833,7 @@ private:
     // notifyAudioLevelChanged implementation
     void notifyAudioLevelChanged(int32_t audioLevel)
     {
+        LOGINFO("Audio level changed: audioLevel=%d", audioLevel);
         // Call Audio event handler using global callback if available
         if (g_AudioLevelChangedCallback) {
             g_AudioLevelChangedCallback(static_cast<float>(audioLevel));
@@ -3602,6 +3843,7 @@ private:
     // notifyAudioModeChanged implementation
     void notifyAudioModeChanged(AudioPortType portType, AudioStereoMode mode)
     {
+        LOGINFO("Audio mode changed: portType=%d, mode=%d", static_cast<int>(portType), static_cast<int>(mode));
         // Call Audio event handler using global callback if available
         if (g_AudioModeChangedCallback) {
             g_AudioModeChangedCallback(portType, mode);

@@ -67,7 +67,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _hdmiInNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -93,6 +93,7 @@ namespace Plugin {
             // Get individual interfaces from the main DeviceSettings interface
             _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsFPD>("org.rdk.DeviceSettings");
             _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
+            _audioManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsAudio>("org.rdk.DeviceSettings");
         } else {
             LOGERR("Could not obtain DeviceSettings interface");
         }
@@ -102,10 +103,16 @@ namespace Plugin {
             _hdmiInManager->Register(&_hdmiInNotification);
         }
 
+        // Register for Audio notifications if interface is available
+        if (_audioManager) {
+            _audioManager->Register(&_audioNotification);
+        }
+
         // Test DeviceSettings interfaces
-        TestSimplifiedFPDAPIs();
-        TestSimplifiedHDMIInAPIs();
-        TestSelectHDMIInPortAPI();
+        //TestSimplifiedFPDAPIs();
+        //TestSimplifiedHDMIInAPIs();
+        //TestSelectHDMIInPortAPI();
+        TestAudioAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
 
@@ -121,6 +128,13 @@ namespace Plugin {
             _hdmiInManager->Unregister(&_hdmiInNotification);
             _hdmiInManager->Release();
             _hdmiInManager = nullptr;
+        }
+
+        // Unregister Audio notifications and release Audio Manager
+        if (_audioManager) {
+            _audioManager->Unregister(&_audioNotification);
+            _audioManager->Release();
+            _audioManager = nullptr;
         }
 
         // Release FPD Manager
@@ -687,6 +701,938 @@ namespace Plugin {
         } else {
             LOGINFO("VRR Type: Unknown (%d) on port %d", static_cast<int>(vrrType), static_cast<int>(port));
         }
+    }
+
+    void UserPlugin::TestAudioAPIs()
+    {
+        LOGINFO("========== Complete Audio APIs Testing Framework ==========");
+
+        if (!_audioManager) {
+            LOGERR("Audio Manager interface is not available");
+            return;
+        }
+
+        LOGINFO("Testing ALL Audio APIs with get-set-restore pattern");
+
+        // Test audio port types - comprehensive testing on multiple port types
+        Exchange::IDeviceSettingsAudio::AudioPortType testPortTypes[] = {
+            Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI,
+            Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_SPDIF,
+            Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_SPEAKER,
+            Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_HDMIARC
+        };
+
+        const char* portTypeNames[] = {
+            "HDMI", "SPDIF", "SPEAKER", "HDMI_ARC"
+        };
+
+        // Test each port type with all port-specific APIs
+        for (size_t i = 0; i < sizeof(testPortTypes)/sizeof(testPortTypes[0]); i++) {
+            auto portType = testPortTypes[i];
+            const char* portTypeName = portTypeNames[i];
+
+            LOGINFO("---------- Testing ALL Audio APIs for Port Type: %s ----------", portTypeName);
+
+            // 1. Test GetAudioPort - Get handle for this port type
+            int32_t handle = -1;
+            Core::hresult result = _audioManager->GetAudioPort(portType, 0, handle);
+            LOGINFO("GetAudioPort: portType=%s, result=%u, handle=%d", portTypeName, result, handle);
+
+            if (result != Core::ERROR_NONE) {
+                LOGWARN("Skipping tests for %s port - port handle not available", portTypeName);
+                continue;
+            }
+
+            // 2. Test IsAudioPortEnabled and EnableAudioPort (get-set-restore)
+            bool originalEnabled = false;
+            result = _audioManager->IsAudioPortEnabled(handle, originalEnabled);
+            LOGINFO("IsAudioPortEnabled: handle=%d, result=%u, original_enabled=%s", handle, result, originalEnabled ? "true" : "false");
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle enable state for testing
+                bool testEnabled = !originalEnabled;
+                result = _audioManager->EnableAudioPort(handle, testEnabled);
+                LOGINFO("EnableAudioPort: handle=%d, result=%u, test_enabled=%s", handle, result, testEnabled ? "true" : "false");
+
+                // Verify the state was changed
+                bool verifyEnabled = false;
+                _audioManager->IsAudioPortEnabled(handle, verifyEnabled);
+                LOGINFO("IsAudioPortEnabled: handle=%d, verified_enabled=%s", handle, verifyEnabled ? "true" : "false");
+
+                // Restore original state
+                _audioManager->EnableAudioPort(handle, originalEnabled);
+                LOGINFO("EnableAudioPort: handle=%d, enabled restored to %s", handle, originalEnabled ? "true" : "false");
+            }
+
+            // 3. Test GetStereoMode and SetStereoMode (get-set-restore)
+            Exchange::IDeviceSettingsAudio::StereoMode originalStereoMode;
+            result = _audioManager->GetStereoMode(handle, originalStereoMode);
+            LOGINFO("GetStereoMode: handle=%d, result=%u, original_mode=%d", handle, result, static_cast<int>(originalStereoMode));
+
+            if (result == Core::ERROR_NONE) {
+                // Set test stereo mode (toggle between stereo and surround)
+                Exchange::IDeviceSettingsAudio::StereoMode testStereoMode = 
+                    (originalStereoMode == Exchange::IDeviceSettingsAudio::StereoMode::AUDIO_STEREO_STEREO) ? 
+                    Exchange::IDeviceSettingsAudio::StereoMode::AUDIO_STEREO_SURROUND : 
+                    Exchange::IDeviceSettingsAudio::StereoMode::AUDIO_STEREO_STEREO;
+                result = _audioManager->SetStereoMode(handle, testStereoMode, false);
+                LOGINFO("SetStereoMode: handle=%d, result=%u, test_mode=%d", handle, result, static_cast<int>(testStereoMode));
+
+                // Verify the mode was set
+                Exchange::IDeviceSettingsAudio::StereoMode verifyStereoMode;
+                _audioManager->GetStereoMode(handle, verifyStereoMode);
+                LOGINFO("GetStereoMode: handle=%d, verified_mode=%d", handle, static_cast<int>(verifyStereoMode));
+
+                // Restore original mode
+                _audioManager->SetStereoMode(handle, originalStereoMode, false);
+                LOGINFO("SetStereoMode: handle=%d, mode restored to %d", handle, static_cast<int>(originalStereoMode));
+            }
+
+            // 4. Test GetStereoAuto and SetStereoAuto (get-set-restore)
+            int32_t originalStereoAuto = 0;
+            result = _audioManager->GetStereoAuto(handle, originalStereoAuto);
+            LOGINFO("GetStereoAuto: handle=%d, result=%u, original_auto=%d", handle, result, originalStereoAuto);
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle stereo auto value
+                int32_t testStereoAuto = (originalStereoAuto == 0) ? 1 : 0;
+                result = _audioManager->SetStereoAuto(handle, testStereoAuto, false);
+                LOGINFO("SetStereoAuto: handle=%d, result=%u, test_auto=%d", handle, result, testStereoAuto);
+
+                // Verify the auto setting was changed
+                int32_t verifyStereoAuto = 0;
+                _audioManager->GetStereoAuto(handle, verifyStereoAuto);
+                LOGINFO("GetStereoAuto: handle=%d, verified_auto=%d", handle, verifyStereoAuto);
+
+                // Restore original setting
+                _audioManager->SetStereoAuto(handle, originalStereoAuto, false);
+                LOGINFO("SetStereoAuto: handle=%d, auto restored to %d", handle, originalStereoAuto);
+            }
+
+            // 5. Test IsAudioMuted and SetAudioMute (get-set-restore)
+            bool originalMuted = false;
+            result = _audioManager->IsAudioMuted(handle, originalMuted);
+            LOGINFO("IsAudioMuted: handle=%d, result=%u, original_muted=%s", handle, result, originalMuted ? "true" : "false");
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle mute state
+                bool testMuted = !originalMuted;
+                result = _audioManager->SetAudioMute(handle, testMuted);
+                LOGINFO("SetAudioMute: handle=%d, result=%u, test_muted=%s", handle, result, testMuted ? "true" : "false");
+
+                // Verify mute state was changed
+                bool verifyMuted = false;
+                _audioManager->IsAudioMuted(handle, verifyMuted);
+                LOGINFO("IsAudioMuted: handle=%d, verified_muted=%s", handle, verifyMuted ? "true" : "false");
+
+                // Restore original mute state
+                _audioManager->SetAudioMute(handle, originalMuted);
+                LOGINFO("SetAudioMute: handle=%d, muted restored to %s", handle, originalMuted ? "true" : "false");
+            }
+
+            // 6. Test GetAudioLevel and SetAudioLevel (get-set-restore)
+            float originalAudioLevel = 0.0f;
+            result = _audioManager->GetAudioLevel(handle, originalAudioLevel);
+            LOGINFO("GetAudioLevel: handle=%d, result=%u, original_level=%.2f", handle, result, originalAudioLevel);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test audio level (use different level for testing)
+                float testAudioLevel = (originalAudioLevel == 50.0f) ? 75.0f : 50.0f;
+                result = _audioManager->SetAudioLevel(handle, testAudioLevel);
+                LOGINFO("SetAudioLevel: handle=%d, result=%u, test_level=%.2f", handle, result, testAudioLevel);
+
+                // Verify audio level was set
+                float verifyAudioLevel = 0.0f;
+                _audioManager->GetAudioLevel(handle, verifyAudioLevel);
+                LOGINFO("GetAudioLevel: handle=%d, verified_level=%.2f", handle, verifyAudioLevel);
+
+                // Restore original audio level
+                _audioManager->SetAudioLevel(handle, originalAudioLevel);
+                LOGINFO("SetAudioLevel: handle=%d, level restored to %.2f", handle, originalAudioLevel);
+            }
+
+            // 7. Test GetAudioGain and SetAudioGain (get-set-restore)
+            float originalAudioGain = 0.0f;
+            result = _audioManager->GetAudioGain(handle, originalAudioGain);
+            LOGINFO("GetAudioGain: handle=%d, result=%u, original_gain=%.2f", handle, result, originalAudioGain);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test audio gain (use different gain for testing)
+                float testAudioGain = (originalAudioGain == 0.0f) ? 2.5f : 0.0f;
+                result = _audioManager->SetAudioGain(handle, testAudioGain);
+                LOGINFO("SetAudioGain: handle=%d, result=%u, test_gain=%.2f", handle, result, testAudioGain);
+
+                // Verify audio gain was set
+                float verifyAudioGain = 0.0f;
+                _audioManager->GetAudioGain(handle, verifyAudioGain);
+                LOGINFO("GetAudioGain: handle=%d, verified_gain=%.2f", handle, verifyAudioGain);
+
+                // Restore original audio gain
+                _audioManager->SetAudioGain(handle, originalAudioGain);
+                LOGINFO("SetAudioGain: handle=%d, gain restored to %.2f", handle, originalAudioGain);
+            }
+
+            // 8. Test GetAudioDelay and SetAudioDelay (get-set-restore)
+            uint32_t originalAudioDelay = 0;
+            result = _audioManager->GetAudioDelay(handle, originalAudioDelay);
+            LOGINFO("GetAudioDelay: handle=%d, result=%u, original_delay=%u ms", handle, result, originalAudioDelay);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test audio delay (use different delay for testing)
+                uint32_t testAudioDelay = (originalAudioDelay == 0) ? 100 : 0;
+                result = _audioManager->SetAudioDelay(handle, testAudioDelay);
+                LOGINFO("SetAudioDelay: handle=%d, result=%u, test_delay=%u ms", handle, result, testAudioDelay);
+
+                // Verify audio delay was set
+                uint32_t verifyAudioDelay = 0;
+                _audioManager->GetAudioDelay(handle, verifyAudioDelay);
+                LOGINFO("GetAudioDelay: handle=%d, verified_delay=%u ms", handle, verifyAudioDelay);
+
+                // Restore original audio delay
+                _audioManager->SetAudioDelay(handle, originalAudioDelay);
+                LOGINFO("SetAudioDelay: handle=%d, delay restored to %u ms", handle, originalAudioDelay);
+            }
+
+            // 9. Test GetAudioDelayOffset and SetAudioDelayOffset (get-set-restore)
+            uint32_t originalDelayOffset = 0;
+            result = _audioManager->GetAudioDelayOffset(handle, originalDelayOffset);
+            LOGINFO("GetAudioDelayOffset: handle=%d, result=%u, original_offset=%u ms", handle, result, originalDelayOffset);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test delay offset
+                uint32_t testDelayOffset = (originalDelayOffset == 0) ? 50 : 0;
+                result = _audioManager->SetAudioDelayOffset(handle, testDelayOffset);
+                LOGINFO("SetAudioDelayOffset: handle=%d, result=%u, test_offset=%u ms", handle, result, testDelayOffset);
+
+                // Verify delay offset was set
+                uint32_t verifyDelayOffset = 0;
+                _audioManager->GetAudioDelayOffset(handle, verifyDelayOffset);
+                LOGINFO("GetAudioDelayOffset: handle=%d, verified_offset=%u ms", handle, verifyDelayOffset);
+
+                // Restore original delay offset
+                _audioManager->SetAudioDelayOffset(handle, originalDelayOffset);
+                LOGINFO("SetAudioDelayOffset: handle=%d, offset restored to %u ms", handle, originalDelayOffset);
+            }
+
+            // 10. Test GetAudioFormat (read-only)
+            Exchange::IDeviceSettingsAudio::AudioFormat audioFormat;
+            result = _audioManager->GetAudioFormat(handle, audioFormat);
+            LOGINFO("GetAudioFormat: handle=%d, result=%u, format=%d", handle, result, static_cast<int>(audioFormat));
+
+            // 11. Test GetAudioEncoding (read-only)
+            Exchange::IDeviceSettingsAudio::AudioEncoding audioEncoding;
+            result = _audioManager->GetAudioEncoding(handle, audioEncoding);
+            LOGINFO("GetAudioEncoding: handle=%d, result=%u, encoding=%d", handle, result, static_cast<int>(audioEncoding));
+
+            // 12. Test GetAudioEnablePersist and SetAudioEnablePersist (get-set-restore)
+            bool originalPersistEnabled = false;
+            string originalPortName;
+            result = _audioManager->GetAudioEnablePersist(handle, originalPersistEnabled, originalPortName);
+            LOGINFO("GetAudioEnablePersist: handle=%d, result=%u, original_enabled=%s, port_name='%s'", 
+                   handle, result, originalPersistEnabled ? "true" : "false", originalPortName.c_str());
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle persist enabled state
+                bool testPersistEnabled = !originalPersistEnabled;
+                string testPortName = portTypeName;
+                result = _audioManager->SetAudioEnablePersist(handle, testPersistEnabled, testPortName);
+                LOGINFO("SetAudioEnablePersist: handle=%d, result=%u, test_enabled=%s, test_port_name='%s'", 
+                       handle, result, testPersistEnabled ? "true" : "false", testPortName.c_str());
+
+                // Verify persist setting was changed
+                bool verifyPersistEnabled = false;
+                string verifyPortName;
+                _audioManager->GetAudioEnablePersist(handle, verifyPersistEnabled, verifyPortName);
+                LOGINFO("GetAudioEnablePersist: handle=%d, verified_enabled=%s, verified_port_name='%s'", 
+                       handle, verifyPersistEnabled ? "true" : "false", verifyPortName.c_str());
+
+                // Restore original persist setting
+                _audioManager->SetAudioEnablePersist(handle, originalPersistEnabled, originalPortName);
+                LOGINFO("SetAudioEnablePersist: handle=%d, persist restored to %s", handle, originalPersistEnabled ? "true" : "false");
+            }
+
+            // 13. Test IsAudioMSDecoded (read-only)
+            bool hasms11Decode = false;
+            result = _audioManager->IsAudioMSDecoded(handle, hasms11Decode);
+            LOGINFO("IsAudioMSDecoded: handle=%d, result=%u, hasMS11Decode=%s", handle, result, hasms11Decode ? "true" : "false");
+
+            // 14. Test IsAudioMS12Decoded (read-only)
+            bool hasms12Decode = false;
+            result = _audioManager->IsAudioMS12Decoded(handle, hasms12Decode);
+            LOGINFO("IsAudioMS12Decoded: handle=%d, result=%u, hasMS12Decode=%s", handle, result, hasms12Decode ? "true" : "false");
+
+            // 15. Test GetAudioLEConfig and EnableAudioLEConfig (get-set-restore)
+            bool originalLEEnabled = false;
+            result = _audioManager->GetAudioLEConfig(handle, originalLEEnabled);
+            LOGINFO("GetAudioLEConfig: handle=%d, result=%u, original_LE_enabled=%s", handle, result, originalLEEnabled ? "true" : "false");
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle LE config state
+                bool testLEEnabled = !originalLEEnabled;
+                result = _audioManager->EnableAudioLEConfig(handle, testLEEnabled);
+                LOGINFO("EnableAudioLEConfig: handle=%d, result=%u, test_LE_enabled=%s", handle, result, testLEEnabled ? "true" : "false");
+
+                // Verify LE config was changed
+                bool verifyLEEnabled = false;
+                _audioManager->GetAudioLEConfig(handle, verifyLEEnabled);
+                LOGINFO("GetAudioLEConfig: handle=%d, verified_LE_enabled=%s", handle, verifyLEEnabled ? "true" : "false");
+
+                // Restore original LE config
+                _audioManager->EnableAudioLEConfig(handle, originalLEEnabled);
+                LOGINFO("EnableAudioLEConfig: handle=%d, LE enabled restored to %s", handle, originalLEEnabled ? "true" : "false");
+            }
+
+            // 16. Test GetAudioSinkDeviceAtmosCapability (read-only)
+            Exchange::IDeviceSettingsAudio::DolbyAtmosCapability atmosCapability;
+            result = _audioManager->GetAudioSinkDeviceAtmosCapability(handle, atmosCapability);
+            LOGINFO("GetAudioSinkDeviceAtmosCapability: handle=%d, result=%u, atmos_capability=%d", 
+                   handle, result, static_cast<int>(atmosCapability));
+
+            // 17. Test SetAudioAtmosOutputMode (set-restore pattern)
+            result = _audioManager->SetAudioAtmosOutputMode(handle, true);
+            LOGINFO("SetAudioAtmosOutputMode: handle=%d, result=%u, enable=true", handle, result);
+
+            // Restore to disabled state
+            result = _audioManager->SetAudioAtmosOutputMode(handle, false);
+            LOGINFO("SetAudioAtmosOutputMode: handle=%d, atmos output restored to disabled", handle);
+
+            // 18. Test SetAudioDucking (test different ducking actions)
+            result = _audioManager->SetAudioDucking(handle, 
+                Exchange::IDeviceSettingsAudio::AudioDuckingType::AUDIO_DUCKINGTYPE_ABSOLUTE,
+                Exchange::IDeviceSettingsAudio::AudioDuckingAction::AUDIO_DUCKINGACTION_START, 70);
+            LOGINFO("SetAudioDucking: handle=%d, result=%u, type=ABSOLUTE, action=START, level=70", handle, result);
+
+            // Stop ducking to restore normal audio
+            result = _audioManager->SetAudioDucking(handle, 
+                Exchange::IDeviceSettingsAudio::AudioDuckingType::AUDIO_DUCKINGTYPE_ABSOLUTE,
+                Exchange::IDeviceSettingsAudio::AudioDuckingAction::AUDIO_DUCKINGACTION_STOP, 0);
+            LOGINFO("SetAudioDucking: handle=%d, ducking stopped to restore normal audio", handle);
+
+            // 19. Test GetAudioCompression and SetAudioCompression (get-set-restore)
+            int32_t originalCompression = 0;
+            result = _audioManager->GetAudioCompression(handle, originalCompression);
+            LOGINFO("GetAudioCompression: handle=%d, result=%u, original_compression=%d", handle, result, originalCompression);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test compression level
+                int32_t testCompression = (originalCompression == 0) ? 2 : 0;
+                result = _audioManager->SetAudioCompression(handle, testCompression);
+                LOGINFO("SetAudioCompression: handle=%d, result=%u, test_compression=%d", handle, result, testCompression);
+
+                // Verify compression was set
+                int32_t verifyCompression = 0;
+                _audioManager->GetAudioCompression(handle, verifyCompression);
+                LOGINFO("GetAudioCompression: handle=%d, verified_compression=%d", handle, verifyCompression);
+
+                // Restore original compression
+                _audioManager->SetAudioCompression(handle, originalCompression);
+                LOGINFO("SetAudioCompression: handle=%d, compression restored to %d", handle, originalCompression);
+            }
+
+            // 20. Test GetAudioDialogEnhancement and SetAudioDialogEnhancement (get-set-restore)
+            int32_t originalDialogLevel = 0;
+            result = _audioManager->GetAudioDialogEnhancement(handle, originalDialogLevel);
+            LOGINFO("GetAudioDialogEnhancement: handle=%d, result=%u, original_level=%d", handle, result, originalDialogLevel);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test dialog enhancement level
+                int32_t testDialogLevel = (originalDialogLevel == 0) ? 5 : 0;
+                result = _audioManager->SetAudioDialogEnhancement(handle, testDialogLevel);
+                LOGINFO("SetAudioDialogEnhancement: handle=%d, result=%u, test_level=%d", handle, result, testDialogLevel);
+
+                // Verify dialog enhancement was set
+                int32_t verifyDialogLevel = 0;
+                _audioManager->GetAudioDialogEnhancement(handle, verifyDialogLevel);
+                LOGINFO("GetAudioDialogEnhancement: handle=%d, verified_level=%d", handle, verifyDialogLevel);
+
+                // Restore original dialog level
+                _audioManager->SetAudioDialogEnhancement(handle, originalDialogLevel);
+                LOGINFO("SetAudioDialogEnhancement: handle=%d, dialog level restored to %d", handle, originalDialogLevel);
+            }
+
+            // 21. Test GetAudioDolbyVolumeMode and SetAudioDolbyVolumeMode (get-set-restore)
+            bool originalDolbyVolume = false;
+            result = _audioManager->GetAudioDolbyVolumeMode(handle, originalDolbyVolume);
+            LOGINFO("GetAudioDolbyVolumeMode: handle=%d, result=%u, original_enabled=%s", handle, result, originalDolbyVolume ? "true" : "false");
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle dolby volume mode
+                bool testDolbyVolume = !originalDolbyVolume;
+                result = _audioManager->SetAudioDolbyVolumeMode(handle, testDolbyVolume);
+                LOGINFO("SetAudioDolbyVolumeMode: handle=%d, result=%u, test_enabled=%s", handle, result, testDolbyVolume ? "true" : "false");
+
+                // Verify dolby volume mode was set
+                bool verifyDolbyVolume = false;
+                _audioManager->GetAudioDolbyVolumeMode(handle, verifyDolbyVolume);
+                LOGINFO("GetAudioDolbyVolumeMode: handle=%d, verified_enabled=%s", handle, verifyDolbyVolume ? "true" : "false");
+
+                // Restore original dolby volume mode
+                _audioManager->SetAudioDolbyVolumeMode(handle, originalDolbyVolume);
+                LOGINFO("SetAudioDolbyVolumeMode: handle=%d, dolby volume restored to %s", handle, originalDolbyVolume ? "true" : "false");
+            }
+
+            // 22. Test GetAudioIntelligentEqualizerMode and SetAudioIntelligentEqualizerMode (get-set-restore)
+            int32_t originalEqualizerMode = 0;
+            result = _audioManager->GetAudioIntelligentEqualizerMode(handle, originalEqualizerMode);
+            LOGINFO("GetAudioIntelligentEqualizerMode: handle=%d, result=%u, original_mode=%d", handle, result, originalEqualizerMode);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test equalizer mode
+                int32_t testEqualizerMode = (originalEqualizerMode == 0) ? 1 : 0;
+                result = _audioManager->SetAudioIntelligentEqualizerMode(handle, testEqualizerMode);
+                LOGINFO("SetAudioIntelligentEqualizerMode: handle=%d, result=%u, test_mode=%d", handle, result, testEqualizerMode);
+
+                // Verify equalizer mode was set
+                int32_t verifyEqualizerMode = 0;
+                _audioManager->GetAudioIntelligentEqualizerMode(handle, verifyEqualizerMode);
+                LOGINFO("GetAudioIntelligentEqualizerMode: handle=%d, verified_mode=%d", handle, verifyEqualizerMode);
+
+                // Restore original equalizer mode
+                _audioManager->SetAudioIntelligentEqualizerMode(handle, originalEqualizerMode);
+                LOGINFO("SetAudioIntelligentEqualizerMode: handle=%d, equalizer mode restored to %d", handle, originalEqualizerMode);
+            }
+
+            // 23. Test GetAudioVolumeLeveller and SetAudioVolumeLeveller (get-set-restore)
+            Exchange::IDeviceSettingsAudio::VolumeLeveller originalVolumeLeveller;
+            result = _audioManager->GetAudioVolumeLeveller(handle, originalVolumeLeveller);
+            LOGINFO("GetAudioVolumeLeveller: handle=%d, result=%u, original_mode=%d, original_level=%d", 
+                   handle, result, originalVolumeLeveller.mode, originalVolumeLeveller.level);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test volume leveller
+                Exchange::IDeviceSettingsAudio::VolumeLeveller testVolumeLeveller;
+                testVolumeLeveller.mode = (originalVolumeLeveller.mode == 0) ? 1 : 0;
+                testVolumeLeveller.level = (originalVolumeLeveller.level == 5) ? 7 : 5;
+                result = _audioManager->SetAudioVolumeLeveller(handle, testVolumeLeveller);
+                LOGINFO("SetAudioVolumeLeveller: handle=%d, result=%u, test_mode=%d, test_level=%d", 
+                       handle, result, testVolumeLeveller.mode, testVolumeLeveller.level);
+
+                // Verify volume leveller was set
+                Exchange::IDeviceSettingsAudio::VolumeLeveller verifyVolumeLeveller;
+                _audioManager->GetAudioVolumeLeveller(handle, verifyVolumeLeveller);
+                LOGINFO("GetAudioVolumeLeveller: handle=%d, verified_mode=%d, verified_level=%d", 
+                       handle, verifyVolumeLeveller.mode, verifyVolumeLeveller.level);
+
+                // Restore original volume leveller
+                _audioManager->SetAudioVolumeLeveller(handle, originalVolumeLeveller);
+                LOGINFO("SetAudioVolumeLeveller: handle=%d, volume leveller restored", handle);
+            }
+
+            // 24. Test GetAudioBassEnhancer and SetAudioBassEnhancer (get-set-restore)
+            int32_t originalBassBoost = 0;
+            result = _audioManager->GetAudioBassEnhancer(handle, originalBassBoost);
+            LOGINFO("GetAudioBassEnhancer: handle=%d, result=%u, original_boost=%d", handle, result, originalBassBoost);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test bass boost
+                int32_t testBassBoost = (originalBassBoost == 0) ? 3 : 0;
+                result = _audioManager->SetAudioBassEnhancer(handle, testBassBoost);
+                LOGINFO("SetAudioBassEnhancer: handle=%d, result=%u, test_boost=%d", handle, result, testBassBoost);
+
+                // Verify bass boost was set
+                int32_t verifyBassBoost = 0;
+                _audioManager->GetAudioBassEnhancer(handle, verifyBassBoost);
+                LOGINFO("GetAudioBassEnhancer: handle=%d, verified_boost=%d", handle, verifyBassBoost);
+
+                // Restore original bass boost
+                _audioManager->SetAudioBassEnhancer(handle, originalBassBoost);
+                LOGINFO("SetAudioBassEnhancer: handle=%d, bass boost restored to %d", handle, originalBassBoost);
+            }
+
+            // 25. Test IsAudioSurroudDecoderEnabled and EnableAudioSurroudDecoder (get-set-restore)
+            bool originalSurroundDecoder = false;
+            result = _audioManager->IsAudioSurroudDecoderEnabled(handle, originalSurroundDecoder);
+            LOGINFO("IsAudioSurroudDecoderEnabled: handle=%d, result=%u, original_enabled=%s", handle, result, originalSurroundDecoder ? "true" : "false");
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle surround decoder state
+                bool testSurroundDecoder = !originalSurroundDecoder;
+                result = _audioManager->EnableAudioSurroudDecoder(handle, testSurroundDecoder);
+                LOGINFO("EnableAudioSurroudDecoder: handle=%d, result=%u, test_enabled=%s", handle, result, testSurroundDecoder ? "true" : "false");
+
+                // Verify surround decoder was set
+                bool verifySurroundDecoder = false;
+                _audioManager->IsAudioSurroudDecoderEnabled(handle, verifySurroundDecoder);
+                LOGINFO("IsAudioSurroudDecoderEnabled: handle=%d, verified_enabled=%s", handle, verifySurroundDecoder ? "true" : "false");
+
+                // Restore original surround decoder
+                _audioManager->EnableAudioSurroudDecoder(handle, originalSurroundDecoder);
+                LOGINFO("EnableAudioSurroudDecoder: handle=%d, surround decoder restored to %s", handle, originalSurroundDecoder ? "true" : "false");
+            }
+
+            // 26. Test GetAudioDRCMode and SetAudioDRCMode (get-set-restore)
+            int32_t originalDRCMode = 0;
+            result = _audioManager->GetAudioDRCMode(handle, originalDRCMode);
+            LOGINFO("GetAudioDRCMode: handle=%d, result=%u, original_drc_mode=%d", handle, result, originalDRCMode);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test DRC mode
+                int32_t testDRCMode = (originalDRCMode == 0) ? 1 : 0;
+                result = _audioManager->SetAudioDRCMode(handle, testDRCMode);
+                LOGINFO("SetAudioDRCMode: handle=%d, result=%u, test_drc_mode=%d", handle, result, testDRCMode);
+
+                // Verify DRC mode was set
+                int32_t verifyDRCMode = 0;
+                _audioManager->GetAudioDRCMode(handle, verifyDRCMode);
+                LOGINFO("GetAudioDRCMode: handle=%d, verified_drc_mode=%d", handle, verifyDRCMode);
+
+                // Restore original DRC mode
+                _audioManager->SetAudioDRCMode(handle, originalDRCMode);
+                LOGINFO("SetAudioDRCMode: handle=%d, DRC mode restored to %d", handle, originalDRCMode);
+            }
+
+            // 27. Test GetAudioSurroudVirtualizer and SetAudioSurroudVirtualizer (get-set-restore)
+            Exchange::IDeviceSettingsAudio::SurroundVirtualizer originalVirtualizer;
+            result = _audioManager->GetAudioSurroudVirtualizer(handle, originalVirtualizer);
+            LOGINFO("GetAudioSurroudVirtualizer: handle=%d, result=%u, original_mode=%d, original_boost=%d", 
+                   handle, result, originalVirtualizer.mode, originalVirtualizer.boost);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test virtualizer
+                Exchange::IDeviceSettingsAudio::SurroundVirtualizer testVirtualizer;
+                testVirtualizer.mode = (originalVirtualizer.mode == 0) ? 1 : 0;
+                testVirtualizer.boost = (originalVirtualizer.boost == 50) ? 75 : 50;
+                result = _audioManager->SetAudioSurroudVirtualizer(handle, testVirtualizer);
+                LOGINFO("SetAudioSurroudVirtualizer: handle=%d, result=%u, test_mode=%d, test_boost=%d", 
+                       handle, result, testVirtualizer.mode, testVirtualizer.boost);
+
+                // Verify virtualizer was set
+                Exchange::IDeviceSettingsAudio::SurroundVirtualizer verifyVirtualizer;
+                _audioManager->GetAudioSurroudVirtualizer(handle, verifyVirtualizer);
+                LOGINFO("GetAudioSurroudVirtualizer: handle=%d, verified_mode=%d, verified_boost=%d", 
+                       handle, verifyVirtualizer.mode, verifyVirtualizer.boost);
+
+                // Restore original virtualizer
+                _audioManager->SetAudioSurroudVirtualizer(handle, originalVirtualizer);
+                LOGINFO("SetAudioSurroudVirtualizer: handle=%d, virtualizer restored", handle);
+            }
+
+            // 28. Test GetAudioMISteering and SetAudioMISteering (get-set-restore)
+            bool originalMISteering = false;
+            result = _audioManager->GetAudioMISteering(handle, originalMISteering);
+            LOGINFO("GetAudioMISteering: handle=%d, result=%u, original_enabled=%s", handle, result, originalMISteering ? "true" : "false");
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle MI steering
+                bool testMISteering = !originalMISteering;
+                result = _audioManager->SetAudioMISteering(handle, testMISteering);
+                LOGINFO("SetAudioMISteering: handle=%d, result=%u, test_enabled=%s", handle, result, testMISteering ? "true" : "false");
+
+                // Verify MI steering was set
+                bool verifyMISteering = false;
+                _audioManager->GetAudioMISteering(handle, verifyMISteering);
+                LOGINFO("GetAudioMISteering: handle=%d, verified_enabled=%s", handle, verifyMISteering ? "true" : "false");
+
+                // Restore original MI steering
+                _audioManager->SetAudioMISteering(handle, originalMISteering);
+                LOGINFO("SetAudioMISteering: handle=%d, MI steering restored to %s", handle, originalMISteering ? "true" : "false");
+            }
+
+            // 29. Test GetAudioGraphicEqualizerMode and SetAudioGraphicEqualizerMode (get-set-restore)
+            int32_t originalGraphicEQMode = 0;
+            result = _audioManager->GetAudioGraphicEqualizerMode(handle, originalGraphicEQMode);
+            LOGINFO("GetAudioGraphicEqualizerMode: handle=%d, result=%u, original_mode=%d", handle, result, originalGraphicEQMode);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test graphic equalizer mode
+                int32_t testGraphicEQMode = (originalGraphicEQMode == 0) ? 1 : 0;
+                result = _audioManager->SetAudioGraphicEqualizerMode(handle, testGraphicEQMode);
+                LOGINFO("SetAudioGraphicEqualizerMode: handle=%d, result=%u, test_mode=%d", handle, result, testGraphicEQMode);
+
+                // Verify graphic equalizer mode was set
+                int32_t verifyGraphicEQMode = 0;
+                _audioManager->GetAudioGraphicEqualizerMode(handle, verifyGraphicEQMode);
+                LOGINFO("GetAudioGraphicEqualizerMode: handle=%d, verified_mode=%d", handle, verifyGraphicEQMode);
+
+                // Restore original graphic equalizer mode
+                _audioManager->SetAudioGraphicEqualizerMode(handle, originalGraphicEQMode);
+                LOGINFO("SetAudioGraphicEqualizerMode: handle=%d, graphic EQ mode restored to %d", handle, originalGraphicEQMode);
+            }
+
+            // 30. Test GetAssociatedAudioMixing and SetAssociatedAudioMixing (get-set-restore)
+            bool originalAudioMixing = false;
+            result = _audioManager->GetAssociatedAudioMixing(handle, originalAudioMixing);
+            LOGINFO("GetAssociatedAudioMixing: handle=%d, result=%u, original_mixing=%s", handle, result, originalAudioMixing ? "true" : "false");
+
+            if (result == Core::ERROR_NONE) {
+                // Toggle associated audio mixing
+                bool testAudioMixing = !originalAudioMixing;
+                result = _audioManager->SetAssociatedAudioMixing(handle, testAudioMixing);
+                LOGINFO("SetAssociatedAudioMixing: handle=%d, result=%u, test_mixing=%s", handle, result, testAudioMixing ? "true" : "false");
+
+                // Verify associated audio mixing was set
+                bool verifyAudioMixing = false;
+                _audioManager->GetAssociatedAudioMixing(handle, verifyAudioMixing);
+                LOGINFO("GetAssociatedAudioMixing: handle=%d, verified_mixing=%s", handle, verifyAudioMixing ? "true" : "false");
+
+                // Restore original associated audio mixing
+                _audioManager->SetAssociatedAudioMixing(handle, originalAudioMixing);
+                LOGINFO("SetAssociatedAudioMixing: handle=%d, audio mixing restored to %s", handle, originalAudioMixing ? "true" : "false");
+            }
+
+            // 31. Test GetAudioFaderControl and SetAudioFaderControl (get-set-restore)
+            int32_t originalFaderBalance = 0;
+            result = _audioManager->GetAudioFaderControl(handle, originalFaderBalance);
+            LOGINFO("GetAudioFaderControl: handle=%d, result=%u, original_balance=%d", handle, result, originalFaderBalance);
+
+            if (result == Core::ERROR_NONE) {
+                // Set test fader balance
+                int32_t testFaderBalance = (originalFaderBalance == 0) ? 10 : 0;
+                result = _audioManager->SetAudioFaderControl(handle, testFaderBalance);
+                LOGINFO("SetAudioFaderControl: handle=%d, result=%u, test_balance=%d", handle, result, testFaderBalance);
+
+                // Verify fader balance was set
+                int32_t verifyFaderBalance = 0;
+                _audioManager->GetAudioFaderControl(handle, verifyFaderBalance);
+                LOGINFO("GetAudioFaderControl: handle=%d, verified_balance=%d", handle, verifyFaderBalance);
+
+                // Restore original fader balance
+                _audioManager->SetAudioFaderControl(handle, originalFaderBalance);
+                LOGINFO("SetAudioFaderControl: handle=%d, fader balance restored to %d", handle, originalFaderBalance);
+            }
+
+            // 32. Test GetAudioPrimaryLanguage and SetAudioPrimaryLanguage (get-set-restore)
+            string originalPrimaryLanguage;
+            result = _audioManager->GetAudioPrimaryLanguage(handle, originalPrimaryLanguage);
+            LOGINFO("GetAudioPrimaryLanguage: handle=%d, result=%u, original_language='%s'", handle, result, originalPrimaryLanguage.c_str());
+
+            if (result == Core::ERROR_NONE) {
+                // Set test primary language
+                string testPrimaryLanguage = (originalPrimaryLanguage == "eng") ? "spa" : "eng";
+                result = _audioManager->SetAudioPrimaryLanguage(handle, testPrimaryLanguage);
+                LOGINFO("SetAudioPrimaryLanguage: handle=%d, result=%u, test_language='%s'", handle, result, testPrimaryLanguage.c_str());
+
+                // Verify primary language was set
+                string verifyPrimaryLanguage;
+                _audioManager->GetAudioPrimaryLanguage(handle, verifyPrimaryLanguage);
+                LOGINFO("GetAudioPrimaryLanguage: handle=%d, verified_language='%s'", handle, verifyPrimaryLanguage.c_str());
+
+                // Restore original primary language
+                _audioManager->SetAudioPrimaryLanguage(handle, originalPrimaryLanguage);
+                LOGINFO("SetAudioPrimaryLanguage: handle=%d, primary language restored to '%s'", handle, originalPrimaryLanguage.c_str());
+            }
+
+            // 33. Test GetAudioSecondaryLanguage and SetAudioSecondaryLanguage (get-set-restore)
+            string originalSecondaryLanguage;
+            result = _audioManager->GetAudioSecondaryLanguage(handle, originalSecondaryLanguage);
+            LOGINFO("GetAudioSecondaryLanguage: handle=%d, result=%u, original_language='%s'", handle, result, originalSecondaryLanguage.c_str());
+
+            if (result == Core::ERROR_NONE) {
+                // Set test secondary language
+                string testSecondaryLanguage = (originalSecondaryLanguage == "eng") ? "fra" : "eng";
+                result = _audioManager->SetAudioSecondaryLanguage(handle, testSecondaryLanguage);
+                LOGINFO("SetAudioSecondaryLanguage: handle=%d, result=%u, test_language='%s'", handle, result, testSecondaryLanguage.c_str());
+
+                // Verify secondary language was set
+                string verifySecondaryLanguage;
+                _audioManager->GetAudioSecondaryLanguage(handle, verifySecondaryLanguage);
+                LOGINFO("GetAudioSecondaryLanguage: handle=%d, verified_language='%s'", handle, verifySecondaryLanguage.c_str());
+
+                // Restore original secondary language
+                _audioManager->SetAudioSecondaryLanguage(handle, originalSecondaryLanguage);
+                LOGINFO("SetAudioSecondaryLanguage: handle=%d, secondary language restored to '%s'", handle, originalSecondaryLanguage.c_str());
+            }
+
+            // 34. Test read-only capability methods
+            int32_t audioCapabilities = 0;
+            result = _audioManager->GetAudioCapabilities(handle, audioCapabilities);
+            LOGINFO("GetAudioCapabilities: handle=%d, result=%u, capabilities=0x%X", handle, result, audioCapabilities);
+
+            int32_t ms12Capabilities = 0;
+            result = _audioManager->GetAudioMS12Capabilities(handle, ms12Capabilities);
+            LOGINFO("GetAudioMS12Capabilities: handle=%d, result=%u, capabilities=0x%X", handle, result, ms12Capabilities);
+
+            bool isOutputConnected = false;
+            result = _audioManager->IsAudioOutputConnected(handle, isOutputConnected);
+            LOGINFO("IsAudioOutputConnected: handle=%d, result=%u, connected=%s", handle, result, isOutputConnected ? "true" : "false");
+
+            // 35. Test MS12 Profile methods (get-set-restore)
+            string originalMS12Profile;
+            result = _audioManager->GetAudioMS12Profile(handle, originalMS12Profile);
+            LOGINFO("GetAudioMS12Profile: handle=%d, result=%u, original_profile='%s'", handle, result, originalMS12Profile.c_str());
+
+            if (result == Core::ERROR_NONE && !originalMS12Profile.empty()) {
+                // Set test MS12 profile
+                string testMS12Profile = (originalMS12Profile == "Movie") ? "Music" : "Movie";
+                result = _audioManager->SetAudioMS12Profile(handle, testMS12Profile);
+                LOGINFO("SetAudioMS12Profile: handle=%d, result=%u, test_profile='%s'", handle, result, testMS12Profile.c_str());
+
+                // Verify MS12 profile was set
+                string verifyMS12Profile;
+                _audioManager->GetAudioMS12Profile(handle, verifyMS12Profile);
+                LOGINFO("GetAudioMS12Profile: handle=%d, verified_profile='%s'", handle, verifyMS12Profile.c_str());
+
+                // Restore original MS12 profile
+                _audioManager->SetAudioMS12Profile(handle, originalMS12Profile);
+                LOGINFO("SetAudioMS12Profile: handle=%d, MS12 profile restored to '%s'", handle, originalMS12Profile.c_str());
+            }
+
+            // 36. Test MS12 Profile List (read-only)
+            Exchange::IDeviceSettingsAudio::IDeviceSettingsAudioMS12AudioProfileIterator* ms12ProfileList = nullptr;
+            result = _audioManager->GetAudioMS12ProfileList(handle, ms12ProfileList);
+            LOGINFO("GetAudioMS12ProfileList: handle=%d, result=%u", handle, result);
+            if (ms12ProfileList && result == Core::ERROR_NONE) {
+                LOGINFO("Iterating through MS12 profiles:");
+                Exchange::IDeviceSettingsAudio::MS12AudioProfile currentProfile;
+                uint32_t profileIndex = 0;
+                bool hasMore = true;
+                while (hasMore) {
+                    hasMore = ms12ProfileList->Next(currentProfile);
+                    if (hasMore) {
+                        LOGINFO("  MS12Profile[%u]: '%s'", profileIndex, currentProfile.audioProfile.c_str());
+                        profileIndex++;
+                    }
+                }
+                LOGINFO("Total MS12 profiles found: %u", profileIndex);
+                ms12ProfileList->Release();
+            } else if (ms12ProfileList) {
+                ms12ProfileList->Release();
+            }
+
+            // 37. Test additional advanced methods
+            result = _audioManager->SetAudioMixerLevels(handle, Exchange::IDeviceSettingsAudio::AudioInput::AUDIO_INPUT_PRIMARY, 75);
+            LOGINFO("SetAudioMixerLevels: handle=%d, result=%u, input=PRIMARY, volume=75", handle, result);
+
+            // Test reset methods
+            result = _audioManager->ResetAudioDialogEnhancement(handle);
+            LOGINFO("ResetAudioDialogEnhancement: handle=%d, result=%u", handle, result);
+
+            result = _audioManager->ResetAudioBassEnhancer(handle);
+            LOGINFO("ResetAudioBassEnhancer: handle=%d, result=%u", handle, result);
+
+            result = _audioManager->ResetAudioSurroundVirtualizer(handle);
+            LOGINFO("ResetAudioSurroundVirtualizer: handle=%d, result=%u", handle, result);
+
+            result = _audioManager->ResetAudioVolumeLeveller(handle);
+            LOGINFO("ResetAudioVolumeLeveller: handle=%d, result=%u", handle, result);
+
+            // 38. Test HDMI ARC specific methods (only for HDMI ARC ports)
+            if (portType == Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_HDMIARC) {
+                int32_t supportedARCTypes = 0;
+                result = _audioManager->GetSupportedARCTypes(handle, supportedARCTypes);
+                LOGINFO("GetSupportedARCTypes: handle=%d, result=%u, types=0x%X", handle, result, supportedARCTypes);
+
+                // Test EnableARC
+                Exchange::IDeviceSettingsAudio::AudioARCStatus arcStatus;
+                arcStatus.arcType = Exchange::IDeviceSettingsAudio::AudioARCType::AUDIO_ARCTYPE_ARC;
+                arcStatus.status = true;
+                result = _audioManager->EnableARC(handle, arcStatus);
+                LOGINFO("EnableARC: handle=%d, result=%u, arcType=ARC, status=true", handle, result);
+
+                // Test SetSAD (Short Audio Descriptor)
+                uint8_t sadList[15] = {0x09, 0x07, 0x07, 0x15, 0x07, 0x50, 0x3D, 0x07, 0x50, 0x1F, 0x07, 0x57, 0x5F, 0x00, 0x67};
+                result = _audioManager->SetSAD(handle, sadList, 15);
+                LOGINFO("SetSAD: handle=%d, result=%u, count=15", handle, result);
+
+                // Get ARC port ID
+                int32_t arcPortId = -1;
+                result = _audioManager->GetAudioHDMIARCPortId(handle, arcPortId);
+                LOGINFO("GetAudioHDMIARCPortId: handle=%d, result=%u, portId=%d", handle, result, arcPortId);
+            }
+
+            // 39. Test MS12 Settings Override
+            result = _audioManager->SetAudioMS12SettingsOverride(handle, "Movie", "DialogEnhancement", "5", "ADD");
+            LOGINFO("SetAudioMS12SettingsOverride: handle=%d, result=%u, profile=Movie, setting=DialogEnhancement, value=5, state=ADD", handle, result);
+
+            LOGINFO("---------- Completed ALL Audio API testing for Port Type: %s ----------", portTypeName);
+        }
+
+        LOGINFO("========== Complete Audio APIs Testing Completed ==========\\n");
+    }
+
+    // Audio Event Handler Implementations
+    void UserPlugin::OnAssociatedAudioMixingChanged(bool mixing)
+    {
+        LOGINFO("========== Audio Event: Associated Audio Mixing Changed ==========");
+        LOGINFO("OnAssociatedAudioMixingChanged: mixing=%s", mixing ? "enabled" : "disabled");
+
+        // Add your custom logic here
+        if (mixing) {
+            LOGINFO("Associated audio mixing enabled");
+        } else {
+            LOGINFO("Associated audio mixing disabled");
+        }
+    }
+
+    void UserPlugin::OnAudioFaderControlChanged(int32_t mixerBalance)
+    {
+        LOGINFO("========== Audio Event: Audio Fader Control Changed ==========");
+        LOGINFO("OnAudioFaderControlChanged: mixerBalance=%d", mixerBalance);
+
+        // Add your custom logic here
+        LOGINFO("Audio fader balance changed to %d", mixerBalance);
+    }
+
+    void UserPlugin::OnAudioPrimaryLanguageChanged(const string& primaryLanguage)
+    {
+        LOGINFO("========== Audio Event: Primary Language Changed ==========");
+        LOGINFO("OnAudioPrimaryLanguageChanged: primaryLanguage='%s'", primaryLanguage.c_str());
+
+        // Add your custom logic here
+        LOGINFO("Primary audio language changed to %s", primaryLanguage.c_str());
+    }
+
+    void UserPlugin::OnAudioSecondaryLanguageChanged(const string& secondaryLanguage)
+    {
+        LOGINFO("========== Audio Event: Secondary Language Changed ==========");
+        LOGINFO("OnAudioSecondaryLanguageChanged: secondaryLanguage='%s'", secondaryLanguage.c_str());
+
+        // Add your custom logic here
+        LOGINFO("Secondary audio language changed to %s", secondaryLanguage.c_str());
+    }
+
+    void UserPlugin::OnAudioOutHotPlug(Exchange::IDeviceSettingsAudio::AudioPortType portType, uint32_t uiPortNumber, bool isPortConnected)
+    {
+        LOGINFO("========== Audio Event: Audio Output Hot Plug ==========");
+        LOGINFO("OnAudioOutHotPlug: portType=%d, portNumber=%u, isConnected=%s", 
+               static_cast<int>(portType), uiPortNumber, isPortConnected ? "true" : "false");
+
+        // Add your custom logic here
+        const char* portTypeName = "UNKNOWN";
+        switch (portType) {
+            case Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI:
+                portTypeName = "HDMI";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_SPDIF:
+                portTypeName = "SPDIF";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_SPEAKER:
+                portTypeName = "SPEAKER";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_HDMIARC:
+                portTypeName = "HDMI_ARC";
+                break;
+            default:
+                break;
+        }
+
+        if (isPortConnected) {
+            LOGINFO("Audio device connected on %s port %u", portTypeName, uiPortNumber);
+        } else {
+            LOGINFO("Audio device disconnected from %s port %u", portTypeName, uiPortNumber);
+        }
+    }
+
+    void UserPlugin::OnAudioFormatUpdate(Exchange::IDeviceSettingsAudio::AudioFormat audioFormat)
+    {
+        LOGINFO("========== Audio Event: Audio Format Update ==========");
+        LOGINFO("OnAudioFormatUpdate: audioFormat=%d", static_cast<int>(audioFormat));
+
+        // Add your custom logic here
+        const char* formatName = "UNKNOWN";
+        switch (audioFormat) {
+            case Exchange::IDeviceSettingsAudio::AudioFormat::AUDIO_FORMAT_PCM:
+                formatName = "PCM";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioFormat::AUDIO_FORMAT_DOLBY_AC3:
+                formatName = "DOLBY_AC3";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioFormat::AUDIO_FORMAT_DOLBY_EAC3:
+                formatName = "DOLBY_EAC3";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioFormat::AUDIO_FORMAT_DOLBY_EAC3_ATMOS:
+                formatName = "DOLBY_EAC3_ATMOS";
+                break;
+            default:
+                break;
+        }
+
+        LOGINFO("Audio format updated to %s", formatName);
+    }
+
+    void UserPlugin::OnDolbyAtmosCapabilitiesChanged(Exchange::IDeviceSettingsAudio::DolbyAtmosCapability atmosCapability, bool status)
+    {
+        LOGINFO("========== Audio Event: Dolby Atmos Capabilities Changed ==========");
+        LOGINFO("OnDolbyAtmosCapabilitiesChanged: atmosCapability=%d, status=%s", 
+               static_cast<int>(atmosCapability), status ? "available" : "not available");
+
+        // Add your custom logic here
+        const char* capabilityName = "UNKNOWN";
+        switch (atmosCapability) {
+            case Exchange::IDeviceSettingsAudio::DolbyAtmosCapability::AUDIO_DOLBY_ATMOS_NOT_SUPPORTED:
+                capabilityName = "NOT_SUPPORTED";
+                break;
+            case Exchange::IDeviceSettingsAudio::DolbyAtmosCapability::AUDIO_DOLBY_ATMOS_DDPLUS_STREAM:
+                capabilityName = "DDPLUS_STREAM";
+                break;
+            case Exchange::IDeviceSettingsAudio::DolbyAtmosCapability::AUDIO_DOLBY_ATMOS_METADATA:
+                capabilityName = "METADATA";
+                break;
+            default:
+                break;
+        }
+
+        LOGINFO("Dolby Atmos capability %s is %s", capabilityName, status ? "available" : "not available");
+    }
+
+    void UserPlugin::OnAudioPortStateChanged(Exchange::IDeviceSettingsAudio::AudioPortState audioPortState)
+    {
+        LOGINFO("========== Audio Event: Audio Port State Changed ==========");
+        LOGINFO("OnAudioPortStateChanged: audioPortState=%d", static_cast<int>(audioPortState));
+
+        // Add your custom logic here
+        const char* stateName = "UNKNOWN";
+        switch (audioPortState) {
+            case Exchange::IDeviceSettingsAudio::AudioPortState::AUDIO_PORT_STATE_UNINITIALIZED:
+                stateName = "UNINITIALIZED";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioPortState::AUDIO_PORT_STATE_INITIALIZED:
+                stateName = "INITIALIZED";
+                break;
+            default:
+                break;
+        }
+
+        LOGINFO("Audio port state changed to %s", stateName);
+    }
+
+    void UserPlugin::OnAudioModeEvent(Exchange::IDeviceSettingsAudio::AudioPortType audioPortType, Exchange::IDeviceSettingsAudio::StereoMode audioMode)
+    {
+        LOGINFO("========== Audio Event: Audio Mode Event ==========");
+        LOGINFO("OnAudioModeEvent: audioPortType=%d, audioMode=%d", 
+               static_cast<int>(audioPortType), static_cast<int>(audioMode));
+
+        // Add your custom logic here
+        const char* portTypeName = "UNKNOWN";
+        switch (audioPortType) {
+            case Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_HDMI:
+                portTypeName = "HDMI";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_SPDIF:
+                portTypeName = "SPDIF";
+                break;
+            case Exchange::IDeviceSettingsAudio::AudioPortType::AUDIO_PORT_TYPE_SPEAKER:
+                portTypeName = "SPEAKER";
+                break;
+            default:
+                break;
+        }
+
+        const char* modeName = "UNKNOWN";
+        switch (audioMode) {
+            case Exchange::IDeviceSettingsAudio::StereoMode::AUDIO_STEREO_MONO:
+                modeName = "MONO";
+                break;
+            case Exchange::IDeviceSettingsAudio::StereoMode::AUDIO_STEREO_STEREO:
+                modeName = "STEREO";
+                break;
+            case Exchange::IDeviceSettingsAudio::StereoMode::AUDIO_STEREO_SURROUND:
+                modeName = "SURROUND";
+                break;
+            default:
+                break;
+        }
+
+        LOGINFO("Audio mode changed to %s on %s port", modeName, portTypeName);
+    }
+
+    void UserPlugin::OnAudioLevelChangedEvent(int32_t audioLevel)
+    {
+        LOGINFO("========== Audio Event: Audio Level Changed ==========");
+        LOGINFO("OnAudioLevelChangedEvent: audioLevel=%d", audioLevel);
+
+        // Add your custom logic here
+        LOGINFO("Audio level changed to %d", audioLevel);
     }
 
 } // namespace Plugin

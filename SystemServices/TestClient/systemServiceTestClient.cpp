@@ -782,7 +782,7 @@ void setNetworkStandbyMode(std::string methodName, JSONRPC::LinkType<Core::JSON:
 
     JsonObject parameters, response;
     std::string result;
-    bool nwStandby;
+    bool nwStandby = false;
 
     printf("\nInput 'nwStandby' :");
     std::cin >> nwStandby;
@@ -884,7 +884,7 @@ std::string getMethodName(SME_t SME)
 
 int getChoice(void)
 {
-	int SMEOption;
+	int SMEOption = 0;
 
 	printf("\n================================= Menu =================================\n");
 	for (int i = 0 ; i < SME_MAX; i++) {

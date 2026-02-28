@@ -375,7 +375,7 @@ private:
     }
 
     void RetrieveEDID(ExtendedDisplayIdentification& info, int displayId = -1) {
-        int size;
+        int size = 0;
         uint8_t  index = 0;
 
         do {

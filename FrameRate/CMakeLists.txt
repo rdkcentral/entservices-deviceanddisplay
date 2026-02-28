@@ -13,13 +13,13 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the
 
 set(PLUGIN_NAME FrameRate)
 set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
 set(PLUGIN_IMPLEMENTATION ${MODULE_NAME}Implementation)
 
-set(PLUGIN_FRAMERATE_STARTUPORDER "" CACHE STRING "To configure startup order of FrameRate plugin")
+set(PLUGIN_FRAMERATE_STARTUPORDER "" CACHE STRING "To configure startup order of FrameRate")
 
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)

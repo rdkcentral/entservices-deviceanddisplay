@@ -429,6 +429,19 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
     // During initialization, the device doesn't set wakeup timestamp because both
     // current and target states are ON (no actual transition occurs)
     
+    // Set up mock expectations for state transitions
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+                return PWRMGR_SUCCESS;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                return PWRMGR_SUCCESS;
+            }));
+    
     // First, transition to STANDBY to leave ON state
     uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
     EXPECT_EQ(status, Core::ERROR_NONE);
@@ -454,6 +467,19 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_MultipleQueries)
 {
     // Test case: Query GetTimeSinceWakeup multiple times and verify time increases
     // First trigger a wakeup by transitioning to ON state
+    
+    // Set up mock expectations for state transitions
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
+                return PWRMGR_SUCCESS;
+            }))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                return PWRMGR_SUCCESS;
+            }));
     
     // Transition to STANDBY first
     uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");

@@ -427,9 +427,6 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
 {
     // Test case: Device wakes up from deep sleep and time elapsed is measured
     // We need to simulate a wakeup by transitioning to deep sleep and back
-    
-    PowerState prevState = PowerState::POWER_STATE_OFF;
-    PowerState currState = PowerState::POWER_STATE_OFF;
 
     // Set up expectations for deep sleep entry
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
@@ -446,7 +443,7 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
             }));
 
     // Enter deep sleep
-    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     // Set up expectations for wakeup from deep sleep
@@ -502,7 +499,7 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_MultipleQueries)
                 return DEEPSLEEPMGR_SUCCESS;
             }));
 
-    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_GetLastWakeupReason(::testing::_))

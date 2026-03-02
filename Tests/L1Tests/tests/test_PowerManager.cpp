@@ -438,7 +438,7 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
             }));
 
     // Now transition back to ON - this will trigger UpdateWakeupTime()
-    status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     // Sleep for a short duration to allow time to elapse since wakeup

@@ -409,6 +409,140 @@ TEST_F(TestPowerManager, GetLastWakeupKeyCode)
     EXPECT_EQ(wakeupKeyCode, 1234);
 }
 
+TEST_F(TestPowerManager, GetTimeSinceWakeup_NoWakeupOccurred)
+{
+    // Test case: Device has not woken up yet (in standby or initial state)
+    // Expected: secondsSinceWakeup should be 0
+    
+    WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
+    timeSinceWakeup.secondsSinceWakeup = 999; // Initialize with non-zero value
+
+    uint32_t status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
+
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0);
+}
+
+TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
+{
+    // Test case: Device wakes up from deep sleep and time elapsed is measured
+    // We need to simulate a wakeup by transitioning to deep sleep and back
+    
+    PowerState prevState = PowerState::POWER_STATE_OFF;
+    PowerState currState = PowerState::POWER_STATE_OFF;
+
+    // Set up expectations for deep sleep entry
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                return PWRMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                return DEEPSLEEPMGR_SUCCESS;
+            }));
+
+    // Enter deep sleep
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // Set up expectations for wakeup from deep sleep
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_GetLastWakeupReason(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](DeepSleep_WakeupReason_t* wakeupReason) {
+                *wakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
+                return DEEPSLEEPMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_DeepSleepWakeup())
+        .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                return PWRMGR_SUCCESS;
+            }));
+
+    // Wakeup from deep sleep
+    status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // Sleep for a short duration to allow time to elapse
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    // Now get the time since wakeup
+    WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
+    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
+
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    // The elapsed time should be at least 2 seconds (with some tolerance)
+    EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2);
+    EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 5); // Should not be more than 5 seconds
+}
+
+TEST_F(TestPowerManager, GetTimeSinceWakeup_MultipleQueries)
+{
+    // Test case: Query GetTimeSinceWakeup multiple times and verify time increases
+    
+    // First, trigger a wakeup by entering and exiting deep sleep
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                return PWRMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                return DEEPSLEEPMGR_SUCCESS;
+            }));
+
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_GetLastWakeupReason(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](DeepSleep_WakeupReason_t* wakeupReason) {
+                *wakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
+                return DEEPSLEEPMGR_SUCCESS;
+            }));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_DeepSleepWakeup())
+        .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
+        .WillOnce(::testing::Invoke(
+            [](PWRMgr_PowerState_t powerState) {
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                return PWRMGR_SUCCESS;
+            }));
+
+    status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // First query
+    WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup1;
+    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup1);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // Sleep for 1 second
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    // Second query
+    WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup2;
+    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup2);
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // Verify that the second query shows more elapsed time
+    EXPECT_GT(timeSinceWakeup2.secondsSinceWakeup, timeSinceWakeup1.secondsSinceWakeup);
+    EXPECT_GE(timeSinceWakeup2.secondsSinceWakeup - timeSinceWakeup1.secondsSinceWakeup, 1);
+}
+
 
 
 using WakeupSourceConfigIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<WPEFramework::Exchange::IPowerManager::IWakeupSourceConfigIterator>>;

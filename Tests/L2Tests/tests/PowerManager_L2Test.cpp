@@ -1433,3 +1433,302 @@ TEST_F(PowerManager_L2Test, JsonRpcWakeupSource_UNKNOWN)
     // EXPECT_EQ((status & 0x7F), Core::ERROR_INVALID_PARAMETER);
     EXPECT_NE((status & 0x7F), Core::ERROR_NONE);
 }
+
+/********************************************************
+************Test case Details **************************
+** Test GetTimeSinceWakeup when no wakeup has occurred
+** Expected: secondsSinceWakeup should be 0
+*******************************************************/
+TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_NoWakeup)
+{
+    Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
+    Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
+    PluginHost::IShell *mController_PowerManager;
+
+    TEST_LOG("Creating mEngine_PowerManager");
+    mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+    mClient_PowerManager = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(mEngine_PowerManager));
+
+    TEST_LOG("Creating mEngine_PowerManager Announcements");
+#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
+    mEngine_PowerManager->Announcements(mClient_PowerManager->Announcement());
+#endif
+
+    if (!mClient_PowerManager.IsValid())
+    {
+        TEST_LOG("Invalid mClient_PowerManager");
+    }
+    else
+    {
+        mController_PowerManager = mClient_PowerManager->Open<PluginHost::IShell>(_T("org.rdk.PowerManager"), ~0, 3000);
+        if (mController_PowerManager)
+        {
+            auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
+            if (PowerManagerPlugin)
+            {
+                Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
+                timeSinceWakeup.secondsSinceWakeup = 999; // Initialize with non-zero value
+
+                uint32_t status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup);
+
+                EXPECT_EQ(status, Core::ERROR_NONE);
+                // When no wakeup has occurred, it should return 0
+                EXPECT_EQ(timeSinceWakeup.secondsSinceWakeup, 0);
+
+                PowerManagerPlugin->Release();
+            }
+            else
+            {
+                TEST_LOG("PowerManagerPlugin is NULL");
+            }
+            mController_PowerManager->Release();
+        }
+        else
+        {
+            TEST_LOG("mController_PowerManager is NULL");
+        }
+    }
+}
+
+/********************************************************
+************Test case Details **************************
+** Test GetTimeSinceWakeup after waking up from deep sleep
+** 1. Enter deep sleep
+** 2. Wake up from deep sleep
+** 3. Query GetTimeSinceWakeup and verify time elapsed
+*******************************************************/
+TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_AfterDeepSleepWakeup)
+{
+    Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
+    Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
+    PluginHost::IShell *mController_PowerManager;
+    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+
+    TEST_LOG("Creating mEngine_PowerManager");
+    mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+    mClient_PowerManager = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(mEngine_PowerManager));
+
+    TEST_LOG("Creating mEngine_PowerManager Announcements");
+#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
+    mEngine_PowerManager->Announcements(mClient_PowerManager->Announcement());
+#endif
+
+    if (!mClient_PowerManager.IsValid())
+    {
+        TEST_LOG("Invalid mClient_PowerManager");
+    }
+    else
+    {
+        mController_PowerManager = mClient_PowerManager->Open<PluginHost::IShell>(_T("org.rdk.PowerManager"), ~0, 3000);
+        if (mController_PowerManager)
+        {
+            auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
+
+            PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+            PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+
+            if (PowerManagerPlugin)
+            {
+                // Set expectations for entering deep sleep
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
+                    .WillOnce(::testing::Invoke(
+                        [](PWRMgr_PowerState_t powerState) {
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                            return PWRMGR_SUCCESS;
+                        }))
+                    .WillOnce(::testing::Invoke(
+                        [](PWRMgr_PowerState_t powerState) {
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                            return PWRMGR_SUCCESS;
+                        }));
+
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+                    .WillOnce(::testing::Invoke(
+                        [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                            return DEEPSLEEPMGR_SUCCESS;
+                        }));
+
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_GetLastWakeupReason(::testing::_))
+                    .WillOnce(::testing::Invoke(
+                        [](DeepSleep_WakeupReason_t* wakeupReason) {
+                            *wakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
+                            return DEEPSLEEPMGR_SUCCESS;
+                        }));
+
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
+                    .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+                // Enter deep sleep
+                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Wait for state change
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+
+                // Wake up from deep sleep
+                status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Wait for wakeup state change
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+
+                // Sleep for 2 seconds to allow time to elapse
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+
+                // Query GetTimeSinceWakeup
+                Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
+                status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup);
+
+                EXPECT_EQ(status, Core::ERROR_NONE);
+                // Verify that at least 2 seconds have elapsed since wakeup
+                TEST_LOG("Time since wakeup: %u seconds", timeSinceWakeup.secondsSinceWakeup);
+                EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2);
+                EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 5); // Should not exceed 5 seconds
+
+                PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+                PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+                PowerManagerPlugin->Release();
+            }
+            else
+            {
+                TEST_LOG("PowerManagerPlugin is NULL");
+            }
+            mController_PowerManager->Release();
+        }
+        else
+        {
+            TEST_LOG("mController_PowerManager is NULL");
+        }
+    }
+}
+
+/********************************************************
+************Test case Details **************************
+** Test GetTimeSinceWakeup with multiple queries
+** Verify that time increases between consecutive calls
+*******************************************************/
+TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_MultipleQueries)
+{
+    Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> mEngine_PowerManager;
+    Core::ProxyType<RPC::CommunicatorClient> mClient_PowerManager;
+    PluginHost::IShell *mController_PowerManager;
+    uint32_t signalled = POWERMANAGERL2TEST_STATE_INVALID;
+
+    TEST_LOG("Creating mEngine_PowerManager");
+    mEngine_PowerManager = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+    mClient_PowerManager = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(mEngine_PowerManager));
+
+    TEST_LOG("Creating mEngine_PowerManager Announcements");
+#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
+    mEngine_PowerManager->Announcements(mClient_PowerManager->Announcement());
+#endif
+
+    if (!mClient_PowerManager.IsValid())
+    {
+        TEST_LOG("Invalid mClient_PowerManager");
+    }
+    else
+    {
+        mController_PowerManager = mClient_PowerManager->Open<PluginHost::IShell>(_T("org.rdk.PowerManager"), ~0, 3000);
+        if (mController_PowerManager)
+        {
+            auto PowerManagerPlugin = mController_PowerManager->QueryInterface<Exchange::IPowerManager>();
+
+            PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+            PowerManagerPlugin->Register(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+
+            if (PowerManagerPlugin)
+            {
+                // Set expectations for entering and exiting deep sleep
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_API_SetPowerState(::testing::_))
+                    .WillOnce(::testing::Invoke(
+                        [](PWRMgr_PowerState_t powerState) {
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                            return PWRMGR_SUCCESS;
+                        }))
+                    .WillOnce(::testing::Invoke(
+                        [](PWRMgr_PowerState_t powerState) {
+                            EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
+                            return PWRMGR_SUCCESS;
+                        }));
+
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
+                    .WillOnce(::testing::Invoke(
+                        [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
+                            return DEEPSLEEPMGR_SUCCESS;
+                        }));
+
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_GetLastWakeupReason(::testing::_))
+                    .WillOnce(::testing::Invoke(
+                        [](DeepSleep_WakeupReason_t* wakeupReason) {
+                            *wakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
+                            return DEEPSLEEPMGR_SUCCESS;
+                        }));
+
+                EXPECT_CALL(POWERMANAGER_MOCK, PLAT_DS_DeepSleepWakeup())
+                    .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
+
+                // Enter deep sleep
+                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+
+                // Wake up from deep sleep
+                status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+                EXPECT_TRUE(signalled & POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);
+
+                // First query
+                Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup1;
+                status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup1);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+                TEST_LOG("First query - Time since wakeup: %u seconds", timeSinceWakeup1.secondsSinceWakeup);
+
+                // Sleep for 1 second
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+
+                // Second query
+                Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup2;
+                status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup2);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+                TEST_LOG("Second query - Time since wakeup: %u seconds", timeSinceWakeup2.secondsSinceWakeup);
+
+                // Verify that the second query shows more elapsed time
+                EXPECT_GT(timeSinceWakeup2.secondsSinceWakeup, timeSinceWakeup1.secondsSinceWakeup);
+                EXPECT_GE(timeSinceWakeup2.secondsSinceWakeup - timeSinceWakeup1.secondsSinceWakeup, 1);
+
+                // Sleep for another second
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+
+                // Third query
+                Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup3;
+                status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup3);
+                EXPECT_EQ(status, Core::ERROR_NONE);
+                TEST_LOG("Third query - Time since wakeup: %u seconds", timeSinceWakeup3.secondsSinceWakeup);
+
+                // Verify that the third query shows even more elapsed time
+                EXPECT_GT(timeSinceWakeup3.secondsSinceWakeup, timeSinceWakeup2.secondsSinceWakeup);
+
+                PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModePreChangeNotification>());
+                PowerManagerPlugin->Unregister(mNotification.baseInterface<Exchange::IPowerManager::IModeChangedNotification>());
+                PowerManagerPlugin->Release();
+            }
+            else
+            {
+                TEST_LOG("PowerManagerPlugin is NULL");
+            }
+            mController_PowerManager->Release();
+        }
+        else
+        {
+            TEST_LOG("mController_PowerManager is NULL");
+        }
+    }
+}
+

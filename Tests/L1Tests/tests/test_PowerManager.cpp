@@ -425,31 +425,47 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_NoWakeupOccurred)
 
 TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
 {
-    // Test case: Device is already in ON state after boot (wakeup timestamp already set)
-    // We verify time elapsed since boot/wakeup
+    // Test case: Transition to ON state to trigger wakeup timestamp, then measure elapsed time
+    // During initialization, the device doesn't set wakeup timestamp because both
+    // current and target states are ON (no actual transition occurs)
     
-    // The device boots to ON state in the constructor, which sets the wakeup timestamp
-    // Sleep for a short duration to allow time to elapse since boot
+    // First, transition to STANDBY to leave ON state
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // Now transition back to ON - this will trigger UpdateWakeupTime()
+    status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+
+    // Sleep for a short duration to allow time to elapse since wakeup
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    // Now get the time since wakeup (boot)
+    // Now get the time since wakeup
     WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-    uint32_t status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
+    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup);
 
     EXPECT_EQ(status, Core::ERROR_NONE);
-    // The elapsed time should be at least 2 seconds since we slept
-    // Note: There's additional time from constructor boot, so actual time will be >= 2 seconds
+    // The elapsed time should be at least 2 seconds
     EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2);
+    EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 5);
 }
 
 TEST_F(TestPowerManager, GetTimeSinceWakeup_MultipleQueries)
 {
     // Test case: Query GetTimeSinceWakeup multiple times and verify time increases
-    // Device is already in ON state after boot, so wakeup timestamp is already set
+    // First trigger a wakeup by transitioning to ON state
     
-    // First query - get baseline time since boot/wakeup
+    // Transition to STANDBY first
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    
+    // Transition to ON to trigger wakeup timestamp
+    status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+    EXPECT_EQ(status, Core::ERROR_NONE);
+    
+    // First query - get baseline time since wakeup
     WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup1;
-    uint32_t status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup1);
+    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup1);
     EXPECT_EQ(status, Core::ERROR_NONE);
 
     // Sleep for 1 second

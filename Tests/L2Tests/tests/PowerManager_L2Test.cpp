@@ -1492,9 +1492,10 @@ TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_NoWakeup)
 
 /********************************************************
 ************Test case Details **************************
-** Test GetTimeSinceWakeup after plugin activation
-** The device boots to ON state, setting the wakeup timestamp
-** Query GetTimeSinceWakeup and verify time elapsed
+** Test GetTimeSinceWakeup after transitioning to ON state
+** 1. Transition to STANDBY
+** 2. Transition back to ON (triggers wakeup timestamp)
+** 3. Query GetTimeSinceWakeup and verify time elapsed
 *******************************************************/
 TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_AfterDeepSleepWakeup)
 {
@@ -1524,18 +1525,26 @@ TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_AfterDeepSleepWakeup)
 
             if (PowerManagerPlugin)
             {
-                // Plugin has already activated and booted to ON state
-                // Wait for 2 seconds to allow time to elapse since activation/boot
+                // Transition to STANDBY first to leave ON state
+                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Transition to ON - this triggers UpdateWakeupTime()
+                status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Wait for 2 seconds to allow time to elapse since wakeup
                 std::this_thread::sleep_for(std::chrono::seconds(2));
 
                 // Query GetTimeSinceWakeup
                 Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup;
-                uint32_t status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup);
+                status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup);
 
                 EXPECT_EQ(status, Core::ERROR_NONE);
-                // Verify that at least 2 seconds have elapsed since boot/activation
+                // Verify that at least 2 seconds have elapsed since wakeup
                 TEST_LOG("Time since wakeup: %u seconds", timeSinceWakeup.secondsSinceWakeup);
                 EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2);
+                EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 5);
 
                 PowerManagerPlugin->Release();
             }
@@ -1585,10 +1594,17 @@ TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_MultipleQueries)
 
             if (PowerManagerPlugin)
             {
-                // Plugin is already activated and in ON state
+                // Transition to STANDBY first
+                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
+                // Transition to ON to trigger wakeup timestamp
+                status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
+                EXPECT_EQ(status, Core::ERROR_NONE);
+
                 // First query - get baseline
                 Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup1;
-                uint32_t status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup1);
+                status = PowerManagerPlugin->GetTimeSinceWakeup(timeSinceWakeup1);
                 EXPECT_EQ(status, Core::ERROR_NONE);
                 TEST_LOG("First query - Time since wakeup: %u seconds", timeSinceWakeup1.secondsSinceWakeup);
 

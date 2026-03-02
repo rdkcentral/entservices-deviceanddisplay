@@ -425,38 +425,21 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_NoWakeupOccurred)
 
 TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
 {
-    // Test case: Device wakes up from deep sleep and time elapsed is measured
-    // We need to simulate a wakeup by transitioning to deep sleep and back
+    // Test case: Device transitions to ON state (simulating a wakeup/boot) and time elapsed is measured
+    // The wakeup timestamp is updated when transitioning from non-ON to ON state
 
-    // Set up expectations for deep sleep entry
+    // First, ensure we're not in ON state by setting to STANDBY
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
                 return PWRMGR_SUCCESS;
             }));
 
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                return DEEPSLEEPMGR_SUCCESS;
-            }));
-
-    // Enter deep sleep
-    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "test");
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    // Set up expectations for wakeup from deep sleep
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_GetLastWakeupReason(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](DeepSleep_WakeupReason_t* wakeupReason) {
-                *wakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
-                return DEEPSLEEPMGR_SUCCESS;
-            }));
-
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_DeepSleepWakeup())
-        .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
-
+    // Now transition to ON state - this should update the wakeup timestamp
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {
@@ -464,7 +447,6 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
                 return PWRMGR_SUCCESS;
             }));
 
-    // Wakeup from deep sleep
     status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
@@ -485,33 +467,18 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_MultipleQueries)
 {
     // Test case: Query GetTimeSinceWakeup multiple times and verify time increases
     
-    // First, trigger a wakeup by entering and exiting deep sleep
+    // First, ensure we're not in ON state by setting to STANDBY
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP);
+                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
                 return PWRMGR_SUCCESS;
             }));
 
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_SetDeepSleep(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](uint32_t deep_sleep_timeout, bool* isGPIOWakeup, bool networkStandby) {
-                return DEEPSLEEPMGR_SUCCESS;
-            }));
-
-    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "test");
+    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
     EXPECT_EQ(status, Core::ERROR_NONE);
 
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_GetLastWakeupReason(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](DeepSleep_WakeupReason_t* wakeupReason) {
-                *wakeupReason = DEEPSLEEP_WAKEUPREASON_IR;
-                return DEEPSLEEPMGR_SUCCESS;
-            }));
-
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_DS_DeepSleepWakeup())
-        .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
-
+    // Transition to ON state to trigger wakeup timestamp
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {

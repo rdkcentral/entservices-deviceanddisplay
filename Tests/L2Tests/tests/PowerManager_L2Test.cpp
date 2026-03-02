@@ -1559,7 +1559,7 @@ TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_AfterDeepSleepWakeup)
                     .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
 
                 // Enter deep sleep
-                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "test");
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 // Wait for state change
@@ -1671,7 +1671,7 @@ TEST_F(PowerManager_L2Test, GetTimeSinceWakeup_MultipleQueries)
                     .WillOnce(testing::Return(DEEPSLEEPMGR_SUCCESS));
 
                 // Enter deep sleep
-                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_DEEP_SLEEP, "test");
+                uint32_t status = PowerManagerPlugin->SetPowerState(0, PowerState::POWER_STATE_STANDBY_DEEP_SLEEP, "test");
                 EXPECT_EQ(status, Core::ERROR_NONE);
 
                 signalled = mNotification.WaitForRequestStatus(JSON_TIMEOUT * 3, POWERMANAGERL2TEST_SYSTEMSTATE_CHANGED);

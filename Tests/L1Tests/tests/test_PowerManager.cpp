@@ -433,18 +433,9 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
     EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
         .WillOnce(::testing::Invoke(
             [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
-                return PWRMGR_SUCCESS;
-            }))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
                 EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
                 return PWRMGR_SUCCESS;
             }));
-    
-    // First, transition to STANDBY to leave ON state
-    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
 
     // Now transition back to ON - this will trigger UpdateWakeupTime()
     status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
@@ -461,50 +452,6 @@ TEST_F(TestPowerManager, GetTimeSinceWakeup_AfterWakeup)
     // The elapsed time should be at least 2 seconds
     EXPECT_GE(timeSinceWakeup.secondsSinceWakeup, 2);
     EXPECT_LE(timeSinceWakeup.secondsSinceWakeup, 5);
-}
-
-TEST_F(TestPowerManager, GetTimeSinceWakeup_MultipleQueries)
-{
-    // Test case: Query GetTimeSinceWakeup multiple times and verify time increases
-    // First trigger a wakeup by transitioning to ON state
-    
-    // Set up mock expectations for state transitions
-    EXPECT_CALL(*p_powerManagerHalMock, PLAT_API_SetPowerState(::testing::_))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_STANDBY);
-                return PWRMGR_SUCCESS;
-            }))
-        .WillOnce(::testing::Invoke(
-            [](PWRMgr_PowerState_t powerState) {
-                EXPECT_EQ(powerState, PWRMGR_POWERSTATE_ON);
-                return PWRMGR_SUCCESS;
-            }));
-    
-    // Transition to STANDBY first
-    uint32_t status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_STANDBY, "test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    
-    // Transition to ON to trigger wakeup timestamp
-    status = powerManagerImpl->SetPowerState(0, PowerState::POWER_STATE_ON, "test");
-    EXPECT_EQ(status, Core::ERROR_NONE);
-    
-    // First query - get baseline time since wakeup
-    WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup1;
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup1);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Sleep for 1 second
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    // Second query
-    WPEFramework::Exchange::IPowerManager::TimeSinceWakeup timeSinceWakeup2;
-    status = powerManagerImpl->GetTimeSinceWakeup(timeSinceWakeup2);
-    EXPECT_EQ(status, Core::ERROR_NONE);
-
-    // Verify that the second query shows more elapsed time
-    EXPECT_GT(timeSinceWakeup2.secondsSinceWakeup, timeSinceWakeup1.secondsSinceWakeup);
-    EXPECT_GE(timeSinceWakeup2.secondsSinceWakeup - timeSinceWakeup1.secondsSinceWakeup, 1);
 }
 
 

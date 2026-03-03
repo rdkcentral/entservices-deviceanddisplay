@@ -114,7 +114,21 @@ private:
         if (_isDuckingInProgress) {
             volume = _volumeDuckingLevel;
         } else {
-            dsError_t ret = dsGetAudioLevel(handle, &volume);
+            // Use resolve function for dsGetAudioLevel
+            typedef dsError_t (*dsGetAudioLevel_t)(intptr_t handle, float* level);
+            static dsGetAudioLevel_t dsGetAudioLevelFunc = 0;
+            if (dsGetAudioLevelFunc == 0) {
+                dsGetAudioLevelFunc = (dsGetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsGetAudioLevel");
+                if (dsGetAudioLevelFunc == 0) {
+                    LOGERR("dsGetAudioLevel is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetAudioLevelFunc) {
+                ret = dsGetAudioLevelFunc(handle, &volume);
+            }
             if (ret != dsERR_NONE) {
                 LOGERR("dsGetAudioLevel failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -416,6 +430,7 @@ public:
             intptr_t dsHandle;
             
             dsError_t ret = dsGetAudioPort(dsType, index, &dsHandle);
+            
             if (ret == dsERR_NONE) {
                 handle = static_cast<int32_t>(dsHandle);
                 LOGINFO("GetAudioPort success: type=%d, index=%d, handle=%d", type, index, handle);
@@ -493,7 +508,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             int dsCapabilities;
-            dsError_t ret = dsGetAudioCapabilities(dsHandle, &dsCapabilities);
+            
+            // Use resolve function for dsGetAudioCapabilities
+            typedef dsError_t (*dsGetAudioCapabilities_t)(intptr_t handle, int* capabilities);
+            static dsGetAudioCapabilities_t dsGetAudioCapabilitiesFunc = 0;
+            if (dsGetAudioCapabilitiesFunc == 0) {
+                dsGetAudioCapabilitiesFunc = (dsGetAudioCapabilities_t)resolve(RDK_DSHAL_NAME, "dsGetAudioCapabilities");
+                if (dsGetAudioCapabilitiesFunc == 0) {
+                    LOGERR("dsGetAudioCapabilities is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetAudioCapabilitiesFunc) {
+                ret = dsGetAudioCapabilitiesFunc(dsHandle, &dsCapabilities);
+            }
+            
             if (ret == dsERR_NONE) {
                 capabilities = dsCapabilities;
                 LOGINFO("GetAudioCapabilities success: handle=%d, capabilities=%d", handle, capabilities);
@@ -545,7 +576,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             dsAudioFormat_t dsFormat;
-            dsError_t ret = dsGetAudioFormat(dsHandle, &dsFormat);
+            
+            // Use resolve function for dsGetAudioFormat
+            typedef dsError_t (*dsGetAudioFormat_t)(intptr_t handle, dsAudioFormat_t* format);
+            static dsGetAudioFormat_t dsGetAudioFormatFunc = 0;
+            if (dsGetAudioFormatFunc == 0) {
+                dsGetAudioFormatFunc = (dsGetAudioFormat_t)resolve(RDK_DSHAL_NAME, "dsGetAudioFormat");
+                if (dsGetAudioFormatFunc == 0) {
+                    LOGERR("dsGetAudioFormat is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetAudioFormatFunc) {
+                ret = dsGetAudioFormatFunc(dsHandle, &dsFormat);
+            }
+            
             if (ret == dsERR_NONE) {
                 audioFormat = static_cast<AudioFormat>(dsFormat);
                 LOGINFO("GetAudioFormat success: handle=%d, format=%d", handle, audioFormat);
@@ -651,7 +698,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             int dsCompression;
-            dsError_t ret = dsGetAudioCompression(dsHandle, &dsCompression);
+            
+            // Use resolve function for dsGetAudioCompression
+            typedef dsError_t (*dsGetAudioCompression_t)(intptr_t handle, int* compression);
+            static dsGetAudioCompression_t dsGetAudioCompressionFunc = 0;
+            if (dsGetAudioCompressionFunc == 0) {
+                dsGetAudioCompressionFunc = (dsGetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsGetAudioCompression");
+                if (dsGetAudioCompressionFunc == 0) {
+                    LOGERR("dsGetAudioCompression is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetAudioCompressionFunc) {
+                ret = dsGetAudioCompressionFunc(dsHandle, &dsCompression);
+            }
+            
             if (ret == dsERR_NONE) {
                 compression = static_cast<AudioCompression>(dsCompression);
                 LOGINFO("GetCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
@@ -676,7 +739,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetAudioCompression(dsHandle, static_cast<int>(compression));
+            
+            // Use resolve function for dsSetAudioCompression
+            typedef dsError_t (*dsSetAudioCompression_t)(intptr_t handle, int compression);
+            static dsSetAudioCompression_t dsSetAudioCompressionFunc = 0;
+            if (dsSetAudioCompressionFunc == 0) {
+                dsSetAudioCompressionFunc = (dsSetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsSetAudioCompression");
+                if (dsSetAudioCompressionFunc == 0) {
+                    LOGERR("dsSetAudioCompression is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetAudioCompressionFunc) {
+                ret = dsSetAudioCompressionFunc(dsHandle, static_cast<int>(compression));
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
             } else {
@@ -744,7 +823,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             float dsLevel;
-            dsError_t ret = dsGetAudioLevel(dsHandle, &dsLevel);
+
+            // Use resolve function for dsGetAudioLevel
+            typedef dsError_t (*dsGetAudioLevel_t)(intptr_t handle, float* level);
+            static dsGetAudioLevel_t dsGetAudioLevelFunc = 0;
+            if (dsGetAudioLevelFunc == 0) {
+                dsGetAudioLevelFunc = (dsGetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsGetAudioLevel");
+                if (dsGetAudioLevelFunc == 0) {
+                    LOGERR("dsGetAudioLevel is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetAudioLevelFunc) {
+                ret = dsGetAudioLevelFunc(dsHandle, &dsLevel);
+            }
+
             if (ret == dsERR_NONE) {
                 audioLevel = dsLevel;
                 LOGINFO("GetAudioLevel success: handle=%d, level=%f", handle, audioLevel);
@@ -769,7 +864,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetAudioGain(dsHandle, gainLevel);
+            
+            // Use resolve function for dsSetAudioGain
+            typedef dsError_t (*dsSetAudioGain_t)(intptr_t handle, float gainLevel);
+            static dsSetAudioGain_t dsSetAudioGainFunc = 0;
+            if (dsSetAudioGainFunc == 0) {
+                dsSetAudioGainFunc = (dsSetAudioGain_t)resolve(RDK_DSHAL_NAME, "dsSetAudioGain");
+                if (dsSetAudioGainFunc == 0) {
+                    LOGERR("dsSetAudioGain is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetAudioGainFunc) {
+                ret = dsSetAudioGainFunc(dsHandle, gainLevel);
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioGain success: handle=%d, gain=%f", handle, gainLevel);
             } else {
@@ -794,7 +905,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             float dsGain;
-            dsError_t ret = dsGetAudioGain(dsHandle, &dsGain);
+            
+            // Use resolve function for dsGetAudioGain
+            typedef dsError_t (*dsGetAudioGain_t)(intptr_t handle, float* gain);
+            static dsGetAudioGain_t dsGetAudioGainFunc = 0;
+            if (dsGetAudioGainFunc == 0) {
+                dsGetAudioGainFunc = (dsGetAudioGain_t)resolve(RDK_DSHAL_NAME, "dsGetAudioGain");
+                if (dsGetAudioGainFunc == 0) {
+                    LOGERR("dsGetAudioGain is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetAudioGainFunc) {
+                ret = dsGetAudioGainFunc(dsHandle, &dsGain);
+            }
+            
             if (ret == dsERR_NONE) {
                 gainLevel = dsGain;
                 LOGINFO("GetAudioGain success: handle=%d, gain=%f", handle, gainLevel);
@@ -819,7 +946,9 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
+            
             dsError_t ret = dsSetAudioMute(dsHandle, mute);
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioMute success: handle=%d, mute=%d", handle, mute);
             } else {
@@ -844,7 +973,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             bool dsMuted;
-            dsError_t ret = dsIsAudioMute(dsHandle, &dsMuted);
+            
+            // Use resolve function for dsIsAudioMute
+            typedef dsError_t (*dsIsAudioMute_t)(intptr_t handle, bool* muted);
+            static dsIsAudioMute_t dsIsAudioMuteFunc = 0;
+            if (dsIsAudioMuteFunc == 0) {
+                dsIsAudioMuteFunc = (dsIsAudioMute_t)resolve(RDK_DSHAL_NAME, "dsIsAudioMute");
+                if (dsIsAudioMuteFunc == 0) {
+                    LOGERR("dsIsAudioMute is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsIsAudioMuteFunc) {
+                ret = dsIsAudioMuteFunc(dsHandle, &dsMuted);
+            }
+            
             if (ret == dsERR_NONE) {
                 muted = dsMuted;
                 LOGINFO("IsAudioMuted success: handle=%d, muted=%d", handle, muted);
@@ -969,7 +1114,9 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             dsAudioStereoMode_t dsMode;
+            
             dsError_t ret = dsGetStereoMode(dsHandle, &dsMode);
+            
             if (ret == dsERR_NONE) {
                 mode = convertFromDS(dsMode);
                 LOGINFO("GetStereoMode success: handle=%d, mode=%d", handle, static_cast<int>(mode));
@@ -997,6 +1144,7 @@ public:
             dsAudioStereoMode_t dsMode = convertToDS(mode);
 
             dsError_t ret = dsSetStereoMode(dsHandle, dsMode);
+
             if (ret == dsERR_NONE) {
                 LOGINFO("SetStereoMode success: handle=%d, mode=%d, persist=%s", handle, static_cast<int>(mode), persist ? "true" : "false");
 
@@ -1094,7 +1242,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetAssociatedAudioMixing(dsHandle, mixing);
+            
+            // Use resolve function for dsSetAssociatedAudioMixing
+            typedef dsError_t (*dsSetAssociatedAudioMixing_t)(intptr_t handle, bool mixing);
+            static dsSetAssociatedAudioMixing_t dsSetAssociatedAudioMixingFunc = 0;
+            if (dsSetAssociatedAudioMixingFunc == 0) {
+                dsSetAssociatedAudioMixingFunc = (dsSetAssociatedAudioMixing_t)resolve(RDK_DSHAL_NAME, "dsSetAssociatedAudioMixing");
+                if (dsSetAssociatedAudioMixingFunc == 0) {
+                    LOGERR("dsSetAssociatedAudioMixing is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetAssociatedAudioMixingFunc) {
+                ret = dsSetAssociatedAudioMixingFunc(dsHandle, mixing);
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAssociatedAudioMixing success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
 
@@ -1122,7 +1286,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             bool dsMixing;
-            dsError_t ret = dsGetAssociatedAudioMixing(dsHandle, &dsMixing);
+            
+            // Use resolve function for dsGetAssociatedAudioMixing
+            typedef dsError_t (*dsGetAssociatedAudioMixing_t)(intptr_t handle, bool* mixing);
+            static dsGetAssociatedAudioMixing_t dsGetAssociatedAudioMixingFunc = 0;
+            if (dsGetAssociatedAudioMixingFunc == 0) {
+                dsGetAssociatedAudioMixingFunc = (dsGetAssociatedAudioMixing_t)resolve(RDK_DSHAL_NAME, "dsGetAssociatedAudioMixing");
+                if (dsGetAssociatedAudioMixingFunc == 0) {
+                    LOGERR("dsGetAssociatedAudioMixing is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetAssociatedAudioMixingFunc) {
+                ret = dsGetAssociatedAudioMixingFunc(dsHandle, &dsMixing);
+            }
+            
             if (ret == dsERR_NONE) {
                 mixing = dsMixing;
                 LOGINFO("GetAssociatedAudioMixing success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
@@ -1147,7 +1327,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetFaderControl(dsHandle, mixerBalance);
+            
+            // Use resolve function for dsSetFaderControl
+            typedef dsError_t (*dsSetFaderControl_t)(intptr_t handle, int balance);
+            static dsSetFaderControl_t dsSetFaderControlFunc = 0;
+            if (dsSetFaderControlFunc == 0) {
+                dsSetFaderControlFunc = (dsSetFaderControl_t)resolve(RDK_DSHAL_NAME, "dsSetFaderControl");
+                if (dsSetFaderControlFunc == 0) {
+                    LOGERR("dsSetFaderControl is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetFaderControlFunc) {
+                ret = dsSetFaderControlFunc(dsHandle, mixerBalance);
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioFaderControl success: handle=%d, balance=%d", handle, mixerBalance);
 
@@ -1175,7 +1371,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             int dsBalance;
-            dsError_t ret = dsGetFaderControl(dsHandle, &dsBalance);
+            
+            // Use resolve function for dsGetFaderControl
+            typedef dsError_t (*dsGetFaderControl_t)(intptr_t handle, int* balance);
+            static dsGetFaderControl_t dsGetFaderControlFunc = 0;
+            if (dsGetFaderControlFunc == 0) {
+                dsGetFaderControlFunc = (dsGetFaderControl_t)resolve(RDK_DSHAL_NAME, "dsGetFaderControl");
+                if (dsGetFaderControlFunc == 0) {
+                    LOGERR("dsGetFaderControl is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetFaderControlFunc) {
+                ret = dsGetFaderControlFunc(dsHandle, &dsBalance);
+            }
+            
             if (ret == dsERR_NONE) {
                 mixerBalance = dsBalance;
                 LOGINFO("GetAudioFaderControl success: handle=%d, balance=%d", handle, mixerBalance);
@@ -1200,7 +1412,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetPrimaryLanguage(dsHandle, primaryAudioLanguage.c_str());
+            
+            // Use resolve function for dsSetPrimaryLanguage
+            typedef dsError_t (*dsSetPrimaryLanguage_t)(intptr_t handle, const char* language);
+            static dsSetPrimaryLanguage_t dsSetPrimaryLanguageFunc = 0;
+            if (dsSetPrimaryLanguageFunc == 0) {
+                dsSetPrimaryLanguageFunc = (dsSetPrimaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsSetPrimaryLanguage");
+                if (dsSetPrimaryLanguageFunc == 0) {
+                    LOGERR("dsSetPrimaryLanguage is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetPrimaryLanguageFunc) {
+                ret = dsSetPrimaryLanguageFunc(dsHandle, primaryAudioLanguage.c_str());
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioPrimaryLanguage success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
 
@@ -1228,7 +1456,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             char langStr[32] = {0};
-            dsError_t ret = dsGetPrimaryLanguage(dsHandle, langStr);
+            
+            // Use resolve function for dsGetPrimaryLanguage
+            typedef dsError_t (*dsGetPrimaryLanguage_t)(intptr_t handle, char* language);
+            static dsGetPrimaryLanguage_t dsGetPrimaryLanguageFunc = 0;
+            if (dsGetPrimaryLanguageFunc == 0) {
+                dsGetPrimaryLanguageFunc = (dsGetPrimaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsGetPrimaryLanguage");
+                if (dsGetPrimaryLanguageFunc == 0) {
+                    LOGERR("dsGetPrimaryLanguage is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetPrimaryLanguageFunc) {
+                ret = dsGetPrimaryLanguageFunc(dsHandle, langStr);
+            }
+            
             if (ret == dsERR_NONE) {
                 primaryAudioLanguage = std::string(langStr);
                 LOGINFO("GetAudioPrimaryLanguage success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
@@ -1253,7 +1497,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetSecondaryLanguage(dsHandle, secondaryAudioLanguage.c_str());
+            
+            // Use resolve function for dsSetSecondaryLanguage
+            typedef dsError_t (*dsSetSecondaryLanguage_t)(intptr_t handle, const char* language);
+            static dsSetSecondaryLanguage_t dsSetSecondaryLanguageFunc = 0;
+            if (dsSetSecondaryLanguageFunc == 0) {
+                dsSetSecondaryLanguageFunc = (dsSetSecondaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsSetSecondaryLanguage");
+                if (dsSetSecondaryLanguageFunc == 0) {
+                    LOGERR("dsSetSecondaryLanguage is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetSecondaryLanguageFunc) {
+                ret = dsSetSecondaryLanguageFunc(dsHandle, secondaryAudioLanguage.c_str());
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioSecondaryLanguage success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
 
@@ -1281,7 +1541,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             char langStr[32] = {0};
-            dsError_t ret = dsGetSecondaryLanguage(dsHandle, langStr);
+            
+            // Use resolve function for dsGetSecondaryLanguage
+            typedef dsError_t (*dsGetSecondaryLanguage_t)(intptr_t handle, char* language);
+            static dsGetSecondaryLanguage_t dsGetSecondaryLanguageFunc = 0;
+            if (dsGetSecondaryLanguageFunc == 0) {
+                dsGetSecondaryLanguageFunc = (dsGetSecondaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsGetSecondaryLanguage");
+                if (dsGetSecondaryLanguageFunc == 0) {
+                    LOGERR("dsGetSecondaryLanguage is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetSecondaryLanguageFunc) {
+                ret = dsGetSecondaryLanguageFunc(dsHandle, langStr);
+            }
+            
             if (ret == dsERR_NONE) {
                 secondaryAudioLanguage = std::string(langStr);
                 LOGINFO("GetAudioSecondaryLanguage success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
@@ -1307,7 +1583,23 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             bool dsConnected;
-            dsError_t ret = dsIsAudioPortEnabled(dsHandle, &dsConnected);
+            
+            // Use resolve function for dsIsAudioPortEnabled (used as connection check)
+            typedef dsError_t (*dsIsAudioPortEnabled_t)(intptr_t handle, bool* enabled);
+            static dsIsAudioPortEnabled_t dsIsAudioPortEnabledFunc = 0;
+            if (dsIsAudioPortEnabledFunc == 0) {
+                dsIsAudioPortEnabledFunc = (dsIsAudioPortEnabled_t)resolve(RDK_DSHAL_NAME, "dsIsAudioPortEnabled");
+                if (dsIsAudioPortEnabledFunc == 0) {
+                    LOGERR("dsIsAudioPortEnabled is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsIsAudioPortEnabledFunc) {
+                ret = dsIsAudioPortEnabledFunc(dsHandle, &dsConnected);
+            }
+            
             if (ret == dsERR_NONE) {
                 isConnected = dsConnected;
                 LOGINFO("IsAudioOutputConnected success: handle=%d, connected=%s", handle, isConnected ? "true" : "false");
@@ -1334,7 +1626,23 @@ public:
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             // dsAtmosCapability_t should be dsATMOSCapability_t
             dsATMOSCapability_t dsCapability;
-            dsError_t ret = dsGetSinkDeviceAtmosCapability(dsHandle, &dsCapability);
+            
+            // Use resolve function for dsGetSinkDeviceAtmosCapability
+            typedef dsError_t (*dsGetSinkDeviceAtmosCapability_t)(intptr_t handle, dsATMOSCapability_t* capability);
+            static dsGetSinkDeviceAtmosCapability_t dsGetSinkDeviceAtmosCapabilityFunc = 0;
+            if (dsGetSinkDeviceAtmosCapabilityFunc == 0) {
+                dsGetSinkDeviceAtmosCapabilityFunc = (dsGetSinkDeviceAtmosCapability_t)resolve(RDK_DSHAL_NAME, "dsGetSinkDeviceAtmosCapability");
+                if (dsGetSinkDeviceAtmosCapabilityFunc == 0) {
+                    LOGERR("dsGetSinkDeviceAtmosCapability is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetSinkDeviceAtmosCapabilityFunc) {
+                ret = dsGetSinkDeviceAtmosCapabilityFunc(dsHandle, &dsCapability);
+            }
+            
             if (ret == dsERR_NONE) {
                 atmosCapability = static_cast<DolbyAtmosCapability>(dsCapability);
                 LOGINFO("GetAudioSinkDeviceAtmosCapability success: handle=%d, capability=%d", handle, static_cast<int>(atmosCapability));
@@ -1359,7 +1667,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetAudioAtmosOutputMode(dsHandle, enable);
+            
+            // Use resolve function for dsSetAudioAtmosOutputMode
+            typedef dsError_t (*dsSetAudioAtmosOutputMode_t)(intptr_t handle, bool enable);
+            static dsSetAudioAtmosOutputMode_t dsSetAudioAtmosOutputModeFunc = 0;
+            if (dsSetAudioAtmosOutputModeFunc == 0) {
+                dsSetAudioAtmosOutputModeFunc = (dsSetAudioAtmosOutputMode_t)resolve(RDK_DSHAL_NAME, "dsSetAudioAtmosOutputMode");
+                if (dsSetAudioAtmosOutputModeFunc == 0) {
+                    LOGERR("dsSetAudioAtmosOutputMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetAudioAtmosOutputModeFunc) {
+                ret = dsSetAudioAtmosOutputModeFunc(dsHandle, enable);
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioAtmosOutputMode success: handle=%d, enable=%s", handle, enable ? "true" : "false");
             } else {
@@ -1380,7 +1704,23 @@ public:
         ENTRY_LOG;
         try {
             bool portEnabled = false;
-            dsError_t dsResult = dsIsAudioPortEnabled(static_cast<intptr_t>(handle), &portEnabled);
+            
+            // Use resolve function for dsIsAudioPortEnabled
+            typedef dsError_t (*dsIsAudioPortEnabled_t)(intptr_t handle, bool* enabled);
+            static dsIsAudioPortEnabled_t dsIsAudioPortEnabledFunc = 0;
+            if (dsIsAudioPortEnabledFunc == 0) {
+                dsIsAudioPortEnabledFunc = (dsIsAudioPortEnabled_t)resolve(RDK_DSHAL_NAME, "dsIsAudioPortEnabled");
+                if (dsIsAudioPortEnabledFunc == 0) {
+                    LOGERR("dsIsAudioPortEnabled is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsIsAudioPortEnabledFunc) {
+                dsResult = dsIsAudioPortEnabledFunc(static_cast<intptr_t>(handle), &portEnabled);
+            }
+            
             if (dsResult == dsERR_NONE) {
                 enabled = portEnabled;
                 LOGINFO("IsAudioPortEnabled success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
@@ -1426,7 +1766,21 @@ public:
             }
 
             // Enable/disable the audio port
-            dsError_t dsResult = dsEnableAudioPort(dsHandle, enable);
+            // Use resolve function for dsEnableAudioPort
+            typedef dsError_t (*dsEnableAudioPort_t)(intptr_t handle, bool enable);
+            static dsEnableAudioPort_t dsEnableAudioPortFunc = 0;
+            if (dsEnableAudioPortFunc == 0) {
+                dsEnableAudioPortFunc = (dsEnableAudioPort_t)resolve(RDK_DSHAL_NAME, "dsEnableAudioPort");
+                if (dsEnableAudioPortFunc == 0) {
+                    LOGERR("dsEnableAudioPort is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsEnableAudioPortFunc) {
+                dsResult = dsEnableAudioPortFunc(dsHandle, enable);
+            }
             if (dsResult != dsERR_NONE) {
                 LOGERR("dsEnableAudioPort failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -1475,7 +1829,23 @@ public:
         ENTRY_LOG;
         try {
             int arcTypes = 0;
-            dsError_t dsResult = dsGetSupportedARCTypes(static_cast<intptr_t>(handle), &arcTypes);
+            
+            // Use resolve function for dsGetSupportedARCTypes
+            typedef dsError_t (*dsGetSupportedARCTypes_t)(intptr_t handle, int* types);
+            static dsGetSupportedARCTypes_t dsGetSupportedARCTypesFunc = 0;
+            if (dsGetSupportedARCTypesFunc == 0) {
+                dsGetSupportedARCTypesFunc = (dsGetSupportedARCTypes_t)resolve(RDK_DSHAL_NAME, "dsGetSupportedARCTypes");
+                if (dsGetSupportedARCTypesFunc == 0) {
+                    LOGERR("dsGetSupportedARCTypes is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetSupportedARCTypesFunc) {
+                dsResult = dsGetSupportedARCTypesFunc(static_cast<intptr_t>(handle), &arcTypes);
+            }
+            
             if (dsResult == dsERR_NONE) {
                 types = arcTypes;
             } else {
@@ -1649,7 +2019,23 @@ public:
         ENTRY_LOG;
         try {
             bool ms11Decoded = false;
-            dsError_t dsResult = dsIsAudioMSDecode(static_cast<intptr_t>(handle), &ms11Decoded);
+            
+            // Use resolve function for dsIsAudioMSDecode
+            typedef dsError_t (*dsIsAudioMSDecode_t)(intptr_t handle, bool* decoded);
+            static dsIsAudioMSDecode_t dsIsAudioMSDecodeFunc = 0;
+            if (dsIsAudioMSDecodeFunc == 0) {
+                dsIsAudioMSDecodeFunc = (dsIsAudioMSDecode_t)resolve(RDK_DSHAL_NAME, "dsIsAudioMSDecode");
+                if (dsIsAudioMSDecodeFunc == 0) {
+                    LOGERR("dsIsAudioMSDecode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsIsAudioMSDecodeFunc) {
+                dsResult = dsIsAudioMSDecodeFunc(static_cast<intptr_t>(handle), &ms11Decoded);
+            }
+            
             if (dsResult == dsERR_NONE) {
                 hasms11Decode = ms11Decoded;
             } else {
@@ -1693,7 +2079,21 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             bool leEnabled;
-            dsError_t ret = dsGetLEConfig(dsHandle, &leEnabled);
+            // Use resolve function for dsGetLEConfig
+            typedef dsError_t (*dsGetLEConfig_t)(intptr_t handle, bool* enabled);
+            static dsGetLEConfig_t dsGetLEConfigFunc = 0;
+            if (dsGetLEConfigFunc == 0) {
+                dsGetLEConfigFunc = (dsGetLEConfig_t)resolve(RDK_DSHAL_NAME, "dsGetLEConfig");
+                if (dsGetLEConfigFunc == 0) {
+                    LOGERR("dsGetLEConfig is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetLEConfigFunc) {
+                ret = dsGetLEConfigFunc(dsHandle, &leEnabled);
+            }
             if (ret == dsERR_NONE) {
                 enabled = leEnabled;
                 LOGINFO("GetAudioLEConfig success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
@@ -1763,7 +2163,21 @@ public:
         ENTRY_LOG;
         try {
             uint32_t delay = 0;
-            dsError_t dsResult = dsGetAudioDelay(static_cast<intptr_t>(handle), &delay);
+            // Use resolve function for dsGetAudioDelay
+            typedef dsError_t (*dsGetAudioDelay_t)(intptr_t handle, uint32_t* delay);
+            static dsGetAudioDelay_t dsGetAudioDelayFunc = 0;
+            if (dsGetAudioDelayFunc == 0) {
+                dsGetAudioDelayFunc = (dsGetAudioDelay_t)resolve(RDK_DSHAL_NAME, "dsGetAudioDelay");
+                if (dsGetAudioDelayFunc == 0) {
+                    LOGERR("dsGetAudioDelay is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetAudioDelayFunc) {
+                dsResult = dsGetAudioDelayFunc(static_cast<intptr_t>(handle), &delay);
+            }
             if (dsResult == dsERR_NONE) {
                 audioDelay = delay;
                 LOGINFO("GetAudioDelay success: handle=%d, delay=%u", handle, audioDelay);
@@ -1862,7 +2276,21 @@ public:
     uint32_t SetAudioCompression(const int32_t handle, const int32_t compressionLevel) override {
         ENTRY_LOG;
         try {
-            dsError_t dsResult = dsSetAudioCompression(static_cast<intptr_t>(handle), compressionLevel);
+            // Use resolve function for dsSetAudioCompression
+            typedef dsError_t (*dsSetAudioCompression_t)(intptr_t handle, int compression);
+            static dsSetAudioCompression_t dsSetAudioCompressionFunc = 0;
+            if (dsSetAudioCompressionFunc == 0) {
+                dsSetAudioCompressionFunc = (dsSetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsSetAudioCompression");
+                if (dsSetAudioCompressionFunc == 0) {
+                    LOGERR("dsSetAudioCompression is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsSetAudioCompressionFunc) {
+                dsResult = dsSetAudioCompressionFunc(static_cast<intptr_t>(handle), compressionLevel);
+            }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioCompression success: handle=%d, level=%d", handle, compressionLevel);
             } else {
@@ -1881,7 +2309,21 @@ public:
         ENTRY_LOG;
         try {
             int compression = 0;
-            dsError_t dsResult = dsGetAudioCompression(static_cast<intptr_t>(handle), &compression);
+            // Use resolve function for dsGetAudioCompression
+            typedef dsError_t (*dsGetAudioCompression_t)(intptr_t handle, int* compression);
+            static dsGetAudioCompression_t dsGetAudioCompressionFunc = 0;
+            if (dsGetAudioCompressionFunc == 0) {
+                dsGetAudioCompressionFunc = (dsGetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsGetAudioCompression");
+                if (dsGetAudioCompressionFunc == 0) {
+                    LOGERR("dsGetAudioCompression is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetAudioCompressionFunc) {
+                dsResult = dsGetAudioCompressionFunc(static_cast<intptr_t>(handle), &compression);
+            }
             if (dsResult == dsERR_NONE) {
                 compressionLevel = compression;
                 LOGINFO("GetAudioCompression success: handle=%d, level=%d", handle, compressionLevel);
@@ -1906,7 +2348,23 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetDialogEnhancement(dsHandle, level);
+            
+            // Use resolve function for dsSetDialogEnhancement
+            typedef dsError_t (*dsSetDialogEnhancement_t)(intptr_t handle, int level);
+            static dsSetDialogEnhancement_t dsSetDialogEnhancementFunc = 0;
+            if (dsSetDialogEnhancementFunc == 0) {
+                dsSetDialogEnhancementFunc = (dsSetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement");
+                if (dsSetDialogEnhancementFunc == 0) {
+                    LOGERR("dsSetDialogEnhancement is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetDialogEnhancementFunc) {
+                ret = dsSetDialogEnhancementFunc(dsHandle, level);
+            }
+            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioDialogEnhancement success: handle=%d, level=%d", handle, level);
             } else {
@@ -1925,7 +2383,21 @@ public:
         ENTRY_LOG;
         try {
             int dialogLevel = 0;
-            dsError_t dsResult = dsGetDialogEnhancement(static_cast<intptr_t>(handle), &dialogLevel);
+            // Use resolve function for dsGetDialogEnhancement
+            typedef dsError_t (*dsGetDialogEnhancement_t)(intptr_t handle, int* level);
+            static dsGetDialogEnhancement_t dsGetDialogEnhancementFunc = 0;
+            if (dsGetDialogEnhancementFunc == 0) {
+                dsGetDialogEnhancementFunc = (dsGetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsGetDialogEnhancement");
+                if (dsGetDialogEnhancementFunc == 0) {
+                    LOGERR("dsGetDialogEnhancement is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetDialogEnhancementFunc) {
+                dsResult = dsGetDialogEnhancementFunc(static_cast<intptr_t>(handle), &dialogLevel);
+            }
             if (dsResult == dsERR_NONE) {
                 level = dialogLevel;
                 LOGINFO("GetAudioDialogEnhancement success: handle=%d, level=%d", handle, level);
@@ -1944,7 +2416,21 @@ public:
     uint32_t SetAudioDolbyVolumeMode(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         try {
-            dsError_t dsResult = dsSetDolbyVolumeMode(static_cast<intptr_t>(handle), enable);
+            // Use resolve function for dsSetDolbyVolumeMode
+            typedef dsError_t (*dsSetDolbyVolumeMode_t)(intptr_t handle, bool enable);
+            static dsSetDolbyVolumeMode_t dsSetDolbyVolumeModeFunc = 0;
+            if (dsSetDolbyVolumeModeFunc == 0) {
+                dsSetDolbyVolumeModeFunc = (dsSetDolbyVolumeMode_t)resolve(RDK_DSHAL_NAME, "dsSetDolbyVolumeMode");
+                if (dsSetDolbyVolumeModeFunc == 0) {
+                    LOGERR("dsSetDolbyVolumeMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsSetDolbyVolumeModeFunc) {
+                dsResult = dsSetDolbyVolumeModeFunc(static_cast<intptr_t>(handle), enable);
+            }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioDolbyVolumeMode success: handle=%d, enable=%s", handle, enable ? "true" : "false");
             } else {
@@ -1963,7 +2449,21 @@ public:
         ENTRY_LOG;
         try {
             bool dolbyMode = false;
-            dsError_t dsResult = dsGetDolbyVolumeMode(static_cast<intptr_t>(handle), &dolbyMode);
+            // Use resolve function for dsGetDolbyVolumeMode
+            typedef dsError_t (*dsGetDolbyVolumeMode_t)(intptr_t handle, bool* mode);
+            static dsGetDolbyVolumeMode_t dsGetDolbyVolumeModeFunc = 0;
+            if (dsGetDolbyVolumeModeFunc == 0) {
+                dsGetDolbyVolumeModeFunc = (dsGetDolbyVolumeMode_t)resolve(RDK_DSHAL_NAME, "dsGetDolbyVolumeMode");
+                if (dsGetDolbyVolumeModeFunc == 0) {
+                    LOGERR("dsGetDolbyVolumeMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetDolbyVolumeModeFunc) {
+                dsResult = dsGetDolbyVolumeModeFunc(static_cast<intptr_t>(handle), &dolbyMode);
+            }
             if (dsResult == dsERR_NONE) {
                 enabled = dolbyMode;
                 LOGINFO("GetAudioDolbyVolumeMode success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
@@ -1982,7 +2482,21 @@ public:
     uint32_t SetAudioIntelligentEqualizerMode(const int32_t handle, const int32_t mode) override {
         ENTRY_LOG;
         try {
-            dsError_t dsResult = dsSetIntelligentEqualizerMode(static_cast<intptr_t>(handle), mode);
+            // Use resolve function for dsSetIntelligentEqualizerMode
+            typedef dsError_t (*dsSetIntelligentEqualizerMode_t)(intptr_t handle, int mode);
+            static dsSetIntelligentEqualizerMode_t dsSetIntelligentEqualizerModeFunc = 0;
+            if (dsSetIntelligentEqualizerModeFunc == 0) {
+                dsSetIntelligentEqualizerModeFunc = (dsSetIntelligentEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsSetIntelligentEqualizerMode");
+                if (dsSetIntelligentEqualizerModeFunc == 0) {
+                    LOGERR("dsSetIntelligentEqualizerMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsSetIntelligentEqualizerModeFunc) {
+                dsResult = dsSetIntelligentEqualizerModeFunc(static_cast<intptr_t>(handle), mode);
+            }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioIntelligentEqualizerMode success: handle=%d, mode=%d", handle, mode);
             } else {
@@ -2001,7 +2515,21 @@ public:
         ENTRY_LOG;
         try {
             int eqMode = 0;
-            dsError_t dsResult = dsGetIntelligentEqualizerMode(static_cast<intptr_t>(handle), &eqMode);
+            // Use resolve function for dsGetIntelligentEqualizerMode
+            typedef dsError_t (*dsGetIntelligentEqualizerMode_t)(intptr_t handle, int* mode);
+            static dsGetIntelligentEqualizerMode_t dsGetIntelligentEqualizerModeFunc = 0;
+            if (dsGetIntelligentEqualizerModeFunc == 0) {
+                dsGetIntelligentEqualizerModeFunc = (dsGetIntelligentEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsGetIntelligentEqualizerMode");
+                if (dsGetIntelligentEqualizerModeFunc == 0) {
+                    LOGERR("dsGetIntelligentEqualizerMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetIntelligentEqualizerModeFunc) {
+                dsResult = dsGetIntelligentEqualizerModeFunc(static_cast<intptr_t>(handle), &eqMode);
+            }
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
                 LOGINFO("GetAudioIntelligentEqualizerMode success: handle=%d, mode=%d", handle, mode);
@@ -2029,7 +2557,21 @@ public:
             dsVolumeLeveller_t dsVolLeveller;
             dsVolLeveller.mode = static_cast<int>(volumeLeveller.mode);
             dsVolLeveller.level = static_cast<int>(volumeLeveller.level);
-            dsError_t ret = dsSetVolumeLeveller(dsHandle, dsVolLeveller);
+            // Use resolve function for dsSetVolumeLeveller
+            typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t handle, dsVolumeLeveller_t leveller);
+            static dsSetVolumeLeveller_t dsSetVolumeLevellerFunc = 0;
+            if (dsSetVolumeLevellerFunc == 0) {
+                dsSetVolumeLevellerFunc = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
+                if (dsSetVolumeLevellerFunc == 0) {
+                    LOGERR("dsSetVolumeLeveller is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetVolumeLevellerFunc) {
+                ret = dsSetVolumeLevellerFunc(dsHandle, dsVolLeveller);
+            }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioVolumeLeveller success: handle=%d, mode=%d, level=%d", handle, volumeLeveller.mode, volumeLeveller.level);
             } else {
@@ -2048,7 +2590,21 @@ public:
         ENTRY_LOG;
         try {
             dsVolumeLeveller_t volLeveller;
-            dsError_t dsResult = dsGetVolumeLeveller(static_cast<intptr_t>(handle), &volLeveller);
+            // Use resolve function for dsGetVolumeLeveller
+            typedef dsError_t (*dsGetVolumeLeveller_t)(intptr_t handle, dsVolumeLeveller_t* leveller);
+            static dsGetVolumeLeveller_t dsGetVolumeLevellerFunc = 0;
+            if (dsGetVolumeLevellerFunc == 0) {
+                dsGetVolumeLevellerFunc = (dsGetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsGetVolumeLeveller");
+                if (dsGetVolumeLevellerFunc == 0) {
+                    LOGERR("dsGetVolumeLeveller is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetVolumeLevellerFunc) {
+                dsResult = dsGetVolumeLevellerFunc(static_cast<intptr_t>(handle), &volLeveller);
+            }
             if (dsResult == dsERR_NONE) {
                 // Convert dsVolumeLeveller_t to VolumeLeveller enum
                 volumeLeveller.mode = static_cast<uint8_t>(volLeveller.mode);
@@ -2074,7 +2630,21 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetBassEnhancer(dsHandle, boost);
+            // Use resolve function for dsSetBassEnhancer
+            typedef dsError_t (*dsSetBassEnhancer_t)(intptr_t handle, int boost);
+            static dsSetBassEnhancer_t dsSetBassEnhancerFunc = 0;
+            if (dsSetBassEnhancerFunc == 0) {
+                dsSetBassEnhancerFunc = (dsSetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
+                if (dsSetBassEnhancerFunc == 0) {
+                    LOGERR("dsSetBassEnhancer is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetBassEnhancerFunc) {
+                ret = dsSetBassEnhancerFunc(dsHandle, boost);
+            }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioBassEnhancer success: handle=%d, boost=%d", handle, boost);
             } else {
@@ -2093,7 +2663,21 @@ public:
         ENTRY_LOG;
         try {
             int bassBoost = 0;
-            dsError_t dsResult = dsGetBassEnhancer(static_cast<intptr_t>(handle), &bassBoost);
+            // Use resolve function for dsGetBassEnhancer
+            typedef dsError_t (*dsGetBassEnhancer_t)(intptr_t handle, int* boost);
+            static dsGetBassEnhancer_t dsGetBassEnhancerFunc = 0;
+            if (dsGetBassEnhancerFunc == 0) {
+                dsGetBassEnhancerFunc = (dsGetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsGetBassEnhancer");
+                if (dsGetBassEnhancerFunc == 0) {
+                    LOGERR("dsGetBassEnhancer is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetBassEnhancerFunc) {
+                dsResult = dsGetBassEnhancerFunc(static_cast<intptr_t>(handle), &bassBoost);
+            }
             if (dsResult == dsERR_NONE) {
                 boost = bassBoost;
             } else {
@@ -2117,7 +2701,21 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsEnableSurroundDecoder(dsHandle, enable);
+            // Use resolve function for dsEnableSurroundDecoder
+            typedef dsError_t (*dsEnableSurroundDecoder_t)(intptr_t handle, bool enable);
+            static dsEnableSurroundDecoder_t dsEnableSurroundDecoderFunc = 0;
+            if (dsEnableSurroundDecoderFunc == 0) {
+                dsEnableSurroundDecoderFunc = (dsEnableSurroundDecoder_t)resolve(RDK_DSHAL_NAME, "dsEnableSurroundDecoder");
+                if (dsEnableSurroundDecoderFunc == 0) {
+                    LOGERR("dsEnableSurroundDecoder is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsEnableSurroundDecoderFunc) {
+                ret = dsEnableSurroundDecoderFunc(dsHandle, enable);
+            }
             if (ret == dsERR_NONE) {
                 LOGINFO("EnableAudioSurroudDecoder success: handle=%d, enable=%s", handle, enable ? "true" : "false");
             } else {
@@ -2136,7 +2734,21 @@ public:
         ENTRY_LOG;
         try {
             bool decoderEnabled = false;
-            dsError_t dsResult = dsIsSurroundDecoderEnabled(static_cast<intptr_t>(handle), &decoderEnabled);
+            // Use resolve function for dsIsSurroundDecoderEnabled
+            typedef dsError_t (*dsIsSurroundDecoderEnabled_t)(intptr_t handle, bool* enabled);
+            static dsIsSurroundDecoderEnabled_t dsIsSurroundDecoderEnabledFunc = 0;
+            if (dsIsSurroundDecoderEnabledFunc == 0) {
+                dsIsSurroundDecoderEnabledFunc = (dsIsSurroundDecoderEnabled_t)resolve(RDK_DSHAL_NAME, "dsIsSurroundDecoderEnabled");
+                if (dsIsSurroundDecoderEnabledFunc == 0) {
+                    LOGERR("dsIsSurroundDecoderEnabled is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsIsSurroundDecoderEnabledFunc) {
+                dsResult = dsIsSurroundDecoderEnabledFunc(static_cast<intptr_t>(handle), &decoderEnabled);
+            }
             if (dsResult == dsERR_NONE) {
                 enabled = decoderEnabled;
             } else {
@@ -2160,7 +2772,21 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetDRCMode(dsHandle, drcMode);
+            // Use resolve function for dsSetDRCMode
+            typedef dsError_t (*dsSetDRCMode_t)(intptr_t handle, int mode);
+            static dsSetDRCMode_t dsSetDRCModeFunc = 0;
+            if (dsSetDRCModeFunc == 0) {
+                dsSetDRCModeFunc = (dsSetDRCMode_t)resolve(RDK_DSHAL_NAME, "dsSetDRCMode");
+                if (dsSetDRCModeFunc == 0) {
+                    LOGERR("dsSetDRCMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetDRCModeFunc) {
+                ret = dsSetDRCModeFunc(dsHandle, drcMode);
+            }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioDRCMode success: handle=%d, drcMode=%d", handle, drcMode);
             } else {
@@ -2179,7 +2805,21 @@ public:
         ENTRY_LOG;
         try {
             int mode = 0;
-            dsError_t dsResult = dsGetDRCMode(static_cast<intptr_t>(handle), &mode);
+            // Use resolve function for dsGetDRCMode
+            typedef dsError_t (*dsGetDRCMode_t)(intptr_t handle, int* mode);
+            static dsGetDRCMode_t dsGetDRCModeFunc = 0;
+            if (dsGetDRCModeFunc == 0) {
+                dsGetDRCModeFunc = (dsGetDRCMode_t)resolve(RDK_DSHAL_NAME, "dsGetDRCMode");
+                if (dsGetDRCModeFunc == 0) {
+                    LOGERR("dsGetDRCMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetDRCModeFunc) {
+                dsResult = dsGetDRCModeFunc(static_cast<intptr_t>(handle), &mode);
+            }
             if (dsResult == dsERR_NONE) {
                 drcMode = mode;
             } else {
@@ -2206,7 +2846,21 @@ public:
             dsSurroundVirtualizer_t dsSurVirtualizer;
             dsSurVirtualizer.mode = static_cast<int>(surroundVirtualizer.mode);
             dsSurVirtualizer.boost = surroundVirtualizer.boost;
-            dsError_t ret = dsSetSurroundVirtualizer(dsHandle, dsSurVirtualizer);
+            // Use resolve function for dsSetSurroundVirtualizer
+            typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t handle, dsSurroundVirtualizer_t virtualizer);
+            static dsSetSurroundVirtualizer_t dsSetSurroundVirtualizerFunc = 0;
+            if (dsSetSurroundVirtualizerFunc == 0) {
+                dsSetSurroundVirtualizerFunc = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
+                if (dsSetSurroundVirtualizerFunc == 0) {
+                    LOGERR("dsSetSurroundVirtualizer is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetSurroundVirtualizerFunc) {
+                ret = dsSetSurroundVirtualizerFunc(dsHandle, dsSurVirtualizer);
+            }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioSurroudVirtualizer success: handle=%d, mode=%d, boost=%d", handle, surroundVirtualizer.mode, surroundVirtualizer.boost);
             } else {
@@ -2225,7 +2879,21 @@ public:
         ENTRY_LOG;
         try {
             dsSurroundVirtualizer_t virtualizer;
-            dsError_t dsResult = dsGetSurroundVirtualizer(static_cast<intptr_t>(handle), &virtualizer);
+            // Use resolve function for dsGetSurroundVirtualizer
+            typedef dsError_t (*dsGetSurroundVirtualizer_t)(intptr_t handle, dsSurroundVirtualizer_t* virtualizer);
+            static dsGetSurroundVirtualizer_t dsGetSurroundVirtualizerFunc = 0;
+            if (dsGetSurroundVirtualizerFunc == 0) {
+                dsGetSurroundVirtualizerFunc = (dsGetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsGetSurroundVirtualizer");
+                if (dsGetSurroundVirtualizerFunc == 0) {
+                    LOGERR("dsGetSurroundVirtualizer is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetSurroundVirtualizerFunc) {
+                dsResult = dsGetSurroundVirtualizerFunc(static_cast<intptr_t>(handle), &virtualizer);
+            }
             if (dsResult == dsERR_NONE) {
                 // Convert dsSurroundVirtualizer_t to SurroundVirtualizer enum
                 surroundVirtualizer.mode = static_cast<uint8_t>(virtualizer.mode);
@@ -2251,7 +2919,21 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsError_t ret = dsSetMISteering(dsHandle, enable);
+            // Use resolve function for dsSetMISteering
+            typedef dsError_t (*dsSetMISteering_t)(intptr_t handle, bool enable);
+            static dsSetMISteering_t dsSetMISteeringFunc = 0;
+            if (dsSetMISteeringFunc == 0) {
+                dsSetMISteeringFunc = (dsSetMISteering_t)resolve(RDK_DSHAL_NAME, "dsSetMISteering");
+                if (dsSetMISteeringFunc == 0) {
+                    LOGERR("dsSetMISteering is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsSetMISteeringFunc) {
+                ret = dsSetMISteeringFunc(dsHandle, enable);
+            }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioMISteering success: handle=%d, enable=%s", handle, enable ? "true" : "false");
             } else {
@@ -2270,7 +2952,21 @@ public:
         ENTRY_LOG;
         try {
             bool miSteering = false;
-            dsError_t dsResult = dsGetMISteering(static_cast<intptr_t>(handle), &miSteering);
+            // Use resolve function for dsGetMISteering
+            typedef dsError_t (*dsGetMISteering_t)(intptr_t handle, bool* steering);
+            static dsGetMISteering_t dsGetMISteeringFunc = 0;
+            if (dsGetMISteeringFunc == 0) {
+                dsGetMISteeringFunc = (dsGetMISteering_t)resolve(RDK_DSHAL_NAME, "dsGetMISteering");
+                if (dsGetMISteeringFunc == 0) {
+                    LOGERR("dsGetMISteering is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetMISteeringFunc) {
+                dsResult = dsGetMISteeringFunc(static_cast<intptr_t>(handle), &miSteering);
+            }
             if (dsResult == dsERR_NONE) {
                 enable = miSteering;
             } else {
@@ -2288,7 +2984,21 @@ public:
     uint32_t SetAudioGraphicEqualizerMode(const int32_t handle, const int32_t mode) override {
         ENTRY_LOG;
         try {
-            dsError_t dsResult = dsSetGraphicEqualizerMode(static_cast<intptr_t>(handle), mode);
+            // Use resolve function for dsSetGraphicEqualizerMode
+            typedef dsError_t (*dsSetGraphicEqualizerMode_t)(intptr_t handle, int mode);
+            static dsSetGraphicEqualizerMode_t dsSetGraphicEqualizerModeFunc = 0;
+            if (dsSetGraphicEqualizerModeFunc == 0) {
+                dsSetGraphicEqualizerModeFunc = (dsSetGraphicEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsSetGraphicEqualizerMode");
+                if (dsSetGraphicEqualizerModeFunc == 0) {
+                    LOGERR("dsSetGraphicEqualizerMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsSetGraphicEqualizerModeFunc) {
+                dsResult = dsSetGraphicEqualizerModeFunc(static_cast<intptr_t>(handle), mode);
+            }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioGraphicEqualizerMode success: handle=%d, mode=%d", handle, mode);
             } else {
@@ -2307,7 +3017,21 @@ public:
         ENTRY_LOG;
         try {
             int eqMode = 0;
-            dsError_t dsResult = dsGetGraphicEqualizerMode(static_cast<intptr_t>(handle), &eqMode);
+            // Use resolve function for dsGetGraphicEqualizerMode
+            typedef dsError_t (*dsGetGraphicEqualizerMode_t)(intptr_t handle, int* mode);
+            static dsGetGraphicEqualizerMode_t dsGetGraphicEqualizerModeFunc = 0;
+            if (dsGetGraphicEqualizerModeFunc == 0) {
+                dsGetGraphicEqualizerModeFunc = (dsGetGraphicEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsGetGraphicEqualizerMode");
+                if (dsGetGraphicEqualizerModeFunc == 0) {
+                    LOGERR("dsGetGraphicEqualizerMode is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t dsResult = dsERR_GENERAL;
+            if (0 != dsGetGraphicEqualizerModeFunc) {
+                dsResult = dsGetGraphicEqualizerModeFunc(static_cast<intptr_t>(handle), &eqMode);
+            }
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
                 LOGINFO("GetAudioGraphicEqualizerMode success: handle=%d, mode=%d", handle, mode);
@@ -2653,7 +3377,21 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             int dsAutoMode;
-            dsError_t ret = dsGetStereoAuto(dsHandle, &dsAutoMode);
+            // Use resolve function for dsGetStereoAuto
+            typedef dsError_t (*dsGetStereoAuto_t)(intptr_t handle, int* autoMode);
+            static dsGetStereoAuto_t dsGetStereoAutoFunc = 0;
+            if (dsGetStereoAutoFunc == 0) {
+                dsGetStereoAutoFunc = (dsGetStereoAuto_t)resolve(RDK_DSHAL_NAME, "dsGetStereoAuto");
+                if (dsGetStereoAutoFunc == 0) {
+                    LOGERR("dsGetStereoAuto is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            
+            dsError_t ret = dsERR_GENERAL;
+            if (0 != dsGetStereoAutoFunc) {
+                ret = dsGetStereoAutoFunc(dsHandle, &dsAutoMode);
+            }
             if (ret == dsERR_NONE) {
                 autoMode = dsAutoMode;
                 LOGINFO("GetStereoAuto success: handle=%d, autoMode=%d", handle, autoMode);
@@ -2713,7 +3451,21 @@ public:
             // Call the HAL function - only for HDMI_ARC and SPDIF ports as per dsAudio.c logic
             dsAudioPortType_t portType = getAudioPortType(dsHandle);
             if ((portType == dsAUDIOPORT_TYPE_HDMI_ARC) || (portType == dsAUDIOPORT_TYPE_SPDIF)) {
-                dsError_t ret = dsSetStereoAuto(dsHandle, autoMode);
+                // Use resolve function for dsSetStereoAuto
+                typedef dsError_t (*dsSetStereoAuto_t)(intptr_t handle, int autoMode);
+                static dsSetStereoAuto_t dsSetStereoAutoFunc = 0;
+                if (dsSetStereoAutoFunc == 0) {
+                    dsSetStereoAutoFunc = (dsSetStereoAuto_t)resolve(RDK_DSHAL_NAME, "dsSetStereoAuto");
+                    if (dsSetStereoAutoFunc == 0) {
+                        LOGERR("dsSetStereoAuto is not defined");
+                        return WPEFramework::Core::ERROR_GENERAL;
+                    }
+                }
+                
+                dsError_t ret = dsERR_GENERAL;
+                if (0 != dsSetStereoAutoFunc) {
+                    ret = dsSetStereoAutoFunc(dsHandle, autoMode);
+                }
                 if (ret == dsERR_NONE) {
                     LOGINFO("SetStereoAuto success: handle=%d, autoMode=%d, persist=%s", 
                            handle, autoMode, persist ? "true" : "false");
@@ -3456,8 +4208,8 @@ private:
         void* symbol = dlsym(handle, symbolName.c_str());
         if (!symbol) {
             std::cerr << "dlsym failed for " << symbolName << ": " << dlerror() << std::endl;
-            return nullptr;
         }
+        dlclose(handle);  // Fix resource leak
         return symbol;
     }
     

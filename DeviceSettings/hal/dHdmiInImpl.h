@@ -133,8 +133,8 @@ public:
         void* symbol = dlsym(handle, symbolName.c_str());
         if (!symbol) {
             std::cerr << "dlsym failed for " << symbolName << ": " << dlerror() << std::endl;
-            return nullptr;
         }
+        dlclose(handle);
         return symbol;
     }
 

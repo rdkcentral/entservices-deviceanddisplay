@@ -28,7 +28,7 @@
 
 
 /***
- * @brief  : Used to read file contents into a vector
+ * @brief  : Used to read file con tents into a vector
  * @param1[in] : Complete file name with path
  * @param2[in] : Destination list buffer to be filled with file contents
  * @return : <bool>; TRUE if operation success; else FALSE.

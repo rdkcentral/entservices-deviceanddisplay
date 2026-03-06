@@ -25,15 +25,7 @@ find_package(WPEFramework)
 # are located in the cmake directory. Include it in the search.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-# This configuration enables generation of Test binaries which can be used to test respective plugins.
-option(TESTBINARIES "Generate plugin specific test binaries" OFF)
-if(TESTBINARIES)
-    message(INFO "Enabling test binaries")
-    if(PLUGIN_FRAMERATE)
-        set(FRAMERATETESTAPP ON CACHE INTERNAL "Enable FrameRate test application")
-    endif()
-    add_subdirectory(Tests)
-endif()
+# Test binaries configuration removed - plugins moved to separate repositories
 
 option(COMCAST_CONFIG "Comcast services configuration" ON)
 if(COMCAST_CONFIG)
@@ -46,53 +38,8 @@ string(TOLOWER ${NAMESPACE} STORAGE_DIRECTORY)
 # for writing pc and config files
 include(CmakeHelperFunctions)
 
-if(RDK_SERVICE_L2_TEST)
-    add_subdirectory(Tests/L2Tests)
-endif()
-
-if(RDK_SERVICES_L1_TEST)
-    add_subdirectory(Tests/L1Tests)
-endif()
-
-if(PLUGIN_DISPLAYSETTINGS)
-    add_subdirectory(DisplaySettings)
-endif()
-
-if(PLUGIN_SYSTEMSERVICES)
-    add_subdirectory(SystemServices)
-endif()
-
-if(PLUGIN_POWERMANAGER)
-    add_subdirectory(PowerManager)
-endif()
-
-if(PLUGIN_USERPREFERENCES)
-    add_subdirectory(UserPreferences)
-endif()
-
-if(PLUGIN_FRAMERATE)
-    add_subdirectory(FrameRate)
-endif()
-
-if(PLUGIN_WAREHOUSE)
-    add_subdirectory(Warehouse)
-endif()
-
-if(PLUGIN_DEVICEINFO)
-    add_subdirectory(DeviceInfo)
-endif()
-
-if(PLUGIN_DISPLAYINFO)
-    add_subdirectory(DisplayInfo)
-endif()
-
-if(PLUGIN_DEVICEDIAGNOSTICS)
-    add_subdirectory(DeviceDiagnostics)
-endif()
-
-if(PLUGIN_SYSTEMMODE)
-    add_subdirectory(SystemMode)
-endif()
+# Plugin subdirectories have been moved to separate repositories
+# No plugin subdirectories to include in this repository
 
 if(WPEFRAMEWORK_CREATE_IPKG_TARGETS)
     set(CPACK_GENERATOR "DEB")

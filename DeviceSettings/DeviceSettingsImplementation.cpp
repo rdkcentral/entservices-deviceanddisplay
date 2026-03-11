@@ -52,6 +52,7 @@ namespace Plugin {
         : _fpdSettings(DeviceSettingsFPDImpl::Create())
         , _hdmiInSettings(DeviceSettingsHdmiInImp::Create())
         , _audioSettings(DeviceSettingsAudioImpl::Create())
+        , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
         , mConnectionId(0)
     {
         ENTRY_LOG;
@@ -63,6 +64,7 @@ namespace Plugin {
         LOGINFO("Initialized profileType: %d (0=STB, 1=TV)", profileType);
 
         LOGINFO("FPD implementation instance: %p", _fpdSettings);
+        LOGINFO("VideoPort implementation instance: %p", _videoPortSettings);
         LOGINFO("HDMIIn implementation instance: %p", _hdmiInSettings);
         LOGINFO("Audio implementation instance: %p", _audioSettings);
 
@@ -87,6 +89,11 @@ namespace Plugin {
         if (_audioSettings != nullptr) {
             delete _audioSettings;
             _audioSettings = nullptr;
+        }
+        
+        if (_videoPortSettings != nullptr) {
+            delete _videoPortSettings;
+            _videoPortSettings = nullptr;
         }
         
         EXIT_LOG;
@@ -617,6 +624,209 @@ namespace Plugin {
     
     Core::hresult DeviceSettingsImp::GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId) {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioHDMIARCPortId, handle, portId)
+    }
+
+    // ============================================================================
+    // IDeviceSettingsVideoPort interface implementation - delegate to _videoPortSettings interface
+    // ============================================================================
+    
+    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsVideoPort::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, Register, notification)
+    }
+    
+    Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, Unregister, notification)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPort, videoPort, index, handle)
+    }
+    
+    Core::hresult DeviceSettingsImp::IsVideoPortEnabled(const int32_t handle, bool &enabled) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortEnabled, handle, enabled)
+    }
+    
+    Core::hresult DeviceSettingsImp::EnableVideoPort(const int32_t handle, const bool enabled) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, EnableVideoPort, handle, enabled)
+    }
+    
+    Core::hresult DeviceSettingsImp::IsVideoPortDisplayConnected(const int32_t handle, bool &connected) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortDisplayConnected, handle, connected)
+    }
+    
+    Core::hresult DeviceSettingsImp::IsVideoPortActive(const int32_t handle, bool &active) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortActive, handle, active)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortResolution, handle, resolution)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetColorDepth(const int32_t handle, uint32_t &colorDepth) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetColorDepth, handle, colorDepth)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetColorSpace(const int32_t handle, VideoPortColorSpace &colorSpace) {
+        VideoPortColorSpace internalColorSpace;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetColorSpace(handle, internalColorSpace) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            colorSpace = static_cast<VideoPortColorSpace>(internalColorSpace);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetQuantizationRange(const int32_t handle, VideoPortQuantizationRange &quantizationRange) {
+        VideoPortQuantizationRange internalRange;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetQuantizationRange(handle, internalRange) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            quantizationRange = static_cast<VideoPortQuantizationRange>(internalRange);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetHDCPStatusOnVideoPort(const int32_t handle, Exchange::IDeviceSettingsVideoPort::HDCPStatus &hdcpStatus) {
+        VideoPortHdcpStatus internalStatus;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetVideoPortHDCPStatus(handle, internalStatus) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            hdcpStatus = static_cast<Exchange::IDeviceSettingsVideoPort::HDCPStatus>(internalStatus);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetHDCPProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
+        VideoPortHdcpProtocolVersion internalVersion;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetHDCPProtocolVersionOnVideoPort(handle, internalVersion) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            hdcpVersion = static_cast<VideoPortHdcpProtocolVersion>(internalVersion);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetHDCPReceiverProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
+        VideoPortHdcpProtocolVersion internalVersion;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetHDCPReceiverProtocolVersionOnVideoPort(handle, internalVersion) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            hdcpVersion = static_cast<VideoPortHdcpProtocolVersion>(internalVersion);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetHDCPCurrentProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
+        VideoPortHdcpProtocolVersion internalVersion;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetHDCPCurrentProtocolVersionOnVideoPort(handle, internalVersion) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            hdcpVersion = static_cast<VideoPortHdcpProtocolVersion>(internalVersion);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::IsVideoPortDisplaySurround(const int32_t handle, bool &surround) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortDisplaySurround, handle, surround)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetVideoPortDisplaySurroundMode(const int32_t handle, Exchange::IDeviceSettingsVideoPort::VideoPortSurroundMode &surroundMode) {
+        VideoPortSurroundMode internalSurroundMode;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetVideoPortDisplaySurroundMode(handle, internalSurroundMode) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            surroundMode = static_cast<Exchange::IDeviceSettingsVideoPort::VideoPortSurroundMode>(internalSurroundMode);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetVideoPortResolution(const int32_t handle, const VideoPortResolution videoPortResolution, const bool persist, const bool forceCompatibility) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, SetVideoPortResolution, handle, videoPortResolution, persist, forceCompatibility)
+    }
+    
+    Core::hresult DeviceSettingsImp::EnableHDCPOnVideoPort(const int32_t handle, const bool hdcpEnable, const uint8_t hdcpKey[], const uint16_t hdcpKeySize) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, EnableHDCPOnVideoPort, handle, hdcpEnable, hdcpKey, hdcpKeySize)
+    }
+    
+    Core::hresult DeviceSettingsImp::IsHDCPEnabledOnVideoPort(const int32_t handle, bool &hdcpEnabled) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsHDCPEnabledOnVideoPort, handle, hdcpEnabled)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetTVHDRCapabilities(const int32_t handle, int32_t &capabilities) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetTVHDRCapabilities, handle, capabilities)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetTVSupportedResolutions(const int32_t handle, int32_t &resolutions) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetTVSupportedResolutions, handle, resolutions)
+    }
+    
+    Core::hresult DeviceSettingsImp::SetForceDisable4K(const int32_t handle, const bool disable) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, SetForceDisable4K, handle, disable)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetForceDisable4K(const int32_t handle, bool &disabled) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetForceDisable4K, handle, disabled)
+    }
+    
+    Core::hresult DeviceSettingsImp::IsVideoPortOutputHDR(const int32_t handle, bool &isHDR) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortOutputHDR, handle, isHDR)
+    }
+    
+    Core::hresult DeviceSettingsImp::ResetVideoPortOutputToSDR() {
+        return _videoPortSettings ? _videoPortSettings->ResetVideoPortOutputToSDR() : Core::ERROR_GENERAL;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetHDMIPreference(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
+        VideoPortHdcpProtocolVersion internalVersion;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetHDMIPreference(handle, internalVersion) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            hdcpVersion = static_cast<VideoPortHdcpProtocolVersion>(internalVersion);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetHDMIPreference(const int32_t handle, const VideoPortHdcpProtocolVersion hdcpVersion) {
+        return _videoPortSettings ? _videoPortSettings->SetHDMIPreference(handle, static_cast<VideoPortHdcpProtocolVersion>(hdcpVersion)) : Core::ERROR_GENERAL;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetVideoEOTF(const int32_t handle, HDRStandard &hdrStandard) {
+        HDRStandard internalHdrStandard;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetVideoEOTF(handle, internalHdrStandard) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            hdrStandard = static_cast<Exchange::IDeviceSettingsVideoPort::HDRStandard>(internalHdrStandard);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetMatrixCoefficients(const int32_t handle, Exchange::IDeviceSettingsVideoPort::DisplayMatrixCoefficients &matrixCoefficients) {
+        DisplayMatrixCoefficients internalMatrixCoefficients;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetMatrixCoefficients(handle, internalMatrixCoefficients) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            matrixCoefficients = static_cast<Exchange::IDeviceSettingsVideoPort::DisplayMatrixCoefficients>(internalMatrixCoefficients);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetCurrentOutputSettings(const int32_t handle, Exchange::IDeviceSettingsVideoPort::DSOutputSettings &outputSettings) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetCurrentOutputSettings, handle, outputSettings)
+    }
+    
+    Core::hresult DeviceSettingsImp::SetBackgroundColor(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::VideoBackgroundColor backgroundColor) {
+        return _videoPortSettings ? _videoPortSettings->SetBackgroundColor(handle, static_cast<VideoBackgroundColor>(backgroundColor)) : Core::ERROR_GENERAL;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetForceHDRMode(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::HDRStandard hdrMode) {
+        return _videoPortSettings ? _videoPortSettings->SetForceHDRMode(handle, static_cast<HDRStandard>(hdrMode)) : Core::ERROR_GENERAL;
+    }
+    
+    Core::hresult DeviceSettingsImp::GetColorDepthCapabilities(const int32_t handle, uint32_t &colorDepthCapabilities) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetColorDepthCapabilities, handle, colorDepthCapabilities)
+    }
+    
+    Core::hresult DeviceSettingsImp::GetPreferredColorDepth(const int32_t handle, Exchange::IDeviceSettingsVideoPort::DisplayColorDepth &colorDepth, const bool persist) {
+        DisplayColorDepth internalColorDepth;
+        Core::hresult result = _videoPortSettings ? _videoPortSettings->GetPreferredColorDepth(handle, internalColorDepth, persist) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            colorDepth = static_cast<Exchange::IDeviceSettingsVideoPort::DisplayColorDepth>(internalColorDepth);
+        }
+        return result;
+    }
+    
+    Core::hresult DeviceSettingsImp::SetPreferredColorDepth(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::DisplayColorDepth colorDepth, const bool persist) {
+        return _videoPortSettings ? _videoPortSettings->SetPreferredColorDepth(handle, static_cast<DisplayColorDepth>(colorDepth), persist) : Core::ERROR_GENERAL;
     }
 
 } // namespace Plugin

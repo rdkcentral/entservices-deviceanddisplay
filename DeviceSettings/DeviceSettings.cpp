@@ -56,6 +56,7 @@ namespace Plugin
         , _mDeviceSettings(nullptr)
         , _mDeviceSettingsFPD(nullptr)
         , _mDeviceSettingsHDMIIn(nullptr)
+        , _mDeviceSettingsVideoPort(nullptr)
         , mNotificationSink(this)
 
     {
@@ -99,6 +100,7 @@ namespace Plugin
         ASSERT(_mDeviceSettings == nullptr);
         ASSERT(_mDeviceSettingsFPD == nullptr);
         ASSERT(_mDeviceSettingsHDMIIn == nullptr);
+        ASSERT(_mDeviceSettingsVideoPort == nullptr);
         mService = service;
         mService->AddRef();
 
@@ -139,8 +141,13 @@ namespace Plugin
                     LOGERR("Failed to get IDeviceSettingsAudio interface for external access");
                 }
 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p", 
-                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio);
+                _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
+                if (_mDeviceSettingsVideoPort == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
+                }
+
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort);
             }
         }
 #else
@@ -170,9 +177,14 @@ namespace Plugin
                 if (_mDeviceSettingsHDMIIn == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
                 }
+
+                _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
+                if (_mDeviceSettingsVideoPort == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
+                }
                 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p", 
-                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn);
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, VideoPort: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsVideoPort);
             }
         }
 #endif
@@ -202,6 +214,11 @@ namespace Plugin
             if (_mDeviceSettingsHDMIIn != nullptr) {
                 _mDeviceSettingsHDMIIn->Release();
                 _mDeviceSettingsHDMIIn = nullptr;
+            }
+            
+            if (_mDeviceSettingsVideoPort != nullptr) {
+                _mDeviceSettingsVideoPort->Release();
+                _mDeviceSettingsVideoPort = nullptr;
             }
             
             // Release the main device settings interface

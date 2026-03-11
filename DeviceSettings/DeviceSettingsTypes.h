@@ -117,6 +117,27 @@ using IDeviceSettingsAudioCompressionIterator = DeviceSettingsAudio::IDeviceSett
 using IDeviceSettingsStereoModeIterator = DeviceSettingsAudio::IDeviceSettingsStereoModeIterator;
 using IDeviceSettingsAudioMS12AudioProfileIterator = DeviceSettingsAudio::IDeviceSettingsAudioMS12AudioProfileIterator;
 
+// VideoPort type aliases for convenience
+using VideoPortType = DeviceSettingsVideoPort::VideoPort;
+using VideoPortResolution = DeviceSettingsVideoPort::VideoPortResolution;
+using VideoResolution = DeviceSettingsVideoPort::VideoResolution;
+using VideoAspectRatio = DeviceSettingsVideoPort::VideoAspectRatio;
+using VideoStereoScopicMode = DeviceSettingsVideoPort::VideoStereoScopicMode;
+using VideoFrameRate = DeviceSettingsVideoPort::VideoFrameRate;
+using VideoPortColorSpace = DeviceSettingsVideoPort::DisplayColorSpace;
+using VideoPortQuantizationRange = DeviceSettingsVideoPort::DisplayQuantizationRange;
+using VideoPortHdcpStatus = DeviceSettingsVideoPort::HDCPStatus;
+using VideoPortHdcpProtocolVersion = DeviceSettingsVideoPort::HDCPProtocolVersion;
+using HDRStandard = DeviceSettingsVideoPort::HDRStandard;
+using ResolutionChange = DeviceSettingsVideoPort::ResolutionChange;
+using DisplayMatrixCoefficients = DeviceSettingsVideoPort::DisplayMatrixCoefficients;
+using DSOutputSettings = DeviceSettingsVideoPort::DSOutputSettings;
+using VideoBackgroundColor = DeviceSettingsVideoPort::VideoBackgroundColor;
+using DisplayColorDepth = DeviceSettingsVideoPort::DisplayColorDepth;
+using TVResolution = DeviceSettingsVideoPort::TVResolution;
+using VideoPortSurroundMode = DeviceSettingsVideoPort::VideoPortSurroundMode;
+using VideoScanMode = DeviceSettingsVideoPort::VideoScanMode;
+
 // Common constants
 #define API_VERSION_MAJOR 1
 #define API_VERSION_MINOR 0

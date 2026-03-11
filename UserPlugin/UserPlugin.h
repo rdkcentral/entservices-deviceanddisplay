@@ -123,6 +123,46 @@ namespace WPEFramework
                 UserPlugin& _parent;
             };
 
+            class VideoPortNotification : public virtual Exchange::IDeviceSettingsVideoPort::INotification {
+            private:
+                VideoPortNotification(const VideoPortNotification&) = delete;
+                VideoPortNotification& operator=(const VideoPortNotification&) = delete;
+            
+            public:
+                explicit VideoPortNotification(UserPlugin& parent)
+                    : _parent(parent)
+                {
+                }
+
+            public:
+                void OnResolutionPostChange(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution) override
+                {
+                    _parent.OnResolutionPostChange(resolution);
+                }
+
+                void OnResolutionPreChange(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution) override
+                {
+                    _parent.OnResolutionPreChange(resolution);
+                }
+
+                void OnHDCPStatusChange(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus) override
+                {
+                    _parent.OnHDCPStatusChange(hdcpStatus);
+                }
+
+                void OnVideoFormatUpdate(const Exchange::IDeviceSettingsVideoPort::HDRStandard videoFormatHDR) override
+                {
+                    _parent.OnVideoFormatUpdate(videoFormatHDR);
+                }
+
+                BEGIN_INTERFACE_MAP(VideoPortNotification)
+                INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort::INotification)
+                END_INTERFACE_MAP
+
+            private:
+                UserPlugin& _parent;
+            };
+
             class AudioNotification : public virtual Exchange::IDeviceSettingsAudio::INotification {
             private:
                 AudioNotification(const AudioNotification&) = delete;
@@ -223,6 +263,7 @@ namespace WPEFramework
             void TestSimplifiedFPDAPIs();
             void TestSelectHDMIInPortAPI();
             void TestAudioAPIs();
+            void TestVideoPortAPIs();
             
             // HDMI In Event Handlers
             void OnHDMIInEventHotPlug(const DeviceSettingsHDMIIn::HDMIInPort port, const bool isConnected);
@@ -245,6 +286,12 @@ namespace WPEFramework
             void OnAudioPortStateChanged(Exchange::IDeviceSettingsAudio::AudioPortState audioPortState);
             void OnAudioModeEvent(Exchange::IDeviceSettingsAudio::AudioPortType audioPortType, Exchange::IDeviceSettingsAudio::StereoMode audioMode);
             void OnAudioLevelChangedEvent(int32_t audioLevel);
+
+            // VideoPort Event Handlers
+            void OnResolutionPostChange(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution);
+            void OnResolutionPreChange(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution);
+            void OnHDCPStatusChange(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus);
+            void OnVideoFormatUpdate(const Exchange::IDeviceSettingsVideoPort::HDRStandard videoFormatHDR);
 
             // IARM API methods for direct DsMgr daemon communication
             Core::hresult TestIARMHdmiInSelectPort(const int port, const bool requestAudioMix, const bool topMostPlane, const int videoPlaneType);
@@ -273,10 +320,12 @@ namespace WPEFramework
             Exchange::IDeviceSettingsFPD* _fpdManager;
             Exchange::IDeviceSettingsHDMIIn* _hdmiInManager;
             Exchange::IDeviceSettingsAudio* _audioManager;
+            Exchange::IDeviceSettingsVideoPort* _videoPortManager;
             //PowerManagerInterfaceRef _powerManager{};
             // PowerManager notification removed
             Core::Sink<HDMIInNotification> _hdmiInNotification;
             Core::Sink<AudioNotification> _audioNotification;
+            Core::Sink<VideoPortNotification> _videoPortNotification;
 
 	    void Deactivated(RPC::IRemoteConnection *connection);
         };

@@ -55,7 +55,7 @@ namespace Plugin {
                                 // , public DeviceSettingsDisplay::INotification
                                   , public DeviceSettingsHDMIIn::INotification
                                 // , public DeviceSettingsHost::INotification
-                                // , public DeviceSettingsVideoPort::INotification
+                                  , public Exchange::IDeviceSettingsVideoPort::INotification
             {
         private:
             NotificationHandler()                                      = delete;
@@ -88,7 +88,7 @@ namespace Plugin {
             //INTERFACE_ENTRY(DeviceSettingsDisplay::INotification)
             INTERFACE_ENTRY(DeviceSettingsHDMIIn::INotification)
             //INTERFACE_ENTRY(DeviceSettingsHost::INotification)
-            //INTERFACE_ENTRY(DeviceSettingsVideoPort::INotification)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort::INotification)
             INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
             END_INTERFACE_MAP
 
@@ -209,6 +209,27 @@ namespace Plugin {
                 LOGINFO("OnHDMIInVRRStatus");
             }
 
+            // VideoPort notification handlers matching WPE interface
+            void OnResolutionPostChange(const ResolutionChange resolution) override
+            {
+                LOGINFO("OnResolutionPostChange");
+            }
+
+            void OnResolutionPreChange(const ResolutionChange resolution) override
+            {
+                LOGINFO("OnResolutionPreChange");
+            }
+
+            void OnHDCPStatusChange(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus) override
+            {
+                LOGINFO("OnHDCPStatusChange: status=%d", (int)hdcpStatus);
+            }
+
+            void OnVideoFormatUpdate(const Exchange::IDeviceSettingsVideoPort::HDRStandard videoFormatHDR) override
+            {
+                LOGINFO("OnVideoFormatUpdate: hdrStandard=%d", (int)videoFormatHDR);
+            }
+
         private:
             DeviceSettings& mParent;
         };
@@ -233,7 +254,7 @@ namespace Plugin {
             //INTERFACE_AGGREGATE(DeviceSettingsDisplay, _mDeviceSettingsDisplay)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsHDMIIn, _mDeviceSettingsHDMIIn)
             //INTERFACE_AGGREGATE(DeviceSettingsHost, _mDeviceSettingsHost)
-            //INTERFACE_AGGREGATE(DeviceSettingsVideoPort, _mDeviceSettingsVideoPort)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsVideoPort, _mDeviceSettingsVideoPort)
         END_INTERFACE_MAP
 
     public:
@@ -259,7 +280,7 @@ namespace Plugin {
         DeviceSettingsDisplay* _mDeviceSettingsDisplay;
         Exchange::IDeviceSettingsHDMIIn* _mDeviceSettingsHDMIIn;
         DeviceSettingsHost* _mDeviceSettingsHost;
-        DeviceSettingsVideoPort* _mDeviceSettingsVideoPort;
+        Exchange::IDeviceSettingsVideoPort* _mDeviceSettingsVideoPort;
         Core::Sink<NotificationHandler> mNotificationSink;
 
     };

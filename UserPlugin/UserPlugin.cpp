@@ -67,7 +67,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _videoPortManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this), _videoPortNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -94,6 +94,7 @@ namespace Plugin {
             _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsFPD>("org.rdk.DeviceSettings");
             _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
             _audioManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsAudio>("org.rdk.DeviceSettings");
+            _videoPortManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsVideoPort>("org.rdk.DeviceSettings");
         } else {
             LOGERR("Could not obtain DeviceSettings interface");
         }
@@ -108,11 +109,17 @@ namespace Plugin {
             _audioManager->Register(&_audioNotification);
         }
 
+        // Register for VideoPort notifications if interface is available
+        if (_videoPortManager) {
+            _videoPortManager->Register(&_videoPortNotification);
+        }
+
         // Test DeviceSettings interfaces
         //TestSimplifiedFPDAPIs();
         //TestSimplifiedHDMIInAPIs();
         //TestSelectHDMIInPortAPI();
-        TestAudioAPIs();
+        //TestAudioAPIs();
+        TestVideoPortAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
 
@@ -135,6 +142,13 @@ namespace Plugin {
             _audioManager->Unregister(&_audioNotification);
             _audioManager->Release();
             _audioManager = nullptr;
+        }
+
+        // Unregister VideoPort notifications and release VideoPort Manager
+        if (_videoPortManager) {
+            _videoPortManager->Unregister(&_videoPortNotification);
+            _videoPortManager->Release();
+            _videoPortManager = nullptr;
         }
 
         // Release FPD Manager
@@ -1633,6 +1647,373 @@ namespace Plugin {
 
         // Add your custom logic here
         LOGINFO("Audio level changed to %d", audioLevel);
+    }
+
+    // VideoPort Event Handler Implementations
+    void UserPlugin::OnResolutionPostChange(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution)
+    {
+        LOGINFO("========== VideoPort Event: Resolution Post Change ==========");
+        LOGINFO("OnResolutionPostChange: width=%u, height=%u", resolution.width, resolution.height);
+
+        // Add your custom logic here
+        LOGINFO("Video resolution changed to %ux%u after change", resolution.width, resolution.height);
+    }
+
+    void UserPlugin::OnResolutionPreChange(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution)
+    {
+        LOGINFO("========== VideoPort Event: Resolution Pre Change ==========");
+        LOGINFO("OnResolutionPreChange: width=%u, height=%u", resolution.width, resolution.height);
+
+        // Add your custom logic here - preparation before resolution changes
+        LOGINFO("Video resolution will change to %ux%u", resolution.width, resolution.height);
+    }
+
+    void UserPlugin::OnHDCPStatusChange(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus)
+    {
+        LOGINFO("========== VideoPort Event: HDCP Status Change ==========");
+        LOGINFO("OnHDCPStatusChange: hdcpStatus=%d", static_cast<int>(hdcpStatus));
+
+        // Add your custom logic here
+        const char* statusName = "UNKNOWN";
+        switch (hdcpStatus) {
+            case Exchange::IDeviceSettingsVideoPort::HDCPStatus::DS_HDCP_STATUS_UNPOWERED:
+                statusName = "UNPOWERED";
+                break;
+            case Exchange::IDeviceSettingsVideoPort::HDCPStatus::DS_HDCP_STATUS_UNAUTHENTICATED:
+                statusName = "UNAUTHENTICATED";
+                break;
+            case Exchange::IDeviceSettingsVideoPort::HDCPStatus::DS_HDCP_STATUS_AUTHENTICATED:
+                statusName = "AUTHENTICATED";
+                break;
+            case Exchange::IDeviceSettingsVideoPort::HDCPStatus::DS_HDCP_STATUS_AUTHENTICATIONFAILURE:
+                statusName = "AUTHENTICATION_FAILURE";
+                break;
+            case Exchange::IDeviceSettingsVideoPort::HDCPStatus::DS_HDCP_STATUS_INPROGRESS:
+                statusName = "IN_PROGRESS";
+                break;
+            case Exchange::IDeviceSettingsVideoPort::HDCPStatus::DS_HDCP_STATUS_PORTDISABLED:
+                statusName = "PORT_DISABLED";
+                break;
+            default:
+                break;
+        }
+
+        LOGINFO("HDCP status changed to %s", statusName);
+    }
+
+    void UserPlugin::OnVideoFormatUpdate(const Exchange::IDeviceSettingsVideoPort::HDRStandard videoFormatHDR)
+    {
+        LOGINFO("========== VideoPort Event: Video Format Update ==========");
+        LOGINFO("OnVideoFormatUpdate: videoFormatHDR=0x%x", static_cast<uint16_t>(videoFormatHDR));
+
+        // Add your custom logic here
+        LOGINFO("Video HDR format updated to 0x%x", static_cast<uint16_t>(videoFormatHDR));
+        
+        // Log individual HDR standards if multiple are set (it's a bit mask)
+        if (videoFormatHDR & Exchange::IDeviceSettingsVideoPort::HDRStandard::DS_HDRSTANDARD_HDR10) {
+            LOGINFO("HDR10 format detected");
+        }
+        if (videoFormatHDR & Exchange::IDeviceSettingsVideoPort::HDRStandard::DS_HDRSTANDARD_HLG) {
+            LOGINFO("HLG format detected");
+        }
+        if (videoFormatHDR & Exchange::IDeviceSettingsVideoPort::HDRStandard::DS_HDRSTANDARD_DOLBYVISION) {
+            LOGINFO("Dolby Vision format detected");
+        }
+        if (videoFormatHDR & Exchange::IDeviceSettingsVideoPort::HDRStandard::DS_HDRSTANDARD_HDR10PLUS) {
+            LOGINFO("HDR10+ format detected");
+        }
+        if (videoFormatHDR & Exchange::IDeviceSettingsVideoPort::HDRStandard::DS_HDRSTANDARD_SDR) {
+            LOGINFO("SDR format detected");
+        }
+    }
+
+    void UserPlugin::TestVideoPortAPIs()
+    {
+        LOGINFO("========== Complete VideoPort APIs Testing Framework ==========");
+
+        if (!_videoPortManager) {
+            LOGERR("VideoPort Manager is not available");
+            return;
+        }
+
+        LOGINFO("Testing ALL VideoPort APIs with get-set-restore pattern");
+
+        // Test video port types - comprehensive testing on multiple port types
+        Exchange::IDeviceSettingsVideoPort::VideoPort testPortTypes[] = {
+            Exchange::IDeviceSettingsVideoPort::VideoPort::DS_VIDEO_PORT_TYPE_HDMI,
+            Exchange::IDeviceSettingsVideoPort::VideoPort::DS_VIDEO_PORT_TYPE_DVI,
+            Exchange::IDeviceSettingsVideoPort::VideoPort::DS_VIDEO_PORT_TYPE_COMPONENT,
+            Exchange::IDeviceSettingsVideoPort::VideoPort::DS_VIDEO_PORT_TYPE_INTERNAL
+        };
+
+        const char* portTypeNames[] = {"HDMI", "DVI", "COMPONENT", "INTERNAL"};
+        int numPortTypes = sizeof(testPortTypes) / sizeof(testPortTypes[0]);
+
+        for (int i = 0; i < numPortTypes; i++) {
+            Exchange::IDeviceSettingsVideoPort::VideoPort portType = testPortTypes[i];
+            const char* portTypeName = portTypeNames[i];
+
+            LOGINFO("---------- Testing ALL VideoPort APIs for Port Type: %s ----------", portTypeName);
+
+            // 1. Test GetVideoPort - Get handle for this port type
+            int32_t handle = -1;
+            Core::hresult result = _videoPortManager->GetVideoPort(portType, 0, handle);
+            LOGINFO("GetVideoPort: portType=%d, index=0, result=%u, handle=%d", static_cast<int>(portType), result, handle);
+
+            if (result == Core::ERROR_NONE) {
+                // 2. Test IsVideoPortEnabled and EnableVideoPort (get-set-restore)
+                bool originalEnabled = false;
+                result = _videoPortManager->IsVideoPortEnabled(handle, originalEnabled);
+                LOGINFO("IsVideoPortEnabled: handle=%d, result=%u, originalEnabled=%s", handle, result, originalEnabled ? "true" : "false");
+                
+                if (result == Core::ERROR_NONE) {
+                    // Test enabling/disabling
+                    bool testEnabled = !originalEnabled;
+                    result = _videoPortManager->EnableVideoPort(handle, testEnabled);
+                    LOGINFO("EnableVideoPort: handle=%d, result=%u, test_enabled=%s", handle, result, testEnabled ? "true" : "false");
+                    
+                    // Verify change
+                    bool currentEnabled = false;
+                    result = _videoPortManager->IsVideoPortEnabled(handle, currentEnabled);
+                    LOGINFO("IsVideoPortEnabled (after change): handle=%d, result=%u, currentEnabled=%s", handle, result, currentEnabled ? "true" : "false");
+                    
+                    // Restore original value
+                    result = _videoPortManager->EnableVideoPort(handle, originalEnabled);
+                    LOGINFO("EnableVideoPort (restore): handle=%d, result=%u, restored_enabled=%s", handle, result, originalEnabled ? "true" : "false");
+                }
+
+                // 3. Test IsVideoPortDisplayConnected (read-only)
+                bool isConnected = false;
+                result = _videoPortManager->IsVideoPortDisplayConnected(handle, isConnected);
+                LOGINFO("IsVideoPortDisplayConnected: handle=%d, result=%u, isConnected=%s", handle, result, isConnected ? "true" : "false");
+
+                // 4. Test IsVideoPortDisplaySurround (read-only)
+                bool isSurround = false;
+                result = _videoPortManager->IsVideoPortDisplaySurround(handle, isSurround);
+                LOGINFO("IsVideoPortDisplaySurround: handle=%d, result=%u, isSurround=%s", handle, result, isSurround ? "true" : "false");
+
+                // 5. Test GetVideoPortDisplaySurroundMode (read-only)
+                Exchange::IDeviceSettingsVideoPort::VideoPortSurroundMode surroundMode;
+                result = _videoPortManager->GetVideoPortDisplaySurroundMode(handle, surroundMode);
+                LOGINFO("GetVideoPortDisplaySurroundMode: handle=%d, result=%u, surroundMode=%d", handle, result, static_cast<int>(surroundMode));
+
+                // 6. Test GetVideoPortResolution and SetVideoPortResolution (get-set-restore)
+                Exchange::IDeviceSettingsVideoPort::VideoPortResolution originalResolution;
+                result = _videoPortManager->GetVideoPortResolution(handle, originalResolution);
+                LOGINFO("GetVideoPortResolution: handle=%d, result=%u", handle, result);
+                LOGINFO("Original Resolution: name='%s', pixelRes=%d, aspectRatio=%d, stereoMode=%d, frameRate=%d, interlaced=%s",
+                        originalResolution.name.c_str(), static_cast<int>(originalResolution.pixelResolution),
+                        static_cast<int>(originalResolution.aspectRatio), static_cast<int>(originalResolution.stereoScopicMode),
+                        static_cast<int>(originalResolution.frameRate), originalResolution.interlaced ? "true" : "false");
+
+                if (result == Core::ERROR_NONE) {
+                    // Create test resolution (modify frame rate for testing)
+                    Exchange::IDeviceSettingsVideoPort::VideoPortResolution testResolution = originalResolution;
+                    testResolution.frameRate = (originalResolution.frameRate == Exchange::IDeviceSettingsVideoPort::VideoFrameRate::DS_VIDEO_FRAMERATE_30) ? 
+                                               Exchange::IDeviceSettingsVideoPort::VideoFrameRate::DS_VIDEO_FRAMERATE_60 : 
+                                               Exchange::IDeviceSettingsVideoPort::VideoFrameRate::DS_VIDEO_FRAMERATE_30;
+                    testResolution.name = "TestResolution_" + originalResolution.name;
+
+                    result = _videoPortManager->SetVideoPortResolution(handle, testResolution, false, false);
+                    LOGINFO("SetVideoPortResolution: handle=%d, result=%u, test_name='%s', test_frameRate=%d", 
+                            handle, result, testResolution.name.c_str(), static_cast<int>(testResolution.frameRate));
+
+                    // Verify change
+                    Exchange::IDeviceSettingsVideoPort::VideoPortResolution currentResolution;
+                    result = _videoPortManager->GetVideoPortResolution(handle, currentResolution);
+                    LOGINFO("GetVideoPortResolution (after change): result=%u, current_name='%s', current_frameRate=%d",
+                            result, currentResolution.name.c_str(), static_cast<int>(currentResolution.frameRate));
+
+                    // Restore original resolution
+                    result = _videoPortManager->SetVideoPortResolution(handle, originalResolution, false, false);
+                    LOGINFO("SetVideoPortResolution (restore): handle=%d, result=%u", handle, result);
+                }
+
+                // 7. Test HDCP related APIs
+                // 7a. Test IsHDCPEnabledOnVideoPort (read current state)
+                bool originalHDCPEnabled = false;
+                result = _videoPortManager->IsHDCPEnabledOnVideoPort(handle, originalHDCPEnabled);
+                LOGINFO("IsHDCPEnabledOnVideoPort: handle=%d, result=%u, originalHDCPEnabled=%s", handle, result, originalHDCPEnabled ? "true" : "false");
+
+                // 7b. Test EnableHDCPOnVideoPort (enable/disable with dummy key)
+                if (result == Core::ERROR_NONE) {
+                    // Test enabling HDCP with dummy key
+                    uint8_t dummyKey[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+                    result = _videoPortManager->EnableHDCPOnVideoPort(handle, true, dummyKey, sizeof(dummyKey));
+                    LOGINFO("EnableHDCPOnVideoPort: handle=%d, result=%u, enable=true, keySize=%d", handle, result, (int)sizeof(dummyKey));
+
+                    // Verify HDCP status
+                    bool currentHDCPEnabled = false;
+                    result = _videoPortManager->IsHDCPEnabledOnVideoPort(handle, currentHDCPEnabled);
+                    LOGINFO("IsHDCPEnabledOnVideoPort (after enable): result=%u, currentHDCPEnabled=%s", result, currentHDCPEnabled ? "true" : "false");
+
+                    // Restore original HDCP state
+                    result = _videoPortManager->EnableHDCPOnVideoPort(handle, originalHDCPEnabled, dummyKey, sizeof(dummyKey));
+                    LOGINFO("EnableHDCPOnVideoPort (restore): handle=%d, result=%u, restored=%s", handle, result, originalHDCPEnabled ? "true" : "false");
+                }
+
+                // 7c. Test GetHDCPStatusOnVideoPort (read-only)
+                Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus;
+                result = _videoPortManager->GetHDCPStatusOnVideoPort(handle, hdcpStatus);
+                LOGINFO("GetHDCPStatusOnVideoPort: handle=%d, result=%u, hdcpStatus=%d", handle, result, static_cast<int>(hdcpStatus));
+
+                // 7d. Test HDCP Protocol Version APIs (read-only)
+                Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion hdcpVersion;
+                result = _videoPortManager->GetHDCPProtocolVersionOnVideoPort(handle, hdcpVersion);
+                LOGINFO("GetHDCPProtocolVersionOnVideoPort: handle=%d, result=%u, hdcpVersion=%d", handle, result, static_cast<int>(hdcpVersion));
+
+                Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion hdcpRxVersion;
+                result = _videoPortManager->GetHDCPReceiverProtocolVersionOnVideoPort(handle, hdcpRxVersion);
+                LOGINFO("GetHDCPReceiverProtocolVersionOnVideoPort: handle=%d, result=%u, hdcpRxVersion=%d", handle, result, static_cast<int>(hdcpRxVersion));
+
+                Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion hdcpCurrentVersion;
+                result = _videoPortManager->GetHDCPCurrentProtocolVersionOnVideoPort(handle, hdcpCurrentVersion);
+                LOGINFO("GetHDCPCurrentProtocolVersionOnVideoPort: handle=%d, result=%u, hdcpCurrentVersion=%d", handle, result, static_cast<int>(hdcpCurrentVersion));
+
+                // 8. Test HDMI Preference APIs (get-set-restore)
+                Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion originalHdmiPreference;
+                result = _videoPortManager->GetHDMIPreference(handle, originalHdmiPreference);
+                LOGINFO("GetHDMIPreference: handle=%d, result=%u, originalHdmiPreference=%d", handle, result, static_cast<int>(originalHdmiPreference));
+
+                if (result == Core::ERROR_NONE) {
+                    // Set test HDMI preference
+                    Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion testHdmiPreference = 
+                        (originalHdmiPreference == Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion::DS_HDCP_VERSION_1X) ? 
+                        Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion::DS_HDCP_VERSION_2X : 
+                        Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion::DS_HDCP_VERSION_1X;
+
+                    result = _videoPortManager->SetHDMIPreference(handle, testHdmiPreference);
+                    LOGINFO("SetHDMIPreference: handle=%d, result=%u, testHdmiPreference=%d", handle, result, static_cast<int>(testHdmiPreference));
+
+                    // Verify change
+                    Exchange::IDeviceSettingsVideoPort::HDCPProtocolVersion currentHdmiPreference;
+                    result = _videoPortManager->GetHDMIPreference(handle, currentHdmiPreference);
+                    LOGINFO("GetHDMIPreference (after change): result=%u, currentHdmiPreference=%d", result, static_cast<int>(currentHdmiPreference));
+
+                    // Restore original preference
+                    result = _videoPortManager->SetHDMIPreference(handle, originalHdmiPreference);
+                    LOGINFO("SetHDMIPreference (restore): handle=%d, result=%u", handle, result);
+                }
+
+                // 9. Test IsVideoPortActive (read-only)
+                bool isActive = false;
+                result = _videoPortManager->IsVideoPortActive(handle, isActive);
+                LOGINFO("IsVideoPortActive: handle=%d, result=%u, isActive=%s", handle, result, isActive ? "true" : "false");
+
+                // 10. Test TV capabilities (read-only)
+                int32_t hdrCapabilities = 0;
+                result = _videoPortManager->GetTVHDRCapabilities(handle, hdrCapabilities);
+                LOGINFO("GetTVHDRCapabilities: handle=%d, result=%u, hdrCapabilities=0x%x", handle, result, hdrCapabilities);
+
+                int32_t supportedResolutions = 0;
+                result = _videoPortManager->GetTVSupportedResolutions(handle, supportedResolutions);
+                LOGINFO("GetTVSupportedResolutions: handle=%d, result=%u, supportedResolutions=0x%x", handle, result, supportedResolutions);
+
+                // 11. Test Force Disable 4K APIs (get-set-restore)
+                bool originalForceDisable4K = false;
+                result = _videoPortManager->GetForceDisable4K(handle, originalForceDisable4K);
+                LOGINFO("GetForceDisable4K: handle=%d, result=%u, originalForceDisable4K=%s", handle, result, originalForceDisable4K ? "true" : "false");
+
+                if (result == Core::ERROR_NONE) {
+                    // Test toggling force disable 4K
+                    bool testForceDisable4K = !originalForceDisable4K;
+                    result = _videoPortManager->SetForceDisable4K(handle, testForceDisable4K);
+                    LOGINFO("SetForceDisable4K: handle=%d, result=%u, testForceDisable4K=%s", handle, result, testForceDisable4K ? "true" : "false");
+
+                    // Verify change
+                    bool currentForceDisable4K = false;
+                    result = _videoPortManager->GetForceDisable4K(handle, currentForceDisable4K);
+                    LOGINFO("GetForceDisable4K (after change): result=%u, currentForceDisable4K=%s", result, currentForceDisable4K ? "true" : "false");
+
+                    // Restore original value
+                    result = _videoPortManager->SetForceDisable4K(handle, originalForceDisable4K);
+                    LOGINFO("SetForceDisable4K (restore): handle=%d, result=%u", handle, result);
+                }
+
+                // 12. Test IsVideoPortOutputHDR (read-only)
+                bool isHDROutput = false;
+                result = _videoPortManager->IsVideoPortOutputHDR(handle, isHDROutput);
+                LOGINFO("IsVideoPortOutputHDR: handle=%d, result=%u, isHDROutput=%s", handle, result, isHDROutput ? "true" : "false");
+
+                // 13. Test Display Format APIs (read-only)
+                Exchange::IDeviceSettingsVideoPort::HDRStandard videoEOTF;
+                result = _videoPortManager->GetVideoEOTF(handle, videoEOTF);
+                LOGINFO("GetVideoEOTF: handle=%d, result=%u, videoEOTF=0x%x", handle, result, static_cast<uint16_t>(videoEOTF));
+
+                Exchange::IDeviceSettingsVideoPort::DisplayMatrixCoefficients matrixCoefficients;
+                result = _videoPortManager->GetMatrixCoefficients(handle, matrixCoefficients);
+                LOGINFO("GetMatrixCoefficients: handle=%d, result=%u, matrixCoefficients=%d", handle, result, static_cast<int>(matrixCoefficients));
+
+                uint32_t colorDepth = 0;
+                result = _videoPortManager->GetColorDepth(handle, colorDepth);
+                LOGINFO("GetColorDepth: handle=%d, result=%u, colorDepth=0x%x", handle, result, colorDepth);
+
+                Exchange::IDeviceSettingsVideoPort::DisplayColorSpace colorSpace;
+                result = _videoPortManager->GetColorSpace(handle, colorSpace);
+                LOGINFO("GetColorSpace: handle=%d, result=%u, colorSpace=%d", handle, result, static_cast<int>(colorSpace));
+
+                Exchange::IDeviceSettingsVideoPort::DisplayQuantizationRange quantizationRange;
+                result = _videoPortManager->GetQuantizationRange(handle, quantizationRange);
+                LOGINFO("GetQuantizationRange: handle=%d, result=%u, quantizationRange=%d", handle, result, static_cast<int>(quantizationRange));
+
+                // 14. Test GetCurrentOutputSettings (read-only composite)
+                Exchange::IDeviceSettingsVideoPort::DSOutputSettings outputSettings;
+                result = _videoPortManager->GetCurrentOutputSettings(handle, outputSettings);
+                LOGINFO("GetCurrentOutputSettings: handle=%d, result=%u", handle, result);
+                LOGINFO("OutputSettings: videoEotf=0x%x, matrixCoeff=%d, colorDepth=0x%x, colorSpace=%d, quantRange=%d",
+                        static_cast<uint16_t>(outputSettings.videoEotf), static_cast<int>(outputSettings.matrixCoefficients),
+                        outputSettings.colorDepth, static_cast<int>(outputSettings.colorSpace),
+                        static_cast<int>(outputSettings.quantizationRange));
+
+                // 15. Test Color Depth Capabilities and Preferences
+                uint32_t colorDepthCapabilities = 0;
+                result = _videoPortManager->GetColorDepthCapabilities(handle, colorDepthCapabilities);
+                LOGINFO("GetColorDepthCapabilities: handle=%d, result=%u, capabilities=0x%x", handle, result, colorDepthCapabilities);
+
+                // Test preferred color depth (get-set-restore)
+                Exchange::IDeviceSettingsVideoPort::DisplayColorDepth originalPreferredColorDepth;
+                result = _videoPortManager->GetPreferredColorDepth(handle, originalPreferredColorDepth, false);
+                LOGINFO("GetPreferredColorDepth: handle=%d, result=%u, originalPreferredColorDepth=%d", handle, result, static_cast<int>(originalPreferredColorDepth));
+
+                if (result == Core::ERROR_NONE) {
+                    // Test setting different color depth
+                    Exchange::IDeviceSettingsVideoPort::DisplayColorDepth testColorDepth = 
+                        (originalPreferredColorDepth == Exchange::IDeviceSettingsVideoPort::DisplayColorDepth::DS_DISPLAY_COLORDEPTH_8BIT) ?
+                        Exchange::IDeviceSettingsVideoPort::DisplayColorDepth::DS_DISPLAY_COLORDEPTH_10BIT :
+                        Exchange::IDeviceSettingsVideoPort::DisplayColorDepth::DS_DISPLAY_COLORDEPTH_8BIT;
+
+                    result = _videoPortManager->SetPreferredColorDepth(handle, testColorDepth, false);
+                    LOGINFO("SetPreferredColorDepth: handle=%d, result=%u, testColorDepth=%d", handle, result, static_cast<int>(testColorDepth));
+
+                    // Verify change
+                    Exchange::IDeviceSettingsVideoPort::DisplayColorDepth currentPreferredColorDepth;
+                    result = _videoPortManager->GetPreferredColorDepth(handle, currentPreferredColorDepth, false);
+                    LOGINFO("GetPreferredColorDepth (after change): result=%u, currentPreferredColorDepth=%d", result, static_cast<int>(currentPreferredColorDepth));
+
+                    // Restore original preference
+                    result = _videoPortManager->SetPreferredColorDepth(handle, originalPreferredColorDepth, false);
+                    LOGINFO("SetPreferredColorDepth (restore): handle=%d, result=%u", handle, result);
+                }
+
+                // 16. Test Set APIs (write-only, careful with these)
+                result = _videoPortManager->SetBackgroundColor(handle, Exchange::IDeviceSettingsVideoPort::VideoBackgroundColor::DS_VIDEO_BGCOLOR_BLACK);
+                LOGINFO("SetBackgroundColor: handle=%d, result=%u, backgroundColor=BLACK", handle, result);
+
+                result = _videoPortManager->SetForceHDRMode(handle, Exchange::IDeviceSettingsVideoPort::HDRStandard::DS_HDRSTANDARD_SDR);
+                LOGINFO("SetForceHDRMode: handle=%d, result=%u, hdrMode=SDR", handle, result);
+
+                // 17. Test ResetVideoPortOutputToSDR (global reset)
+                result = _videoPortManager->ResetVideoPortOutputToSDR();
+                LOGINFO("ResetVideoPortOutputToSDR: result=%u", result);
+
+            } else {
+                LOGWARN("Could not get handle for %s video port - skipping tests for this port type", portTypeName);
+            }
+
+            LOGINFO("---------- Completed ALL VideoPort API testing for Port Type: %s ----------", portTypeName);
+        }
+
+        LOGINFO("========== Complete VideoPort APIs Testing Completed ==========\\n");
     }
 
 } // namespace Plugin

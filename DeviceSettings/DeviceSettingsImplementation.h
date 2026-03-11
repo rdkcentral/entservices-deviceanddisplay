@@ -49,6 +49,7 @@
 
 #include "list.hpp"
 #include "DeviceSettingsTypes.h"
+#include "DeviceSettingsVideoPortImplementation.h"
 
 namespace WPEFramework {
 namespace Plugin {
@@ -61,11 +62,11 @@ namespace Plugin {
                              , public Exchange::IDeviceSettingsFPD
                              , public Exchange::IDeviceSettingsHDMIIn
                              , public Exchange::IDeviceSettingsAudio
+                             , public Exchange::IDeviceSettingsVideoPort
                              // , public Exchange::IDeviceSettingsCompositeIn   // Not implemented yet
                              // , public Exchange::IDeviceSettingsDisplay       // Not implemented yet
                              // , public Exchange::IDeviceSettingsHost          // Not implemented yet
                              // , public Exchange::IDeviceSettingsVideoDevice   // Not implemented yet
-                             // , public Exchange::IDeviceSettingsVideoPort     // Not implemented yet
     {
     public:
         // We do not allow this plugin to be copied !!
@@ -84,12 +85,12 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IDeviceSettingsFPD)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsHDMIIn)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsAudio)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort)
             // Future interface entries when implemented:
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsCompositeIn)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsHost)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice)
-            // INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort)
         END_INTERFACE_MAP
 
         // IDeviceSettings interface implementation
@@ -264,6 +265,47 @@ namespace Plugin {
         // HDMI ARC
         Core::hresult GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId) override;
         
+        // IDeviceSettingsVideoPort interface implementation - delegate to _videoPortSettings interface
+        Core::hresult Register(Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
+        Core::hresult Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
+        Core::hresult GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle) override;
+        Core::hresult IsVideoPortEnabled(const int32_t handle, bool &enabled) override;
+        Core::hresult EnableVideoPort(const int32_t handle, const bool enabled) override;
+        Core::hresult IsVideoPortDisplayConnected(const int32_t handle, bool &connected) override;
+        Core::hresult IsVideoPortActive(const int32_t handle, bool &active) override;
+        Core::hresult GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution) override;
+        Core::hresult GetColorDepth(const int32_t handle, uint32_t &colorDepth) override;
+        Core::hresult GetColorSpace(const int32_t handle, VideoPortColorSpace &colorSpace) override;
+        Core::hresult GetQuantizationRange(const int32_t handle, VideoPortQuantizationRange &quantizationRange) override;
+        Core::hresult GetHDCPStatusOnVideoPort(const int32_t handle, Exchange::IDeviceSettingsVideoPort::HDCPStatus &hdcpStatus) override;
+        Core::hresult GetHDCPProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) override;
+        Core::hresult GetHDCPReceiverProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) override;
+        Core::hresult GetHDCPCurrentProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) override;
+        
+        // Additional required VideoPort methods from WPE interface
+        Core::hresult IsVideoPortDisplaySurround(const int32_t handle, bool &surround) override;
+        Core::hresult GetVideoPortDisplaySurroundMode(const int32_t handle, Exchange::IDeviceSettingsVideoPort::VideoPortSurroundMode &surroundMode) override;
+        Core::hresult SetVideoPortResolution(const int32_t handle, const VideoPortResolution videoPortResolution, const bool persist, const bool forceCompatibility) override;
+        Core::hresult EnableHDCPOnVideoPort(const int32_t handle, const bool hdcpEnable, const uint8_t hdcpKey[], const uint16_t hdcpKeySize) override;
+        Core::hresult IsHDCPEnabledOnVideoPort(const int32_t handle, bool &hdcpEnabled) override;
+        Core::hresult GetTVHDRCapabilities(const int32_t handle, int32_t &capabilities) override;
+        Core::hresult GetTVSupportedResolutions(const int32_t handle, int32_t &resolutions) override;
+        Core::hresult SetForceDisable4K(const int32_t handle, const bool disable) override;
+        Core::hresult GetForceDisable4K(const int32_t handle, bool &disabled) override;
+        Core::hresult IsVideoPortOutputHDR(const int32_t handle, bool &isHDR) override;
+        Core::hresult ResetVideoPortOutputToSDR() override;
+        Core::hresult GetHDMIPreference(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) override;
+        Core::hresult SetHDMIPreference(const int32_t handle, const VideoPortHdcpProtocolVersion hdcpVersion) override;
+        Core::hresult GetVideoEOTF(const int32_t handle, Exchange::IDeviceSettingsVideoPort::HDRStandard &hdrStandard) override;
+        Core::hresult GetMatrixCoefficients(const int32_t handle, Exchange::IDeviceSettingsVideoPort::DisplayMatrixCoefficients &matrixCoefficients) override;
+        Core::hresult GetCurrentOutputSettings(const int32_t handle, Exchange::IDeviceSettingsVideoPort::DSOutputSettings &outputSettings) override;
+        Core::hresult SetBackgroundColor(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::VideoBackgroundColor backgroundColor) override;
+        Core::hresult SetForceHDRMode(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::HDRStandard hdrMode) override;
+        Core::hresult GetColorDepthCapabilities(const int32_t handle, uint32_t &colorDepthCapabilities) override;
+        Core::hresult GetPreferredColorDepth(const int32_t handle, Exchange::IDeviceSettingsVideoPort::DisplayColorDepth &colorDepth, const bool persist) override;
+        Core::hresult SetPreferredColorDepth(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::DisplayColorDepth colorDepth, const bool persist) override;
+        // Core::hresult IsContentProtected(const int32_t handle, bool &isContentProtected) override; // Method not in WPE interface
+        
         // Other interface implementations - stub implementations for now
         // IDeviceSettingsCompositeIn - not implemented yet  
         // IDeviceSettingsDisplay - not implemented yet
@@ -276,13 +318,13 @@ namespace Plugin {
         DeviceSettingsFPDImpl* _fpdSettings;
         DeviceSettingsHdmiInImp* _hdmiInSettings;
         DeviceSettingsAudioImpl* _audioSettings;
+        DeviceSettingsVideoPortImpl* _videoPortSettings;
         
         // Interface pointers for future implementation (currently unused)
         // Exchange::IDeviceSettingsCompositeIn* _compositeInSettings;
         // Exchange::IDeviceSettingsDisplay* _displaySettings;
         // Exchange::IDeviceSettingsHost* _hostSettings;
         // Exchange::IDeviceSettingsVideoDevice* _videoDeviceSettings;
-        // Exchange::IDeviceSettingsVideoPort* _videoPortSettings;
         
         uint32_t mConnectionId;
         static DeviceSettingsImp* _instance;

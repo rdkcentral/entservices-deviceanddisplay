@@ -1147,12 +1147,12 @@ namespace WPEFramework {
                             retAPIStatus = true;
                         } else {
                             LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData returned invalid bufLen %d (capacity %zu)", param.bufLen, sizeof(param.buffer));
-                            populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
+                            populateResponseWithError(SysSrv_ManufacturerDataReadFailed, response); // Internal manufacturer data error
                             retAPIStatus = false;
                         }
 				       } else {
                         LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call failed");
-						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
+						populateResponseWithError(SysSrv_MissingKeyValues, response); // MFR call failed, So return Key Missing error
                         retAPIStatus = false;
 					}
 				} else {

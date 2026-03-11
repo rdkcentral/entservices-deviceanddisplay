@@ -4453,7 +4453,7 @@ namespace WPEFramework {
 											
 						default: 
 						{
-							LOGINFO("Incorrect Audio Deivce SAD state %d\n", currentSADState); // should not hit this case
+							LOGINFO("Incorrect Audio Device SAD state %d\n", currentSADState); // should not hit this case
 						}
 						break;
 					    }
@@ -5037,9 +5037,9 @@ void DisplaySettings::sendMsgThread()
 		LOGINFO("SAD already cleared\n");
 	    }
 
-        int currentrcRoutingState = getCurrentArcRoutingState();
-	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", currentrcRoutingState);
-	    if (currentrcRoutingState != ARC_STATE_ARC_TERMINATED) {
+        int currentArcRoutingState = getCurrentArcRoutingState();
+	    LOGINFO("Current ARC routing state before update m_currentArcRoutingState=%d\n ", currentArcRoutingState);
+	    if (currentArcRoutingState != ARC_STATE_ARC_TERMINATED) {
                 if (parameters.HasLabel("status")) {
                     value = parameters["status"].String();
                     std::lock_guard<std::mutex> lock(m_AudioDeviceStatesUpdateMutex);

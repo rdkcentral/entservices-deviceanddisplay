@@ -1144,7 +1144,7 @@ namespace WPEFramework {
                         response["make"] = string(param.buffer);
                         retAPIStatus = true;
 				       } else {
-                        LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call was failed");
+                        LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call failed");
 						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
                         retAPIStatus = false;
 					}

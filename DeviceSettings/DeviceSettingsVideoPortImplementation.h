@@ -80,11 +80,7 @@ namespace Plugin {
         Core::hresult Register(Exchange::IDeviceSettingsVideoPort::INotification* notification);
         Core::hresult Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification);
 
-        // Event notification methods to be called by DS HAL callbacks
-        void OnResolutionPostChangeNotification(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution);
-        void OnResolutionPreChangeNotification(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution);
-        void OnHDCPStatusChangeNotification(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus);
-        void OnVideoFormatUpdateNotification(const Exchange::IDeviceSettingsVideoPort::HDRStandard videoFormatHDR);
+        // Event notification methods removed - DS HAL callbacks now directly call dispatchVideoPortEvent
 
         // Required VideoPort::INotification interface implementations
         void OnResolutionPreChange(const ResolutionChange resolution) override;

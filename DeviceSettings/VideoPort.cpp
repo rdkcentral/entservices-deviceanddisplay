@@ -45,8 +45,7 @@ void VideoPort::Platform_init()
     ENTRY_LOG;
     LOGINFO("VideoPort Init - Setting up event callbacks");
     
-    // Set up callback bundle for VideoPort events
-    using CallbackBundle = dVideoPortImpl::CallbackBundle;
+    // Set up callback bundle for VideoPort events - using global CallbackBundle pattern
     CallbackBundle bundle;
     
     bundle.OnResolutionPreChange = [this](const ResolutionChange resolution) {
@@ -63,12 +62,9 @@ void VideoPort::Platform_init()
     };
     
     if (_platform) {
-        // Cast platform to dVideoPortImpl to access setAllCallbacks
-        auto impl = std::static_pointer_cast<dVideoPortImpl>(_platform);
-        if (impl) {
-            impl->setAllCallbacks(bundle);
-            impl->getPersistenceValue();
-        }
+        // Use interface method directly - no casting needed
+        this->platform().setAllCallbacks(bundle);
+        this->platform().getPersistenceValue();
     }
     
     EXIT_LOG;

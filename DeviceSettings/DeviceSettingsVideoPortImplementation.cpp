@@ -148,45 +148,14 @@ namespace Plugin {
         return errorCode;
     }
 
-    // Event notification methods to be called by DS HAL callbacks
-    void DeviceSettingsVideoPortImpl::OnResolutionPostChangeNotification(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution)
-    {
-        ENTRY_LOG;
-        LOGINFO("OnResolutionPostChange event Received");
-        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnResolutionPostChange, resolution);
-        EXIT_LOG;
-    }
-
-    void DeviceSettingsVideoPortImpl::OnResolutionPreChangeNotification(const Exchange::IDeviceSettingsVideoPort::ResolutionChange resolution)
-    {
-        ENTRY_LOG;
-        LOGINFO("OnResolutionPreChange event Received");
-        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnResolutionPreChange, resolution);
-        EXIT_LOG;
-    }
-
-    void DeviceSettingsVideoPortImpl::OnHDCPStatusChangeNotification(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus)
-    {
-        ENTRY_LOG;
-        LOGINFO("OnHDCPStatusChange event Received");
-        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnHDCPStatusChange, hdcpStatus);
-        EXIT_LOG;
-    }
-
-    void DeviceSettingsVideoPortImpl::OnVideoFormatUpdateNotification(const Exchange::IDeviceSettingsVideoPort::HDRStandard videoFormatHDR)
-    {
-        ENTRY_LOG;
-        LOGINFO("OnVideoFormatUpdate event Received");
-        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnVideoFormatUpdate, videoFormatHDR);
-        EXIT_LOG;
-    }
+    // Intermediate notification methods removed - DS HAL callbacks now directly call dispatchVideoPortEvent
 
     // VideoPort::INotification interface implementations (called by DS HAL)
     void DeviceSettingsVideoPortImpl::OnResolutionPreChange(const ResolutionChange resolution)
     {
         ENTRY_LOG;
         LOGINFO("DS HAL OnResolutionPreChange event: width=%u, height=%u", resolution.width, resolution.height);
-        OnResolutionPreChangeNotification(resolution);
+        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnResolutionPreChange, resolution);
         EXIT_LOG;
     }
 
@@ -194,7 +163,7 @@ namespace Plugin {
     {
         ENTRY_LOG;
         LOGINFO("DS HAL OnResolutionPostChange event: width=%u, height=%u", resolution.width, resolution.height);
-        OnResolutionPostChangeNotification(resolution);
+        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnResolutionPostChange, resolution);
         EXIT_LOG;
     }
 
@@ -202,7 +171,7 @@ namespace Plugin {
     {
         ENTRY_LOG;
         LOGINFO("DS HAL OnHDCPStatusChange event: hdcpStatus=%d", static_cast<int>(hdcpStatus));
-        OnHDCPStatusChangeNotification(hdcpStatus);
+        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnHDCPStatusChange, hdcpStatus);
         EXIT_LOG;
     }
 
@@ -210,7 +179,7 @@ namespace Plugin {
     {
         ENTRY_LOG;
         LOGINFO("DS HAL OnVideoFormatUpdate event: videoFormatHDR=0x%x", static_cast<uint16_t>(videoFormatHDR));
-        OnVideoFormatUpdateNotification(videoFormatHDR);
+        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnVideoFormatUpdate, videoFormatHDR);
         EXIT_LOG;
     }
 

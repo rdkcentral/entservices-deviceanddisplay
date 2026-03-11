@@ -368,6 +368,7 @@ namespace device {
 }
 
 struct CallbackBundle {
+    // HDMIIn callbacks
     std::function<void(HDMIInPort, bool)> OnHDMIInHotPlugEvent;
     std::function<void(HDMIInPort, HDMIInSignalStatus)> OnHDMIInSignalStatusEvent;
     std::function<void(HDMIInPort, bool)> OnHDMIInStatusEvent;
@@ -376,6 +377,12 @@ struct CallbackBundle {
     std::function<void(HDMIInPort, HDMIInAviContentType)> OnHDMIInAVIContentTypeEvent;
     std::function<void(int32_t, int32_t)> OnHDMIInAVLatencyEvent;
     std::function<void(HDMIInPort, HDMIInVRRType)> OnHDMIInVRRStatusEvent;
+    
+    // VideoPort callbacks
+    std::function<void(const ResolutionChange)> OnResolutionPreChange;
+    std::function<void(const ResolutionChange)> OnResolutionPostChange;
+    std::function<void(const VideoPortHdcpStatus)> OnHDCPStatusChange;
+    std::function<void(const HDRStandard)> OnVideoFormatUpdate;
     
     // Audio callbacks
     std::function<void(AudioPortType, uint32_t, bool)> OnAudioOutHotPlug;

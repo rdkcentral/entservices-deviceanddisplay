@@ -42,6 +42,8 @@ namespace dVideoPort {
         virtual ~IPlatform() {} 
         void InitialiseHAL();
         void DeInitialiseHAL();
+        virtual void setAllCallbacks(const CallbackBundle& bundle) = 0;
+        virtual void getPersistenceValue() = 0;
 
         // VideoPort Platform interface methods - all pure virtual
         virtual uint32_t GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t& handle) = 0;

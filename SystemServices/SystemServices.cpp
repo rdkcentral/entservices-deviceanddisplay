@@ -1137,12 +1137,19 @@ namespace WPEFramework {
                     param.type = mfrSERIALIZED_TYPE_MANUFACTURER;
 
                     IARM_Result_t result = IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_GetSerializedData, &param, sizeof(param));
-                    param.buffer[param.bufLen] = '\0';
-                    LOGINFO("SystemService getDeviceInfo param type %d result %s bufLen = %d", param.type, param.buffer, param.bufLen);
+                    LOGINFO("SystemService getDeviceInfo param type %d result %d bufLen = %d", param.type, result, param.bufLen);
 
                     if (result == IARM_RESULT_SUCCESS) {
-                        response["make"] = string(param.buffer);
-                        retAPIStatus = true;
+                        if (param.bufLen <= static_cast<int>(sizeof(param.buffer))) {
+                            std::string manufacturer(param.buffer, param.bufLen);
+                            LOGINFO("SystemService getDeviceInfo manufacturer: %s", manufacturer.c_str());
+                            response["make"] = manufacturer;
+                            retAPIStatus = true;
+                        } else {
+                            LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData returned invalid bufLen %d (capacity %zu)", param.bufLen, sizeof(param.buffer));
+                            populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response
+                            retAPIStatus = false;
+                        }
 				       } else {
                         LOGERR("IARM_BUS_MFRLIB_API_GetSerializedData call failed");
 						populateResponseWithError(SysSrv_MissingKeyValues, response); // Set an error in the response

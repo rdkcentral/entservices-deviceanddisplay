@@ -1140,7 +1140,7 @@ namespace WPEFramework {
                     LOGINFO("SystemService getDeviceInfo param type %d result %d bufLen = %d", param.type, result, param.bufLen);
 
                     if (result == IARM_RESULT_SUCCESS) {
-                        if (param.bufLen <= static_cast<int>(sizeof(param.buffer))) {
+                        if ((0 < param.bufLen) && (param.bufLen <= static_cast<int>(sizeof(param.buffer)))) {
                             std::string manufacturer(param.buffer, param.bufLen);
                             LOGINFO("SystemService getDeviceInfo manufacturer: %s", manufacturer.c_str());
                             response["make"] = manufacturer;

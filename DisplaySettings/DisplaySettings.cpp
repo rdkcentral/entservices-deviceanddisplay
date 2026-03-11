@@ -4954,10 +4954,10 @@ void DisplaySettings::sendMsgThread()
                 LOGERR("Field 'status' could not be found in the event's payload.");
                 return;
             }
-            int currentrcRoutingState = getCurrentArcRoutingState();
-	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", currentrcRoutingState);
+            int currentArcRoutingState = getCurrentArcRoutingState();
+	    LOGINFO("ARC routing state before update m_currentArcRoutingState=%d\n ", currentArcRoutingState);
 	    // AVR power status is not checked here assuming that ARC init request will happen only when AVR is in ON state
-            if ((currentrcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
+            if ((currentArcRoutingState != ARC_STATE_ARC_INITIATED) && (m_systemAudioMode_Power_RequestedAndReceived == true)) {
                 value = parameters["status"].String();
 
 		if( !value.compare("success") ) {

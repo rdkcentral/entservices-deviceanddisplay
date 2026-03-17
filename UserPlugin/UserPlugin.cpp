@@ -67,7 +67,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _videoPortManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this), _videoPortNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _videoPortManager(nullptr), _videoDeviceManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this), _videoPortNotification(*this), _videoDeviceNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -95,6 +95,7 @@ namespace Plugin {
             _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
             _audioManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsAudio>("org.rdk.DeviceSettings");
             _videoPortManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsVideoPort>("org.rdk.DeviceSettings");
+            _videoDeviceManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsVideoDevice>("org.rdk.DeviceSettings");
         } else {
             LOGERR("Could not obtain DeviceSettings interface");
         }
@@ -114,12 +115,18 @@ namespace Plugin {
             _videoPortManager->Register(&_videoPortNotification);
         }
 
+        // Register for VideoDevice notifications if interface is available
+        if (_videoDeviceManager) {
+            _videoDeviceManager->Register(&_videoDeviceNotification);
+        }
+
         // Test DeviceSettings interfaces
         //TestSimplifiedFPDAPIs();
         //TestSimplifiedHDMIInAPIs();
         //TestSelectHDMIInPortAPI();
         //TestAudioAPIs();
         TestVideoPortAPIs();
+        TestVideoDeviceAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
 
@@ -149,6 +156,13 @@ namespace Plugin {
             _videoPortManager->Unregister(&_videoPortNotification);
             _videoPortManager->Release();
             _videoPortManager = nullptr;
+        }
+
+        // Unregister VideoDevice notifications and release VideoDevice Manager
+        if (_videoDeviceManager) {
+            _videoDeviceManager->Unregister(&_videoDeviceNotification);
+            _videoDeviceManager->Release();
+            _videoDeviceManager = nullptr;
         }
 
         // Release FPD Manager
@@ -1727,6 +1741,53 @@ namespace Plugin {
         }
     }
 
+    // VideoDevice Event Handler Implementations
+    void UserPlugin::OnZoomSettingsChanged(const Exchange::IDeviceSettingsVideoDevice::VideoZoom zoomSetting)
+    {
+        LOGINFO("========== VideoDevice Event: Zoom Settings Changed ==========");
+        LOGINFO("OnZoomSettingsChanged: zoomSetting=%d", static_cast<int>(zoomSetting));
+
+        // Add your custom logic here
+        const char* zoomName = "UNKNOWN";
+        switch (zoomSetting) {
+            case Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_NONE:
+                zoomName = "NONE";
+                break;
+            case Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_FULL:
+                zoomName = "FULL";
+                break;
+            case Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_LB_16_9:
+                zoomName = "LB_16_9";
+                break;
+            case Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_LB_14_9:
+                zoomName = "LB_14_9";
+                break;
+            case Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_PLATFORM:
+                zoomName = "PLATFORM";
+                break;
+            default:
+                break;
+        }
+        
+        LOGINFO("VideoDevice zoom mode changed to %s", zoomName);
+    }
+
+    void UserPlugin::OnDisplayFrameratePreChange(const string frameRate)
+    {
+        LOGINFO("========== VideoDevice Event: Display Framerate Pre-Change ==========");
+        LOGINFO("OnDisplayFrameratePreChange: frameRate=%s", frameRate.c_str());
+
+        // Add your custom logic here
+    }
+
+    void UserPlugin::OnDisplayFrameratePostChange(const string frameRate)
+    {
+        LOGINFO("========== VideoDevice Event: Display Framerate Post-Change ==========");
+        LOGINFO("OnDisplayFrameratePostChange: frameRate=%s", frameRate.c_str());
+
+        // Add your custom logic here
+    }
+
     void UserPlugin::TestVideoPortAPIs()
     {
         LOGINFO("========== Complete VideoPort APIs Testing Framework ==========");
@@ -2014,6 +2075,103 @@ namespace Plugin {
         }
 
         LOGINFO("========== Complete VideoPort APIs Testing Completed ==========\\n");
+    }
+
+    void UserPlugin::TestVideoDeviceAPIs()
+    {
+        LOGINFO("========== Complete VideoDevice APIs Testing Framework ==========");
+
+        if (!_videoDeviceManager) {
+            LOGERR("VideoDevice Manager is not available");
+            return;
+        }
+
+        LOGINFO("Testing ALL VideoDevice APIs with get-set-restore pattern");
+
+        // 1. Test GetVideoDeviceHandle (requires index parameter)
+        int32_t videoDeviceHandle = -1;
+        Core::hresult result = _videoDeviceManager->GetVideoDeviceHandle(0, videoDeviceHandle);
+        LOGINFO("GetVideoDeviceHandle: result=%u, handle=%d", result, videoDeviceHandle);
+
+        if (result == Core::ERROR_NONE && videoDeviceHandle != -1) {
+            // 2. Test SetVideoDeviceDFC (get current, set test, restore) - this triggers OnVideoDeviceDFCChanged event
+            LOGINFO("---------- Testing VideoDevice DFC APIs ----------");
+            
+            // First test: Set a test DFC zoom mode
+            Exchange::IDeviceSettingsVideoDevice::VideoZoom testZoomMode1 = Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_FULL;
+            result = _videoDeviceManager->SetVideoDeviceDFC(videoDeviceHandle, testZoomMode1);
+            LOGINFO("SetVideoDeviceDFC: handle=%d, result=%u, zoom_mode=FULL", videoDeviceHandle, result);
+
+            // Another test: Set different zoom mode
+            Exchange::IDeviceSettingsVideoDevice::VideoZoom testZoomMode2 = Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_LB_16_9;
+            result = _videoDeviceManager->SetVideoDeviceDFC(videoDeviceHandle, testZoomMode2);
+            LOGINFO("SetVideoDeviceDFC: handle=%d, result=%u, zoom_mode=LB_16_9", videoDeviceHandle, result);
+
+            // Test third zoom mode
+            Exchange::IDeviceSettingsVideoDevice::VideoZoom testZoomMode3 = Exchange::IDeviceSettingsVideoDevice::VideoZoom::DS_VIDEO_DEVICE_ZOOM_NONE;
+            result = _videoDeviceManager->SetVideoDeviceDFC(videoDeviceHandle, testZoomMode3);
+            LOGINFO("SetVideoDeviceDFC: handle=%d, result=%u, zoom_mode=NONE", videoDeviceHandle, result);
+
+            // 3. Test GetHDRCapabilities
+            LOGINFO("---------- Testing VideoDevice HDR Capabilities APIs ----------");
+            int32_t hdrCapabilities = 0;
+            result = _videoDeviceManager->GetHDRCapabilities(videoDeviceHandle, hdrCapabilities);
+            LOGINFO("GetHDRCapabilities: handle=%d, result=%u, hdrCapabilities=0x%x", videoDeviceHandle, result, hdrCapabilities);
+
+            // 4. Test GetSupportedVideoCodingFormats
+            LOGINFO("---------- Testing VideoDevice Supported Video Coding Formats APIs ----------");
+            int32_t supportedFormats = 0;
+            result = _videoDeviceManager->GetSupportedVideoCodingFormats(videoDeviceHandle, supportedFormats);
+            LOGINFO("GetSupportedVideoCodingFormats: handle=%d, result=%u, supportedFormats=0x%x", videoDeviceHandle, result, supportedFormats);
+
+            // Test GetCodecInfo for different codec types
+            LOGINFO("---------- Testing GetCodecInfo API ----------");
+            Exchange::IDeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator* codecInfo = nullptr;
+            result = _videoDeviceManager->GetCodecInfo(videoDeviceHandle, Exchange::IDeviceSettingsVideoDevice::VideoCodec::DS_VIDEO_CODEC_MPEG2, codecInfo);
+            LOGINFO("GetCodecInfo: handle=%d, codec=MPEG2, result=%u", videoDeviceHandle, result);
+            if (codecInfo) {
+                codecInfo->Release();
+            }
+
+            // 5. Test DisableHDR
+            LOGINFO("---------- Testing VideoDevice DisableHDR API ----------");
+            result = _videoDeviceManager->DisableHDR(videoDeviceHandle, true);
+            LOGINFO("DisableHDR: handle=%d, disable=true, result=%u", videoDeviceHandle, result);
+            
+            result = _videoDeviceManager->DisableHDR(videoDeviceHandle, false);
+            LOGINFO("DisableHDR: handle=%d, disable=false, result=%u", videoDeviceHandle, result);
+
+            // 6. Test FRF Mode APIs
+            LOGINFO("---------- Testing VideoDevice FRF Mode APIs ----------");
+            int32_t originalFrfMode = -1;
+            result = _videoDeviceManager->GetFRFMode(videoDeviceHandle, originalFrfMode);
+            LOGINFO("GetFRFMode: handle=%d, result=%u, frfMode=%d", videoDeviceHandle, result, originalFrfMode);
+            
+            if (result == Core::ERROR_NONE) {
+                int32_t testFrfMode = 1;
+                result = _videoDeviceManager->SetFRFMode(videoDeviceHandle, testFrfMode);
+                LOGINFO("SetFRFMode: handle=%d, frfMode=%d, result=%u", videoDeviceHandle, testFrfMode, result);
+                
+                // Restore original
+                result = _videoDeviceManager->SetFRFMode(videoDeviceHandle, originalFrfMode);
+                LOGINFO("SetFRFMode (restore): handle=%d, frfMode=%d, result=%u", videoDeviceHandle, originalFrfMode, result);
+            }
+
+            // 7. Test Display Frame Rate APIs  
+            LOGINFO("---------- Testing VideoDevice Display Frame Rate APIs ----------");
+            string currentFrameRate;
+            result = _videoDeviceManager->GetCurrentDisplayFrameRate(videoDeviceHandle, currentFrameRate);
+            LOGINFO("GetCurrentDisplayFrameRate: handle=%d, result=%u, frameRate=%s", videoDeviceHandle, result, currentFrameRate.c_str());
+            
+            string testFrameRate = "24";
+            result = _videoDeviceManager->SetDisplayFrameRate(videoDeviceHandle, testFrameRate);
+            LOGINFO("SetDisplayFrameRate: handle=%d, frameRate=%s, result=%u", videoDeviceHandle, testFrameRate.c_str(), result);
+
+        } else {
+            LOGERR("Failed to get VideoDevice handle, skipping VideoDevice API tests");
+        }
+        
+        LOGINFO("VideoDevice API testing completed.");
     }
 
 } // namespace Plugin

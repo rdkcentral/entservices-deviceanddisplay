@@ -53,6 +53,7 @@ namespace Plugin {
         , _hdmiInSettings(DeviceSettingsHdmiInImp::Create())
         , _audioSettings(DeviceSettingsAudioImpl::Create())
         , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
+        , _videoDeviceSettings(DeviceSettingsVideoDeviceImpl::Create())
         , mConnectionId(0)
     {
         ENTRY_LOG;
@@ -65,6 +66,7 @@ namespace Plugin {
 
         LOGINFO("FPD implementation instance: %p", _fpdSettings);
         LOGINFO("VideoPort implementation instance: %p", _videoPortSettings);
+        LOGINFO("VideoDevice implementation instance: %p", _videoDeviceSettings);
         LOGINFO("HDMIIn implementation instance: %p", _hdmiInSettings);
         LOGINFO("Audio implementation instance: %p", _audioSettings);
 
@@ -94,6 +96,10 @@ namespace Plugin {
         if (_videoPortSettings != nullptr) {
             delete _videoPortSettings;
             _videoPortSettings = nullptr;
+        }
+        if (_videoDeviceSettings != nullptr) {
+            delete _videoDeviceSettings;
+            _videoDeviceSettings = nullptr;
         }
         
         EXIT_LOG;
@@ -827,6 +833,65 @@ namespace Plugin {
     
     Core::hresult DeviceSettingsImp::SetPreferredColorDepth(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::DisplayColorDepth colorDepth, const bool persist) {
         return _videoPortSettings ? _videoPortSettings->SetPreferredColorDepth(handle, static_cast<DisplayColorDepth>(colorDepth), persist) : Core::ERROR_GENERAL;
+    }
+
+    // IDeviceSettingsVideoDevice interface implementation - delegate to _videoDeviceSettings interface
+
+    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsVideoDevice::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, Register, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsVideoDevice::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, Unregister, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::GetVideoDeviceHandle(const int32_t index, int32_t &handle) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetVideoDeviceHandle, index, handle)
+    }
+
+    Core::hresult DeviceSettingsImp::SetVideoDeviceDFC(const int32_t handle, const Exchange::IDeviceSettingsVideoDevice::VideoZoom zoom) {
+        return _videoDeviceSettings ? _videoDeviceSettings->SetVideoDeviceDFC(handle, static_cast<VideoZoom>(zoom)) : Core::ERROR_GENERAL;
+    }
+
+    Core::hresult DeviceSettingsImp::GetVideoDeviceDFC(const int32_t handle, Exchange::IDeviceSettingsVideoDevice::VideoZoom &zoom) {
+        VideoZoom internalZoom;
+        Core::hresult result = _videoDeviceSettings ? _videoDeviceSettings->GetVideoDeviceDFC(handle, internalZoom) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            zoom = static_cast<Exchange::IDeviceSettingsVideoDevice::VideoZoom>(internalZoom);
+        }
+        return result;
+    }
+
+    Core::hresult DeviceSettingsImp::GetHDRCapabilities(const int32_t handle, int32_t &capabilities) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetHDRCapabilities, handle, capabilities)
+    }
+
+    Core::hresult DeviceSettingsImp::GetSupportedVideoCodingFormats(const int32_t handle, int32_t &supportedFormats) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetSupportedVideoCodingFormats, handle, supportedFormats)
+    }
+
+    Core::hresult DeviceSettingsImp::SetDisplayFrameRate(const int32_t handle, const string frameRate) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, SetDisplayFrameRate, handle, frameRate)
+    }
+
+    Core::hresult DeviceSettingsImp::GetCodecInfo(const int32_t handle, const Exchange::IDeviceSettingsVideoDevice::VideoCodec videoCodec, Exchange::IDeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator *&codecInfo) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetCodecInfo, handle, static_cast<VideoCodec>(videoCodec), codecInfo)
+    }
+
+    Core::hresult DeviceSettingsImp::DisableHDR(const int32_t handle, const bool disable) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, DisableHDR, handle, disable)
+    }
+
+    Core::hresult DeviceSettingsImp::SetFRFMode(const int32_t handle, const int32_t frfmode) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, SetFRFMode, handle, frfmode)
+    }
+
+    Core::hresult DeviceSettingsImp::GetFRFMode(const int32_t handle, int32_t &frfmode) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetFRFMode, handle, frfmode)
+    }
+
+    Core::hresult DeviceSettingsImp::GetCurrentDisplayFrameRate(const int32_t handle, string &framerate) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetCurrentDisplayFrameRate, handle, framerate)
     }
 
 } // namespace Plugin

@@ -138,6 +138,13 @@ using TVResolution = DeviceSettingsVideoPort::TVResolution;
 using VideoPortSurroundMode = DeviceSettingsVideoPort::VideoPortSurroundMode;
 using VideoScanMode = DeviceSettingsVideoPort::VideoScanMode;
 
+// VideoDevice type aliases for convenience
+using VideoDeviceZoom = DeviceSettingsVideoDevice::VideoZoom;
+using VideoDeviceCodec = DeviceSettingsVideoDevice::VideoCodec;
+using VideoDeviceCodecHEVCProfile = DeviceSettingsVideoDevice::VideoCodecHEVCProfile;
+using VideoDeviceCodecProfileSupport = DeviceSettingsVideoDevice::VideoCodecProfileSupport;
+using IDeviceSettingsVideoCodecProfileSupportIterator = DeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator;
+
 // Common constants
 #define API_VERSION_MAJOR 1
 #define API_VERSION_MINOR 0
@@ -383,6 +390,11 @@ struct CallbackBundle {
     std::function<void(const ResolutionChange)> OnResolutionPostChange;
     std::function<void(const VideoPortHdcpStatus)> OnHDCPStatusChange;
     std::function<void(const HDRStandard)> OnVideoFormatUpdate;
+    
+    // VideoDevice callbacks
+    std::function<void(const VideoDeviceZoom)> OnZoomSettingsChanged;
+    std::function<void(const std::string&)> OnDisplayFrameratePreChange;
+    std::function<void(const std::string&)> OnDisplayFrameratePostChange;
     
     // Audio callbacks
     std::function<void(AudioPortType, uint32_t, bool)> OnAudioOutHotPlug;

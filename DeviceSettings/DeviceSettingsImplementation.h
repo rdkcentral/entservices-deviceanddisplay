@@ -50,6 +50,7 @@
 #include "list.hpp"
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsVideoPortImplementation.h"
+#include "DeviceSettingsVideoDeviceImplementation.h"
 
 namespace WPEFramework {
 namespace Plugin {
@@ -63,6 +64,7 @@ namespace Plugin {
                              , public Exchange::IDeviceSettingsHDMIIn
                              , public Exchange::IDeviceSettingsAudio
                              , public Exchange::IDeviceSettingsVideoPort
+                             , public Exchange::IDeviceSettingsVideoDevice
                              // , public Exchange::IDeviceSettingsCompositeIn   // Not implemented yet
                              // , public Exchange::IDeviceSettingsDisplay       // Not implemented yet
                              // , public Exchange::IDeviceSettingsHost          // Not implemented yet
@@ -86,6 +88,7 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IDeviceSettingsHDMIIn)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsAudio)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice)
             // Future interface entries when implemented:
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsCompositeIn)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay)
@@ -306,11 +309,29 @@ namespace Plugin {
         Core::hresult SetPreferredColorDepth(const int32_t handle, const Exchange::IDeviceSettingsVideoPort::DisplayColorDepth colorDepth, const bool persist) override;
         // Core::hresult IsContentProtected(const int32_t handle, bool &isContentProtected) override; // Method not in WPE interface
         
+        //=========================================================================
+        // IDeviceSettingsVideoDevice interface methods
+        //=========================================================================
+        Core::hresult Register(Exchange::IDeviceSettingsVideoDevice::INotification* notification ) override;
+        Core::hresult Unregister(Exchange::IDeviceSettingsVideoDevice::INotification* notification ) override;
+        
+        Core::hresult GetVideoDeviceHandle(const int32_t index, int32_t &handle /* @out */) override;
+        Core::hresult SetVideoDeviceDFC(const int32_t handle , const Exchange::IDeviceSettingsVideoDevice::VideoZoom zoomSetting ) override;
+        Core::hresult GetVideoDeviceDFC(const int32_t handle , Exchange::IDeviceSettingsVideoDevice::VideoZoom &zoomSetting /* @out */) override;
+        Core::hresult GetHDRCapabilities(const int32_t handle , int32_t &capabilities /* @out */) override;
+        Core::hresult GetSupportedVideoCodingFormats(const int32_t handle , int32_t &supportedFormats /* @out */) override;
+        Core::hresult GetCodecInfo(const int32_t handle , const Exchange::IDeviceSettingsVideoDevice::VideoCodec videoCodec , Exchange::IDeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator *&codecInfo /* @out */) override;
+        Core::hresult DisableHDR(const int32_t handle , const bool disable ) override;
+        Core::hresult SetFRFMode(const int32_t handle , const int32_t frfmode ) override;
+        Core::hresult GetFRFMode(const int32_t handle , int32_t &frfmode /* @out */) override;
+        Core::hresult GetCurrentDisplayFrameRate(const int32_t handle , string &framerate /* @out */) override;
+        Core::hresult SetDisplayFrameRate(const int32_t handle , const string framerate ) override;
+        
         // Other interface implementations - stub implementations for now
         // IDeviceSettingsCompositeIn - not implemented yet  
         // IDeviceSettingsDisplay - not implemented yet
         // IDeviceSettingsHost - not implemented yet
-        // IDeviceSettingsVideoDevice - not implemented yet
+        // IDeviceSettingsVideoDevice - ✅ IMPLEMENTED
         // IDeviceSettingsVideoPort - not implemented yet
 
     private:
@@ -319,6 +340,7 @@ namespace Plugin {
         DeviceSettingsHdmiInImp* _hdmiInSettings;
         DeviceSettingsAudioImpl* _audioSettings;
         DeviceSettingsVideoPortImpl* _videoPortSettings;
+        DeviceSettingsVideoDeviceImpl* _videoDeviceSettings;
         
         // Interface pointers for future implementation (currently unused)
         // Exchange::IDeviceSettingsCompositeIn* _compositeInSettings;

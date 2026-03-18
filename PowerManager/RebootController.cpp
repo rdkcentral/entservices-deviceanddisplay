@@ -79,10 +79,11 @@ void RebootController::heartbeatMsg()
             _forcedRebootThreshold.SetThreshold(val);
         }
 
-        LOGINFO("Reboot thresolds updated: Enabled: %d,  ForcedReboot = %d\n",
-            enabled,  _forcedRebootThreshold.threshold());
+        LOGINFO("Reboot thresolds updated: ForcedReboot = %d\n", _forcedRebootThreshold.threshold());
         _rfcUpdated = true;
     }
+
+    auto uptime = now<std::chrono::seconds>();
 
     if (_forcedRebootThreshold.IsThresholdExceeded(uptime)) {
          LOGINFO("Going to force reboot after %lld\n", uptime);

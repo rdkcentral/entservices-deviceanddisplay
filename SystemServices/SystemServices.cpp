@@ -2888,7 +2888,10 @@ namespace WPEFramework {
                 "eth_mac", "wifi_mac", "bluetooth_mac", "rf4ce_mac"};
             string tempBuffer;
 
+            LOGINFO("@@@NNA... SystemServices::getMacAddressesAsync started. macTypeList count = %lu", (sizeof(macTypeList) / sizeof(macTypeList[0])));
+
             for (i = 0; i < sizeof(macTypeList)/sizeof(macTypeList[0]); i++) {
+                LOGINFO("@@@NNA... SystemServices::getMacAddressesAsync macTypeList[%lu] = %s", i, macTypeList[i].c_str());
                 tempBuffer.clear();
                 FILE* pipe = v_secure_popen("r","/lib/rdk/getDeviceDetails.sh %s %s",GET_STB_DETAILS_SCRIPT_READ_COMMAND, macTypeList[i].c_str());
                 if (pipe) {
@@ -2902,8 +2905,8 @@ namespace WPEFramework {
                }
 
                 removeCharsFromString(tempBuffer, "\n\r");
-                LOGWARN("resp = %s\n", tempBuffer.c_str());
                 params[macTypeList[i].c_str()] = (tempBuffer.empty()? "00:00:00:00:00:00" : tempBuffer.c_str());
+                LOGINFO("@@@NNA... SystemServices::getMacAddressesAsync response for %s = %s", macTypeList[i].c_str(), params[macTypeList[i].c_str()].String().c_str());
                 listLength++;
             }
             if (listLength != i) {
@@ -2930,29 +2933,39 @@ namespace WPEFramework {
                 JsonObject& response)
         {
             bool status = false;
+            bool asyncResponse = false;
             string guid = parameters["GUID"].String();
 
             LOGINFO("guid = %s\n", guid.c_str());
+            LOGINFO("@@@NNA... SystemServices::getMacAddresses invoked. guid = %s", guid.c_str());
             if (!Utils::fileExists("/lib/rdk/getDeviceDetails.sh")) {
                 response["SysSrv_Message"] = "File: getDeviceDetails.sh";
+                response["asyncResponse"] = asyncResponse;
+                LOGINFO("@@@NNA... SystemServices::getMacAddresses getDeviceDetails.sh missing. SysSrv_Message = %s, asyncResponse = %s", response["SysSrv_Message"].String().c_str(), asyncResponse ? "true" : "false");
                 populateResponseWithError(SysSrv_FileNotPresent, response);
             } else {
                 try
                 {
+                    LOGINFO("@@@NNA... SystemServices::getMacAddresses getDeviceDetails.sh found. starting async worker");
                     if (thread_getMacAddresses.get().joinable())
                         thread_getMacAddresses.get().join();
 
                     thread_getMacAddresses = Utils::ThreadRAII(std::thread(getMacAddressesAsync, this));
-                    response["asyncResponse"] = true;
+                    asyncResponse = true;
+                    response["asyncResponse"] = asyncResponse;
                     status = true;
+                    LOGINFO("@@@NNA... SystemServices::getMacAddresses async worker started. asyncResponse = %s, status = %s", asyncResponse ? "true" : "false", status ? "true" : "false");
                 }
                 catch(const std::system_error& e)
                 {
                     LOGERR("exception in getFirmwareUpdateInfo %s", e.what());
-                    response["asyncResponse"] = false;
+                    asyncResponse = false;
+                    response["asyncResponse"] = asyncResponse;
+                    LOGINFO("@@@NNA... SystemServices::getMacAddresses exception path. asyncResponse = %s, status = %s", asyncResponse ? "true" : "false", status ? "true" : "false");
                     status = false;
                 }
             }
+            LOGINFO("@@@NNA... SystemServices::getMacAddresses return. asyncResponse = %s, status = %s", asyncResponse ? "true" : "false", status ? "true" : "false");
             returnResponse(status);
         }
 

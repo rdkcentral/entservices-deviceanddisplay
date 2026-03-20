@@ -2937,6 +2937,7 @@ namespace WPEFramework {
             string guid = parameters["GUID"].String();
 
             LOGINFO("guid = %s\n", guid.c_str());
+            
             LOGINFO("@@@NNA... SystemServices::getMacAddresses invoked. guid = %s", guid.c_str());
             if (!Utils::fileExists("/lib/rdk/getDeviceDetails.sh")) {
                 response["SysSrv_Message"] = "File: getDeviceDetails.sh";

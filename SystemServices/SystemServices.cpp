@@ -294,6 +294,21 @@ string collectDeviceInfo(string methodType)
     return respBuffer;
 }
 
+static string sanitizeDeviceDetailsOutput(const string& value)
+{
+    // Strip common ANSI sequences (CSI, OSC, and single-char ESC forms).
+    static const std::regex kAnsiEscapePattern(
+        "\\x1B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~]|\\][^\\x1B\\x07]*(?:\\x07|\\x1B\\\\))");
+    string sanitized = std::regex_replace(value, kAnsiEscapePattern, "");
+
+    sanitized.erase(std::remove_if(sanitized.begin(), sanitized.end(), [](unsigned char ch) {
+        return std::iscntrl(ch);
+    }), sanitized.end());
+
+    Utils::String::trim(sanitized);
+    return sanitized;
+}
+
 #if defined(USE_IARMBUS) || defined(USE_IARM_BUS)
 
 std::string iarmModeToString(IARM_Bus_Daemon_SysMode_t& iarmMode)
@@ -1313,17 +1328,21 @@ namespace WPEFramework {
                         if (std::string::npos != eq)
                         {
                             std::string key = line.substr(0, eq);
-                            std::string value = line.substr(eq + 1);
+                            std::string value = sanitizeDeviceDetailsOutput(line.substr(eq + 1));
 
                             response[key.c_str()] = value;
+                            LOGINFO("@@@NNA getDeviceInfo updated key=%s value=%s", key.c_str(), value.c_str());
 
                             // some tweaks for backward compatibility
                             if (key == "imageVersion") {
                                 response["version"] = value; 
                                 response["software_version"] = value;
+                                LOGINFO("@@@NNA getDeviceInfo updated key=version value=%s", value.c_str());
+                                LOGINFO("@@@NNA getDeviceInfo updated key=software_version value=%s", value.c_str());
                             }
                             else if (key == "cableCardVersion") {
                                 response["cable_card_firmware_version"] = value;
+                                LOGINFO("@@@NNA getDeviceInfo updated key=cable_card_firmware_version value=%s", value.c_str());
                             }
                             else if (key == "model_number") {
                                 model_number = value;
@@ -1339,8 +1358,9 @@ namespace WPEFramework {
 #endif
                 } else {
                     retAPIStatus = true;
-                    Utils::String::trim(res);
-                        response[queryParams.c_str()] = res;
+                    std::string sanitizedValue = sanitizeDeviceDetailsOutput(res);
+                    response[queryParams.c_str()] = sanitizedValue;
+                    LOGINFO("@@@NNA getDeviceInfo updated key=%s value=%s", queryParams.c_str(), sanitizedValue.c_str());
                     }
                 }
             returnResponse(retAPIStatus);
@@ -2890,6 +2910,7 @@ namespace WPEFramework {
 
             for (i = 0; i < sizeof(macTypeList)/sizeof(macTypeList[0]); i++) {
                 tempBuffer.clear();
+                LOGINFO("@@@NNA getMacAddressesAsync reading macType=%s", macTypeList[i].c_str());
                 FILE* pipe = v_secure_popen("r","/lib/rdk/getDeviceDetails.sh %s %s",GET_STB_DETAILS_SCRIPT_READ_COMMAND, macTypeList[i].c_str());
                 if (pipe) {
                     char buff[1024] = { '\0' };
@@ -2901,18 +2922,22 @@ namespace WPEFramework {
 
                }
 
-                removeCharsFromString(tempBuffer, "\n\r");
-                LOGWARN("resp = %s\n", tempBuffer.c_str());
-                params[macTypeList[i].c_str()] = (tempBuffer.empty()? "00:00:00:00:00:00" : tempBuffer.c_str());
+                tempBuffer = sanitizeDeviceDetailsOutput(tempBuffer);
+                const char* macValue = (tempBuffer.empty()? "00:00:00:00:00:00" : tempBuffer.c_str());
+                params[macTypeList[i].c_str()] = macValue;
+                LOGINFO("@@@NNA getMacAddressesAsync updated macType=%s mac=%s", macTypeList[i].c_str(), macValue);
                 listLength++;
             }
             if (listLength != i) {
                 params["info"] = "Details fetch: all are not success";
+                LOGINFO("@@@NNA getMacAddressesAsync info=%s", "Details fetch: all are not success");
             }
             if (listLength) {
                 params["success"] = true;
+                LOGINFO("@@@NNA getMacAddressesAsync success=true total=%lu", listLength);
             } else {
                 params["success"] = false;
+                LOGINFO("@@@NNA getMacAddressesAsync success=false total=%lu", listLength);
             }
             if (pSs) {
                 pSs->Notify(EVT_ONMACADDRESSRETRIEVED, params);

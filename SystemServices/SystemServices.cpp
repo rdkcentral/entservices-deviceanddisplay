@@ -451,7 +451,30 @@ namespace WPEFramework {
                 }
 
                 return result;
-            }            
+            }
+
+            std::string escapeForLog(const std::string& input)
+            {
+                std::ostringstream escaped;
+                for (const unsigned char ch : input) {
+                    if (ch == '\\') {
+                        escaped << "\\\\";
+                    } else if (ch == '\n') {
+                        escaped << "\\n";
+                    } else if (ch == '\r') {
+                        escaped << "\\r";
+                    } else if (ch == '\t') {
+                        escaped << "\\t";
+                    } else if (std::isprint(ch)) {
+                        escaped << static_cast<char>(ch);
+                    } else {
+                        escaped << "\\x" << std::uppercase << std::hex << std::setw(2)
+                                << std::setfill('0') << static_cast<int>(ch) << std::nouppercase
+                                << std::dec;
+                    }
+                }
+                return escaped.str();
+            }
         }
 
         //Prototypes
@@ -1304,14 +1327,28 @@ namespace WPEFramework {
             }
 
             std::string res = "";
+            const bool detailedTrace = (queryParams == "bluetooth_mac");
+                        LOGINFO("@@@NNA [%d] SystemServices::getDeviceInfo invoking /lib/rdk/getDeviceDetails.sh with key='%s'", __LINE__, cmd.c_str());
             FILE* pipe = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh %s %s", GET_STB_DETAILS_SCRIPT_READ_COMMAND, cmd.c_str());
             if(pipe){
               char buff[1024] = { '\0' };
               while (fgets(buff, sizeof(buff), pipe)) {
+                    if (detailedTrace) {
+                        std::string chunk(buff);
+                        LOGINFO("@@@NNA [%d] SystemServices::getDeviceInfo chunk from fgets(len=%zu): [%s]",
+                            __LINE__, chunk.size(), escapeForLog(chunk).c_str());
+                    }
                     res += buff;
+                    if (detailedTrace) {
+                        LOGINFO("@@@NNA [%d] SystemServices::getDeviceInfo cumulative res after append(len=%zu): [%s]",
+                            __LINE__, res.size(), escapeForLog(res).c_str());
+                    }
                     memset(buff, 0, sizeof(buff));
               }
               v_secure_pclose(pipe);
+                            LOGINFO("@@@NNA [%d] SystemServices::getDeviceInfo raw output(len=%zu): [%s]", __LINE__, res.size(), escapeForLog(res).c_str());
+                        } else {
+                                LOGERR("@@@NNA [%d] SystemServices::getDeviceInfo failed to execute /lib/rdk/getDeviceDetails.sh", __LINE__);
             }
             if (res.size() > 0) {
                 std::string model_number;
@@ -1355,6 +1392,7 @@ namespace WPEFramework {
                 } else {
                     retAPIStatus = true;
                     std::string sanitizedValue = sanitizeDeviceDetailsOutput(res);
+                    LOGINFO("@@@NNA [%d] SystemServices::getDeviceInfo sanitized output for key='%s'(len=%zu): [%s]", __LINE__, queryParams.c_str(), sanitizedValue.size(), escapeForLog(sanitizedValue).c_str());
                     response[queryParams.c_str()] = sanitizedValue;
                     }
                 }
@@ -2905,6 +2943,7 @@ namespace WPEFramework {
 
             for (i = 0; i < sizeof(macTypeList)/sizeof(macTypeList[0]); i++) {
                 tempBuffer.clear();
+                LOGINFO("@@@NNA [%d] SystemServices::getMacAddressesAsync invoking /lib/rdk/getDeviceDetails.sh with key='%s'", __LINE__, macTypeList[i].c_str());
                 FILE* pipe = v_secure_popen("r","/lib/rdk/getDeviceDetails.sh %s %s",GET_STB_DETAILS_SCRIPT_READ_COMMAND, macTypeList[i].c_str());
                 if (pipe) {
                     char buff[1024] = { '\0' };
@@ -2914,9 +2953,15 @@ namespace WPEFramework {
                     }
                      v_secure_pclose(pipe);
 
+                     LOGINFO("@@@NNA [%d] SystemServices::getMacAddressesAsync raw output for key='%s'(len=%zu): [%s]", __LINE__, macTypeList[i].c_str(), tempBuffer.size(), escapeForLog(tempBuffer).c_str());
+
+               } else {
+                    LOGERR("@@@NNA [%d] SystemServices::getMacAddressesAsync failed to execute /lib/rdk/getDeviceDetails.sh for key='%s'", __LINE__, macTypeList[i].c_str());
+
                }
 
                 tempBuffer = sanitizeDeviceDetailsOutput(tempBuffer);
+                LOGINFO("@@@NNA [%d] SystemServices::getMacAddressesAsync sanitized output for key='%s'(len=%zu): [%s]", __LINE__, macTypeList[i].c_str(), tempBuffer.size(), escapeForLog(tempBuffer).c_str());
                 const char* macValue = (tempBuffer.empty()? "00:00:00:00:00:00" : tempBuffer.c_str());
                 params[macTypeList[i].c_str()] = macValue;
                 listLength++;

@@ -1331,18 +1331,14 @@ namespace WPEFramework {
                             std::string value = sanitizeDeviceDetailsOutput(line.substr(eq + 1));
 
                             response[key.c_str()] = value;
-                            LOGINFO("@@@NNA getDeviceInfo updated key=%s value=%s", key.c_str(), value.c_str());
 
                             // some tweaks for backward compatibility
                             if (key == "imageVersion") {
                                 response["version"] = value; 
                                 response["software_version"] = value;
-                                LOGINFO("@@@NNA getDeviceInfo updated key=version value=%s", value.c_str());
-                                LOGINFO("@@@NNA getDeviceInfo updated key=software_version value=%s", value.c_str());
                             }
                             else if (key == "cableCardVersion") {
                                 response["cable_card_firmware_version"] = value;
-                                LOGINFO("@@@NNA getDeviceInfo updated key=cable_card_firmware_version value=%s", value.c_str());
                             }
                             else if (key == "model_number") {
                                 model_number = value;
@@ -1360,7 +1356,6 @@ namespace WPEFramework {
                     retAPIStatus = true;
                     std::string sanitizedValue = sanitizeDeviceDetailsOutput(res);
                     response[queryParams.c_str()] = sanitizedValue;
-                    LOGINFO("@@@NNA getDeviceInfo updated key=%s value=%s", queryParams.c_str(), sanitizedValue.c_str());
                     }
                 }
             returnResponse(retAPIStatus);
@@ -2910,7 +2905,6 @@ namespace WPEFramework {
 
             for (i = 0; i < sizeof(macTypeList)/sizeof(macTypeList[0]); i++) {
                 tempBuffer.clear();
-                LOGINFO("@@@NNA getMacAddressesAsync reading macType=%s", macTypeList[i].c_str());
                 FILE* pipe = v_secure_popen("r","/lib/rdk/getDeviceDetails.sh %s %s",GET_STB_DETAILS_SCRIPT_READ_COMMAND, macTypeList[i].c_str());
                 if (pipe) {
                     char buff[1024] = { '\0' };
@@ -2925,19 +2919,15 @@ namespace WPEFramework {
                 tempBuffer = sanitizeDeviceDetailsOutput(tempBuffer);
                 const char* macValue = (tempBuffer.empty()? "00:00:00:00:00:00" : tempBuffer.c_str());
                 params[macTypeList[i].c_str()] = macValue;
-                LOGINFO("@@@NNA getMacAddressesAsync updated macType=%s mac=%s", macTypeList[i].c_str(), macValue);
                 listLength++;
             }
             if (listLength != i) {
                 params["info"] = "Details fetch: all are not success";
-                LOGINFO("@@@NNA getMacAddressesAsync info=%s", "Details fetch: all are not success");
             }
             if (listLength) {
                 params["success"] = true;
-                LOGINFO("@@@NNA getMacAddressesAsync success=true total=%lu", listLength);
             } else {
                 params["success"] = false;
-                LOGINFO("@@@NNA getMacAddressesAsync success=false total=%lu", listLength);
             }
             if (pSs) {
                 pSs->Notify(EVT_ONMACADDRESSRETRIEVED, params);

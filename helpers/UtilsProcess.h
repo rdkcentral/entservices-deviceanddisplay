@@ -44,6 +44,12 @@ namespace Utils
  */
 bool killProcess(const string& input_pname)
 {
+    if (input_pname.empty())
+    {
+        LOGERR("killProcess: empty process name provided; refusing to match all processes");
+        return false;
+    }
+
     // Request enough process metadata to inspect command name and command-line args.
     PROCTAB* proc = openproc(PROC_FILLMEM | PROC_FILLSTAT | PROC_FILLSTATUS | PROC_FILLCOM);
     proc_t proc_info = {0};

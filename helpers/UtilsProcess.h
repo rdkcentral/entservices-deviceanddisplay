@@ -31,11 +31,17 @@ using namespace std;
 
 namespace Utils
 {
+
 /**
-* @brief Kill all the processes with the given process name
-* @param[in] input_pname - The given process name
-* @return true if any process with the given name was killed, otherwise false is returned
-*/
+ * @brief Kill all processes whose command name or any command-line argument
+ *        contains the given substring.
+ *
+ * Scans the system process table and sends SIGTERM to every process whose
+ * executable name or command-line matches `input_pname` (substring match).
+ *
+ * @param input_pname Substring to search in process name or cmdline.
+ * @return true if at least one matching process was terminated; false otherwise.
+ */
 bool killProcess(const string& input_pname)
 {
     // Request enough process metadata to inspect command name and command-line args.
@@ -53,8 +59,6 @@ bool killProcess(const string& input_pname)
         {
             bool match = false;
 
-            //print process info for debugging
-            LOGINFO("Inspecting process [%d] with command name [%s]", proc_info.tid, proc_info.cmd ? proc_info.cmd : "null");
             // Match substring against the executable/command name.
             if ((proc_info.cmd != nullptr) &&
                 (strstr(proc_info.cmd, input_pname.c_str()) != nullptr))
@@ -80,7 +84,11 @@ bool killProcess(const string& input_pname)
                 if (0 == kill(proc_info.tid, SIGTERM))
                 {
                     ret_value = true;
-                    LOGINFO("Killed the process [%d] process name [%s]", proc_info.tid, proc_info.cmd);
+                    LOGINFO("Killed the process [%d] process name [%s]", proc_info.tid, proc_info.cmd ? proc_info.cmd : "null");
+                }
+                else
+                {
+                    LOGERR("Failed to Kill the process [%d] process name [%s]", proc_info.tid, proc_info.cmd ? proc_info.cmd : "null");
                 }
             }
         }

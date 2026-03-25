@@ -948,7 +948,7 @@ public:
 
                 // Create iterator using the GameFeatureListIteratorImpl type already defined in dHdmiIn.h
                 // This uses WPEFramework's standard iterator pattern with explicit interface template parameter
-                gameFeatureList = GameFeatureListIteratorImpl::Create<IHDMIInGameFeatureListIterator>(features);
+                //gameFeatureList = GameFeatureListIteratorImpl::Create<IHDMIInGameFeatureListIterator>(features);
 
                 if (gameFeatureList != nullptr) {
                     LOGINFO("GetSupportedGameFeaturesList: Successfully created iterator with %zu features", features.size());

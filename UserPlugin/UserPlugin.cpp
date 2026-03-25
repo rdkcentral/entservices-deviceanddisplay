@@ -67,7 +67,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _videoPortManager(nullptr), _videoDeviceManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this), _videoPortNotification(*this), _videoDeviceNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _videoPortManager(nullptr), _videoDeviceManager(nullptr), _hostManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this), _videoPortNotification(*this), _videoDeviceNotification(*this), _hostNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -96,6 +96,7 @@ namespace Plugin {
             _audioManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsAudio>("org.rdk.DeviceSettings");
             _videoPortManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsVideoPort>("org.rdk.DeviceSettings");
             _videoDeviceManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsVideoDevice>("org.rdk.DeviceSettings");
+            _hostManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHost>("org.rdk.DeviceSettings");
         } else {
             LOGERR("Could not obtain DeviceSettings interface");
         }
@@ -120,13 +121,19 @@ namespace Plugin {
             _videoDeviceManager->Register(&_videoDeviceNotification);
         }
 
+        // Register for Host notifications if interface is available
+        if (_hostManager) {
+            _hostManager->Register(&_hostNotification);
+        }
+
         // Test DeviceSettings interfaces
         //TestSimplifiedFPDAPIs();
         //TestSimplifiedHDMIInAPIs();
         //TestSelectHDMIInPortAPI();
         //TestAudioAPIs();
-        TestVideoPortAPIs();
-        TestVideoDeviceAPIs();
+        //TestVideoPortAPIs();
+        //TestVideoDeviceAPIs();
+        TestHostAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
 
@@ -163,6 +170,13 @@ namespace Plugin {
             _videoDeviceManager->Unregister(&_videoDeviceNotification);
             _videoDeviceManager->Release();
             _videoDeviceManager = nullptr;
+        }
+
+        // Unregister Host notifications and release Host Manager
+        if (_hostManager) {
+            _hostManager->Unregister(&_hostNotification);
+            _hostManager->Release();
+            _hostManager = nullptr;
         }
 
         // Release FPD Manager
@@ -2172,6 +2186,96 @@ namespace Plugin {
         }
         
         LOGINFO("VideoDevice API testing completed.");
+    }
+
+    void UserPlugin::OnSleepModeChanged(const Exchange::IDeviceSettingsHost::SleepMode sleepMode)
+    {
+        LOGINFO("========== Host Event: Sleep Mode Changed ==========");
+        LOGINFO("OnSleepModeChanged: sleepMode=%d", static_cast<int>(sleepMode));
+
+        // Add your custom logic here
+        switch (sleepMode) {
+            case Exchange::IDeviceSettingsHost::SleepMode::DS_HOST_SLEEPMODE_LIGHT:
+                LOGINFO("Sleep mode changed to LIGHT");
+                break;
+            case Exchange::IDeviceSettingsHost::SleepMode::DS_HOST_SLEEPMODE_DEEP:
+                LOGINFO("Sleep mode changed to DEEP");
+                break;
+            default:
+                LOGINFO("Sleep mode changed to UNKNOWN (%d)", static_cast<int>(sleepMode));
+                break;
+        }
+    }
+
+    void UserPlugin::TestHostAPIs()
+    {
+        LOGINFO("========== Complete Host APIs Testing Framework ==========");
+
+        if (!_hostManager) {
+            LOGERR("Host Manager interface is not available");
+            return;
+        }
+
+        LOGINFO("Testing ALL Host APIs with get-set-restore pattern");
+
+        // 1. Test GetPreferredSleepMode and SetPreferredSleepMode (get-set-restore)
+        Exchange::IDeviceSettingsHost::SleepMode originalSleepMode;
+        Core::hresult result = _hostManager->GetPreferredSleepMode(originalSleepMode);
+        LOGINFO("GetPreferredSleepMode: result=%u, original_mode=%d", result, static_cast<int>(originalSleepMode));
+
+        if (result == Core::ERROR_NONE) {
+            // Set test sleep mode (toggle between light and deep)
+            Exchange::IDeviceSettingsHost::SleepMode testSleepMode = 
+                (originalSleepMode == Exchange::IDeviceSettingsHost::SleepMode::DS_HOST_SLEEPMODE_LIGHT) ? 
+                Exchange::IDeviceSettingsHost::SleepMode::DS_HOST_SLEEPMODE_DEEP : 
+                Exchange::IDeviceSettingsHost::SleepMode::DS_HOST_SLEEPMODE_LIGHT;
+            result = _hostManager->SetPreferredSleepMode(testSleepMode);
+            LOGINFO("SetPreferredSleepMode: result=%u, test_mode=%d", result, static_cast<int>(testSleepMode));
+
+            // Verify the mode was set
+            Exchange::IDeviceSettingsHost::SleepMode verifySleepMode;
+            _hostManager->GetPreferredSleepMode(verifySleepMode);
+            LOGINFO("GetPreferredSleepMode: verified_mode=%d", static_cast<int>(verifySleepMode));
+
+            // Restore original mode
+            _hostManager->SetPreferredSleepMode(originalSleepMode);
+            LOGINFO("SetPreferredSleepMode: mode restored to %d", static_cast<int>(originalSleepMode));
+        }
+
+        // 2. Test GetCPUTemperature (read-only)
+        float cpuTemperature = 0.0f;
+        result = _hostManager->GetCPUTemperature(cpuTemperature);
+        LOGINFO("GetCPUTemperature: result=%u, temperature=%.2fC", result, cpuTemperature);
+
+        // 3. Test GetHALVersion (read-only)
+        uint32_t halVersion = 0;
+        result = _hostManager->GetHALVersion(halVersion);
+        LOGINFO("GetHALVersion: result=%u, version=0x%x (%d.%d)", result, halVersion, 
+               (halVersion >> 16) & 0xFFFF, halVersion & 0xFFFF);
+
+        // 4. Test GetSoCID (read-only)
+        string socID;
+        result = _hostManager->GetSoCID(socID);
+        LOGINFO("GetSoCID: result=%u, socID='%s'", result, socID.c_str());
+
+        // 5. Test GetEDID (read-only byte array)
+        uint8_t edidBytes[1024] = {0};
+        result = _hostManager->GetEDID(edidBytes, 1024);
+        LOGINFO("GetEDID: result=%u, bytes_length=1024", result);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("EDID bytes retrieved successfully");
+            // Optionally log first few bytes for verification
+            LOGINFO("First 8 EDID bytes: %02X %02X %02X %02X %02X %02X %02X %02X", 
+                   edidBytes[0], edidBytes[1], edidBytes[2], edidBytes[3], 
+                   edidBytes[4], edidBytes[5], edidBytes[6], edidBytes[7]);
+        }
+
+        // 6. Test GetMS12ConfigType (read-only)
+        string ms12Config;
+        result = _hostManager->GetMS12ConfigType(ms12Config);
+        LOGINFO("GetMS12ConfigType: result=%u, ms12Config='%s'", result, ms12Config.c_str());
+
+        LOGINFO("========== Complete Host APIs Testing Completed ==========\\n");
     }
 
 } // namespace Plugin

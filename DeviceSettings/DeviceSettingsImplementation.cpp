@@ -21,6 +21,7 @@
 #include "DeviceSettingsFPDImplementation.h"
 #include "DeviceSettingsHdmiInImplementation.h"
 #include "DeviceSettingsAudioImplementation.h"
+#include "DeviceSettingsHostImplementation.h"
 
 #include "UtilsLogging.h"
 #include "UtilsSearchRDKProfile.h"
@@ -54,6 +55,7 @@ namespace Plugin {
         , _audioSettings(DeviceSettingsAudioImpl::Create())
         , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
         , _videoDeviceSettings(DeviceSettingsVideoDeviceImpl::Create())
+        , _hostSettings(DeviceSettingsHostImpl::Create())
         , mConnectionId(0)
     {
         ENTRY_LOG;
@@ -67,6 +69,7 @@ namespace Plugin {
         LOGINFO("FPD implementation instance: %p", _fpdSettings);
         LOGINFO("VideoPort implementation instance: %p", _videoPortSettings);
         LOGINFO("VideoDevice implementation instance: %p", _videoDeviceSettings);
+        LOGINFO("Host implementation instance: %p", _hostSettings);
         LOGINFO("HDMIIn implementation instance: %p", _hdmiInSettings);
         LOGINFO("Audio implementation instance: %p", _audioSettings);
 
@@ -100,6 +103,10 @@ namespace Plugin {
         if (_videoDeviceSettings != nullptr) {
             delete _videoDeviceSettings;
             _videoDeviceSettings = nullptr;
+        }
+        if (_hostSettings != nullptr) {
+            delete _hostSettings;
+            _hostSettings = nullptr;
         }
         
         EXIT_LOG;
@@ -892,6 +899,51 @@ namespace Plugin {
 
     Core::hresult DeviceSettingsImp::GetCurrentDisplayFrameRate(const int32_t handle, string &framerate) {
         DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetCurrentDisplayFrameRate, handle, framerate)
+    }
+
+    // ============================================================================
+    // IDeviceSettingsHost interface implementation - delegate to _hostSettings interface
+    // ============================================================================
+    
+    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsHost::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_hostSettings, Register, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsHost::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_hostSettings, Unregister, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::GetPreferredSleepMode(Exchange::IDeviceSettingsHost::SleepMode &mode) {
+        HostSleepMode internalMode;
+        Core::hresult result = _hostSettings ? _hostSettings->GetPreferredSleepMode(internalMode) : Core::ERROR_GENERAL;
+        if (result == Core::ERROR_NONE) {
+            mode = static_cast<Exchange::IDeviceSettingsHost::SleepMode>(internalMode);
+        }
+        return result;
+    }
+
+    Core::hresult DeviceSettingsImp::SetPreferredSleepMode(const Exchange::IDeviceSettingsHost::SleepMode mode) {
+        return _hostSettings ? _hostSettings->SetPreferredSleepMode(static_cast<HostSleepMode>(mode)) : Core::ERROR_GENERAL;
+    }
+
+    Core::hresult DeviceSettingsImp::GetCPUTemperature(float &temperature) {
+        DELEGATE_TO_COMPONENT(_hostSettings, GetCPUTemperature, temperature)
+    }
+
+    Core::hresult DeviceSettingsImp::GetHALVersion(uint32_t &versionNo) {
+        DELEGATE_TO_COMPONENT(_hostSettings, GetHALVersion, versionNo)
+    }
+
+    Core::hresult DeviceSettingsImp::GetSoCID(string &socID) {
+        DELEGATE_TO_COMPONENT(_hostSettings, GetSoCID, socID)
+    }
+
+    Core::hresult DeviceSettingsImp::GetEDID(uint8_t edId[], const uint16_t edIdLength) {
+        DELEGATE_TO_COMPONENT(_hostSettings, GetEDID, edId, edIdLength)
+    }
+
+    Core::hresult DeviceSettingsImp::GetMS12ConfigType(string &ms12Config) {
+        DELEGATE_TO_COMPONENT(_hostSettings, GetMS12ConfigType, ms12Config)
     }
 
 } // namespace Plugin

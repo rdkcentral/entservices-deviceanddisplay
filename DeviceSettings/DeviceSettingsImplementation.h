@@ -51,6 +51,7 @@
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsVideoPortImplementation.h"
 #include "DeviceSettingsVideoDeviceImplementation.h"
+#include "DeviceSettingsHostImplementation.h"
 
 namespace WPEFramework {
 namespace Plugin {
@@ -65,9 +66,9 @@ namespace Plugin {
                              , public Exchange::IDeviceSettingsAudio
                              , public Exchange::IDeviceSettingsVideoPort
                              , public Exchange::IDeviceSettingsVideoDevice
+                             , public Exchange::IDeviceSettingsHost
                              // , public Exchange::IDeviceSettingsCompositeIn   // Not implemented yet
                              // , public Exchange::IDeviceSettingsDisplay       // Not implemented yet
-                             // , public Exchange::IDeviceSettingsHost          // Not implemented yet
                              // , public Exchange::IDeviceSettingsVideoDevice   // Not implemented yet
     {
     public:
@@ -89,10 +90,10 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IDeviceSettingsAudio)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsHost)
             // Future interface entries when implemented:
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsCompositeIn)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay)
-            // INTERFACE_ENTRY(Exchange::IDeviceSettingsHost)
             // INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice)
         END_INTERFACE_MAP
 
@@ -327,6 +328,20 @@ namespace Plugin {
         Core::hresult GetCurrentDisplayFrameRate(const int32_t handle , string &framerate /* @out */) override;
         Core::hresult SetDisplayFrameRate(const int32_t handle , const string framerate ) override;
         
+        //=========================================================================
+        // IDeviceSettingsHost interface methods
+        //=========================================================================
+        Core::hresult Register(Exchange::IDeviceSettingsHost::INotification* notification ) override;
+        Core::hresult Unregister(Exchange::IDeviceSettingsHost::INotification* notification ) override;
+        
+        Core::hresult GetPreferredSleepMode(Exchange::IDeviceSettingsHost::SleepMode &mode /* @out */) override;
+        Core::hresult SetPreferredSleepMode(const Exchange::IDeviceSettingsHost::SleepMode mode ) override;
+        Core::hresult GetCPUTemperature(float &temperature /* @out */) override;
+        Core::hresult GetHALVersion(uint32_t &versionNo /* @out */) override;
+        Core::hresult GetSoCID(string &socID /* @out */) override;
+        Core::hresult GetEDID(uint8_t edId[] /* @out @length:edIdLength @maxlength:edIdLength */, const uint16_t edIdLength ) override;
+        Core::hresult GetMS12ConfigType(string &ms12Config /* @out */) override;
+        
         // Other interface implementations - stub implementations for now
         // IDeviceSettingsCompositeIn - not implemented yet  
         // IDeviceSettingsDisplay - not implemented yet
@@ -341,6 +356,7 @@ namespace Plugin {
         DeviceSettingsAudioImpl* _audioSettings;
         DeviceSettingsVideoPortImpl* _videoPortSettings;
         DeviceSettingsVideoDeviceImpl* _videoDeviceSettings;
+        DeviceSettingsHostImpl* _hostSettings;
         
         // Interface pointers for future implementation (currently unused)
         // Exchange::IDeviceSettingsCompositeIn* _compositeInSettings;

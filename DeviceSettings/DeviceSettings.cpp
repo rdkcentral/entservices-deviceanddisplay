@@ -56,6 +56,7 @@ namespace Plugin
         , _mDeviceSettings(nullptr)
         , _mDeviceSettingsFPD(nullptr)
         , _mDeviceSettingsHDMIIn(nullptr)
+        , _mDeviceSettingsHost(nullptr)
         , _mDeviceSettingsVideoPort(nullptr)
         , _mDeviceSettingsVideoDevice(nullptr)
         , mNotificationSink(this)
@@ -103,6 +104,7 @@ namespace Plugin
         ASSERT(_mDeviceSettingsHDMIIn == nullptr);
         ASSERT(_mDeviceSettingsVideoPort == nullptr);
         ASSERT(_mDeviceSettingsVideoDevice == nullptr);
+        ASSERT(_mDeviceSettingsHost == nullptr);
         mService = service;
         mService->AddRef();
 
@@ -145,15 +147,19 @@ namespace Plugin
 
                 _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
                 _mDeviceSettingsVideoDevice = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoDevice>();
+                _mDeviceSettingsHost = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHost>();
                 if (_mDeviceSettingsVideoPort == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
                 }
                 if (_mDeviceSettingsVideoDevice == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsVideoDevice interface for external access");
                 }
+                if (_mDeviceSettingsHost == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsHost interface for external access");
+                }
 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p", 
-                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice);
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost);
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
@@ -171,6 +177,12 @@ namespace Plugin
                 if (_mDeviceSettingsVideoDevice != nullptr) {
                     _mDeviceSettingsVideoDevice->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
                     LOGINFO("Registered for VideoDevice event notifications");
+                }
+                
+                // Register for Host event notifications
+                if (_mDeviceSettingsHost != nullptr) {
+                    _mDeviceSettingsHost->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
+                    LOGINFO("Registered for Host event notifications");
                 }
             }
         }
@@ -204,15 +216,19 @@ namespace Plugin
 
                 _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
                 _mDeviceSettingsVideoDevice = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoDevice>();
+                _mDeviceSettingsHost = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHost>();
                 if (_mDeviceSettingsVideoPort == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
                 }
                 if (_mDeviceSettingsVideoDevice == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsVideoDevice interface for external access");
                 }
+                if (_mDeviceSettingsHost == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsHost interface for external access");
+                }
 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, VideoPort: %p, VideoDevice: %p", 
-                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice);
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, VideoPort: %p, VideoDevice: %p, Host: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost);
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
@@ -230,6 +246,12 @@ namespace Plugin
                 if (_mDeviceSettingsVideoDevice != nullptr) {
                     _mDeviceSettingsVideoDevice->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
                     LOGINFO("Registered for VideoDevice event notifications");
+                }
+                
+                // Register for Host event notifications
+                if (_mDeviceSettingsHost != nullptr) {
+                    _mDeviceSettingsHost->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
+                    LOGINFO("Registered for Host event notifications");
                 }
             }
         }
@@ -267,6 +289,11 @@ namespace Plugin
                 LOGINFO("Unregistered from VideoDevice event notifications");
             }
             
+            if (_mDeviceSettingsHost != nullptr) {
+                _mDeviceSettingsHost->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
+                LOGINFO("Unregistered from Host event notifications");
+            }
+            
             // Release individual interface pointers
             if (_mDeviceSettingsFPD != nullptr) {
                 _mDeviceSettingsFPD->Release();
@@ -285,6 +312,11 @@ namespace Plugin
             if (_mDeviceSettingsVideoDevice != nullptr) {
                 _mDeviceSettingsVideoDevice->Release();
                 _mDeviceSettingsVideoDevice = nullptr;
+            }
+            
+            if (_mDeviceSettingsHost != nullptr) {
+                _mDeviceSettingsHost->Release();
+                _mDeviceSettingsHost = nullptr;
             }
             
             // Release the main device settings interface

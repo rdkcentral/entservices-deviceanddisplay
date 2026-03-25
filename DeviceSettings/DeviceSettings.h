@@ -54,7 +54,7 @@ namespace Plugin {
                                 // , public DeviceSettingsVideoDevice::INotification
                                 // , public DeviceSettingsDisplay::INotification
                                   , public DeviceSettingsHDMIIn::INotification
-                                // , public DeviceSettingsHost::INotification
+                                  , public Exchange::IDeviceSettingsHost::INotification
                                   , public Exchange::IDeviceSettingsVideoPort::INotification
                                   , public Exchange::IDeviceSettingsVideoDevice::INotification
             {
@@ -88,7 +88,7 @@ namespace Plugin {
             //INTERFACE_ENTRY(DeviceSettingsVideoDevice::INotification)
             //INTERFACE_ENTRY(DeviceSettingsDisplay::INotification)
             INTERFACE_ENTRY(DeviceSettingsHDMIIn::INotification)
-            //INTERFACE_ENTRY(DeviceSettingsHost::INotification)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsHost::INotification)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort::INotification)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice::INotification)
             INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
@@ -248,6 +248,12 @@ namespace Plugin {
                 LOGINFO("OnDisplayFrameratePostChange: frameRate=%s", frameRate.c_str());
             }
 
+            // Host notification handlers
+            void OnSleepModeChanged(const Exchange::IDeviceSettingsHost::SleepMode sleepMode) override
+            {
+                LOGINFO("OnSleepModeChanged: sleepMode=%d", static_cast<int>(sleepMode));
+            }
+
         private:
             DeviceSettings& mParent;
         };
@@ -271,7 +277,7 @@ namespace Plugin {
             //INTERFACE_AGGREGATE(DeviceSettingsVideoDevice, _mDeviceSettingsVideoDevice)
             //INTERFACE_AGGREGATE(DeviceSettingsDisplay, _mDeviceSettingsDisplay)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsHDMIIn, _mDeviceSettingsHDMIIn)
-            //INTERFACE_AGGREGATE(DeviceSettingsHost, _mDeviceSettingsHost)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsHost, _mDeviceSettingsHost)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsVideoPort, _mDeviceSettingsVideoPort)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsVideoDevice, _mDeviceSettingsVideoDevice)
         END_INTERFACE_MAP
@@ -297,7 +303,7 @@ namespace Plugin {
         Exchange::IDeviceSettingsFPD* _mDeviceSettingsFPD;
         DeviceSettingsDisplay* _mDeviceSettingsDisplay;
         Exchange::IDeviceSettingsHDMIIn* _mDeviceSettingsHDMIIn;
-        DeviceSettingsHost* _mDeviceSettingsHost;
+        Exchange::IDeviceSettingsHost* _mDeviceSettingsHost;
         Exchange::IDeviceSettingsVideoPort* _mDeviceSettingsVideoPort;
         Exchange::IDeviceSettingsVideoDevice* _mDeviceSettingsVideoDevice;
         Core::Sink<NotificationHandler> mNotificationSink;

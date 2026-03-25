@@ -80,8 +80,9 @@ using HDMIVideoAspectRatio     = DeviceSettingsHDMIIn::HDMIVideoAspectRatio;
 using HDMIInTVResolution       = DeviceSettingsHDMIIn::HDMIInTVResolution;
 using HDMIInVideoStereoScopicMode = DeviceSettingsHDMIIn::HDMIInVideoStereoScopicMode;
 using HDMIInVideoFrameRate     = DeviceSettingsHDMIIn::HDMIInVideoFrameRate;
-using IHDMIInPortConnectionStatusIterator = DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator;using IHDMIInGameFeatureListIterator      = DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator;
-using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>;
+using IHDMIInPortConnectionStatusIterator = DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator;
+using IHDMIInGameFeatureListIterator      = DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator;
+//using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IIteratorType<IHDMIInGameFeatureListIterator>>;
 
 // FPD type aliases for convenience
 using FPDTimeFormat = DeviceSettingsFPD::FPDTimeFormat;
@@ -144,6 +145,9 @@ using VideoDeviceCodec = DeviceSettingsVideoDevice::VideoCodec;
 using VideoDeviceCodecHEVCProfile = DeviceSettingsVideoDevice::VideoCodecHEVCProfile;
 using VideoDeviceCodecProfileSupport = DeviceSettingsVideoDevice::VideoCodecProfileSupport;
 using IDeviceSettingsVideoCodecProfileSupportIterator = DeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator;
+
+// Host type aliases for convenience
+using HostSleepMode = DeviceSettingsHost::SleepMode;
 
 // Common constants
 #define API_VERSION_MAJOR 1
@@ -395,6 +399,9 @@ struct CallbackBundle {
     std::function<void(const VideoDeviceZoom)> OnZoomSettingsChanged;
     std::function<void(const std::string&)> OnDisplayFrameratePreChange;
     std::function<void(const std::string&)> OnDisplayFrameratePostChange;
+    
+    // Host callbacks
+    std::function<void(const HostSleepMode)> OnSleepModeChanged;
     
     // Audio callbacks
     std::function<void(AudioPortType, uint32_t, bool)> OnAudioOutHotPlug;

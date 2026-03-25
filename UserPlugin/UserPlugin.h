@@ -158,6 +158,31 @@ namespace WPEFramework
                 UserPlugin& _parent;
             };
 
+            class HostNotification : public virtual Exchange::IDeviceSettingsHost::INotification {
+            private:
+                HostNotification(const HostNotification&) = delete;
+                HostNotification& operator=(const HostNotification&) = delete;
+            
+            public:
+                explicit HostNotification(UserPlugin& parent)
+                    : _parent(parent)
+                {
+                }
+
+            public:
+                void OnSleepModeChanged(const Exchange::IDeviceSettingsHost::SleepMode sleepMode) override
+                {
+                    _parent.OnSleepModeChanged(sleepMode);
+                }
+
+                BEGIN_INTERFACE_MAP(HostNotification)
+                INTERFACE_ENTRY(Exchange::IDeviceSettingsHost::INotification)
+                END_INTERFACE_MAP
+
+            private:
+                UserPlugin& _parent;
+            };
+
             class VideoPortNotification : public virtual Exchange::IDeviceSettingsVideoPort::INotification {
             private:
                 VideoPortNotification(const VideoPortNotification&) = delete;
@@ -334,6 +359,12 @@ namespace WPEFramework
             void OnDisplayFrameratePreChange(const string frameRate);
             void OnDisplayFrameratePostChange(const string frameRate);
 
+            // Host Event Handlers
+            void OnSleepModeChanged(const Exchange::IDeviceSettingsHost::SleepMode sleepMode);
+
+            // Test cases for Host APIs
+            void TestHostAPIs();
+
             // IARM API methods for direct DsMgr daemon communication
             Core::hresult TestIARMHdmiInSelectPort(const int port, const bool requestAudioMix, const bool topMostPlane, const int videoPlaneType);
             Core::hresult TestIARMHdmiInScaleVideo(const int x, const int y, const int width, const int height);
@@ -363,12 +394,14 @@ namespace WPEFramework
             Exchange::IDeviceSettingsAudio* _audioManager;
             Exchange::IDeviceSettingsVideoPort* _videoPortManager;
             Exchange::IDeviceSettingsVideoDevice* _videoDeviceManager;
+            Exchange::IDeviceSettingsHost* _hostManager;
             //PowerManagerInterfaceRef _powerManager{};
             // PowerManager notification removed
             Core::Sink<HDMIInNotification> _hdmiInNotification;
             Core::Sink<AudioNotification> _audioNotification;
             Core::Sink<VideoPortNotification> _videoPortNotification;
             Core::Sink<VideoDeviceNotification> _videoDeviceNotification;
+            Core::Sink<HostNotification> _hostNotification;
 
 	    void Deactivated(RPC::IRemoteConnection *connection);
         };

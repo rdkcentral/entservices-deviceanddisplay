@@ -3942,7 +3942,7 @@ TEST_F(SystemServicesEventTest, onMacAddressesRetrieved)
                     valueToReturn = "A8:11:XX:FD:0C:XX";
                 } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read bluetooth_mac") == 0) {
                     EXPECT_EQ(string(strFmt), string(_T("/lib/rdk/getDeviceDetails.sh read bluetooth_mac")));
-                    valueToReturn = "AA:AA:AA:AA:AA:AA";
+                    valueToReturn = "AA:AA:AA:AA:AA:AA\x1B[0m";
                 } else if (strcmp(strFmt, "/lib/rdk/getDeviceDetails.sh read rf4ce_mac") == 0) {
                     EXPECT_EQ(string(strFmt), string(_T("/lib/rdk/getDeviceDetails.sh read rf4ce_mac")));
                     valueToReturn = "00:00:00:00:00:00";

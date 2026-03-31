@@ -155,8 +155,8 @@ namespace Plugin {
         Core::hresult GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) override;
         Core::hresult GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) override;
         Core::hresult GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
-        Core::hresult GetCompression(const int32_t handle, AudioCompression &compression);
-        Core::hresult SetCompression(const int32_t handle, const AudioCompression compression);
+        Core::hresult GetAudioCompression(const int32_t handle, AudioCompression &compression);
+        Core::hresult SetAudioCompression(const int32_t handle, const AudioCompression compression);
         Core::hresult SetAudioLevel(const int32_t handle, const float audioLevel) override;
         Core::hresult GetAudioLevel(const int32_t handle, float &audioLevel) override;
         Core::hresult SetAudioGain(const int32_t handle, const float gainLevel) override;

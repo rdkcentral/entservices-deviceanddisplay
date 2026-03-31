@@ -90,8 +90,8 @@ public:
     uint32_t GetAudioFormat(const int32_t handle, AudioFormat &audioFormat);
     uint32_t GetAudioEncoding(const int32_t handle, AudioEncoding &encoding);
     uint32_t GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
-    uint32_t GetCompression(const int32_t handle, AudioCompression &compression);
-    uint32_t SetCompression(const int32_t handle, const AudioCompression compression);
+    uint32_t GetAudioCompression(const int32_t handle, AudioCompression &compression);
+    uint32_t SetAudioCompression(const int32_t handle, const AudioCompression compression);
 
     // Audio Level & Volume Control
     uint32_t SetAudioLevel(const int32_t handle, const float audioLevel);

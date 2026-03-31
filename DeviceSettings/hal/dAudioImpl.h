@@ -447,7 +447,6 @@ public:
     }
 
     // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
-
     uint32_t GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) override {
         ENTRY_LOG;
         if (!_isInitialized) {
@@ -688,7 +687,7 @@ public:
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    uint32_t GetCompression(const int32_t handle, AudioCompression &compression) override {
+    uint32_t GetAudioCompression(const int32_t handle, AudioCompression &compression) override {
         ENTRY_LOG;
         if (!_isInitialized) {
             LOGERR("Audio platform not initialized");
@@ -717,20 +716,20 @@ public:
             
             if (ret == dsERR_NONE) {
                 compression = static_cast<AudioCompression>(dsCompression);
-                LOGINFO("GetCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
+                LOGINFO("GetAudioCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
             } else {
                 LOGERR("dsGetAudioCompression failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetCompression");
+            LOGERR("Exception in GetAudioCompression");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    uint32_t SetCompression(const int32_t handle, const AudioCompression compression) override {
+    uint32_t SetAudioCompression(const int32_t handle, const AudioCompression compression) override {
         ENTRY_LOG;
         if (!_isInitialized) {
             LOGERR("Audio platform not initialized");
@@ -757,13 +756,13 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
+                LOGINFO("SetAudioCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
             } else {
                 LOGERR("dsSetAudioCompression failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetCompression");
+            LOGERR("Exception in SetAudioCompression");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;

@@ -126,13 +126,13 @@ namespace Plugin {
             _hostManager->Register(&_hostNotification);
         }
 
-        // Test DeviceSettings interfaces
-        //TestSimplifiedFPDAPIs();
-        //TestSimplifiedHDMIInAPIs();
-        //TestSelectHDMIInPortAPI();
-        //TestAudioAPIs();
-        //TestVideoPortAPIs();
-        //TestVideoDeviceAPIs();
+        //Test DeviceSettings interfaces
+        TestSimplifiedFPDAPIs();
+        TestSimplifiedHDMIInAPIs();
+        TestSelectHDMIInPortAPI();
+        TestAudioAPIs();
+        TestVideoPortAPIs();
+        TestVideoDeviceAPIs();
         TestHostAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
@@ -2107,7 +2107,7 @@ namespace Plugin {
         Core::hresult result = _videoDeviceManager->GetVideoDeviceHandle(0, videoDeviceHandle);
         LOGINFO("GetVideoDeviceHandle: result=%u, handle=%d", result, videoDeviceHandle);
 
-        if (result == Core::ERROR_NONE && videoDeviceHandle != -1) {
+        if (result == Core::ERROR_NONE) {
             // 2. Test SetVideoDeviceDFC (get current, set test, restore) - this triggers OnVideoDeviceDFCChanged event
             LOGINFO("---------- Testing VideoDevice DFC APIs ----------");
             

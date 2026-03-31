@@ -117,6 +117,9 @@ public:
             }
             host_isPlatInitialized = 1;
             LOGINFO("InitialiseHAL: dsHost HAL initialized successfully");
+            
+            // Load persistence values - following dsHost.cpp dsHostMgr_init pattern
+            getPersistenceValue();
         }
     }
 

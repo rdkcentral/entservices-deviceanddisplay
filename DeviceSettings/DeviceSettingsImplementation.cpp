@@ -354,12 +354,12 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetSupportedCompressions, handle, compressions)
     }
     
-    Core::hresult DeviceSettingsImp::GetCompression(const int32_t handle, AudioCompression &compression) {
-        DELEGATE_TO_COMPONENT(_audioSettings, GetCompression, handle, compression)
+    Core::hresult DeviceSettingsImp::GetAudioCompression(const int32_t handle, AudioCompression &compression) {
+        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioCompression, handle, compression)
     }
-    
-    Core::hresult DeviceSettingsImp::SetCompression(const int32_t handle, const AudioCompression compression) {
-        DELEGATE_TO_COMPONENT(_audioSettings, SetCompression, handle, compression)
+
+    Core::hresult DeviceSettingsImp::SetAudioCompression(const int32_t handle, const AudioCompression compression) {
+        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioCompression, handle, compression)
     }
     
     Core::hresult DeviceSettingsImp::SetAudioLevel(const int32_t handle, const float audioLevel) {

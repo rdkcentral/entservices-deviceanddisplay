@@ -70,8 +70,8 @@ namespace dAudio {
         virtual uint32_t GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) = 0;
         virtual uint32_t GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) = 0;
         virtual uint32_t GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) = 0;
-        virtual uint32_t GetCompression(const int32_t handle, AudioCompression &compression) = 0;
-        virtual uint32_t SetCompression(const int32_t handle, const AudioCompression compression) = 0;
+        virtual uint32_t GetAudioCompression(const int32_t handle, AudioCompression &compression) = 0;
+        virtual uint32_t SetAudioCompression(const int32_t handle, const AudioCompression compression) = 0;
 
         // Audio level and volume control
         virtual uint32_t SetAudioLevel(const int32_t handle, const float audioLevel) = 0;

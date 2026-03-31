@@ -579,6 +579,22 @@ uint32_t Audio::GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtm
     return result;
 }
 
+uint32_t Audio::SetAudioAtmosOutputMode(const int32_t handle, const bool enable) {
+    ENTRY_LOG;
+    LOGINFO("SetAudioAtmosOutputMode: handle=%d, enable=%s", handle, enable ? "true" : "false");
+    uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+    if (_platform) {
+        result = this->platform().SetAudioAtmosOutputMode(handle, enable);
+    }
+    if (result == WPEFramework::Core::ERROR_NONE) {
+        LOGINFO("SetAudioAtmosOutputMode: SUCCESS - platform call completed successfully");
+    } else {
+        LOGERR("SetAudioAtmosOutputMode: FAILED - result=%u", result);
+    }
+    EXIT_LOG;
+    return result;
+}
+
 
 // NOTE: The remaining methods (like SetAudioDelay, GetAudioDelay, etc.) would follow
 // the same pattern. For brevity, I'm implementing the key ones that are commonly used
@@ -593,17 +609,17 @@ uint32_t Audio::GetSupportedCompressions(const int32_t handle, IDeviceSettingsAu
     return result;
 }
 
-uint32_t Audio::GetCompression(const int32_t handle, AudioCompression &compression) {
+uint32_t Audio::GetAudioCompression(const int32_t handle, AudioCompression &compression) {
     ENTRY_LOG;
-    LOGINFO("GetCompression: handle=%d - STUB IMPLEMENTATION", handle);
+    LOGINFO("GetAudioCompression: handle=%d - STUB IMPLEMENTATION", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     EXIT_LOG;
     return result;
 }
 
-uint32_t Audio::SetCompression(const int32_t handle, const AudioCompression compression) {
+uint32_t Audio::SetAudioCompression(const int32_t handle, const AudioCompression compression) {
     ENTRY_LOG;
-    LOGINFO("SetCompression: handle=%d, compression=%d - STUB IMPLEMENTATION", handle, compression);
+    LOGINFO("SetAudioCompression: handle=%d, compression=%d - STUB IMPLEMENTATION", handle, compression);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     EXIT_LOG;
     return result;

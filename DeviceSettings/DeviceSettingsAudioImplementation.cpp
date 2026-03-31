@@ -435,18 +435,18 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult DeviceSettingsAudioImpl::GetCompression(const int32_t handle, AudioCompression &compression) {
+    Core::hresult DeviceSettingsAudioImpl::GetAudioCompression(const int32_t handle, AudioCompression &compression) {
         ENTRY_LOG;
-        LOGINFO("GetCompression: handle=%d - STUB IMPLEMENTATION", handle);
-        uint32_t result = _audio.GetCompression(handle, compression);
+        LOGINFO("GetAudioCompression: handle=%d - STUB IMPLEMENTATION", handle);
+        uint32_t result = _audio.GetAudioCompression(handle, compression);
         EXIT_LOG;
         return result;
     }
 
-    Core::hresult DeviceSettingsAudioImpl::SetCompression(const int32_t handle, const AudioCompression compression) {
+    Core::hresult DeviceSettingsAudioImpl::SetAudioCompression(const int32_t handle, const AudioCompression compression) {
         ENTRY_LOG;
-        LOGINFO("SetCompression: handle=%d, compression=%d - STUB IMPLEMENTATION", handle, compression);
-        uint32_t result = _audio.SetCompression(handle, compression);
+        LOGINFO("SetAudioCompression: handle=%d, compression=%d - STUB IMPLEMENTATION", handle, compression);
+        uint32_t result = _audio.SetAudioCompression(handle, compression);
         EXIT_LOG;
         return result;
     }

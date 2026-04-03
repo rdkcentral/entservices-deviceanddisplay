@@ -5370,8 +5370,10 @@ namespace WPEFramework {
             LOGINFOMETHOD();
 	    std::unordered_set<std::string> Status_Set = {"NOT_STARTED","NOT_NEEDED","STARTED","PRIORITY_SETTINGS_MIGRATED","DEVICE_SETTINGS_MIGRATED","CLOUD_SETTINGS_MIGRATED","APP_DATA_MIGRATED","MIGRATION_COMPLETED"};
 	    std::string value = parameters["status"].String();
+		LOGINFO("input is %s\n", value.c_str());
 	    if(Status_Set.find(value) != Status_Set.end())
             {
+				LOGINFO("input status is available within valid states %s\n", value.c_str());
                 // if file exists, it will be truncated, otherwise it will be created
                 std::ofstream file(MIGRATIONSTATUS, std::ios::trunc);
                 if (file.is_open()) {

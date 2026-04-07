@@ -52,6 +52,8 @@
 #include "DeviceSettingsVideoPortImplementation.h"
 #include "DeviceSettingsVideoDeviceImplementation.h"
 #include "DeviceSettingsHostImplementation.h"
+#include "DeviceSettingsDisplayImplementation.h"
+#include "DeviceSettingsCompositeInImplementation.h"
 
 namespace WPEFramework {
 namespace Plugin {
@@ -67,9 +69,8 @@ namespace Plugin {
                              , public Exchange::IDeviceSettingsVideoPort
                              , public Exchange::IDeviceSettingsVideoDevice
                              , public Exchange::IDeviceSettingsHost
-                             // , public Exchange::IDeviceSettingsCompositeIn   // Not implemented yet
-                             // , public Exchange::IDeviceSettingsDisplay       // Not implemented yet
-                             // , public Exchange::IDeviceSettingsVideoDevice   // Not implemented yet
+                             , public Exchange::IDeviceSettingsCompositeIn   // ✅ IMPLEMENTED
+                             , public Exchange::IDeviceSettingsDisplay       // ✅ IMPLEMENTED
     {
     public:
         // We do not allow this plugin to be copied !!
@@ -91,10 +92,8 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsHost)
-            // Future interface entries when implemented:
-            // INTERFACE_ENTRY(Exchange::IDeviceSettingsCompositeIn)
-            // INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay)
-            // INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsCompositeIn)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay)
         END_INTERFACE_MAP
 
         // IDeviceSettings interface implementation
@@ -342,6 +341,33 @@ namespace Plugin {
         Core::hresult GetEDID(uint8_t edId[] /* @out @length:edIdLength @maxlength:edIdLength */, const uint16_t edIdLength ) override;
         Core::hresult GetMS12ConfigType(string &ms12Config /* @out */) override;
         
+        //=========================================================================
+        // IDeviceSettingsDisplay interface methods
+        //=========================================================================
+        Core::hresult Register(IDisplayNotification* notification ) override;
+        Core::hresult Unregister(IDisplayNotification* notification ) override;
+        Core::hresult Register(IDisplayHDMIHotPlugNotification* notification ) override;
+        Core::hresult Unregister(IDisplayHDMIHotPlugNotification* notification ) override;
+
+        Core::hresult GetDisplayEdid(const int32_t handle, DisplayEDID &edId /* @out */, IDSVideoPortResolutionIterator*& supportedResolutionList /* @out */) override;
+        Core::hresult GetDisplayEdidBytes(const int32_t handle, uint8_t edIdBytes[] /* @out @length:edidLength @maxlength:edidLength */, const uint16_t edidLength) override;
+        Core::hresult GetDisplay(const DisplayPortType portType, const int32_t index, int32_t &handle /* @out */) override;
+        Core::hresult GetDisplayAspectRatio(const int32_t handle, Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio &aspectRatio /* @out */) override;
+        Core::hresult SetAllmEnabled(const int32_t handle, const bool enabled) override;
+        Core::hresult SetAVIContentType(const int32_t handle, const DisplayAVIContentType contentType) override;
+        Core::hresult SetAVIScanInformation(const int32_t handle, const DisplayAVIScanInformation scanInfo) override;
+
+        //=========================================================================
+        // IDeviceSettingsCompositeIn interface methods
+        //=========================================================================
+        Core::hresult Register(Exchange::IDeviceSettingsCompositeIn::INotification* notification ) override;
+        Core::hresult Unregister(Exchange::IDeviceSettingsCompositeIn::INotification* notification ) override;
+
+        Core::hresult GetNrOfCompositeInputs(int32_t &nrCompositeInputs /* @out */) override;
+        Core::hresult GetCompositeInStatus(CompositeInStatus &status /* @out */) override;
+        Core::hresult SelectCompositeInPort(const CompositeInPort port ) override;
+        Core::hresult ScaleCompositeInVideo(const CompositeInVideoRectangle videoRect ) override;
+
         // Other interface implementations - stub implementations for now
         // IDeviceSettingsCompositeIn - not implemented yet  
         // IDeviceSettingsDisplay - not implemented yet
@@ -357,6 +383,8 @@ namespace Plugin {
         DeviceSettingsVideoPortImpl* _videoPortSettings;
         DeviceSettingsVideoDeviceImpl* _videoDeviceSettings;
         DeviceSettingsHostImpl* _hostSettings;
+        DeviceSettingsDisplayImpl* _displaySettings;
+        DeviceSettingsCompositeInImpl* _compositeInSettings;
         
         // Interface pointers for future implementation (currently unused)
         // Exchange::IDeviceSettingsCompositeIn* _compositeInSettings;

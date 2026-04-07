@@ -109,7 +109,6 @@ namespace Plugin {
 
     public:
         // Main initialization and lifecycle methods
-        void DeviceManager_Init();
         void InitializeIARM();
         uint32_t Start();
         uint32_t Stop();

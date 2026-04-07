@@ -56,6 +56,8 @@ namespace Plugin {
         , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
         , _videoDeviceSettings(DeviceSettingsVideoDeviceImpl::Create())
         , _hostSettings(DeviceSettingsHostImpl::Create())
+        , _displaySettings(new DeviceSettingsDisplayImpl())
+        , _compositeInSettings(new DeviceSettingsCompositeInImpl())
         , mConnectionId(0)
     {
         ENTRY_LOG;
@@ -72,6 +74,8 @@ namespace Plugin {
         LOGINFO("Host implementation instance: %p", _hostSettings);
         LOGINFO("HDMIIn implementation instance: %p", _hdmiInSettings);
         LOGINFO("Audio implementation instance: %p", _audioSettings);
+        LOGINFO("Display implementation instance: %p", _displaySettings);
+        LOGINFO("CompositeIn implementation instance: %p", _compositeInSettings);
 
         EXIT_LOG;
     }
@@ -107,6 +111,14 @@ namespace Plugin {
         if (_hostSettings != nullptr) {
             delete _hostSettings;
             _hostSettings = nullptr;
+        }
+        if (_displaySettings != nullptr) {
+            delete _displaySettings;
+            _displaySettings = nullptr;
+        }
+        if (_compositeInSettings != nullptr) {
+            delete _compositeInSettings;
+            _compositeInSettings = nullptr;
         }
         
         EXIT_LOG;
@@ -944,6 +956,74 @@ namespace Plugin {
 
     Core::hresult DeviceSettingsImp::GetMS12ConfigType(string &ms12Config) {
         DELEGATE_TO_COMPONENT(_hostSettings, GetMS12ConfigType, ms12Config)
+    }
+
+    // ============================================================================
+    // IDeviceSettingsDisplay interface implementation - delegate to _displaySettings interface
+    // ============================================================================
+
+    Core::hresult DeviceSettingsImp::Register(IDisplayNotification* notification) {
+        DELEGATE_TO_COMPONENT(_displaySettings, Register, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::Unregister(IDisplayNotification* notification) {
+        DELEGATE_TO_COMPONENT(_displaySettings, Unregister, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::GetDisplayEdid(const int32_t handle, DisplayEDID &edId, IDSVideoPortResolutionIterator*& supportedResolutionList) {
+        DELEGATE_TO_COMPONENT(_displaySettings, GetDisplayEdid, handle, edId, supportedResolutionList)
+    }
+
+    Core::hresult DeviceSettingsImp::GetDisplayEdidBytes(const int32_t handle, uint8_t edIdBytes[], const uint16_t edidLength) {
+        DELEGATE_TO_COMPONENT(_displaySettings, GetDisplayEdidBytes, handle, edIdBytes, edidLength)
+    }
+
+    Core::hresult DeviceSettingsImp::GetDisplay(const DisplayPortType portType, const int32_t index, int32_t &handle) {
+        DELEGATE_TO_COMPONENT(_displaySettings, GetDisplay, portType, index, handle)
+    }
+
+    Core::hresult DeviceSettingsImp::GetDisplayAspectRatio(const int32_t handle, Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio &aspectRatio) {
+        DELEGATE_TO_COMPONENT(_displaySettings, GetDisplayAspectRatio, handle, aspectRatio)
+    }
+
+    Core::hresult DeviceSettingsImp::SetAllmEnabled(const int32_t handle, const bool enabled) {
+        DELEGATE_TO_COMPONENT(_displaySettings, SetAllmEnabled, handle, enabled)
+    }
+
+    Core::hresult DeviceSettingsImp::SetAVIContentType(const int32_t handle, const DisplayAVIContentType contentType) {
+        DELEGATE_TO_COMPONENT(_displaySettings, SetAVIContentType, handle, contentType)
+    }
+
+    Core::hresult DeviceSettingsImp::SetAVIScanInformation(const int32_t handle, const DisplayAVIScanInformation scanInfo) {
+        DELEGATE_TO_COMPONENT(_displaySettings, SetAVIScanInformation, handle, scanInfo)
+    }
+
+    // ============================================================================
+    // IDeviceSettingsCompositeIn interface implementation - delegate to _compositeInSettings interface
+    // ============================================================================
+
+    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsCompositeIn::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_compositeInSettings, Register, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsCompositeIn::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_compositeInSettings, Unregister, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::GetNrOfCompositeInputs(int32_t &nrCompositeInputs) {
+        DELEGATE_TO_COMPONENT(_compositeInSettings, GetNrOfCompositeInputs, nrCompositeInputs)
+    }
+
+    Core::hresult DeviceSettingsImp::GetCompositeInStatus(CompositeInStatus &status) {
+        DELEGATE_TO_COMPONENT(_compositeInSettings, GetCompositeInStatus, status)
+    }
+
+    Core::hresult DeviceSettingsImp::SelectCompositeInPort(const CompositeInPort port) {
+        DELEGATE_TO_COMPONENT(_compositeInSettings, SelectCompositeInPort, port)
+    }
+
+    Core::hresult DeviceSettingsImp::ScaleCompositeInVideo(const CompositeInVideoRectangle videoRect) {
+        DELEGATE_TO_COMPONENT(_compositeInSettings, ScaleCompositeInVideo, videoRect)
     }
 
 } // namespace Plugin

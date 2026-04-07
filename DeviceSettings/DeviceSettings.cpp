@@ -54,7 +54,10 @@ namespace Plugin
         : mConnectionId(0)
         , mService(nullptr)
         , _mDeviceSettings(nullptr)
+        , _mDeviceSettingsCompositeIn(nullptr)
+        , _mDeviceSettingsAudio(nullptr)
         , _mDeviceSettingsFPD(nullptr)
+        , _mDeviceSettingsDisplay(nullptr)
         , _mDeviceSettingsHDMIIn(nullptr)
         , _mDeviceSettingsHost(nullptr)
         , _mDeviceSettingsVideoPort(nullptr)
@@ -105,6 +108,7 @@ namespace Plugin
         ASSERT(_mDeviceSettingsVideoPort == nullptr);
         ASSERT(_mDeviceSettingsVideoDevice == nullptr);
         ASSERT(_mDeviceSettingsHost == nullptr);
+        ASSERT(_mDeviceSettingsCompositeIn == nullptr);
         mService = service;
         mService->AddRef();
 
@@ -148,6 +152,8 @@ namespace Plugin
                 _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
                 _mDeviceSettingsVideoDevice = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoDevice>();
                 _mDeviceSettingsHost = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHost>();
+                _mDeviceSettingsCompositeIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsCompositeIn>();
+                _mDeviceSettingsDisplay = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsDisplay>();
                 if (_mDeviceSettingsVideoPort == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
                 }
@@ -157,9 +163,15 @@ namespace Plugin
                 if (_mDeviceSettingsHost == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsHost interface for external access");
                 }
+                if (_mDeviceSettingsCompositeIn == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsCompositeIn interface for external access");
+                }
+                if (_mDeviceSettingsDisplay == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsDisplay interface for external access");
+                }
 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p", 
-                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost);
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, CompositeIn: %p, Display: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost, _mDeviceSettingsCompositeIn, _mDeviceSettingsDisplay);
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
@@ -183,6 +195,18 @@ namespace Plugin
                 if (_mDeviceSettingsHost != nullptr) {
                     _mDeviceSettingsHost->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
                     LOGINFO("Registered for Host event notifications");
+                }
+                
+                // Register for CompositeIn event notifications
+                if (_mDeviceSettingsCompositeIn != nullptr) {
+                    _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
+                    LOGINFO("Registered for CompositeIn event notifications");
+                }
+                
+                // Register for Display event notifications
+                if (_mDeviceSettingsDisplay != nullptr) {
+                    _mDeviceSettingsDisplay->Register(mNotificationSink.baseInterface<IDisplayNotification>());
+                    LOGINFO("Registered for Display event notifications");
                 }
             }
         }
@@ -214,9 +238,18 @@ namespace Plugin
                     LOGERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
                 }
 
+                _mDeviceSettingsCompositeIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsCompositeIn>();
+                _mDeviceSettingsAudio = _mDeviceSettings->QueryInterface<DeviceSettingsAudio>();
                 _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
                 _mDeviceSettingsVideoDevice = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoDevice>();
                 _mDeviceSettingsHost = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHost>();
+                _mDeviceSettingsDisplay = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsDisplay>();
+                if (_mDeviceSettingsCompositeIn == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsCompositeIn interface for external access");
+                }
+                if (_mDeviceSettingsAudio == nullptr) {
+                    LOGERR("Failed to get DeviceSettingsAudio interface for external access");
+                }
                 if (_mDeviceSettingsVideoPort == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
                 }
@@ -226,9 +259,12 @@ namespace Plugin
                 if (_mDeviceSettingsHost == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsHost interface for external access");
                 }
+                if (_mDeviceSettingsDisplay == nullptr) {
+                    LOGERR("Failed to get IDeviceSettingsDisplay interface for external access");
+                }
 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, VideoPort: %p, VideoDevice: %p, Host: %p", 
-                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost);
+                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, CompositeIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, Display: %p", 
+                       _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsCompositeIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost, _mDeviceSettingsDisplay);
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
@@ -252,6 +288,18 @@ namespace Plugin
                 if (_mDeviceSettingsHost != nullptr) {
                     _mDeviceSettingsHost->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
                     LOGINFO("Registered for Host event notifications");
+                }
+                
+                // Register for CompositeIn event notifications
+                if (_mDeviceSettingsCompositeIn != nullptr) {
+                    _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
+                    LOGINFO("Registered for CompositeIn event notifications");
+                }
+                
+                // Register for Display event notifications
+                if (_mDeviceSettingsDisplay != nullptr) {
+                    _mDeviceSettingsDisplay->Register(mNotificationSink.baseInterface<IDisplayNotification>());
+                    LOGINFO("Registered for Display event notifications");
                 }
             }
         }
@@ -294,6 +342,16 @@ namespace Plugin
                 LOGINFO("Unregistered from Host event notifications");
             }
             
+            if (_mDeviceSettingsCompositeIn != nullptr) {
+                _mDeviceSettingsCompositeIn->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
+                LOGINFO("Unregistered from CompositeIn event notifications");
+            }
+            
+            if (_mDeviceSettingsDisplay != nullptr) {
+                _mDeviceSettingsDisplay->Unregister(mNotificationSink.baseInterface<IDisplayNotification>());
+                LOGINFO("Unregistered from Display event notifications");
+            }
+            
             // Release individual interface pointers
             if (_mDeviceSettingsFPD != nullptr) {
                 _mDeviceSettingsFPD->Release();
@@ -303,6 +361,16 @@ namespace Plugin
             if (_mDeviceSettingsHDMIIn != nullptr) {
                 _mDeviceSettingsHDMIIn->Release();
                 _mDeviceSettingsHDMIIn = nullptr;
+            }
+            
+            if (_mDeviceSettingsCompositeIn != nullptr) {
+                _mDeviceSettingsCompositeIn->Release();
+                _mDeviceSettingsCompositeIn = nullptr;
+            }
+            
+            if (_mDeviceSettingsAudio != nullptr) {
+                _mDeviceSettingsAudio->Release();
+                _mDeviceSettingsAudio = nullptr;
             }
             
             if (_mDeviceSettingsVideoPort != nullptr) {
@@ -317,6 +385,11 @@ namespace Plugin
             if (_mDeviceSettingsHost != nullptr) {
                 _mDeviceSettingsHost->Release();
                 _mDeviceSettingsHost = nullptr;
+            }
+            
+            if (_mDeviceSettingsDisplay != nullptr) {
+                _mDeviceSettingsDisplay->Release();
+                _mDeviceSettingsDisplay = nullptr;
             }
             
             // Release the main device settings interface

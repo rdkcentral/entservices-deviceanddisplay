@@ -48,15 +48,14 @@ namespace Plugin {
     private:
         class NotificationHandler : public RPC::IRemoteConnection::INotification
                                   , public PluginHost::IShell::ICOMLink::INotification
-                                //  , public DeviceSettingsCompositeIn::INotification
+                                  , public DeviceSettingsCompositeIn::INotification
                                   , public DeviceSettingsAudio::INotification
                                   , public DeviceSettingsFPD::INotification
-                                // , public DeviceSettingsVideoDevice::INotification
-                                // , public DeviceSettingsDisplay::INotification
+                                  , public DeviceSettingsDisplay::INotification
                                   , public DeviceSettingsHDMIIn::INotification
-                                  , public Exchange::IDeviceSettingsHost::INotification
-                                  , public Exchange::IDeviceSettingsVideoPort::INotification
-                                  , public Exchange::IDeviceSettingsVideoDevice::INotification
+                                  , public DeviceSettingsHost::INotification
+                                  , public DeviceSettingsVideoPort::INotification
+                                  , public DeviceSettingsVideoDevice::INotification
             {
         private:
             NotificationHandler()                                      = delete;
@@ -82,15 +81,14 @@ namespace Plugin {
             }
 
             BEGIN_INTERFACE_MAP(NotificationHandler)
-            //INTERFACE_ENTRY(DeviceSettingsCompositeIn::INotification)
+            INTERFACE_ENTRY(DeviceSettingsCompositeIn::INotification)
             INTERFACE_ENTRY(DeviceSettingsAudio::INotification)
             INTERFACE_ENTRY(DeviceSettingsFPD::INotification)
-            //INTERFACE_ENTRY(DeviceSettingsVideoDevice::INotification)
-            //INTERFACE_ENTRY(DeviceSettingsDisplay::INotification)
+            INTERFACE_ENTRY(DeviceSettingsDisplay::INotification)
             INTERFACE_ENTRY(DeviceSettingsHDMIIn::INotification)
-            INTERFACE_ENTRY(Exchange::IDeviceSettingsHost::INotification)
-            INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort::INotification)
-            INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoDevice::INotification)
+            INTERFACE_ENTRY(DeviceSettingsHost::INotification)
+            INTERFACE_ENTRY(DeviceSettingsVideoPort::INotification)
+            INTERFACE_ENTRY(DeviceSettingsVideoDevice::INotification)
             INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
             END_INTERFACE_MAP
 
@@ -232,6 +230,27 @@ namespace Plugin {
                 LOGINFO("OnVideoFormatUpdate: hdrStandard=%d", (int)videoFormatHDR);
             }
 
+            // CompositeIn notification handlers matching WPE interface
+            void OnCompositeInHotPlug(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected) override
+            {
+                LOGINFO("OnCompositeInHotPlug: port=%d, isConnected=%s", (int)port, isConnected ? "true" : "false");
+            }
+
+            void OnCompositeInSignalStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus) override
+            {
+                LOGINFO("OnCompositeInSignalStatus: port=%d, signalStatus=%d", (int)port, (int)signalStatus);
+            }
+
+            void OnCompositeInStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented) override
+            {
+                LOGINFO("OnCompositeInStatus: activePort=%d, isPresented=%s", (int)activePort, isPresented ? "true" : "false");
+            }
+
+            void OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution) override
+            {
+                LOGINFO("OnCompositeInVideoModeUpdate: activePort=%d, resolution=%s", (int)activePort, videoResolution.name.c_str());
+            }
+
             // VideoDevice event handlers (matching actual IDeviceSettingsVideoDevice::INotification interface)
             void OnZoomSettingsChanged(const Exchange::IDeviceSettingsVideoDevice::VideoZoom zoomSetting) override
             {
@@ -270,12 +289,10 @@ namespace Plugin {
         BEGIN_INTERFACE_MAP(DeviceSettings)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettings, _mDeviceSettings)
-            //INTERFACE_ENTRY(PluginHost::IDispatcher)
-            //INTERFACE_AGGREGATE(DeviceSettingsCompositeIn, _mDeviceSettingsCompositeIn)
-            INTERFACE_AGGREGATE(DeviceSettingsAudio, _mDeviceSettingsAudio)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsCompositeIn, _mDeviceSettingsCompositeIn)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsAudio, _mDeviceSettingsAudio)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsFPD, _mDeviceSettingsFPD)
-            //INTERFACE_AGGREGATE(DeviceSettingsVideoDevice, _mDeviceSettingsVideoDevice)
-            //INTERFACE_AGGREGATE(DeviceSettingsDisplay, _mDeviceSettingsDisplay)
+            INTERFACE_AGGREGATE(Exchange::IDeviceSettingsDisplay, _mDeviceSettingsDisplay)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsHDMIIn, _mDeviceSettingsHDMIIn)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsHost, _mDeviceSettingsHost)
             INTERFACE_AGGREGATE(Exchange::IDeviceSettingsVideoPort, _mDeviceSettingsVideoPort)
@@ -298,10 +315,10 @@ namespace Plugin {
         uint32_t mConnectionId;
         PluginHost::IShell* mService;
         Exchange::IDeviceSettings* _mDeviceSettings;
-        DeviceSettingsCompositeIn* _mDeviceSettingsCompositeIn;
+        Exchange::IDeviceSettingsCompositeIn* _mDeviceSettingsCompositeIn;
         DeviceSettingsAudio* _mDeviceSettingsAudio;
         Exchange::IDeviceSettingsFPD* _mDeviceSettingsFPD;
-        DeviceSettingsDisplay* _mDeviceSettingsDisplay;
+        Exchange::IDeviceSettingsDisplay* _mDeviceSettingsDisplay;
         Exchange::IDeviceSettingsHDMIIn* _mDeviceSettingsHDMIIn;
         Exchange::IDeviceSettingsHost* _mDeviceSettingsHost;
         Exchange::IDeviceSettingsVideoPort* _mDeviceSettingsVideoPort;

@@ -139,6 +139,27 @@ using TVResolution = DeviceSettingsVideoPort::TVResolution;
 using VideoPortSurroundMode = DeviceSettingsVideoPort::VideoPortSurroundMode;
 using VideoScanMode = DeviceSettingsVideoPort::VideoScanMode;
 
+// Display type aliases for convenience
+using DisplayEvent = DeviceSettingsDisplay::DisplayEvent;
+using DisplayTVResolution = DeviceSettingsDisplay::DisplayTVResolution;
+using DisplayVideoAspectRatio = DeviceSettingsDisplay::DisplayVideoAspectRatio;
+using DisplayInVideoStereoScopicMode = DeviceSettingsDisplay::DisplayInVideoStereoScopicMode;
+using DisplayInVideoFrameRate = DeviceSettingsDisplay::DisplayInVideoFrameRate;
+using DisplayPortType = DeviceSettingsDisplay::DisplayPortType;
+using DisplayAVIContentType = DeviceSettingsDisplay::DisplayAVIContentType;
+using DisplayAVIScanInformation = DeviceSettingsDisplay::DisplayAVIScanInformation;
+using DisplayVideoPortResolution = DeviceSettingsDisplay::DisplayVideoPortResolution;
+using DisplayEDID = DeviceSettingsDisplay::DisplayEDID;
+using IDSVideoPortResolutionIterator = DeviceSettingsDisplay::IDSVideoPortResolutionIterator;
+using IDisplayNotification = DeviceSettingsDisplay::INotification;
+using IDisplayHDMIHotPlugNotification = DeviceSettingsDisplay::IDisplayHDMIHotPlugNotification;
+
+// CompositeIn type aliases for convenience
+using CompositeInPort = DeviceSettingsCompositeIn::CompositeInPort;
+using CompositeInSignalStatus = DeviceSettingsCompositeIn::CompositeInSignalStatus;
+using CompositeInStatus = DeviceSettingsCompositeIn::CompositeInStatus;
+using CompositeInVideoRectangle = DeviceSettingsCompositeIn::VideoRectangle;
+
 // VideoDevice type aliases for convenience
 using VideoDeviceZoom = DeviceSettingsVideoDevice::VideoZoom;
 using VideoDeviceCodec = DeviceSettingsVideoDevice::VideoCodec;
@@ -394,6 +415,28 @@ struct CallbackBundle {
     std::function<void(const ResolutionChange)> OnResolutionPostChange;
     std::function<void(const VideoPortHdcpStatus)> OnHDCPStatusChange;
     std::function<void(const HDRStandard)> OnVideoFormatUpdate;
+    
+    // Display callbacks
+    std::function<void(const DisplayEvent)> OnDisplayRxSense;
+    std::function<void()> OnDisplayHDCPStatus;
+    std::function<void(const DisplayEvent)> OnDisplayHDMIHotPlug;
+    
+    // Display event callbacks (for HAL implementations)
+    std::function<void(const uint8_t, const bool)> DisplayRxSenseEventCallback;
+    std::function<void(const uint8_t, const bool)> DisplayHDCPStatusEventCallback;
+    std::function<void(const uint8_t, const bool)> DisplayHDMIHotPlugEventCallback;
+    
+    // CompositeIn callbacks  
+    std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const bool)> OnCompositeInHotPlug;
+    std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus)> OnCompositeInSignalStatus;
+    std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const bool)> OnCompositeInStatus;
+    std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution)> OnCompositeInVideoModeUpdate;
+    
+    // CompositeIn event callbacks (for HAL implementations)
+    std::function<void(const CompositeInPort, const bool)> CompositeInHotPlugEventCallback;
+    std::function<void(const CompositeInPort, const CompositeInSignalStatus)> CompositeInSignalStatusEventCallback;
+    std::function<void(const CompositeInPort, const bool)> CompositeInStatusEventCallback;
+    std::function<void(const CompositeInPort, const DisplayVideoPortResolution)> CompositeInVideoModeUpdateEventCallback;
     
     // VideoDevice callbacks
     std::function<void(const VideoDeviceZoom)> OnZoomSettingsChanged;

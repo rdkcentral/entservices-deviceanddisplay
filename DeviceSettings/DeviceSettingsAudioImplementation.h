@@ -92,7 +92,6 @@ namespace Plugin {
         };
 
     public:
-        void DeviceManager_Init();
         void InitializeIARM();
 
         // Audio Port Management

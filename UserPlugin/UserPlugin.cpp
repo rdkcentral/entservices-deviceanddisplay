@@ -67,7 +67,7 @@ namespace Plugin {
 
     UserPlugin* UserPlugin::_instance = nullptr;
 
-    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _audioManager(nullptr), _videoPortManager(nullptr), _videoDeviceManager(nullptr), _hostManager(nullptr), _hdmiInNotification(*this), _audioNotification(*this), _videoPortNotification(*this), _videoDeviceNotification(*this), _hostNotification(*this)
+    UserPlugin::UserPlugin() : _service(nullptr), _connectionId(0), _fpdManager(nullptr), _hdmiInManager(nullptr), _compositeInManager(nullptr), _audioManager(nullptr), _videoPortManager(nullptr), _videoDeviceManager(nullptr), _displayManager(nullptr), _hostManager(nullptr), _hdmiInNotification(*this), _compositeInNotification(*this), _audioNotification(*this), _videoPortNotification(*this), _videoDeviceNotification(*this), _displayNotification(*this), _hostNotification(*this)
     {
         UserPlugin::_instance = this;
         SYSLOG(Logging::Startup, (_T("UserPlugin Constructor")));
@@ -93,9 +93,11 @@ namespace Plugin {
             // Get individual interfaces from the main DeviceSettings interface
             _fpdManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsFPD>("org.rdk.DeviceSettings");
             _hdmiInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHDMIIn>("org.rdk.DeviceSettings");
+            _compositeInManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsCompositeIn>("org.rdk.DeviceSettings");
             _audioManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsAudio>("org.rdk.DeviceSettings");
             _videoPortManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsVideoPort>("org.rdk.DeviceSettings");
             _videoDeviceManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsVideoDevice>("org.rdk.DeviceSettings");
+            _displayManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsDisplay>("org.rdk.DeviceSettings");
             _hostManager = _service->QueryInterfaceByCallsign<Exchange::IDeviceSettingsHost>("org.rdk.DeviceSettings");
         } else {
             LOGERR("Could not obtain DeviceSettings interface");
@@ -104,6 +106,11 @@ namespace Plugin {
         // Register for HDMI In notifications if interface is available
         if (_hdmiInManager) {
             _hdmiInManager->Register(&_hdmiInNotification);
+        }
+
+        // Register for CompositeIn notifications if interface is available
+        if (_compositeInManager) {
+            _compositeInManager->Register(&_compositeInNotification);
         }
 
         // Register for Audio notifications if interface is available
@@ -121,6 +128,12 @@ namespace Plugin {
             _videoDeviceManager->Register(&_videoDeviceNotification);
         }
 
+        // Register for Display notifications if interface is available
+        if (_displayManager) {
+            _displayManager->Register(static_cast<Exchange::IDeviceSettingsDisplay::INotification*>(&_displayNotification));
+            _displayManager->Register(static_cast<Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification*>(&_displayNotification));
+        }
+
         // Register for Host notifications if interface is available
         if (_hostManager) {
             _hostManager->Register(&_hostNotification);
@@ -130,9 +143,11 @@ namespace Plugin {
         TestSimplifiedFPDAPIs();
         TestSimplifiedHDMIInAPIs();
         TestSelectHDMIInPortAPI();
+        TestCompositeInAPIs();
         TestAudioAPIs();
         TestVideoPortAPIs();
         TestVideoDeviceAPIs();
+        TestDisplayAPIs();
         TestHostAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
@@ -149,6 +164,13 @@ namespace Plugin {
             _hdmiInManager->Unregister(&_hdmiInNotification);
             _hdmiInManager->Release();
             _hdmiInManager = nullptr;
+        }
+
+        // Unregister CompositeIn notifications and release CompositeIn Manager
+        if (_compositeInManager) {
+            _compositeInManager->Unregister(&_compositeInNotification);
+            _compositeInManager->Release();
+            _compositeInManager = nullptr;
         }
 
         // Unregister Audio notifications and release Audio Manager
@@ -170,6 +192,14 @@ namespace Plugin {
             _videoDeviceManager->Unregister(&_videoDeviceNotification);
             _videoDeviceManager->Release();
             _videoDeviceManager = nullptr;
+        }
+
+        // Unregister Display notifications and release Display Manager
+        if (_displayManager) {
+            _displayManager->Unregister(static_cast<Exchange::IDeviceSettingsDisplay::INotification*>(&_displayNotification));
+            _displayManager->Unregister(static_cast<Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification*>(&_displayNotification));
+            _displayManager->Release();
+            _displayManager = nullptr;
         }
 
         // Unregister Host notifications and release Host Manager
@@ -2276,6 +2306,413 @@ namespace Plugin {
         LOGINFO("GetMS12ConfigType: result=%u, ms12Config='%s'", result, ms12Config.c_str());
 
         LOGINFO("========== Complete Host APIs Testing Completed ==========\\n");
+    }
+
+    // ========== Display Event Handlers ==========
+
+    void UserPlugin::OnDisplayRxSense(const Exchange::IDeviceSettingsDisplay::DisplayEvent displayEvent)
+    {
+        LOGINFO("========== Display RX Sense Event ==========");
+        LOGINFO("Display RX Sense Event: displayEvent=%d", static_cast<int>(displayEvent));
+        
+        if (displayEvent == Exchange::IDeviceSettingsDisplay::DisplayEvent::DS_DISPLAY_RXSENSE_ON) {
+            LOGINFO("Display RX Sense: DISPLAY CONNECTED (RXSENSE_ON)");
+        } else if (displayEvent == Exchange::IDeviceSettingsDisplay::DisplayEvent::DS_DISPLAY_RXSENSE_OFF) {
+            LOGINFO("Display RX Sense: DISPLAY DISCONNECTED (RXSENSE_OFF)");
+        } else {
+            LOGINFO("Display RX Sense: UNKNOWN EVENT (%d)", static_cast<int>(displayEvent));
+        }
+    }
+
+    void UserPlugin::OnDisplayHDCPStatus()
+    {
+        LOGINFO("========== Display HDCP Status Event ==========");
+        LOGINFO("Display HDCP Status changed");
+        // Note: This event indicates HDCP status changed but doesn't provide the new status
+        // Application would typically call GetHDCPStatus after receiving this event
+    }
+
+    void UserPlugin::OnDisplayHDMIHotPlug(const Exchange::IDeviceSettingsDisplay::DisplayEvent displayEvent)
+    {
+        LOGINFO("========== Display HDMI Hot Plug Event ==========");
+        LOGINFO("Display HDMI Hot Plug Event: displayEvent=%d", static_cast<int>(displayEvent));
+        
+        if (displayEvent == Exchange::IDeviceSettingsDisplay::DisplayEvent::DS_DISPLAY_EVENT_CONNECTED) {
+            LOGINFO("Display HDMI: DISPLAY CONNECTED - Cable plugged in");
+        } else if (displayEvent == Exchange::IDeviceSettingsDisplay::DisplayEvent::DS_DISPLAY_EVENT_DISCONNECTED) {
+            LOGINFO("Display HDMI: DISPLAY DISCONNECTED - Cable unplugged");
+        } else {
+            LOGINFO("Display HDMI: UNKNOWN EVENT (%d)", static_cast<int>(displayEvent));
+        }
+    }
+
+    void UserPlugin::TestDisplayAPIs()
+    {
+        LOGINFO("========== Complete Display APIs Testing Framework ==========");
+
+        if (!_displayManager) {
+            LOGERR("Display Manager interface is not available");
+            return;
+        }
+
+        LOGINFO("Testing ALL Display APIs with comprehensive coverage");
+
+        // Test display port types
+        Exchange::IDeviceSettingsDisplay::DisplayPortType testPortTypes[] = {
+            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_HDMI,
+            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_DVI,
+            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_COMPONENT,
+            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_SVIDEO
+        };
+
+        const char* portTypeNames[] = {"HDMI", "DVI", "COMPONENT", "SVIDEO"};
+        int numPortTypes = sizeof(testPortTypes) / sizeof(testPortTypes[0]);
+
+        for (int i = 0; i < numPortTypes; i++) {
+            Exchange::IDeviceSettingsDisplay::DisplayPortType portType = testPortTypes[i];
+            const char* portTypeName = portTypeNames[i];
+
+            LOGINFO("---------- Testing Display APIs for Port Type: %s ----------", portTypeName);
+
+            // 1. Test GetDisplay - Get handle for this port type
+            int32_t handle = -1;
+            Core::hresult result = _displayManager->GetDisplay(portType, 0, handle);
+            LOGINFO("GetDisplay: portType=%d (%s), index=0, result=%u, handle=%d", 
+                   static_cast<int>(portType), portTypeName, result, handle);
+
+            if (result == Core::ERROR_NONE && handle != -1) {
+                // 2. Test GetDisplayAspectRatio (read-only)
+                Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio aspectRatio;
+                result = _displayManager->GetDisplayAspectRatio(handle, aspectRatio);
+                LOGINFO("GetDisplayAspectRatio: handle=%d, result=%u, aspectRatio=%d", 
+                       handle, result, static_cast<int>(aspectRatio));
+                
+                if (result == Core::ERROR_NONE) {
+                    const char* aspectStr = "UNKNOWN";
+                    switch (aspectRatio) {
+                        case Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_16X9:
+                            aspectStr = "16:9";
+                            break;
+                        case Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_4X3:
+                            aspectStr = "4:3";
+                            break;
+                        case Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_MAX:
+                            aspectStr = "MAX";
+                            break;
+                    }
+                    LOGINFO("Display Aspect Ratio: %s", aspectStr);
+                }
+
+                // 3. Test GetDisplayEdid (read-only complex struct)
+                Exchange::IDeviceSettingsDisplay::DisplayEDID edid;
+                Exchange::IDeviceSettingsDisplay::IDSVideoPortResolutionIterator* resolutionIterator = nullptr;
+                result = _displayManager->GetDisplayEdid(handle, edid, resolutionIterator);
+                LOGINFO("GetDisplayEdid: handle=%d, result=%u", handle, result);
+                
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("EDID Info - ProductCode:%d, SerialNumber:%d, ManufactureYear:%d, ManufactureWeek:%d", 
+                           edid.productCode, edid.serialNumber, edid.manufactureYear, edid.manufactureWeek);
+                    LOGINFO("EDID Info - HDMIDeviceType:%s, IsRepeater:%s, MonitorName:'%s'", 
+                           edid.hdmiDeviceType ? "true" : "false", 
+                           edid.isRepeater ? "true" : "false", 
+                           edid.monitorName.c_str());
+                    LOGINFO("EDID Info - PhysicalAddress:%d.%d.%d.%d, SupportedResolutions:%d", 
+                           edid.physicalAddressA, edid.physicalAddressB, 
+                           edid.physicalAddressC, edid.physicalAddressD, 
+                           edid.numOfSupportedResolution);
+                    
+                    // Clean up resolution iterator if valid
+                    if (resolutionIterator) {
+                        resolutionIterator->Release();
+                    }
+                }
+
+                // 4. Test GetDisplayEdidBytes (read-only byte array)
+                uint8_t edidBytes[256] = {0};
+                result = _displayManager->GetDisplayEdidBytes(handle, edidBytes, 256);
+                LOGINFO("GetDisplayEdidBytes: handle=%d, result=%u, edidLength=256", handle, result);
+                
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("EDID Raw Bytes retrieved successfully");
+                    LOGINFO("First 8 EDID bytes: %02X %02X %02X %02X %02X %02X %02X %02X", 
+                           edidBytes[0], edidBytes[1], edidBytes[2], edidBytes[3], 
+                           edidBytes[4], edidBytes[5], edidBytes[6], edidBytes[7]);
+                }
+
+                // 5. Test SetAllmEnabled (set API - toggle test)
+                bool allmEnabled = true;
+                result = _displayManager->SetAllmEnabled(handle, allmEnabled);
+                LOGINFO("SetAllmEnabled: handle=%d, result=%u, enabled=%s", 
+                       handle, result, allmEnabled ? "true" : "false");
+                
+                // Test disabling as well
+                allmEnabled = false;
+                result = _displayManager->SetAllmEnabled(handle, allmEnabled);
+                LOGINFO("SetAllmEnabled: handle=%d, result=%u, enabled=%s", 
+                       handle, result, allmEnabled ? "true" : "false");
+
+                // 6. Test SetAVIContentType (set API - test different types)
+                Exchange::IDeviceSettingsDisplay::DisplayAVIContentType contentTypes[] = {
+                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_GRAPHICS,
+                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_PHOTO,
+                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_CINEMA,
+                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_GAME
+                };
+                const char* contentTypeNames[] = {"GRAPHICS", "PHOTO", "CINEMA", "GAME"};
+                int numContentTypes = sizeof(contentTypes) / sizeof(contentTypes[0]);
+                
+                for (int j = 0; j < numContentTypes; j++) {
+                    result = _displayManager->SetAVIContentType(handle, contentTypes[j]);
+                    LOGINFO("SetAVIContentType: handle=%d, result=%u, contentType=%d (%s)", 
+                           handle, result, static_cast<int>(contentTypes[j]), contentTypeNames[j]);
+                }
+
+                // 7. Test SetAVIScanInformation (set API - test different scan types)
+                Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation scanInfoTypes[] = {
+                    Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation::DS_DISPLAY_AVI_SCAN_NO_DATA,
+                    Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation::DS_DISPLAY_AVI_SCAN_OVERSCAN,
+                    Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation::DS_DISPLAY_AVI_SCAN_UNDERSCAN
+                };
+                const char* scanInfoNames[] = {"NO_DATA", "OVERSCAN", "UNDERSCAN"};
+                int numScanInfoTypes = sizeof(scanInfoTypes) / sizeof(scanInfoTypes[0]);
+                
+                for (int j = 0; j < numScanInfoTypes; j++) {
+                    result = _displayManager->SetAVIScanInformation(handle, scanInfoTypes[j]);
+                    LOGINFO("SetAVIScanInformation: handle=%d, result=%u, scanInfo=%d (%s)", 
+                           handle, result, static_cast<int>(scanInfoTypes[j]), scanInfoNames[j]);
+                }
+
+            } else {
+                LOGINFO("Skipping tests for %s port (handle not available)", portTypeName);
+            }
+
+            LOGINFO("---------- Completed Display APIs testing for %s ----------\\n", portTypeName);
+        }
+
+        LOGINFO("========== Complete Display APIs Testing Completed ==========\\n");
+    }
+
+    // ========== CompositeIn Event Handlers ==========
+
+    void UserPlugin::OnCompositeInHotPlug(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected)
+    {
+        LOGINFO("========== CompositeIn Hot Plug Event ==========");
+        LOGINFO("CompositeIn Hot Plug Event: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
+        
+        const char* portName = "UNKNOWN";
+        switch (port) {
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_0:
+                portName = "PORT_0";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_1:
+                portName = "PORT_1";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_NONE:
+                portName = "PORT_NONE";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_MAX:
+                portName = "PORT_MAX";
+                break;
+        }
+        
+        if (isConnected) {
+            LOGINFO("CompositeIn %s: CABLE CONNECTED", portName);
+        } else {
+            LOGINFO("CompositeIn %s: CABLE DISCONNECTED", portName);
+        }
+    }
+
+    void UserPlugin::OnCompositeInSignalStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus)
+    {
+        LOGINFO("========== CompositeIn Signal Status Event ==========");
+        LOGINFO("CompositeIn Signal Status Event: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
+        
+        const char* portName = "UNKNOWN";
+        switch (port) {
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_0:
+                portName = "PORT_0";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_1:
+                portName = "PORT_1";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_NONE:
+                portName = "PORT_NONE";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_MAX:
+                portName = "PORT_MAX";
+                break;
+        }
+        
+        const char* statusName = "UNKNOWN";
+        switch (signalStatus) {
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus::DS_COMPOSITE_IN_SIGNAL_STATUS_NONE:
+                statusName = "NONE";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus::DS_COMPOSITE_IN_SIGNAL_STATUS_NOSIGNAL:
+                statusName = "NO_SIGNAL";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus::DS_COMPOSITE_IN_SIGNAL_STATUS_UNSTABLE:
+                statusName = "UNSTABLE";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus::DS_COMPOSITE_IN_SIGNAL_STATUS_NOTSUPPORTED:
+                statusName = "NOT_SUPPORTED";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus::DS_COMPOSITE_IN_SIGNAL_STATUS_STABLE:
+                statusName = "STABLE";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus::DS_COMPOSITE_IN_SIGNAL_STATUS_MAX:
+                statusName = "MAX";
+                break;
+        }
+        
+        LOGINFO("CompositeIn %s Signal Status: %s", portName, statusName);
+    }
+
+    void UserPlugin::OnCompositeInStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented)
+    {
+        LOGINFO("========== CompositeIn Status Event ==========");
+        LOGINFO("CompositeIn Status Event: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
+        
+        const char* portName = "UNKNOWN";
+        switch (activePort) {
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_0:
+                portName = "PORT_0";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_1:
+                portName = "PORT_1";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_NONE:
+                portName = "PORT_NONE";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_MAX:
+                portName = "PORT_MAX";
+                break;
+        }
+        
+        if (isPresented) {
+            LOGINFO("CompositeIn %s: VIDEO PRESENTED TO USER", portName);
+        } else {
+            LOGINFO("CompositeIn %s: VIDEO NOT PRESENTED", portName);
+        }
+    }
+
+    void UserPlugin::OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution)
+    {
+        LOGINFO("========== CompositeIn Video Mode Update Event ==========");
+        LOGINFO("CompositeIn Video Mode Update Event: activePort=%d", static_cast<int>(activePort));
+        
+        const char* portName = "UNKNOWN";
+        switch (activePort) {
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_0:
+                portName = "PORT_0";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_1:
+                portName = "PORT_1";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_NONE:
+                portName = "PORT_NONE";
+                break;
+            case Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_MAX:
+                portName = "PORT_MAX";
+                break;
+        }
+        
+        LOGINFO("CompositeIn %s Video Resolution Update:", portName);
+        LOGINFO("  Resolution Name: %s", videoResolution.name.c_str());
+        LOGINFO("  Pixel Resolution: 0x%x", static_cast<uint32_t>(videoResolution.pixelResolution));
+        LOGINFO("  Aspect Ratio: %d", static_cast<int>(videoResolution.aspectRatio));
+        LOGINFO("  Frame Rate: %d", static_cast<int>(videoResolution.frameRate));
+        LOGINFO("  Interlaced: %s", videoResolution.interlaced ? "true" : "false");
+    }
+
+    void UserPlugin::TestCompositeInAPIs()
+    {
+        LOGINFO("========== Complete CompositeIn APIs Testing Framework ==========");
+
+        if (!_compositeInManager) {
+            LOGERR("CompositeIn Manager interface is not available");
+            return;
+        }
+
+        LOGINFO("Testing ALL CompositeIn APIs with comprehensive coverage");
+
+        // 1. Test GetNrOfCompositeInputs (read-only)
+        int32_t nrCompositeInputs = 0;
+        Core::hresult result = _compositeInManager->GetNrOfCompositeInputs(nrCompositeInputs);
+        LOGINFO("GetNrOfCompositeInputs: result=%u, nrCompositeInputs=%d", result, nrCompositeInputs);
+
+        if (result == Core::ERROR_NONE && nrCompositeInputs > 0) {
+            // 2. Test GetCompositeInStatus (read-only)
+            Exchange::IDeviceSettingsCompositeIn::CompositeInStatus status;
+            result = _compositeInManager->GetCompositeInStatus(status);
+            LOGINFO("GetCompositeInStatus: result=%u", result);
+            
+            if (result == Core::ERROR_NONE) {
+                LOGINFO("CompositeIn Status:");
+                LOGINFO("  isPresented: %s", status.isPresented ? "true" : "false");
+                LOGINFO("  activePort: %d", static_cast<int>(status.activePort));
+                LOGINFO("  isPort0Connected: %s", status.isPort0Connected ? "true" : "false");
+                LOGINFO("  isPort1Connected: %s", status.isPort1Connected ? "true" : "false");
+            }
+
+            // 3. Test SelectCompositeInPort (test different ports)
+            Exchange::IDeviceSettingsCompositeIn::CompositeInPort testPorts[] = {
+                Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_0,
+                Exchange::IDeviceSettingsCompositeIn::CompositeInPort::DS_COMPOSITE_IN_PORT_1
+            };
+            
+            const char* portNames[] = {"PORT_0", "PORT_1"};
+            int numPorts = sizeof(testPorts) / sizeof(testPorts[0]);
+            
+            for (int i = 0; i < numPorts && i < nrCompositeInputs; i++) {
+                result = _compositeInManager->SelectCompositeInPort(testPorts[i]);
+                LOGINFO("SelectCompositeInPort: port=%d (%s), result=%u", 
+                       static_cast<int>(testPorts[i]), portNames[i], result);
+                
+                // Get status after port selection to verify
+                if (result == Core::ERROR_NONE) {
+                    Exchange::IDeviceSettingsCompositeIn::CompositeInStatus newStatus;
+                    result = _compositeInManager->GetCompositeInStatus(newStatus);
+                    if (result == Core::ERROR_NONE) {
+                        LOGINFO("After port selection - activePort: %d", static_cast<int>(newStatus.activePort));
+                    }
+                }
+            }
+
+            // 4. Test ScaleCompositeInVideo (test different scaling rectangles)
+            Exchange::IDeviceSettingsCompositeIn::VideoRectangle testRectangles[] = {
+                {0, 0, 1920, 1080},      // Full HD
+                {100, 100, 1280, 720},   // 720p with offset
+                {200, 200, 640, 480},    // 480p with offset
+                {0, 0, 720, 576}         // PAL
+            };
+            
+            const char* rectNames[] = {"Full_HD", "720p_Offset", "480p_Offset", "PAL"};
+            int numRectangles = sizeof(testRectangles) / sizeof(testRectangles[0]);
+            
+            for (int i = 0; i < numRectangles; i++) {
+                result = _compositeInManager->ScaleCompositeInVideo(testRectangles[i]);
+                LOGINFO("ScaleCompositeInVideo: rect=%s (%d,%d,%dx%d), result=%u", 
+                       rectNames[i],
+                       testRectangles[i].x, testRectangles[i].y,
+                       testRectangles[i].width, testRectangles[i].height,
+                       result);
+            }
+
+            // 5. Restore original port selection
+            if (result == Core::ERROR_NONE) {
+                Exchange::IDeviceSettingsCompositeIn::CompositeInStatus originalStatus;
+                result = _compositeInManager->GetCompositeInStatus(originalStatus);
+                if (result == Core::ERROR_NONE) {
+                    LOGINFO("Test completed - Current active port: %d", static_cast<int>(originalStatus.activePort));
+                }
+            }
+
+        } else {
+            LOGINFO("No CompositeIn inputs available for testing (nrCompositeInputs: %d)", nrCompositeInputs);
+        }
+
+        LOGINFO("========== Complete CompositeIn APIs Testing Completed ==========\\n");
     }
 
 } // namespace Plugin

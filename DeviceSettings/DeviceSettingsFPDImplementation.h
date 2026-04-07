@@ -95,7 +95,6 @@ namespace Plugin {
         };
 
     public:
-        void DeviceManager_Init();
         void InitializeIARM();
 
         // FPD implementation methods - no longer interface methods, just implementation

@@ -123,6 +123,53 @@ namespace WPEFramework
                 UserPlugin& _parent;
             };
 
+            class CompositeInNotification : public virtual Exchange::IDeviceSettingsCompositeIn::INotification {
+            private:
+                CompositeInNotification(const CompositeInNotification&) = delete;
+                CompositeInNotification& operator=(const CompositeInNotification&) = delete;
+            
+            public:
+                explicit CompositeInNotification(UserPlugin& parent)
+                    : _parent(parent)
+                {
+                }
+
+            public:
+                void OnCompositeInHotPlug(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected) override
+                {
+                    _parent.OnCompositeInHotPlug(port, isConnected);
+                }
+
+                void OnCompositeInSignalStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus) override
+                {
+                    _parent.OnCompositeInSignalStatus(port, signalStatus);
+                }
+
+                void OnCompositeInStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented) override
+                {
+                    _parent.OnCompositeInStatus(activePort, isPresented);
+                }
+
+                void OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution) override
+                {
+                    _parent.OnCompositeInVideoModeUpdate(activePort, videoResolution);
+                }
+
+                template <typename T>
+                T* baseInterface()
+                {
+                    static_assert(std::is_base_of<T, CompositeInNotification>(), "base type mismatch");
+                    return static_cast<T*>(this);
+                }
+
+                BEGIN_INTERFACE_MAP(CompositeInNotification)
+                INTERFACE_ENTRY(Exchange::IDeviceSettingsCompositeIn::INotification)
+                END_INTERFACE_MAP
+            
+            private:
+                UserPlugin& _parent;
+            };
+
             class VideoDeviceNotification : public virtual Exchange::IDeviceSettingsVideoDevice::INotification {
             private:
                 VideoDeviceNotification(const VideoDeviceNotification&) = delete;
@@ -177,6 +224,49 @@ namespace WPEFramework
 
                 BEGIN_INTERFACE_MAP(HostNotification)
                 INTERFACE_ENTRY(Exchange::IDeviceSettingsHost::INotification)
+                END_INTERFACE_MAP
+            
+            private:
+                UserPlugin& _parent;
+            };
+
+            class DisplayNotification : public virtual Exchange::IDeviceSettingsDisplay::INotification, public virtual Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification {
+            private:
+                DisplayNotification(const DisplayNotification&) = delete;
+                DisplayNotification& operator=(const DisplayNotification&) = delete;
+            
+            public:
+                explicit DisplayNotification(UserPlugin& parent)
+                    : _parent(parent)
+                {
+                }
+
+            public:
+                void OnDisplayRxSense(const Exchange::IDeviceSettingsDisplay::DisplayEvent displayEvent) override
+                {
+                    _parent.OnDisplayRxSense(displayEvent);
+                }
+
+                void OnDisplayHDCPStatus() override
+                {
+                    _parent.OnDisplayHDCPStatus();
+                }
+
+                void OnDisplayHDMIHotPlug(const Exchange::IDeviceSettingsDisplay::DisplayEvent displayEvent) override
+                {
+                    _parent.OnDisplayHDMIHotPlug(displayEvent);
+                }
+
+                template <typename T>
+                T* baseInterface()
+                {
+                    static_assert(std::is_base_of<T, DisplayNotification>(), "base type mismatch");
+                    return static_cast<T*>(this);
+                }
+
+                BEGIN_INTERFACE_MAP(DisplayNotification)
+                INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::INotification)
+                INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification)
                 END_INTERFACE_MAP
 
             private:
@@ -322,6 +412,7 @@ namespace WPEFramework
             void TestSimplifiedHDMIInAPIs();
             void TestSimplifiedFPDAPIs();
             void TestSelectHDMIInPortAPI();
+            void TestCompositeInAPIs();
             void TestAudioAPIs();
             void TestVideoPortAPIs();
             void TestVideoDeviceAPIs();
@@ -335,6 +426,12 @@ namespace WPEFramework
             void OnHDMIInAVIContentType(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInAviContentType aviContentType);
             void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay);
             void OnHDMIInVRRStatus(const DeviceSettingsHDMIIn::HDMIInPort port, const DeviceSettingsHDMIIn::HDMIInVRRType vrrType);
+
+            // CompositeIn Event Handlers
+            void OnCompositeInHotPlug(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected);
+            void OnCompositeInSignalStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus);
+            void OnCompositeInStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented);
+            void OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution);
 
             // Audio Event Handlers
             void OnAssociatedAudioMixingChanged(bool mixing);
@@ -359,11 +456,19 @@ namespace WPEFramework
             void OnDisplayFrameratePreChange(const string frameRate);
             void OnDisplayFrameratePostChange(const string frameRate);
 
+            // Display Event Handlers
+            void OnDisplayRxSense(const Exchange::IDeviceSettingsDisplay::DisplayEvent displayEvent);
+            void OnDisplayHDCPStatus();
+            void OnDisplayHDMIHotPlug(const Exchange::IDeviceSettingsDisplay::DisplayEvent displayEvent);
+
             // Host Event Handlers
             void OnSleepModeChanged(const Exchange::IDeviceSettingsHost::SleepMode sleepMode);
 
             // Test cases for Host APIs
             void TestHostAPIs();
+
+            // Test cases for Display APIs
+            void TestDisplayAPIs();
 
             // IARM API methods for direct DsMgr daemon communication
             Core::hresult TestIARMHdmiInSelectPort(const int port, const bool requestAudioMix, const bool topMostPlane, const int videoPlaneType);
@@ -391,16 +496,20 @@ namespace WPEFramework
             Exchange::IDeviceSettings* _deviceSettings;
             Exchange::IDeviceSettingsFPD* _fpdManager;
             Exchange::IDeviceSettingsHDMIIn* _hdmiInManager;
+            Exchange::IDeviceSettingsCompositeIn* _compositeInManager;
             Exchange::IDeviceSettingsAudio* _audioManager;
             Exchange::IDeviceSettingsVideoPort* _videoPortManager;
             Exchange::IDeviceSettingsVideoDevice* _videoDeviceManager;
+            Exchange::IDeviceSettingsDisplay* _displayManager;
             Exchange::IDeviceSettingsHost* _hostManager;
             //PowerManagerInterfaceRef _powerManager{};
             // PowerManager notification removed
             Core::Sink<HDMIInNotification> _hdmiInNotification;
+            Core::Sink<CompositeInNotification> _compositeInNotification;
             Core::Sink<AudioNotification> _audioNotification;
             Core::Sink<VideoPortNotification> _videoPortNotification;
             Core::Sink<VideoDeviceNotification> _videoDeviceNotification;
+            Core::Sink<DisplayNotification> _displayNotification;
             Core::Sink<HostNotification> _hostNotification;
 
 	    void Deactivated(RPC::IRemoteConnection *connection);

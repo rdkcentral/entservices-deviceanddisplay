@@ -59,12 +59,16 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DeviceSettingsHdmiInImplementation.cpp
     DeviceSettingsAudioImplementation.cpp
     DeviceSettingsHostImplementation.cpp
+    DeviceSettingsDisplayImplementation.cpp
+    DeviceSettingsCompositeInImplementation.cpp
     fpd.cpp
     VideoPort.cpp
     VideoDevice.cpp
     HdmiIn.cpp
     Audio.cpp
     Host.cpp
+    Display.cpp
+    CompositeIn.cpp
     DSController.cpp
     DSPwrEventListener.cpp
     DSProductTraitsHandler.cpp

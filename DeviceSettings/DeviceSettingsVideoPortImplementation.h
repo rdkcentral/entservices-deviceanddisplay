@@ -63,7 +63,6 @@ namespace Plugin {
         // DeviceSettingsImp handles QueryInterface for all component interfaces
 
     public:
-        void DeviceManager_Init();
 
         // Template method for dispatching VideoPort Events
         template<typename Func, typename... Args>

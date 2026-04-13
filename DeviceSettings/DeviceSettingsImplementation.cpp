@@ -56,8 +56,8 @@ namespace Plugin {
         , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
         , _videoDeviceSettings(DeviceSettingsVideoDeviceImpl::Create())
         , _hostSettings(DeviceSettingsHostImpl::Create())
-        , _displaySettings(new DeviceSettingsDisplayImpl())
-        , _compositeInSettings(new DeviceSettingsCompositeInImpl())
+        , _displaySettings(DeviceSettingsDisplayImpl::Create())
+        , _compositeInSettings(DeviceSettingsCompositeInImpl::Create())
         , mConnectionId(0)
     {
         ENTRY_LOG;
@@ -980,6 +980,14 @@ namespace Plugin {
 
     Core::hresult DeviceSettingsImp::GetDisplay(const DisplayPortType portType, const int32_t index, int32_t &handle) {
         DELEGATE_TO_COMPONENT(_displaySettings, GetDisplay, portType, index, handle)
+    }
+
+    Core::hresult DeviceSettingsImp::Register(IDisplayHDMIHotPlugNotification* notification) {
+        DELEGATE_TO_COMPONENT(_displaySettings, Register, notification)
+    }
+
+    Core::hresult DeviceSettingsImp::Unregister(IDisplayHDMIHotPlugNotification* notification) {
+        DELEGATE_TO_COMPONENT(_displaySettings, Unregister, notification)
     }
 
     Core::hresult DeviceSettingsImp::GetDisplayAspectRatio(const int32_t handle, Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio &aspectRatio) {

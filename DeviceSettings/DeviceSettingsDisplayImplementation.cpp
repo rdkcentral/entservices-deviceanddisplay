@@ -224,6 +224,7 @@ namespace Plugin {
     uint32_t DeviceSettingsDisplayImpl::GetDisplay(const DisplayPortType portType, const int32_t index, int32_t &handle)
     {
         ENTRY_LOG;
+        
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.GetDisplay(portType, index, handle);
         if (result == Core::ERROR_NONE) {

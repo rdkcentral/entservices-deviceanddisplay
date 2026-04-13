@@ -82,6 +82,21 @@ public:
         getInstance() = nullptr; // Clear static instance
     }
 
+    // Resolve method for dynamic library loading - following dHdmiInImpl.h pattern
+    static void* resolve(const std::string& libName, const std::string& symbolName) {
+        void* handle = dlopen(libName.c_str(), RTLD_LAZY);
+        if (!handle) {
+            LOGERR("dlopen failed for %s: %s", libName.c_str(), dlerror());
+            return nullptr;
+        }
+        void* symbol = dlsym(handle, symbolName.c_str());
+        if (!symbol) {
+            LOGERR("dlsym failed for %s: %s", symbolName.c_str(), dlerror());
+        }
+        dlclose(handle);
+        return symbol;
+    }
+
     // Singleton getInstance method - following VideoPort pattern
     static dDisplayImpl*& getInstance()
     {
@@ -272,14 +287,11 @@ public:
         
         pthread_mutex_lock(&dsDisplayLock);
         
+        // Use resolve method for dsGetEDIDBytes (matches dsDisplay.c pattern)
         typedef dsError_t (*dsGetEDIDBytes_t)(intptr_t handle, uint8_t *edidBytes, int *actualLength);
         static dsGetEDIDBytes_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsGetEDIDBytes_t) dlsym(dllib, "dsGetEDIDBytes");
-                dlclose(dllib);
-            }
+            func = (dsGetEDIDBytes_t) resolve(RDK_DSHAL_NAME, "dsGetEDIDBytes");
         }
         
         if (func != 0) {
@@ -304,34 +316,43 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetDisplay: type=%d, index=%d", type, index);
-        
-        pthread_mutex_lock(&dsDisplayLock);
-        
-        typedef dsError_t (*dsGetDisplay_t)(dsVideoPortType_t type, int index, intptr_t *handle);
-        static dsGetDisplay_t func = 0;
-        if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsGetDisplay_t) dlsym(dllib, "dsGetDisplay");
-                dlclose(dllib);
-            }
+
+        // Validate input parameters
+        if (type < 0 || index < 0) {
+            LOGERR("GetDisplay: FAILED - Invalid parameters, type=%d, index=%d", type, index);
+            return WPEFramework::Core::ERROR_BAD_REQUEST;
         }
+
+        // Initialize handle to safe value
+        handle = -1;
+
+        // Add safety check for mutex lock
+        int lock_result = pthread_mutex_lock(&dsDisplayLock);
+        if (lock_result != 0) {
+            LOGERR("GetDisplay: FAILED - Could not acquire mutex lock, error=%d", lock_result);
+            return WPEFramework::Core::ERROR_GENERAL;
+        }
+
+        // Use direct call for dsGetDisplay (matches dsDisplay.c _dsGetDisplay pattern)
+        intptr_t halHandle = 0;
+        LOGINFO("GetDisplay: Calling dsGetDisplay with type=%d, index=%d", type, index);
         
-        if (func != 0) {
-            intptr_t halHandle;
-            dsError_t eError = func(static_cast<dsVideoPortType_t>(type), index, &halHandle);
-            if (eError == dsERR_NONE) {
-                handle = static_cast<int32_t>(halHandle);
-                retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetDisplay: SUCCESS - handle=%d", handle);
-            } else {
-                LOGERR("GetDisplay: FAILED - dsGetDisplay error=%d", eError);
-            }
+        dsError_t eError = dsGetDisplay(static_cast<dsVideoPortType_t>(type), index, &halHandle);
+        
+        if (eError == dsERR_NONE) {
+            handle = static_cast<int32_t>(halHandle);
+            retCode = WPEFramework::Core::ERROR_NONE;
+            LOGINFO("GetDisplay: SUCCESS - handle=%d", handle);
         } else {
-            LOGERR("GetDisplay: FAILED - dsGetDisplay not available");
+            LOGERR("GetDisplay: FAILED - dsGetDisplay error=%d", eError);
+            handle = -1;  // Ensure handle is set to safe value on error
         }
         
-        pthread_mutex_unlock(&dsDisplayLock);
+        int unlock_result = pthread_mutex_unlock(&dsDisplayLock);
+        if (unlock_result != 0) {
+            LOGERR("GetDisplay: WARNING - Could not release mutex lock, error=%d", unlock_result);
+        }
+        
         return retCode;
     }
 
@@ -342,31 +363,18 @@ public:
         
         pthread_mutex_lock(&dsDisplayLock);
         
-        typedef dsError_t (*dsGetDisplayAspectRatio_t)(intptr_t handle, dsVideoAspectRatio_t *aspectRatio);
-        static dsGetDisplayAspectRatio_t func = 0;
-        if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsGetDisplayAspectRatio_t) dlsym(dllib, "dsGetDisplayAspectRatio");
-                dlclose(dllib);
-            }
-        }
-        
-        if (func != 0) {
-            dsVideoAspectRatio_t halAspectRatio;
-            dsError_t eError = func(handle, &halAspectRatio);
-            if (eError == dsERR_NONE) {
-                // Convert DS HAL type to WPE Framework type
-                aspectRatio = (halAspectRatio == dsVIDEO_ASPECT_RATIO_4x3) ? 
-                             DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_4X3 : 
-                             DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_16X9;
-                retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetDisplayAspectRatio: SUCCESS - aspectRatio=%d", static_cast<int>(aspectRatio));
-            } else {
-                LOGERR("GetDisplayAspectRatio: FAILED - dsGetDisplayAspectRatio error=%d", eError);
-            }
+        // Use direct call for dsGetDisplayAspectRatio (matches dsDisplay.c _dsGetDisplayAspectRatio pattern)
+        dsVideoAspectRatio_t halAspectRatio;
+        dsError_t eError = dsGetDisplayAspectRatio(handle, &halAspectRatio);
+        if (eError == dsERR_NONE) {
+            // Convert DS HAL type to WPE Framework type
+            aspectRatio = (halAspectRatio == dsVIDEO_ASPECT_RATIO_4x3) ? 
+                         DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_4X3 : 
+                         DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_16X9;
+            retCode = WPEFramework::Core::ERROR_NONE;
+            LOGINFO("GetDisplayAspectRatio: SUCCESS - aspectRatio=%d", static_cast<int>(aspectRatio));
         } else {
-            LOGERR("GetDisplayAspectRatio: FAILED - dsGetDisplayAspectRatio not available");
+            LOGERR("GetDisplayAspectRatio: FAILED - dsGetDisplayAspectRatio error=%d", eError);
         }
         
         pthread_mutex_unlock(&dsDisplayLock);
@@ -380,19 +388,9 @@ public:
         
         pthread_mutex_lock(&dsDisplayLock);
         
-        typedef dsError_t (*dsGetEDID_t)(intptr_t handle, dsDisplayEDID_t *edid);
-        static dsGetEDID_t func = 0;
-        if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsGetEDID_t) dlsym(dllib, "dsGetEDID");
-                dlclose(dllib);
-            }
-        }
-        
-        if (func != 0) {
-            dsDisplayEDID_t halEdid;
-            dsError_t eError = func(handle, &halEdid);
+        // Use direct call for dsGetEDID (matches dsDisplay.c _dsGetEDID pattern)
+        dsDisplayEDID_t halEdid;
+        dsError_t eError = dsGetEDID(handle, &halEdid);
             if (eError == dsERR_NONE) {
                 // Convert DS HAL type to WPE Framework type
                 edId.productCode = halEdid.productCode;
@@ -412,9 +410,6 @@ public:
             } else {
                 LOGERR("GetDisplayEdid: FAILED - dsGetEDID error=%d", eError);
             }
-        } else {
-            LOGERR("GetDisplayEdid: FAILED - dsGetEDID not available");
-        }
         
         pthread_mutex_unlock(&dsDisplayLock);
         return retCode;
@@ -427,26 +422,39 @@ public:
         
         pthread_mutex_lock(&dsDisplayLock);
         
+        // Use resolve method for dsSetAllmEnabled (matches dsDisplay.c pattern)
         typedef dsError_t (*dsSetAllmEnabled_t)(intptr_t handle, bool enabled);
-        static dsSetAllmEnabled_t func = 0;
-        if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsSetAllmEnabled_t) dlsym(dllib, "dsSetAllmEnabled");
-                dlclose(dllib);
-            }
+        typedef dsError_t (*dsGetAllmEnabled_t)(intptr_t handle, bool *enabled);
+        static dsSetAllmEnabled_t func_dsSetAllmEnabled = 0;
+        static dsGetAllmEnabled_t func_dsGetAllmEnabled = 0;
+        if (func_dsGetAllmEnabled == 0 && func_dsSetAllmEnabled == 0) {
+            func_dsGetAllmEnabled = (dsGetAllmEnabled_t) resolve(RDK_DSHAL_NAME, "dsGetAllmEnabled");
+            func_dsSetAllmEnabled = (dsSetAllmEnabled_t) resolve(RDK_DSHAL_NAME, "dsSetAllmEnabled");
         }
         
-        if (func != 0) {
-            dsError_t eError = func(handle, enabled);
+        if (func_dsGetAllmEnabled != 0 && func_dsSetAllmEnabled != 0) {
+            bool currentALLMState = false;
+            dsError_t eError = func_dsGetAllmEnabled(handle, &currentALLMState);
             if (eError == dsERR_NONE) {
-                retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetAllmEnabled: SUCCESS");
+                if (currentALLMState == enabled) {
+                    LOGINFO("SetAllmEnabled: ALLM mode already %s", enabled ? "Enabled" : "Disabled");
+                    retCode = WPEFramework::Core::ERROR_NONE;
+                } else {
+                    LOGINFO("SetAllmEnabled: Current ALLM state %s, Requested to %s", 
+                           currentALLMState ? "Enabled" : "Disabled", enabled ? "Enabled" : "Disabled");
+                    eError = func_dsSetAllmEnabled(handle, enabled);
+                    if (eError == dsERR_NONE) {
+                        retCode = WPEFramework::Core::ERROR_NONE;
+                        LOGINFO("SetAllmEnabled: SUCCESS");
+                    } else {
+                        LOGERR("SetAllmEnabled: FAILED - dsSetAllmEnabled error=%d", eError);
+                    }
+                }
             } else {
-                LOGERR("SetAllmEnabled: FAILED - dsSetAllmEnabled error=%d", eError);
+                LOGERR("SetAllmEnabled: FAILED - dsGetAllmEnabled error=%d", eError);
             }
         } else {
-            LOGERR("SetAllmEnabled: FAILED - dsSetAllmEnabled not available");
+            LOGERR("SetAllmEnabled: FAILED - dsSetAllmEnabled/dsGetAllmEnabled not available");
         }
         
         pthread_mutex_unlock(&dsDisplayLock);
@@ -460,26 +468,39 @@ public:
         
         pthread_mutex_lock(&dsDisplayLock);
         
+        // Use resolve method for dsSetAVIContentType (matches dsDisplay.c pattern)
         typedef dsError_t (*dsSetAVIContentType_t)(intptr_t handle, dsAviContentType_t contentType);
-        static dsSetAVIContentType_t func = 0;
-        if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsSetAVIContentType_t) dlsym(dllib, "dsSetAVIContentType");
-                dlclose(dllib);
-            }
+        typedef dsError_t (*dsGetAVIContentType_t)(intptr_t handle, dsAviContentType_t* contentType);
+        static dsSetAVIContentType_t func_dsSetAVIContentType = 0;
+        static dsGetAVIContentType_t func_dsGetAVIContentType = 0;
+        if (func_dsGetAVIContentType == 0 && func_dsSetAVIContentType == 0) {
+            func_dsSetAVIContentType = (dsSetAVIContentType_t) resolve(RDK_DSHAL_NAME, "dsSetAVIContentType");
+            func_dsGetAVIContentType = (dsGetAVIContentType_t) resolve(RDK_DSHAL_NAME, "dsGetAVIContentType");
         }
         
-        if (func != 0) {
-            dsError_t eError = func(handle, static_cast<dsAviContentType_t>(contentType));
+        if (func_dsGetAVIContentType != 0 && func_dsSetAVIContentType != 0) {
+            dsAviContentType_t currentContentType = dsAVICONTENT_TYPE_NOT_SIGNALLED;
+            dsError_t eError = func_dsGetAVIContentType(handle, &currentContentType);
             if (eError == dsERR_NONE) {
-                retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetAVIContentType: SUCCESS");
+                if (currentContentType == static_cast<dsAviContentType_t>(contentType)) {
+                    LOGINFO("SetAVIContentType: HDMI AVI content type already set to %d", contentType);
+                    retCode = WPEFramework::Core::ERROR_NONE;
+                } else {
+                    LOGINFO("SetAVIContentType: Current AVI content type %d, requested content type %d", 
+                           currentContentType, contentType);
+                    eError = func_dsSetAVIContentType(handle, static_cast<dsAviContentType_t>(contentType));
+                    if (eError == dsERR_NONE) {
+                        retCode = WPEFramework::Core::ERROR_NONE;
+                        LOGINFO("SetAVIContentType: SUCCESS");
+                    } else {
+                        LOGERR("SetAVIContentType: FAILED - dsSetAVIContentType error=%d", eError);
+                    }
+                }
             } else {
-                LOGERR("SetAVIContentType: FAILED - dsSetAVIContentType error=%d", eError);
+                LOGERR("SetAVIContentType: FAILED - dsGetAVIContentType error=%d", eError);
             }
         } else {
-            LOGERR("SetAVIContentType: FAILED - dsSetAVIContentType not available");
+            LOGERR("SetAVIContentType: FAILED - dsSetAVIContentType/dsGetAVIContentType not available");
         }
         
         pthread_mutex_unlock(&dsDisplayLock);
@@ -493,26 +514,39 @@ public:
         
         pthread_mutex_lock(&dsDisplayLock);
         
-        typedef dsError_t (*dsSetAVIScanInformation_t)(intptr_t handle, dsAVIScanInformation_t scanInfo);
-        static dsSetAVIScanInformation_t func = 0;
-        if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsSetAVIScanInformation_t) dlsym(dllib, "dsSetAVIScanInformation");
-                dlclose(dllib);
-            }
+        // Use resolve method for dsSetAVIScanInformation (matches dsDisplay.c pattern)
+        typedef dsError_t (*dsSetAVIScanInfo_t)(intptr_t handle, dsAVIScanInformation_t scanInfo);
+        typedef dsError_t (*dsGetAVIScanInfo_t)(intptr_t handle, dsAVIScanInformation_t* scanInfo);
+        static dsSetAVIScanInfo_t func_dsSetAVIScanInfo = 0;
+        static dsGetAVIScanInfo_t func_dsGetAVIScanInfo = 0;
+        if (func_dsGetAVIScanInfo == 0 && func_dsSetAVIScanInfo == 0) {
+            func_dsSetAVIScanInfo = (dsSetAVIScanInfo_t) resolve(RDK_DSHAL_NAME, "dsSetAVIScanInformation");
+            func_dsGetAVIScanInfo = (dsGetAVIScanInfo_t) resolve(RDK_DSHAL_NAME, "dsGetAVIScanInformation");
         }
         
-        if (func != 0) {
-            dsError_t eError = func(handle, static_cast<dsAVIScanInformation_t>(scanInfo));
+        if (func_dsGetAVIScanInfo != 0 && func_dsSetAVIScanInfo != 0) {
+            dsAVIScanInformation_t currentScanInfo = dsAVI_SCAN_TYPE_NO_DATA;
+            dsError_t eError = func_dsGetAVIScanInfo(handle, &currentScanInfo);
             if (eError == dsERR_NONE) {
-                retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetAVIScanInformation: SUCCESS");
+                if (currentScanInfo == static_cast<dsAVIScanInformation_t>(scanInfo)) {
+                    LOGINFO("SetAVIScanInformation: HDMI AVI scan Info already set to %d", scanInfo);
+                    retCode = WPEFramework::Core::ERROR_NONE;
+                } else {
+                    LOGINFO("SetAVIScanInformation: Current AVI scan Info %d, requested scan Info %d", 
+                           currentScanInfo, scanInfo);
+                    eError = func_dsSetAVIScanInfo(handle, static_cast<dsAVIScanInformation_t>(scanInfo));
+                    if (eError == dsERR_NONE) {
+                        retCode = WPEFramework::Core::ERROR_NONE;
+                        LOGINFO("SetAVIScanInformation: SUCCESS");
+                    } else {
+                        LOGERR("SetAVIScanInformation: FAILED - dsSetAVIScanInformation error=%d", eError);
+                    }
+                }
             } else {
-                LOGERR("SetAVIScanInformation: FAILED - dsSetAVIScanInformation error=%d", eError);
+                LOGERR("SetAVIScanInformation: FAILED - dsGetAVIScanInformation error=%d", eError);
             }
         } else {
-            LOGERR("SetAVIScanInformation: FAILED - dsSetAVIScanInformation not available");
+            LOGERR("SetAVIScanInformation: FAILED - dsSetAVIScanInformation/dsGetAVIScanInformation not available");
         }
         
         pthread_mutex_unlock(&dsDisplayLock);
@@ -524,28 +558,24 @@ private:
     {
         LOGINFO("registerDisplayEventCallbacks");
         
-        // Register display event callback using dynamic library loading
-        typedef dsError_t (*dsRegisterDisplayEventCallback_t)(intptr_t handle, dsDisplayEventCallback_t eventCallback);
-        static dsRegisterDisplayEventCallback_t func = 0;
-        if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsRegisterDisplayEventCallback_t) dlsym(dllib, "dsRegisterDisplayEventCallback");
-                dlclose(dllib);
+        // Use direct calls matching dsDisplay.c _dsDisplayInit pattern
+        intptr_t handle = 0;
+        dsError_t eReturn = dsGetDisplay(dsVIDEOPORT_TYPE_HDMI, 0, &handle);
+        if (dsERR_NONE != eReturn) {
+            LOGINFO("registerDisplayEventCallbacks: dsGetDisplay for HDMI failed, trying INTERNAL");
+            eReturn = dsGetDisplay(dsVIDEOPORT_TYPE_INTERNAL, 0, &handle);
+            if (dsERR_NONE != eReturn) {
+                LOGERR("registerDisplayEventCallbacks: FAILED - dsGetDisplay for INTERNAL also failed, error=%d", eReturn);
+                return;
             }
         }
         
-        if (func != 0) {
-            // Register with a null handle to get all display events
-            intptr_t handle = 0;
-            dsError_t eError = func(handle, dsDisplayEventCallback);
-            if (eError == dsERR_NONE) {
-                LOGINFO("registerDisplayEventCallbacks: SUCCESS");
-            } else {
-                LOGERR("registerDisplayEventCallbacks: FAILED - error=%d", eError);
-            }
+        // Register display event callback directly
+        dsError_t eError = dsRegisterDisplayEventCallback(handle, dsDisplayEventCallback);
+        if (eError == dsERR_NONE) {
+            LOGINFO("registerDisplayEventCallbacks: SUCCESS - registered with handle=%d", static_cast<int>(handle));
         } else {
-            LOGERR("registerDisplayEventCallbacks: FAILED - dsRegisterDisplayEventCallback not available");
+            LOGERR("registerDisplayEventCallbacks: FAILED - error=%d", eError);
         }
     }
 

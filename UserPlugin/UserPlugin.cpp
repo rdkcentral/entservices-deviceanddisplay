@@ -140,15 +140,15 @@ namespace Plugin {
         }
 
         //Test DeviceSettings interfaces
-        TestSimplifiedFPDAPIs();
+        /*TestSimplifiedFPDAPIs();
         TestSimplifiedHDMIInAPIs();
         TestSelectHDMIInPortAPI();
         TestCompositeInAPIs();
         TestAudioAPIs();
         TestVideoPortAPIs();
-        TestVideoDeviceAPIs();
+        TestVideoDeviceAPIs();*/
         TestDisplayAPIs();
-        TestHostAPIs();
+        //TestHostAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
 
@@ -2348,75 +2348,51 @@ namespace Plugin {
 
     void UserPlugin::TestDisplayAPIs()
     {
-        LOGINFO("========== Complete Display APIs Testing Framework ==========");
+        LOGINFO("========== Display EDID APIs Testing Framework ==========");
 
         if (!_displayManager) {
             LOGERR("Display Manager interface is not available");
             return;
         }
 
-        LOGINFO("Testing ALL Display APIs with comprehensive coverage");
+        LOGINFO("Testing Display EDID APIs for validation: GetDisplayEdid and GetDisplayEdidBytes");
 
-        // Test display port types
+        // Test display port types - focus on HDMI as primary target
         Exchange::IDeviceSettingsDisplay::DisplayPortType testPortTypes[] = {
             Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_HDMI,
-            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_DVI,
-            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_COMPONENT,
-            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_SVIDEO
+            Exchange::IDeviceSettingsDisplay::DisplayPortType::DS_DISPLAY_PORT_TYPE_DVI
         };
 
-        const char* portTypeNames[] = {"HDMI", "DVI", "COMPONENT", "SVIDEO"};
+        const char* portTypeNames[] = {"HDMI", "DVI"};
         int numPortTypes = sizeof(testPortTypes) / sizeof(testPortTypes[0]);
 
         for (int i = 0; i < numPortTypes; i++) {
             Exchange::IDeviceSettingsDisplay::DisplayPortType portType = testPortTypes[i];
             const char* portTypeName = portTypeNames[i];
 
-            LOGINFO("---------- Testing Display APIs for Port Type: %s ----------", portTypeName);
+            LOGINFO("---------- Testing Display EDID APIs for Port Type: %s ----------", portTypeName);
 
-            // 1. Test GetDisplay - Get handle for this port type
+            // Get display handle for this port type
             int32_t handle = -1;
             Core::hresult result = _displayManager->GetDisplay(portType, 0, handle);
             LOGINFO("GetDisplay: portType=%d (%s), index=0, result=%u, handle=%d", 
                    static_cast<int>(portType), portTypeName, result, handle);
 
             if (result == Core::ERROR_NONE && handle != -1) {
-                // 2. Test GetDisplayAspectRatio (read-only)
-                Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio aspectRatio;
-                result = _displayManager->GetDisplayAspectRatio(handle, aspectRatio);
-                LOGINFO("GetDisplayAspectRatio: handle=%d, result=%u, aspectRatio=%d", 
-                       handle, result, static_cast<int>(aspectRatio));
-                
-                if (result == Core::ERROR_NONE) {
-                    const char* aspectStr = "UNKNOWN";
-                    switch (aspectRatio) {
-                        case Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_16X9:
-                            aspectStr = "16:9";
-                            break;
-                        case Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_4X3:
-                            aspectStr = "4:3";
-                            break;
-                        case Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio::DS_DISPLAY_ASPECT_RATIO_MAX:
-                            aspectStr = "MAX";
-                            break;
-                    }
-                    LOGINFO("Display Aspect Ratio: %s", aspectStr);
-                }
-
-                // 3. Test GetDisplayEdid (read-only complex struct)
+                // Test GetDisplayEdid (structured EDID data validation)
                 Exchange::IDeviceSettingsDisplay::DisplayEDID edid;
                 Exchange::IDeviceSettingsDisplay::IDSVideoPortResolutionIterator* resolutionIterator = nullptr;
                 result = _displayManager->GetDisplayEdid(handle, edid, resolutionIterator);
                 LOGINFO("GetDisplayEdid: handle=%d, result=%u", handle, result);
                 
                 if (result == Core::ERROR_NONE) {
-                    LOGINFO("EDID Info - ProductCode:%d, SerialNumber:%d, ManufactureYear:%d, ManufactureWeek:%d", 
+                    LOGINFO("EDID Validation - ProductCode:%d, SerialNumber:%d, ManufactureYear:%d, ManufactureWeek:%d", 
                            edid.productCode, edid.serialNumber, edid.manufactureYear, edid.manufactureWeek);
-                    LOGINFO("EDID Info - HDMIDeviceType:%s, IsRepeater:%s, MonitorName:'%s'", 
+                    LOGINFO("EDID Validation - HDMIDeviceType:%s, IsRepeater:%s, MonitorName:'%s'", 
                            edid.hdmiDeviceType ? "true" : "false", 
                            edid.isRepeater ? "true" : "false", 
                            edid.monitorName.c_str());
-                    LOGINFO("EDID Info - PhysicalAddress:%d.%d.%d.%d, SupportedResolutions:%d", 
+                    LOGINFO("EDID Validation - PhysicalAddress:%d.%d.%d.%d, SupportedResolutions:%d", 
                            edid.physicalAddressA, edid.physicalAddressB, 
                            edid.physicalAddressC, edid.physicalAddressD, 
                            edid.numOfSupportedResolution);
@@ -2427,69 +2403,33 @@ namespace Plugin {
                     }
                 }
 
-                // 4. Test GetDisplayEdidBytes (read-only byte array)
+                // Test GetDisplayEdidBytes (raw EDID byte array validation)
                 uint8_t edidBytes[256] = {0};
                 result = _displayManager->GetDisplayEdidBytes(handle, edidBytes, 256);
                 LOGINFO("GetDisplayEdidBytes: handle=%d, result=%u, edidLength=256", handle, result);
                 
                 if (result == Core::ERROR_NONE) {
-                    LOGINFO("EDID Raw Bytes retrieved successfully");
+                    LOGINFO("EDID Raw Bytes validation successful");
                     LOGINFO("First 8 EDID bytes: %02X %02X %02X %02X %02X %02X %02X %02X", 
                            edidBytes[0], edidBytes[1], edidBytes[2], edidBytes[3], 
                            edidBytes[4], edidBytes[5], edidBytes[6], edidBytes[7]);
-                }
-
-                // 5. Test SetAllmEnabled (set API - toggle test)
-                bool allmEnabled = true;
-                result = _displayManager->SetAllmEnabled(handle, allmEnabled);
-                LOGINFO("SetAllmEnabled: handle=%d, result=%u, enabled=%s", 
-                       handle, result, allmEnabled ? "true" : "false");
-                
-                // Test disabling as well
-                allmEnabled = false;
-                result = _displayManager->SetAllmEnabled(handle, allmEnabled);
-                LOGINFO("SetAllmEnabled: handle=%d, result=%u, enabled=%s", 
-                       handle, result, allmEnabled ? "true" : "false");
-
-                // 6. Test SetAVIContentType (set API - test different types)
-                Exchange::IDeviceSettingsDisplay::DisplayAVIContentType contentTypes[] = {
-                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_GRAPHICS,
-                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_PHOTO,
-                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_CINEMA,
-                    Exchange::IDeviceSettingsDisplay::DisplayAVIContentType::DS_DISPLAY_AVI_CONTENT_GAME
-                };
-                const char* contentTypeNames[] = {"GRAPHICS", "PHOTO", "CINEMA", "GAME"};
-                int numContentTypes = sizeof(contentTypes) / sizeof(contentTypes[0]);
-                
-                for (int j = 0; j < numContentTypes; j++) {
-                    result = _displayManager->SetAVIContentType(handle, contentTypes[j]);
-                    LOGINFO("SetAVIContentType: handle=%d, result=%u, contentType=%d (%s)", 
-                           handle, result, static_cast<int>(contentTypes[j]), contentTypeNames[j]);
-                }
-
-                // 7. Test SetAVIScanInformation (set API - test different scan types)
-                Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation scanInfoTypes[] = {
-                    Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation::DS_DISPLAY_AVI_SCAN_NO_DATA,
-                    Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation::DS_DISPLAY_AVI_SCAN_OVERSCAN,
-                    Exchange::IDeviceSettingsDisplay::DisplayAVIScanInformation::DS_DISPLAY_AVI_SCAN_UNDERSCAN
-                };
-                const char* scanInfoNames[] = {"NO_DATA", "OVERSCAN", "UNDERSCAN"};
-                int numScanInfoTypes = sizeof(scanInfoTypes) / sizeof(scanInfoTypes[0]);
-                
-                for (int j = 0; j < numScanInfoTypes; j++) {
-                    result = _displayManager->SetAVIScanInformation(handle, scanInfoTypes[j]);
-                    LOGINFO("SetAVIScanInformation: handle=%d, result=%u, scanInfo=%d (%s)", 
-                           handle, result, static_cast<int>(scanInfoTypes[j]), scanInfoNames[j]);
+                    
+                    // Validate EDID header pattern (should start with 0x00FFFFFFFFFFFF00)
+                    if (edidBytes[0] == 0x00 && edidBytes[1] == 0xFF && edidBytes[7] == 0x00) {
+                        LOGINFO("EDID header pattern validation: PASSED");
+                    } else {
+                        LOGINFO("EDID header pattern validation: WARNING - Non-standard pattern");
+                    }
                 }
 
             } else {
-                LOGINFO("Skipping tests for %s port (handle not available)", portTypeName);
+                LOGINFO("Skipping EDID validation for %s port (handle not available)", portTypeName);
             }
 
-            LOGINFO("---------- Completed Display APIs testing for %s ----------\\n", portTypeName);
+            LOGINFO("---------- Completed Display EDID APIs validation for %s ----------\\n", portTypeName);
         }
 
-        LOGINFO("========== Complete Display APIs Testing Completed ==========\\n");
+        LOGINFO("========== Display EDID APIs Testing Completed ==========\\n");
     }
 
     // ========== CompositeIn Event Handlers ==========

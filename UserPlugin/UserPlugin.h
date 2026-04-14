@@ -26,6 +26,7 @@
 #include <com/com.h>
 #include <core/core.h>
 #include <plugins/plugins.h>
+#include <mutex>
 
 #include <interfaces/IUserPlugin.h>
 #include <interfaces/json/JUserPlugin.h>
@@ -469,6 +470,9 @@ namespace WPEFramework
 
             // Test cases for Display APIs
             void TestDisplayAPIs();
+            
+            // DS HAL Readiness Diagnostic Function  
+            bool CheckDSHALReadiness();
 
             // IARM API methods for direct DsMgr daemon communication
             Core::hresult TestIARMHdmiInSelectPort(const int port, const bool requestAudioMix, const bool topMostPlane, const int videoPlaneType);
@@ -511,6 +515,9 @@ namespace WPEFramework
             Core::Sink<VideoDeviceNotification> _videoDeviceNotification;
             Core::Sink<DisplayNotification> _displayNotification;
             Core::Sink<HostNotification> _hostNotification;
+            
+            // Mutex for thread-safe Display API testing
+            mutable std::mutex _displayTestMutex;
 
 	    void Deactivated(RPC::IRemoteConnection *connection);
         };

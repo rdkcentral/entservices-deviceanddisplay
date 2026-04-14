@@ -148,11 +148,13 @@ uint32_t Display::DisplayTerm()
 uint32_t Display::GetDisplay(const int32_t type, const int32_t index, int32_t &handle)
 {
     ENTRY_LOG;
+
     uint32_t result = this->platform().GetDisplay(type, index, handle);
+
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetDisplay succeeded: type=%d, index=%d, handle=%d", type, index, handle);
+        LOGINFO("Display::GetDisplay SUCCESS: type=%d, index=%d, handle=%d", type, index, handle);
     } else {
-        LOGERR("GetDisplay failed: type=%d, index=%d, error=%u", type, index, result);
+        LOGERR("Display::GetDisplay FAILED: type=%d, index=%d, error=%u", type, index, result);
     }
     EXIT_LOG;
     return result;

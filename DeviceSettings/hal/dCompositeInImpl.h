@@ -83,6 +83,21 @@ public:
         getInstance() = nullptr; // Clear static instance
     }
 
+    // Resolve method for dynamic library loading - following dHdmiInImpl.h pattern
+    static void* resolve(const std::string& libName, const std::string& symbolName) {
+        void* handle = dlopen(libName.c_str(), RTLD_LAZY);
+        if (!handle) {
+            LOGERR("dlopen failed for %s: %s", libName.c_str(), dlerror());
+            return nullptr;
+        }
+        void* symbol = dlsym(handle, symbolName.c_str());
+        if (!symbol) {
+            LOGERR("dlsym failed for %s: %s", symbolName.c_str(), dlerror());
+        }
+        dlclose(handle);
+        return symbol;
+    }
+
     // Singleton getInstance method - following VideoPort pattern
     static dCompositeInImpl*& getInstance()
     {
@@ -106,21 +121,12 @@ public:
         if (!compositeIn_isPlatInitialized) {
             LOGINFO("InitialiseHAL <dsCompositeIn> - TV Profile");
             
-            // Initialize DS HAL CompositeIn using dlopen/dlsym - moved from dsCompositeIn.c
+            // Initialize DS HAL CompositeIn using resolve() method - matches dsCompositeIn.c pattern
             typedef dsError_t (*dsCompositeInInit_t)(void);
             static dsCompositeInInit_t initFunc = nullptr;
             
             if (initFunc == nullptr) {
-                void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                if (dllib) {
-                    initFunc = (dsCompositeInInit_t) dlsym(dllib, "dsCompositeInInit");
-                    if (initFunc == nullptr) {
-                        LOGINFO("dsCompositeInInit(void) is not defined");
-                    }
-                    dlclose(dllib);
-                } else {
-                    LOGERR("Opening RDK_DSHAL_NAME [%s] failed", RDK_DSHAL_NAME);
-                }
+                initFunc = (dsCompositeInInit_t) resolve(RDK_DSHAL_NAME, "dsCompositeInInit");
             }
 
             if (initFunc) {
@@ -148,10 +154,33 @@ public:
     void DeInitialiseHAL()
     {
         LOGINFO("DeInitialiseHAL");
-        if (compositeIn_isPlatInitialized)
-        {
-            dsCompositeInTerm();
-            compositeIn_isPlatInitialized = 0;
+        
+        if (TV != profileType) {
+            LOGINFO("DeInitialiseHAL: Not TV profile - profileType=%d", static_cast<int>(profileType));
+            return;
+        }
+        
+        if (compositeIn_isPlatInitialized) {
+            compositeIn_isPlatInitialized--;
+            if (!compositeIn_isPlatInitialized) {
+                // Use resolve method for dsCompositeInTerm - matches dsCompositeIn.c _dsCompositeInTerm pattern
+                typedef dsError_t (*dsCompositeInTerm_t)(void);
+                static dsCompositeInTerm_t termFunc = nullptr;
+                
+                if (termFunc == nullptr) {
+                    termFunc = (dsCompositeInTerm_t) resolve(RDK_DSHAL_NAME, "dsCompositeInTerm");
+                }
+                
+                if (termFunc) {
+                    LOGINFO("Invoking dsCompositeInTerm()");
+                    dsError_t eError = termFunc();
+                    if (dsERR_NONE != eError) {
+                        LOGERR("DeInitialiseHAL: dsCompositeInTerm failed with error: %d", eError);
+                    }
+                } else {
+                    LOGERR("DeInitialiseHAL: dsCompositeInTerm function not available");
+                }
+            }
         }
         compositeIn_isInitialized = 0;
     }
@@ -192,15 +221,11 @@ public:
         
         pthread_mutex_lock(&dsCompositeInLock);
         
-        // Use dynamic library loading for dsCompositeInGetNumberOfInputs
+        // Use resolve method for dsCompositeInGetNumberOfInputs - matches dsCompositeIn.c pattern
         typedef dsError_t (*dsCompositeInGetNumberOfInputs_t)(uint8_t *nrCompositeInputs);
         static dsCompositeInGetNumberOfInputs_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsCompositeInGetNumberOfInputs_t) dlsym(dllib, "dsCompositeInGetNumberOfInputs");
-                dlclose(dllib);
-            }
+            func = (dsCompositeInGetNumberOfInputs_t) resolve(RDK_DSHAL_NAME, "dsCompositeInGetNumberOfInputs");
         }
         
         if (func != 0) {
@@ -228,15 +253,11 @@ public:
         
         pthread_mutex_lock(&dsCompositeInLock);
         
-        // Use dynamic library loading for dsCompositeInGetStatus
+        // Use resolve method for dsCompositeInGetStatus - matches dsCompositeIn.c pattern
         typedef dsError_t (*dsCompositeInGetStatus_t)(dsCompositeInStatus_t *inputStatus);
         static dsCompositeInGetStatus_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsCompositeInGetStatus_t) dlsym(dllib, "dsCompositeInGetStatus");
-                dlclose(dllib);
-            }
+            func = (dsCompositeInGetStatus_t) resolve(RDK_DSHAL_NAME, "dsCompositeInGetStatus");
         }
         
         if (func != 0) {
@@ -268,15 +289,11 @@ public:
         
         pthread_mutex_lock(&dsCompositeInLock);
         
-        // Use dynamic library loading for dsCompositeInSelectPort
+        // Use resolve method for dsCompositeInSelectPort - matches dsCompositeIn.c pattern
         typedef dsError_t (*dsCompositeInSelectPort_t)(dsCompositeInPort_t port);
         static dsCompositeInSelectPort_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsCompositeInSelectPort_t) dlsym(dllib, "dsCompositeInSelectPort");
-                dlclose(dllib);
-            }
+            func = (dsCompositeInSelectPort_t) resolve(RDK_DSHAL_NAME, "dsCompositeInSelectPort");
         }
         
         if (func != 0) {
@@ -304,15 +321,11 @@ public:
         
         pthread_mutex_lock(&dsCompositeInLock);
         
-        // Use dynamic library loading for dsCompositeInScaleVideo
+        // Use resolve method for dsCompositeInScaleVideo - matches dsCompositeIn.c pattern
         typedef dsError_t (*dsCompositeInScaleVideo_t)(int x, int y, int width, int height);
         static dsCompositeInScaleVideo_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsCompositeInScaleVideo_t) dlsym(dllib, "dsCompositeInScaleVideo");
-                dlclose(dllib);
-            }
+            func = (dsCompositeInScaleVideo_t) resolve(RDK_DSHAL_NAME, "dsCompositeInScaleVideo");
         }
         
         if (func != 0) {
@@ -399,7 +412,7 @@ private:
     {
         LOGINFO("registerCompositeInEventCallbacks");
         
-        // Register CompositeIn event callbacks using dynamic library loading
+        // Register CompositeIn event callbacks using resolve method - matches dsCompositeIn.c pattern
         typedef dsError_t (*dsCompositeInRegisterConnectCB_t)(dsCompositeInConnectCB_t callback);
         typedef dsError_t (*dsCompositeInRegisterSignalChangeCB_t)(dsCompositeInSignalChangeCB_t callback);  
         typedef dsError_t (*dsCompositeInRegisterStatusChangeCB_t)(dsCompositeInStatusChangeCB_t callback);
@@ -411,14 +424,10 @@ private:
         static dsCompositeInRegisterVideoModeUpdateCB_t funcVideoMode = 0;
         
         if (funcConnect == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                funcConnect = (dsCompositeInRegisterConnectCB_t) dlsym(dllib, "dsCompositeInRegisterConnectCB");
-                funcSignal = (dsCompositeInRegisterSignalChangeCB_t) dlsym(dllib, "dsCompositeInRegisterSignalChangeCB");
-                funcStatus = (dsCompositeInRegisterStatusChangeCB_t) dlsym(dllib, "dsCompositeInRegisterStatusChangeCB");
-                funcVideoMode = (dsCompositeInRegisterVideoModeUpdateCB_t) dlsym(dllib, "dsCompositeInRegisterVideoModeUpdateCB");
-                dlclose(dllib);
-            }
+            funcConnect = (dsCompositeInRegisterConnectCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterConnectCB");
+            funcSignal = (dsCompositeInRegisterSignalChangeCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterSignalChangeCB");
+            funcStatus = (dsCompositeInRegisterStatusChangeCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterStatusChangeCB");
+            funcVideoMode = (dsCompositeInRegisterVideoModeUpdateCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterVideoModeUpdateCB");
         }
         
         if (funcConnect && funcSignal && funcStatus && funcVideoMode) {

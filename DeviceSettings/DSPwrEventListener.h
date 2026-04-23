@@ -27,13 +27,15 @@
 #include "PowerManagerInterface.h"
 #include "Module.h"
 
-extern "C" {
-    #include "libIARM.h"
-    #include "libIBusDaemon.h"
-    #include "sysMgr.h"
-    #include "dsMgr.h"
-    #include "libIBus.h"
-}
+#include "DeviceSettingsImplementation.h"
+#include "DeviceSettingsTypes.h"
+
+// C headers with built-in C++ protection
+#include "libIARM.h"
+#include "libIBusDaemon.h"
+#include "sysMgr.h"
+#include "dsMgr.h"
+#include "libIBus.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
 
@@ -43,7 +45,7 @@ namespace Plugin {
 /* Retry every 300 msec */
 #define DSMGR_PWR_CNTRL_CONNECT_WAIT_TIME_MS   (300*1000)
 #define MAX_NUM_VIDEO_PORTS 5
-//#define DSMGR_MAX_VIDEO_PORT_NAME_LENGTH 32
+// DSMGR_MAX_VIDEO_PORT_NAME_LENGTH already defined in dsRpc.h
 
 typedef struct{
     char port[DSMGR_MAX_VIDEO_PORT_NAME_LENGTH];
@@ -97,6 +99,8 @@ public:
 
     void Init(PluginHost::IShell* service);
     void Deinit();
+    void InitPwrControllerEvt();
+    void DeinitPwrControllerEvt();
     void onPowerModeChanged(const PowerState currentState, const PowerState newState);
     void registerPowerEventHandler();
 
@@ -113,6 +117,10 @@ private:
     int SetLEDStatus(PowerState powerState);
     int SetAVPortsPowerState(PowerState powerState);
     
+    // DeviceSettings integration methods
+    uint32_t ConfigureVideoPort(const std::string& portName, VideoPortType portType, int index, bool enabled);
+    uint32_t ConfigureAudioPort(const std::string& portName, AudioPortType portType, int index, bool enabled, bool* isConfigurationSkippedPtr);
+    
     bool GetVideoPortStandbySetting(const char* port);
     
     // IARM API handlers
@@ -121,6 +129,8 @@ private:
     static IARM_Result_t SetAvPortState(void* arg);
     static IARM_Result_t SetLEDState(void* arg);
     static IARM_Result_t SetRebootConfig(void* arg);
+    
+    PowerState PwrMgrToPowerControllerPowerState(int pwrMgrState);
     
     //static PowerState PwrMgrToPowerControllerPowerState(int pwrMgrState);
 
@@ -141,6 +151,7 @@ private:
     PowerManagerInterfaceRef _powerManagerPlugin;
     Core::Sink<PowerManagerNotification> _pwrMgrNotification;
     PluginHost::IShell* _service;
+    DeviceSettingsImp* _deviceSettings;
 };
 
 } // namespace Plugin

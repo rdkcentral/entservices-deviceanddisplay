@@ -19,7 +19,8 @@
 
 #include "DSProductTraitsHandler.h"
 #include "UtilsLogging.h"
-//#include "DeviceSettingsTypes.h"
+#include "DeviceSettingsTypes.h"
+#include "DeviceSettingsImplementation.h"
 
 #include <iostream>
 #include <thread>
@@ -28,12 +29,8 @@
 #include <unistd.h>
 #include "frontPanelIndicator.hpp"
 
-extern "C" {
-    #include "dsRpc.h"
-}
-
-extern int _SetAVPortsPowerState(PowerState powerState);
-extern IARM_Result_t _dsSetFPState(void *arg);
+// C header with built-in C++ protection
+#include "dsRpc.h"
 
 namespace WPEFramework {
 namespace Plugin {
@@ -53,7 +50,6 @@ UXController* UXController::_singleton = nullptr;
 
 static reboot_type_t GetRebootType()
 {
-    ENTRY_LOG;
     const char* file_updated_flag = "/tmp/Update_rebootInfo_invoked";
     const char* reboot_info_file_name = "/opt/secure/reboot/previousreboot.info";
     const char* hard_reboot_match_string = R"("reason":"POWER_ON_RESET")";
@@ -77,29 +73,22 @@ static reboot_type_t GetRebootType()
             LOGINFO("Failed to open reboot info file");
         }
     }
-    EXIT_LOG;
     return ret;
 }
 
 static void ScheduleRebootReasonCheck(UXController* controller, unsigned int retryCount = 0)
 {
-    ENTRY_LOG;
     constexpr unsigned int max_count = 120 / REBOOT_REASON_RETRY_INTERVAL_SECONDS;
     
     reboot_type_t reboot_type = GetRebootType();
     if (reboot_type_t::UNAVAILABLE == reboot_type) {
         if (retryCount < max_count) {
-            #if 0 //Need to change this logic
-            // Schedule next retry
-            Core::IWorkerPool::Instance().Schedule(
-                Core::Time::Now().Add(REBOOT_REASON_RETRY_INTERVAL_SECONDS * 1000),
-                Core::ProxyType<Core::IDispatch>::Create<LambdaJob>(
-                    [controller, retryCount]() {
-                        ScheduleRebootReasonCheck(controller, retryCount + 1);
-                    }
-                )
-            );
-            #endif
+            // Schedule next retry using a separate thread (mimics g_timeout_add_seconds)
+            std::thread retryThread([controller, retryCount]() {
+                std::this_thread::sleep_for(std::chrono::seconds(REBOOT_REASON_RETRY_INTERVAL_SECONDS));
+                ScheduleRebootReasonCheck(controller, retryCount + 1);
+            });
+            retryThread.detach();
         } else {
             LOGINFO("Exceeded retry limit");
         }
@@ -107,19 +96,16 @@ static void ScheduleRebootReasonCheck(UXController* controller, unsigned int ret
         LOGINFO("Got reboot reason in async check. Applying display configuration");
         controller->SyncDisplayPortsWithRebootReason(reboot_type);
     }
-    EXIT_LOG;
 }
 
 static inline bool DoForceDisplayOnPostReboot()
 {
-    ENTRY_LOG;
     const char* flag_filename = "/opt/force_display_on_after_reboot";
     bool ret = false;
     if (0 == access(flag_filename, F_OK)) {
         ret = true;
     }
     LOGINFO("DoForceDisplayOnPostReboot: %s", (true == ret ? "true" : "false"));
-    EXIT_LOG;
     return ret;
 }
 
@@ -131,14 +117,21 @@ UXController::UXController(unsigned int id, const std::string& name, deviceType_
     , _deviceType(deviceType)
     , _invalidateAsyncBootloaderPattern(false)
     , _firstPowerTransitionComplete(false)
+    , _deviceSettings(nullptr)
 {
     LOGINFO("UXController initializing for profile id %d, name %s", id, name.c_str());
+    
+    // Get DeviceSettings implementation instance
+    _deviceSettings = DeviceSettingsImp::instance();
+    if (!_deviceSettings) {
+        LOGERR("Failed to get DeviceSettings implementation instance");
+    }
+    
     InitializeSafeDefaults();
 }
 
 void UXController::InitializeSafeDefaults()
 {
-    ENTRY_LOG;
     _enableMultiColourLedSupport = false;
     _enableSilentRebootSupport = true;
     _preferedPowerModeOnReboot = POWER_MODE_LAST_KNOWN;
@@ -154,22 +147,18 @@ void UXController::InitializeSafeDefaults()
         _ledEnabledInStandby = true;
         _ledEnabledInOnState = true;
     }
-    EXIT_LOG;
 }
 
 bool UXController::SetBootloaderPatternInternal(mfrBlPattern_t pattern)
 {
-    ENTRY_LOG;
     _mutex.lock();
     _invalidateAsyncBootloaderPattern = true;
     _mutex.unlock();
-    EXIT_LOG;
     return SetBootloaderPattern(pattern);
 }
 
 bool UXController::SetBootloaderPattern(mfrBlPattern_t pattern) const
 {
-    ENTRY_LOG;
     bool ret = true;
 
     if (false == _enableSilentRebootSupport) {
@@ -185,13 +174,11 @@ bool UXController::SetBootloaderPattern(mfrBlPattern_t pattern) const
     } else {
         LOGINFO("Successfully set bootloader pattern %d", (int)pattern);
     }
-    EXIT_LOG;
     return ret;
 }
 
 void UXController::SetBootloaderPatternAsync(mfrBlPattern_t pattern) const
 {
-    ENTRY_LOG;
     bool ret = true;
     const unsigned int retry_interval_seconds = 5;
     unsigned int remaining_retries = 12;
@@ -209,12 +196,10 @@ void UXController::SetBootloaderPatternAsync(mfrBlPattern_t pattern) const
     } while ((false == ret) && (0 < --remaining_retries));
 
     LOGINFO("SetBootloaderPatternAsync returns");
-    EXIT_LOG;
 }
 
 bool UXController::SetBootloaderPatternFaultTolerant(mfrBlPattern_t pattern)
 {
-    ENTRY_LOG;
     bool ret = true;
     ret = SetBootloaderPattern(pattern);
     if (false == ret) {
@@ -224,13 +209,11 @@ bool UXController::SetBootloaderPatternFaultTolerant(mfrBlPattern_t pattern)
         std::thread retry_thread(&UXController::SetBootloaderPatternAsync, this, pattern);
         retry_thread.detach();
     }
-    EXIT_LOG;
     return ret;
 }
 
 void UXController::SyncPowerLedWithPowerState(PowerState power_state) const
 {
-    ENTRY_LOG;
     if (true == _enableMultiColourLedSupport) {
         LOGINFO("Warning! Device supports multi-colour LEDs but it isn't handled");
     }
@@ -244,27 +227,83 @@ void UXController::SyncPowerLedWithPowerState(PowerState power_state) const
 
     try {
         LOGINFO("Setting power LED State to %s", (led_state ? "ON" : "OFF"));
-        dsFPDStateParam_t param;
-        param.eIndicator = dsFPD_INDICATOR_POWER;
-        param.state = (led_state ? dsFPD_STATE_ON : dsFPD_STATE_OFF);
-        _dsSetFPState(&param);
+        
+        if (_deviceSettings) {
+            FPDIndicator indicator = static_cast<FPDIndicator>(dsFPD_INDICATOR_POWER);
+            FPDState fpdState = (led_state ? FPDState::DS_FPD_STATE_ON : FPDState::DS_FPD_STATE_OFF);
+            
+            uint32_t result = _deviceSettings->SetFPDState(indicator, fpdState);
+            if (result != WPEFramework::Core::ERROR_NONE) {
+                LOGERR("SetFPDState failed with error: %d", result);
+            } else {
+                LOGINFO("Successfully set FPD power state to %s", (led_state ? "ON" : "OFF"));
+            }
+        } else {
+            LOGERR("DeviceSettings implementation not available");
+        }
     } catch (...) {
         LOGERR("Warning! exception caught when trying to change FP state");
     }
-    EXIT_LOG;
 }
 
 void UXController::SyncDisplayPortsWithPowerState(PowerState power_state) const
 {
-    ENTRY_LOG;
-    LOGINFO("SyncDisplayPortsWithPowerState: %d", power_state);
-    _SetAVPortsPowerState(power_state);
-    EXIT_LOG;
+    LOGINFO("SyncDisplayPortsWithPowerState: %d", static_cast<int>(power_state));
+    
+    if (_deviceSettings) {
+        try {
+            // Replicate _SetAVPortsPowerState functionality using DeviceSettings API
+            
+            // Set HDMI video port power state
+            int32_t hdmiHandle = 0;
+            VideoPortType vpType = VideoPortType::DS_VIDEO_PORT_TYPE_HDMI;
+            uint32_t result = _deviceSettings->GetVideoPort(vpType, 0, hdmiHandle);
+            
+            if (result == WPEFramework::Core::ERROR_NONE && hdmiHandle != 0) {
+                bool enable = (power_state == PowerState::POWER_STATE_ON);
+                result = _deviceSettings->EnableVideoPort(hdmiHandle, enable);
+                if (result == WPEFramework::Core::ERROR_NONE) {
+                    LOGINFO("Successfully set HDMI port power state to %s", enable ? "ON" : "OFF");
+                } else {
+                    LOGERR("EnableVideoPort failed with error: %d", result);
+                }
+            } else {
+                LOGINFO("HDMI video port not available, trying other ports");
+            }
+            
+            // Set Component video port if available
+            int32_t componentHandle = 0;
+            vpType = VideoPortType::DS_VIDEO_PORT_TYPE_COMPONENT;
+            result = _deviceSettings->GetVideoPort(vpType, 0, componentHandle);
+            
+            if (result == WPEFramework::Core::ERROR_NONE && componentHandle != 0) {
+                bool enable = (power_state == PowerState::POWER_STATE_ON);
+                result = _deviceSettings->EnableVideoPort(componentHandle, enable);
+                if (result == WPEFramework::Core::ERROR_NONE) {
+                    LOGINFO("Successfully set Component port power state to %s", enable ? "ON" : "OFF");
+                }
+            }
+            
+            // Set display power state
+            int32_t displayHandle = 0;
+            DisplayPortType displayType = DisplayPortType::DS_DISPLAY_PORT_TYPE_HDMI;
+            result = _deviceSettings->GetDisplay(displayType, 0, displayHandle);
+            if (result == WPEFramework::Core::ERROR_NONE && displayHandle != 0) {
+                bool enable = (power_state == PowerState::POWER_STATE_ON);
+                LOGINFO("Display HDMI state set to %s", enable ? "enabled" : "disabled");
+                // Note: Additional display control can be added here if needed
+            }
+            
+        } catch (const std::exception& e) {
+            LOGERR("Exception in SyncDisplayPortsWithPowerState: %s", e.what());
+        }
+    } else {
+        LOGERR("DeviceSettings implementation not available");
+    }
 }
 
 bool UXController::Initialize(unsigned int profile_id)
 {
-    ENTRY_LOG;
     bool ret = true;
     
     switch (profile_id) {
@@ -288,14 +327,11 @@ bool UXController::Initialize(unsigned int profile_id)
             LOGERR("Error! Unsupported product profile id %d", profile_id);
             ret = false;
     }
-    EXIT_LOG;
     return ret;
 }
 
 UXController* UXController::GetInstance()
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return _singleton;
 }
 
@@ -304,43 +340,35 @@ UXController* UXController::GetInstance()
 UXControllerTvEu::UXControllerTvEu(unsigned int id, const std::string& name)
     : UXController(id, name, DEVICE_TYPE_TV)
 {
-    ENTRY_LOG;
     _preferedPowerModeOnReboot = POWER_MODE_LIGHT_SLEEP;
-    EXIT_LOG;
 }
 
 bool UXControllerTvEu::ApplyPowerStateChangeConfig(PowerState newState, 
                                                    PowerState prevState)
 {
-    ENTRY_LOG;
     bool ret = true;
     SyncDisplayPortsWithPowerState(newState);
     ret = SetBootloaderPatternInternal((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == newState ? mfrBL_PATTERN_NORMAL : mfrBL_PATTERN_SILENT_LED_ON));
-    EXIT_LOG;
     return ret;
 }
 
 bool UXControllerTvEu::ApplyPreRebootConfig(PowerState currentState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return true;
 }
 
 bool UXControllerTvEu::ApplyPreMaintenanceRebootConfig(PowerState currentState)
 {
-    ENTRY_LOG;
     bool ret = true;
     if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON != currentState) {
         ret = SetBootloaderPatternInternal(mfrBL_PATTERN_SILENT);
-    }    EXIT_LOG;    EXIT_LOG;
+    }
     return ret;
 }
 
 bool UXControllerTvEu::ApplyPostRebootConfig(PowerState targetState, 
                                             PowerState lastKnownState)
 {
-    ENTRY_LOG;
     bool ret = true;
     
     if ((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == lastKnownState) && (WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == targetState)) {
@@ -363,15 +391,12 @@ bool UXControllerTvEu::ApplyPostRebootConfig(PowerState targetState,
             break;
     }
     ret = SetBootloaderPatternFaultTolerant(pattern);
-    EXIT_LOG;
     return ret;
 }
 
 PowerState UXControllerTvEu::GetPreferredPostRebootPowerState(
     PowerState prevState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY;
 }
 
@@ -380,43 +405,34 @@ PowerState UXControllerTvEu::GetPreferredPostRebootPowerState(
 UXControllerStbEu::UXControllerStbEu(unsigned int id, const std::string& name)
     : UXController(id, name, DEVICE_TYPE_STB)
 {
-    ENTRY_LOG;
     _preferedPowerModeOnReboot = POWER_MODE_LIGHT_SLEEP;
-    EXIT_LOG;
 }
 
 bool UXControllerStbEu::ApplyPowerStateChangeConfig(PowerState newState, 
                                                     PowerState prevState)
 {
-    ENTRY_LOG;
     SyncDisplayPortsWithPowerState(newState);
     SyncPowerLedWithPowerState(newState);
-    EXIT_LOG;
     return true;
 }
 
 bool UXControllerStbEu::ApplyPreRebootConfig(PowerState currentState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return true;
 }
 
 bool UXControllerStbEu::ApplyPreMaintenanceRebootConfig(PowerState currentState)
 {
-    ENTRY_LOG;
     bool ret = true;
     if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON != currentState) {
         ret = SetBootloaderPatternInternal(mfrBL_PATTERN_SILENT);
     }
-    EXIT_LOG;
     return ret;
 }
 
 bool UXControllerStbEu::ApplyPostRebootConfig(PowerState targetState, 
                                              PowerState lastKnownState)
 {
-    ENTRY_LOG;
     bool ret = true;
     
     if ((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == lastKnownState) && (WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == targetState)) {
@@ -432,15 +448,12 @@ bool UXControllerStbEu::ApplyPostRebootConfig(PowerState targetState,
     }
 
     ret = SetBootloaderPatternFaultTolerant(mfrBL_PATTERN_NORMAL);
-    EXIT_LOG;
     return ret;
 }
 
 PowerState UXControllerStbEu::GetPreferredPostRebootPowerState(
     PowerState prevState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY;
 }
 
@@ -449,15 +462,12 @@ PowerState UXControllerStbEu::GetPreferredPostRebootPowerState(
 UXControllerTv::UXControllerTv(unsigned int id, const std::string& name)
     : UXController(id, name, DEVICE_TYPE_TV)
 {
-    ENTRY_LOG;
     _preferedPowerModeOnReboot = POWER_MODE_LIGHT_SLEEP;
-    EXIT_LOG;
 }
 
 bool UXControllerTv::ApplyPowerStateChangeConfig(PowerState newState, 
                                                  PowerState prevState)
 {
-    ENTRY_LOG;
     _mutex.lock();
     if (false == _firstPowerTransitionComplete) {
         _firstPowerTransitionComplete = true;
@@ -466,32 +476,26 @@ bool UXControllerTv::ApplyPowerStateChangeConfig(PowerState newState,
 
     SyncDisplayPortsWithPowerState(newState);
     bool ret = SetBootloaderPatternInternal((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == newState ? mfrBL_PATTERN_NORMAL : mfrBL_PATTERN_SILENT_LED_ON));
-    EXIT_LOG;
     return ret;
 }
 
 bool UXControllerTv::ApplyPreRebootConfig(PowerState currentState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return true;
 }
 
 bool UXControllerTv::ApplyPreMaintenanceRebootConfig(PowerState currentState)
 {
-    ENTRY_LOG;
     bool ret = true;
     if (WPEFramework::Exchange::IPowerManager::POWER_STATE_ON != currentState) {
         ret = SetBootloaderPatternInternal(mfrBL_PATTERN_SILENT_LED_ON);
     }
-    EXIT_LOG;
     return ret;
 }
 
 bool UXControllerTv::ApplyPostRebootConfig(PowerState targetState, 
                                           PowerState lastKnownState)
 {
-    ENTRY_LOG;
     bool ret = true;
     SyncPowerLedWithPowerState(targetState);
 
@@ -530,21 +534,17 @@ bool UXControllerTv::ApplyPostRebootConfig(PowerState targetState,
             break;
     }
     ret = SetBootloaderPatternFaultTolerant(pattern);
-    EXIT_LOG;
     return ret;
 }
 
 PowerState UXControllerTv::GetPreferredPostRebootPowerState(
     PowerState prevState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY;
 }
 
 void UXControllerTv::SyncDisplayPortsWithRebootReason(reboot_type_t reboot_type)
 {
-    ENTRY_LOG;
     _mutex.lock();
     if (false == _firstPowerTransitionComplete) {
         _mutex.unlock();
@@ -552,7 +552,6 @@ void UXControllerTv::SyncDisplayPortsWithRebootReason(reboot_type_t reboot_type)
     } else {
         _mutex.unlock();
     }
-    EXIT_LOG;
 }
 
 /********************************* UXControllerStb Class ********************************/
@@ -560,52 +559,40 @@ void UXControllerTv::SyncDisplayPortsWithRebootReason(reboot_type_t reboot_type)
 UXControllerStb::UXControllerStb(unsigned int id, const std::string& name)
     : UXController(id, name, DEVICE_TYPE_STB)
 {
-    ENTRY_LOG;
     _preferedPowerModeOnReboot = POWER_MODE_LAST_KNOWN;
     _enableSilentRebootSupport = false;
-    EXIT_LOG;
 }
 
 bool UXControllerStb::ApplyPowerStateChangeConfig(PowerState newState, 
                                                   PowerState prevState)
 {
-    ENTRY_LOG;
     SyncDisplayPortsWithPowerState(newState);
     SyncPowerLedWithPowerState(newState);
-    EXIT_LOG;
     return true;
 }
 
 bool UXControllerStb::ApplyPreRebootConfig(PowerState currentState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return true;
 }
 
 bool UXControllerStb::ApplyPreMaintenanceRebootConfig(PowerState currentState)
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return true;
 }
 
 bool UXControllerStb::ApplyPostRebootConfig(PowerState targetState, 
                                            PowerState lastKnownState)
 {
-    ENTRY_LOG;
     bool ret = true;
     SyncPowerLedWithPowerState(targetState);
     SyncDisplayPortsWithPowerState(targetState);
-    EXIT_LOG;
     return ret;
 }
 
 PowerState UXControllerStb::GetPreferredPostRebootPowerState(
     PowerState prevState) const
 {
-    ENTRY_LOG;
-    EXIT_LOG;
     return prevState;
 }
 

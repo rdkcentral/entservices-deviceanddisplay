@@ -54,15 +54,11 @@ namespace Plugin {
         _callbackLock(),
         _videoPort(VideoPort::Create(*this))
     {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsVideoPortImpl Constructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     DeviceSettingsVideoPortImpl::~DeviceSettingsVideoPortImpl() {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsVideoPortImpl Destructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     template<typename Func, typename... Args>
@@ -83,7 +79,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsVideoPortImpl::Register(std::list<T*>& list, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
@@ -97,7 +92,6 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
-        EXIT_LOG;
         return status;
     }
 
@@ -105,7 +99,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsVideoPortImpl::Unregister(std::list<T*>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
@@ -118,33 +111,28 @@ namespace Plugin {
         }
 
         _callbackLock.Unlock();
-        EXIT_LOG;
         return status;
     }
 
     Core::hresult DeviceSettingsVideoPortImpl::Register(Exchange::IDeviceSettingsVideoPort::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Register(_VideoPortNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IVideoPort %p, errorCode: %u", notification, errorCode);
         } else {
             LOGINFO("IVideoPort %p registered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     Core::hresult DeviceSettingsVideoPortImpl::Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Unregister(_VideoPortNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IVideoPort %p, errorcode: %u", notification, errorCode);
         } else {
             LOGINFO("IVideoPort %p unregistered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
@@ -153,40 +141,31 @@ namespace Plugin {
     // VideoPort::INotification interface implementations (called by DS HAL)
     void DeviceSettingsVideoPortImpl::OnResolutionPreChange(const ResolutionChange resolution)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnResolutionPreChange event: width=%u, height=%u", resolution.width, resolution.height);
         dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnResolutionPreChange, resolution);
-        EXIT_LOG;
     }
 
     void DeviceSettingsVideoPortImpl::OnResolutionPostChange(const ResolutionChange resolution)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnResolutionPostChange event: width=%u, height=%u", resolution.width, resolution.height);
         dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnResolutionPostChange, resolution);
-        EXIT_LOG;
     }
 
     void DeviceSettingsVideoPortImpl::OnHDCPStatusChange(const VideoPortHdcpStatus hdcpStatus)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnHDCPStatusChange event: hdcpStatus=%d", static_cast<int>(hdcpStatus));
         dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnHDCPStatusChange, hdcpStatus);
-        EXIT_LOG;
     }
 
     void DeviceSettingsVideoPortImpl::OnVideoFormatUpdate(const HDRStandard videoFormatHDR)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnVideoFormatUpdate event: videoFormatHDR=0x%x", static_cast<uint16_t>(videoFormatHDR));
         dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnVideoFormatUpdate, videoFormatHDR);
-        EXIT_LOG;
     }
 
     // VideoPort interface method implementations called by DeviceSettingsImp 
     uint32_t DeviceSettingsVideoPortImpl::GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetVideoPort(videoPort, index, handle);
         if (result == Core::ERROR_NONE) {
@@ -194,13 +173,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoPort failed: videoPort=%d, index=%d, error=%u", static_cast<int>(videoPort), index, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::IsVideoPortEnabled(const int32_t handle, bool &enabled)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.IsVideoPortEnabled(handle, enabled);
         if (result == Core::ERROR_NONE) {
@@ -208,13 +185,11 @@ namespace Plugin {
         } else {
             LOGERR("IsVideoPortEnabled failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::EnableVideoPort(const int32_t handle, const bool enabled)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.EnableVideoPort(handle, enabled);
         if (result == Core::ERROR_NONE) {
@@ -222,13 +197,11 @@ namespace Plugin {
         } else {
             LOGERR("EnableVideoPort failed for handle: %d, enabled: %s, error: %u", handle, enabled ? "true" : "false", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::IsVideoPortDisplayConnected(const int32_t handle, bool &connected)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.IsVideoPortDisplayConnected(handle, connected);
         if (result == Core::ERROR_NONE) {
@@ -236,13 +209,11 @@ namespace Plugin {
         } else {
             LOGERR("IsVideoPortDisplayConnected failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::IsVideoPortActive(const int32_t handle, bool &active)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.IsVideoPortActive(handle, active);
         if (result == Core::ERROR_NONE) {
@@ -250,13 +221,11 @@ namespace Plugin {
         } else {
             LOGERR("IsVideoPortActive failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetVideoPortResolution(handle, resolution);
         if (result == Core::ERROR_NONE) {
@@ -264,13 +233,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoPortResolution failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::SetVideoPortResolution(const int32_t handle, const VideoPortResolution resolution, const bool persist, const bool forceCompatibility)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetVideoPortResolution(handle, resolution, persist, forceCompatibility);
         if (result == Core::ERROR_NONE) {
@@ -278,13 +245,11 @@ namespace Plugin {
         } else {
             LOGERR("SetVideoPortResolution failed for handle: %d, persist: %s, forceCompatibility: %s, error: %u", handle, persist ? "true" : "false", forceCompatibility ? "true" : "false", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetColorSpace(const int32_t handle, VideoPortColorSpace &colorSpace)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetColorSpace(handle, colorSpace);
         if (result == Core::ERROR_NONE) {
@@ -292,13 +257,11 @@ namespace Plugin {
         } else {
             LOGERR("GetColorSpace failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::SetColorSpace(const int32_t handle, const VideoPortColorSpace colorSpace, const bool persist)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetColorSpace(handle, colorSpace);
         if (result == Core::ERROR_NONE) {
@@ -306,13 +269,11 @@ namespace Plugin {
         } else {
             LOGERR("SetColorSpace failed for handle: %d, persist: %s, error: %u", handle, persist ? "true" : "false", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetQuantizationRange(const int32_t handle, VideoPortQuantizationRange &quantizationRange)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetQuantizationRange(handle, quantizationRange);
         if (result == Core::ERROR_NONE) {
@@ -320,13 +281,11 @@ namespace Plugin {
         } else {
             LOGERR("GetQuantizationRange failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::SetQuantizationRange(const int32_t handle, const VideoPortQuantizationRange quantizationRange, const bool persist)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetVideoPortQuantizationRange(handle, quantizationRange);
         if (result == Core::ERROR_NONE) {
@@ -334,13 +293,11 @@ namespace Plugin {
         } else {
             LOGERR("SetQuantizationRange failed for handle: %d, persist: %s, error: %u", handle, persist ? "true" : "false", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetVideoPortHDCPStatus(const int32_t handle, VideoPortHdcpStatus &hdcpStatus)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetVideoPortHDCPStatus(handle, hdcpStatus);
         if (result == Core::ERROR_NONE) {
@@ -348,13 +305,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoPortHDCPStatus failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetHDCPProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetHDCPProtocolVersionOnVideoPort(handle, hdcpVersion);
         if (result == Core::ERROR_NONE) {
@@ -362,13 +317,11 @@ namespace Plugin {
         } else {
             LOGERR("GetHDCPProtocolVersionOnVideoPort failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetVideoPortHDCPCurrentProtocol(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetHDCPCurrentProtocolVersionOnVideoPort(handle, hdcpVersion);
         if (result == Core::ERROR_NONE) {
@@ -376,13 +329,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoPortHDCPCurrentProtocol failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::SetVideoPortHDCPProfile(const int32_t handle, const VideoPortHdcpProtocolVersion hdcpVersion, const bool persist)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetHDMIPreference(handle, hdcpVersion);
         if (result == Core::ERROR_NONE) {
@@ -390,14 +341,12 @@ namespace Plugin {
         } else {
             LOGERR("SetVideoPortHDCPProfile failed for handle: %d, persist: %s, error: %u", handle, persist ? "true" : "false", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     // Additional VideoPort methods - stub implementations for now
     uint32_t DeviceSettingsVideoPortImpl::GetMatrixCoefficients(const int32_t handle, DisplayMatrixCoefficients &matrixCoefficients)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         DisplayMatrixCoefficients displayMatrixCoefficients;
         result = _videoPort.GetMatrixCoefficients(handle, displayMatrixCoefficients);
@@ -407,13 +356,11 @@ namespace Plugin {
         } else {
             LOGERR("GetMatrixCoefficients failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetCurrentOutputSettings(const int32_t handle, DSOutputSettings &outputSettings)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         DSOutputSettings dsOutputSettings;
         result = _videoPort.GetCurrentOutputSettings(handle, dsOutputSettings);
@@ -428,13 +375,11 @@ namespace Plugin {
         } else {
             LOGERR("GetCurrentOutputSettings failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::SetBackgroundColor(const int32_t handle, const VideoBackgroundColor backgroundColor)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetBackgroundColor(handle, backgroundColor);
         if (result == Core::ERROR_NONE) {
@@ -442,13 +387,11 @@ namespace Plugin {
         } else {
             LOGERR("SetBackgroundColor failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::SetForceHDRMode(const int32_t handle, const HDRStandard hdrMode)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetForceHDRMode(handle, hdrMode);
         if (result == Core::ERROR_NONE) {
@@ -456,13 +399,11 @@ namespace Plugin {
         } else {
             LOGERR("SetForceHDRMode failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetColorDepthCapabilities(const int32_t handle, uint32_t &colorDepthCapabilities)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetColorDepthCapabilities(handle, colorDepthCapabilities);
         if (result == Core::ERROR_NONE) {
@@ -470,13 +411,11 @@ namespace Plugin {
         } else {
             LOGERR("GetColorDepthCapabilities failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetPreferredColorDepth(const int32_t handle, DisplayColorDepth &colorDepth, const bool persist)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         DisplayColorDepth displayColorDepth;
         result = _videoPort.GetPreferredColorDepth(handle, displayColorDepth, persist);
@@ -486,13 +425,11 @@ namespace Plugin {
         } else {
             LOGERR("GetPreferredColorDepth failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::SetPreferredColorDepth(const int32_t handle, const DisplayColorDepth colorDepth, const bool persist)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetPreferredColorDepth(handle, static_cast<DisplayColorDepth>(colorDepth), persist);
         if (result == Core::ERROR_NONE) {
@@ -500,7 +437,6 @@ namespace Plugin {
         } else {
             LOGERR("SetPreferredColorDepth failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
@@ -508,7 +444,6 @@ namespace Plugin {
     
     uint32_t DeviceSettingsVideoPortImpl::GetColorDepth(const int32_t handle, uint32_t &colorDepth)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetColorDepth(handle, colorDepth);
         if (result == Core::ERROR_NONE) {
@@ -516,13 +451,11 @@ namespace Plugin {
         } else {
             LOGERR("GetColorDepth failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::EnableHDCPOnVideoPort(const int32_t handle, const bool hdcpEnable, const uint8_t hdcpKey[], const uint16_t hdcpKeySize)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.EnableHDCPOnVideoPort(handle, hdcpEnable, hdcpKey, hdcpKeySize);
         if (result == Core::ERROR_NONE) {
@@ -530,13 +463,11 @@ namespace Plugin {
         } else {
             LOGERR("EnableHDCPOnVideoPort failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::IsHDCPEnabledOnVideoPort(const int32_t handle, bool &hdcpEnabled)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.IsHDCPEnabledOnVideoPort(handle, hdcpEnabled);
         if (result == Core::ERROR_NONE) {
@@ -544,13 +475,11 @@ namespace Plugin {
         } else {
             LOGERR("IsHDCPEnabledOnVideoPort failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::GetTVHDRCapabilities(const int32_t handle, int32_t &capabilities)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetTVHDRCapabilities(handle, capabilities);
         if (result == Core::ERROR_NONE) {
@@ -558,13 +487,11 @@ namespace Plugin {
         } else {
             LOGERR("GetTVHDRCapabilities failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::GetTVSupportedResolutions(const int32_t handle, int32_t &resolutions)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetTVSupportedResolutions(handle, resolutions);
         if (result == Core::ERROR_NONE) {
@@ -572,13 +499,11 @@ namespace Plugin {
         } else {
             LOGERR("GetTVSupportedResolutions failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::SetForceDisable4K(const int32_t handle, const bool disable)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetForceDisable4K(handle, disable);
         if (result == Core::ERROR_NONE) {
@@ -586,13 +511,11 @@ namespace Plugin {
         } else {
             LOGERR("SetForceDisable4K failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::GetForceDisable4K(const int32_t handle, bool &disabled)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetForceDisable4K(handle, disabled);
         if (result == Core::ERROR_NONE) {
@@ -600,13 +523,11 @@ namespace Plugin {
         } else {
             LOGERR("GetForceDisable4K failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::IsVideoPortOutputHDR(const int32_t handle, bool &isHDR)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.IsVideoPortOutputHDR(handle, isHDR);
         if (result == Core::ERROR_NONE) {
@@ -614,13 +535,11 @@ namespace Plugin {
         } else {
             LOGERR("IsVideoPortOutputHDR failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::ResetVideoPortOutputToSDR()
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.ResetVideoPortOutputToSDR();
         if (result == Core::ERROR_NONE) {
@@ -628,13 +547,11 @@ namespace Plugin {
         } else {
             LOGERR("ResetVideoPortOutputToSDR failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::GetHDMIPreference(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetHDMIPreference(handle, hdcpVersion);
         if (result == Core::ERROR_NONE) {
@@ -642,13 +559,11 @@ namespace Plugin {
         } else {
             LOGERR("GetHDMIPreference failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::SetHDMIPreference(const int32_t handle, const VideoPortHdcpProtocolVersion hdcpVersion)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.SetHDMIPreference(handle, hdcpVersion);
         if (result == Core::ERROR_NONE) {
@@ -656,13 +571,11 @@ namespace Plugin {
         } else {
             LOGERR("SetHDMIPreference failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::GetVideoEOTF(const int32_t handle, HDRStandard &hdrStandard)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         HDRStandard interfaceHdrStandard;
         result = _videoPort.GetVideoEOTF(handle, interfaceHdrStandard);
@@ -672,13 +585,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoEOTF failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::IsVideoPortDisplaySurround(const int32_t handle, bool &surround)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.IsVideoPortDisplaySurround(handle, surround);
         if (result == Core::ERROR_NONE) {
@@ -686,13 +597,11 @@ namespace Plugin {
         } else {
             LOGERR("IsVideoPortDisplaySurround failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
     
     uint32_t DeviceSettingsVideoPortImpl::GetVideoPortDisplaySurroundMode(const int32_t handle, VideoPortSurroundMode &surroundMode)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetVideoPortDisplaySurroundMode(handle, surroundMode);
         if (result == Core::ERROR_NONE) {
@@ -700,13 +609,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoPortDisplaySurroundMode failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetHDCPReceiverProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetHDCPReceiverProtocolVersionOnVideoPort(handle, hdcpVersion);
         if (result == Core::ERROR_NONE) {
@@ -714,13 +621,11 @@ namespace Plugin {
         } else {
             LOGERR("GetHDCPReceiverProtocolVersionOnVideoPort failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetHDCPCurrentProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoPort.GetHDCPCurrentProtocolVersionOnVideoPort(handle, hdcpVersion);
         if (result == Core::ERROR_NONE) {
@@ -728,7 +633,6 @@ namespace Plugin {
         } else {
             LOGERR("GetHDCPCurrentProtocolVersionOnVideoPort failed: handle=%d, error=%u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 

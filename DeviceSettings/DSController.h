@@ -48,15 +48,16 @@
 #include "list.hpp"
 #include "DeviceSettingsTypes.h"
 
-// Forward declarations for DS types
-extern "C" {
-    #include "dsTypes.h"
-    #include "dsVideoPort.h"
-    #include "dsDisplay.h"
-    #include "dsAudio.h"
-}
+#include "DeviceSettingsImplementation.h"
+#include <interfaces/IDeviceSettingsVideoPort.h>
+#include <interfaces/IDeviceSettingsAudio.h>
+#include <interfaces/IDeviceSettingsDisplay.h>
 
-// GLib forward declarations
+#include "dsTypes.h"
+#include "dsVideoPort.h"
+#include "dsDisplay.h"
+#include "dsAudio.h"
+
 typedef struct _GMainLoop GMainLoop;
 typedef int gboolean;
 typedef void* gpointer;
@@ -64,16 +65,15 @@ typedef unsigned int guint;
 
 namespace WPEFramework {
 namespace Plugin {
-    class DSController
-        {
+    class DeviceSettingsImp;
+    
+    class DSController : public IDisplayHDMIHotPlugNotification {
     public:
-        // We do not allow this plugin to be copied !!
         DSController();
         ~DSController();
 
         static DSController* instance(DSController* DSController = nullptr);
 
-        // We do not allow this plugin to be copied !!
         DSController(const DSController&)            = delete;
         DSController& operator=(const DSController&) = delete;
 
@@ -108,71 +108,87 @@ namespace Plugin {
         };
 
     public:
-        // Main initialization and lifecycle methods
         void InitializeIARM();
         uint32_t Start();
         uint32_t Stop();
         void Loop();
 
-        // DSMgr functionality methods
         void Init();
         void Deinit();
 
-        // Getter methods
+        void InitializeDeviceSettingsComponents();
+        void DeinitializeDeviceSettingsComponents();
+
         int getEASMode() const { return _easMode; }
         
+        void OnDisplayRxSense(const DisplayEvent displayEvent);
+        void OnDisplayHDCPStatus();
+        void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent);
+        
     private:
-        // Internal methods migrated from dsMgr daemon
         void InitializeResolutionThread();
         void SetVideoPortResolution();
-        void SetResolution(intptr_t* handle, dsVideoPortType_t portType);
+        void SetResolution(int32_t handle, dsVideoPortType_t portType);
         void SetAudioMode();
         void SetEASAudioMode();
         void SetBackgroundColor(dsVideoBackgroundColor_t color);
         void DumpHdmiEdidInfo(dsDisplayEDID_t* pedidData);
         void ScheduleEdidDump();
         
-        // Event handlers
         void EventHandler(const char *owner, int eventId, void *data, size_t len);
         void SysModeChange(void *arg);
         
-        // Helper methods
-        static intptr_t GetVideoPortHandle(dsVideoPortType_t port);
-        static bool IsHDMIConnected();
+        int32_t GetVideoPortHandle(dsVideoPortType_t port);
+        bool IsHDMIConnected();
+        bool isComponentPortPresent();
+        bool dsGetHDMIDDCLineStatus();
         
-        // Thread function
+        static void setupPlatformConfig();
+        static bool isEUPlatform();
+        static bool getSecondaryResolution(char* res, char *secRes);
+        static void parseResolution(const char* pResn, char* bResn);
+        static void getFallBackResolution(char* Resn, char *fbResn, int flag);
+        static bool isResolutionSupported(dsDisplayEDID_t *edidData, int numResolutions, 
+                                         int pNumResolutions, char *Resn, int* index);
+        
         static void* ResolutionThreadFunc(void *arg);
         
-        // GLib callback functions
         static gboolean HeartbeatMsg(gpointer data);
         static gboolean SetResolutionHandler(gpointer data);
         static gboolean DumpEdidOnChecksumDiff(gpointer data);
+        
+        static void _EventHandler(const char *owner, IARM_EventId_t eventId, void *data, size_t len);
+        static IARM_Result_t _SysModeChange(void *arg);
 
     private:
         static DSController* _instance;
         
-        // Thread synchronization
-        pthread_t _resolutionThreadID;
-        pthread_mutex_t _mutexLock;
-        pthread_cond_t _mutexCond;
+        DeviceSettingsImp* _deviceSettings;
+        DeviceSettingsImp* _audio;
         
-        // GLib main loop
+        static pthread_t _resolutionThreadID;
+        static pthread_mutex_t _mutexLock;
+        static pthread_cond_t _mutexCond;
+        
         GMainLoop* _mainLoop;
-        guint _hotplugEventSrc;
+        static guint _hotplugEventSrc;
         
-        // State variables
-        int _tuneReady;
-        int _initResolutionFlag;
-        int _resolutionRetryCount;
-        bool _hdcpAuthenticated;
-        bool _ignoreEdid;
-        dsDisplayEvent_t _displayEventStatus;
-        int _easMode;  // IARM_Bus_Daemon_SysMode_t equivalent
+        static volatile bool _dsMgr_thread_exit_flag;
+        
+        static int _tuneReady;
+        static int _initResolutionFlag;
+        static int _resolutionRetryCount;
+        static bool _hdcpAuthenticated;
+        static bool _ignoreEdid;
+        static dsDisplayEvent_t _displayEventStatus;
+        
+        int _easMode;
+        
+        static bool IsEUPlatform;
+        static char fallBackResolutionList[6][64];
         
     private:
-        // lock to guard all apis of DeviceSettings
         mutable Core::CriticalSection _apiLock;
-        // lock to guard all notification from DeviceSettings to clients and also their callback register & unregister
         mutable Core::CriticalSection _callbackLock;
     };
 } // namespace Plugin

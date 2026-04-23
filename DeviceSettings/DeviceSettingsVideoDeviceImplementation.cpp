@@ -35,15 +35,11 @@ namespace Plugin {
         _callbackLock(),
         _videoDevice(VideoDevice::Create(*this))
     {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsVideoDeviceImpl Constructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     DeviceSettingsVideoDeviceImpl::~DeviceSettingsVideoDeviceImpl() {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsVideoDeviceImpl Destructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     template<typename Func, typename... Args>
@@ -64,7 +60,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsVideoDeviceImpl::Register(std::list<T*>& list, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
@@ -78,7 +73,6 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
-        EXIT_LOG;
         return status;
     }
 
@@ -86,7 +80,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsVideoDeviceImpl::Unregister(std::list<T*>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
@@ -99,65 +92,53 @@ namespace Plugin {
         }
 
         _callbackLock.Unlock();
-        EXIT_LOG;
         return status;
     }
 
     Core::hresult DeviceSettingsVideoDeviceImpl::Register(Exchange::IDeviceSettingsVideoDevice::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Register(_VideoDeviceNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IVideoDevice %p, errorCode: %u", notification, errorCode);
         } else {
             LOGINFO("IVideoDevice %p registered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     Core::hresult DeviceSettingsVideoDeviceImpl::Unregister(Exchange::IDeviceSettingsVideoDevice::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Unregister(_VideoDeviceNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IVideoDevice %p, errorcode: %u", notification, errorCode);
         } else {
             LOGINFO("IVideoDevice %p unregistered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     // VideoDevice::INotification interface implementations (called by DS HAL)
     void DeviceSettingsVideoDeviceImpl::OnZoomSettingsChanged(const VideoDeviceZoom zoomSetting)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnZoomSettingsChanged event: zoomSetting=%d", static_cast<int>(zoomSetting));
         dispatchVideoDeviceEvent(&Exchange::IDeviceSettingsVideoDevice::INotification::OnZoomSettingsChanged, zoomSetting);
-        EXIT_LOG;
     }
 
     void DeviceSettingsVideoDeviceImpl::OnDisplayFrameratePreChange(const string frameRate)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnDisplayFrameratePreChange event: frameRate=%s", frameRate.c_str());
         dispatchVideoDeviceEvent(&Exchange::IDeviceSettingsVideoDevice::INotification::OnDisplayFrameratePreChange, frameRate);
-        EXIT_LOG;
     }
 
     void DeviceSettingsVideoDeviceImpl::OnDisplayFrameratePostChange(const string frameRate)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnDisplayFrameratePostChange event: frameRate=%s", frameRate.c_str());
         dispatchVideoDeviceEvent(&Exchange::IDeviceSettingsVideoDevice::INotification::OnDisplayFrameratePostChange, frameRate);
-        EXIT_LOG;
     }
 
     // VideoDevice interface method implementations called by DeviceSettingsImp 
     uint32_t DeviceSettingsVideoDeviceImpl::GetVideoDeviceHandle(const int32_t index, int32_t &handle)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.GetVideoDeviceHandle(index, handle);
         if (result == Core::ERROR_NONE) {
@@ -165,13 +146,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoDeviceHandle failed: index=%d, error=%u", index, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::SetVideoDeviceDFC(const int32_t handle, const VideoDeviceZoom zoomSetting)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.SetVideoDeviceDFC(handle, zoomSetting);
         if (result == Core::ERROR_NONE) {
@@ -179,13 +158,11 @@ namespace Plugin {
         } else {
             LOGERR("SetVideoDeviceDFC failed for handle: %d, zoomSetting: %d, error: %u", handle, static_cast<int>(zoomSetting), result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::GetVideoDeviceDFC(const int32_t handle, VideoDeviceZoom &zoomSetting)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.GetVideoDeviceDFC(handle, zoomSetting);
         if (result == Core::ERROR_NONE) {
@@ -193,13 +170,11 @@ namespace Plugin {
         } else {
             LOGERR("GetVideoDeviceDFC failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::GetHDRCapabilities(const int32_t handle, int32_t &capabilities)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.GetHDRCapabilities(handle, capabilities);
         if (result == Core::ERROR_NONE) {
@@ -207,13 +182,11 @@ namespace Plugin {
         } else {
             LOGERR("GetHDRCapabilities failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::GetSupportedVideoCodingFormats(const int32_t handle, int32_t &supportedFormats)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.GetSupportedVideoCodingFormats(handle, supportedFormats);
         if (result == Core::ERROR_NONE) {
@@ -221,13 +194,11 @@ namespace Plugin {
         } else {
             LOGERR("GetSupportedVideoCodingFormats failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::GetCodecInfo(const int32_t handle, const VideoDeviceCodec videoCodec, IDeviceSettingsVideoCodecProfileSupportIterator*& codecInfo)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.GetCodecInfo(handle, videoCodec, codecInfo);
         if (result == Core::ERROR_NONE) {
@@ -235,13 +206,11 @@ namespace Plugin {
         } else {
             LOGERR("GetCodecInfo failed for handle: %d, videoCodec: %d, error: %u", handle, static_cast<int>(videoCodec), result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::DisableHDR(const int32_t handle, const bool disable)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.DisableHDR(handle, disable);
         if (result == Core::ERROR_NONE) {
@@ -249,13 +218,11 @@ namespace Plugin {
         } else {
             LOGERR("DisableHDR failed for handle: %d, disable: %s, error: %u", handle, disable ? "true" : "false", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::SetFRFMode(const int32_t handle, const int32_t frfmode)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.SetFRFMode(handle, frfmode);
         if (result == Core::ERROR_NONE) {
@@ -263,13 +230,11 @@ namespace Plugin {
         } else {
             LOGERR("SetFRFMode failed for handle: %d, frfmode: %d, error: %u", handle, frfmode, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::GetFRFMode(const int32_t handle, int32_t &frfmode)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.GetFRFMode(handle, frfmode);
         if (result == Core::ERROR_NONE) {
@@ -277,13 +242,11 @@ namespace Plugin {
         } else {
             LOGERR("GetFRFMode failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::GetCurrentDisplayFrameRate(const int32_t handle, string &framerate)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.GetCurrentDisplayFrameRate(handle, framerate);
         if (result == Core::ERROR_NONE) {
@@ -291,13 +254,11 @@ namespace Plugin {
         } else {
             LOGERR("GetCurrentDisplayFrameRate failed for handle: %d, error: %u", handle, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsVideoDeviceImpl::SetDisplayFrameRate(const int32_t handle, const string framerate)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _videoDevice.SetDisplayFrameRate(handle, framerate);
         if (result == Core::ERROR_NONE) {
@@ -305,7 +266,6 @@ namespace Plugin {
         } else {
             LOGERR("SetDisplayFrameRate failed for handle: %d, framerate: %s, error: %u", handle, framerate.c_str(), result);
         }
-        EXIT_LOG;
         return result;
     }
 

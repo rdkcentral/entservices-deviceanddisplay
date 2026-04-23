@@ -32,15 +32,11 @@ namespace Plugin {
     DeviceSettingsFPDImpl::DeviceSettingsFPDImpl()
         : _fpd(FPD::Create(*this))
     {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsFPDImpl Constructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     DeviceSettingsFPDImpl::~DeviceSettingsFPDImpl() {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsFPDImpl Destructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
 
@@ -62,7 +58,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsFPDImpl::Register(std::list<T*>& list, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
@@ -76,7 +71,6 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
-        EXIT_LOG;
         return status;
     }
 
@@ -84,7 +78,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsFPDImpl::Unregister(std::list<T*>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
@@ -97,121 +90,95 @@ namespace Plugin {
         }
 
         _callbackLock.Unlock();
-        EXIT_LOG;
         return status;
     }
 
     Core::hresult DeviceSettingsFPDImpl::Register(DeviceSettingsFPD::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Register(_FPDNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IFPD %p, errorCode: %u", notification, errorCode);
         } else {
             LOGINFO("IFPD %p registered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     Core::hresult DeviceSettingsFPDImpl::Unregister(DeviceSettingsFPD::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Unregister(_FPDNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IFPD %p, errorcode: %u", notification, errorCode);
         } else {
             LOGINFO("IFPD %p unregistered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     // FPD notification implementation
     void DeviceSettingsFPDImpl::OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat)
     {
-        ENTRY_LOG;
         LOGINFO("OnFPDTimeFormatChanged event Received: timeFormat=%d", timeFormat);
         dispatchFPDEvent(&DeviceSettingsFPD::INotification::OnFPDTimeFormatChanged, timeFormat);
-        EXIT_LOG;
     }
 
     //Depricated
     Core::hresult DeviceSettingsFPDImpl::SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) {
-        ENTRY_LOG;
         LOGINFO("SetFPDTime: timeFormat=%d, minutes=%u, seconds=%u", timeFormat, minutes, seconds);
         LOGINFO("SetFPDTime: SUCCESS - stub implementation completed");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) {
-        ENTRY_LOG;
         LOGINFO("SetFPDScroll: scrollHoldDuration=%u, horizontal=%u, vertical=%u", scrollHoldDuration, nHorizontalScrollIterations, nVerticalScrollIterations);
         LOGINFO("SetFPDScroll: SUCCESS - stub implementation completed");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess) {
-        ENTRY_LOG;
         LOGINFO("SetFPDTextBrightness: textDisplay=%d, brightNess=%u", textDisplay, brightNess);
         LOGINFO("SetFPDTextBrightness: SUCCESS - stub implementation completed");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess) {
-        ENTRY_LOG;
         brightNess = 50; // Example value
         LOGINFO("GetFPDTextBrightness: SUCCESS - textDisplay=%d, brightNess=%d", textDisplay, brightNess);
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::EnableFPDClockDisplay(const bool enable) {
-        ENTRY_LOG;
         LOGINFO("EnableFPDClockDisplay: enable=%s", enable ? "true" : "false");
         LOGINFO("EnableFPDClockDisplay: SUCCESS - stub implementation completed");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) {
-        ENTRY_LOG;
         fpdTimeFormat = FPDTimeFormat::DS_FPD_TIMEFORMAT_24_HOUR; // Example value
         LOGINFO("GetFPDTimeFormat: SUCCESS - fpdTimeFormat=%d", fpdTimeFormat);
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) {
-        ENTRY_LOG;
         LOGINFO("SetFPDTimeFormat: fpdTimeFormat=%d", fpdTimeFormat);
         LOGINFO("SetFPDTimeFormat: SUCCESS - stub implementation completed");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) {
-        ENTRY_LOG;
         LOGINFO("SetFPDBlink: indicator=%d, blinkDuration=%u, blinkIterations=%u", indicator, blinkDuration, blinkIterations);
         LOGINFO("SetFPDBlink: SUCCESS - stub implementation completed");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDMode(const FPDMode fpdMode) {
-        ENTRY_LOG;
         LOGINFO("SetFPDMode: fpdMode=%d", fpdMode);
         LOGINFO("SetFPDMode: SUCCESS - stub implementation completed");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
     //Depricated
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist) {
-        ENTRY_LOG;
         LOGINFO("SetFPDBrightness: indicator=%d, brightNess=%u, persist=%s", indicator, brightNess, persist ? "true" : "false");
 
         _apiLock.Lock();
@@ -220,24 +187,20 @@ namespace Plugin {
         
         LOGINFO("SetFPDBrightness: SUCCESS - platform call completed");
 
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) {
-        ENTRY_LOG;
 
         _apiLock.Lock();
         _fpd.GetFPDBrightness(indicator, brightNess);
         _apiLock.Unlock();
 
         LOGINFO("GetFPDBrightness: SUCCESS - indicator=%d, brightNess=%d", indicator, brightNess);
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDState(const FPDIndicator indicator, const FPDState state) {
-        ENTRY_LOG;
         LOGINFO("SetFPDState: indicator=%d, state=%d", indicator, state);
 
         _apiLock.Lock();
@@ -246,36 +209,30 @@ namespace Plugin {
         
         LOGINFO("SetFPDState: SUCCESS - platform call completed");
 
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::GetFPDState(const FPDIndicator indicator, FPDState &state) {
-        ENTRY_LOG;
 
         _apiLock.Lock();
         _fpd.GetFPDState(indicator, state);
         _apiLock.Unlock();
 
         LOGINFO("GetFPDState: SUCCESS - indicator=%d, state=%d", indicator, state);
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::GetFPDColor(const FPDIndicator indicator, uint32_t &color) {
-        ENTRY_LOG;
 
         _apiLock.Lock();
         _fpd.GetFPDColor(indicator, color);
         _apiLock.Unlock();
 
         LOGINFO("GetFPDColor: SUCCESS - indicator=%d, color=0x%X", indicator, color);
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
     Core::hresult DeviceSettingsFPDImpl::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
-        ENTRY_LOG;
         LOGINFO("SetFPDColor: indicator=%d, color=0x%X", indicator, color);
 
         _apiLock.Lock();
@@ -284,7 +241,6 @@ namespace Plugin {
         
         LOGINFO("SetFPDColor: SUCCESS - platform call completed");
 
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 

@@ -34,15 +34,12 @@ VideoPort::VideoPort(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
     LOGINFO("VideoPort Constructor");
     Platform_init();
-    EXIT_LOG;
 }
 
 void VideoPort::Platform_init()
 {
-    ENTRY_LOG;
     LOGINFO("VideoPort Init - Setting up event callbacks");
     
     // Set up callback bundle for VideoPort events - using global CallbackBundle pattern
@@ -67,11 +64,9 @@ void VideoPort::Platform_init()
         this->platform().getPersistenceValue();
     }
     
-    EXIT_LOG;
 }
 
 uint32_t VideoPort::GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle) {
-    ENTRY_LOG;
     LOGINFO("GetVideoPort: videoPort=%d, index=%d", static_cast<int>(videoPort), index);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -82,12 +77,10 @@ uint32_t VideoPort::GetVideoPort(const VideoPortType videoPort, const int32_t in
     } else {
         LOGERR("GetVideoPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::IsVideoPortEnabled(const int32_t handle, bool &enabled) {
-    ENTRY_LOG;
     LOGINFO("IsVideoPortEnabled: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -98,12 +91,10 @@ uint32_t VideoPort::IsVideoPortEnabled(const int32_t handle, bool &enabled) {
     } else {
         LOGERR("IsVideoPortEnabled: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::EnableVideoPort(const int32_t handle, const bool enabled) {
-    ENTRY_LOG;
     LOGINFO("EnableVideoPort: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -114,12 +105,10 @@ uint32_t VideoPort::EnableVideoPort(const int32_t handle, const bool enabled) {
     } else {
         LOGERR("EnableVideoPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::IsVideoPortDisplayConnected(const int32_t handle, bool &connected) {
-    ENTRY_LOG;
     LOGINFO("IsVideoPortDisplayConnected: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -130,12 +119,10 @@ uint32_t VideoPort::IsVideoPortDisplayConnected(const int32_t handle, bool &conn
     } else {
         LOGERR("IsVideoPortDisplayConnected: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::IsVideoPortActive(const int32_t handle, bool &active) {
-    ENTRY_LOG;
     LOGINFO("IsVideoPortActive: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -146,12 +133,10 @@ uint32_t VideoPort::IsVideoPortActive(const int32_t handle, bool &active) {
     } else {
         LOGERR("IsVideoPortActive: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution) {
-    ENTRY_LOG;
     LOGINFO("GetVideoPortResolution: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -162,12 +147,10 @@ uint32_t VideoPort::GetVideoPortResolution(const int32_t handle, VideoPortResolu
     } else {
         LOGERR("GetVideoPortResolution: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetColorDepth(const int32_t handle, uint32_t &colorDepth) {
-    ENTRY_LOG;
     LOGINFO("GetColorDepth: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -178,12 +161,10 @@ uint32_t VideoPort::GetColorDepth(const int32_t handle, uint32_t &colorDepth) {
     } else {
         LOGERR("GetColorDepth: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetVideoPortColorDepth(const int32_t handle, const uint32_t colorDepth) {
-    ENTRY_LOG;
     LOGINFO("SetVideoPortColorDepth: handle=%d, colorDepth=%u", handle, colorDepth);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -194,12 +175,10 @@ uint32_t VideoPort::SetVideoPortColorDepth(const int32_t handle, const uint32_t 
     } else {
         LOGERR("SetVideoPortColorDepth: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetQuantizationRange(const int32_t handle, VideoPortQuantizationRange &quantizationRange) {
-    ENTRY_LOG;
     LOGINFO("GetQuantizationRange: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -210,12 +189,10 @@ uint32_t VideoPort::GetQuantizationRange(const int32_t handle, VideoPortQuantiza
     } else {
         LOGERR("GetQuantizationRange: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetVideoPortQuantizationRange(const int32_t handle, const VideoPortQuantizationRange quantizationRange) {
-    ENTRY_LOG;
     LOGINFO("SetVideoPortQuantizationRange: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -226,12 +203,10 @@ uint32_t VideoPort::SetVideoPortQuantizationRange(const int32_t handle, const Vi
     } else {
         LOGERR("SetVideoPortQuantizationRange: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetColorSpace(const int32_t handle, VideoPortColorSpace &colorSpace) {
-    ENTRY_LOG;
     LOGINFO("GetColorSpace: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -242,12 +217,10 @@ uint32_t VideoPort::GetColorSpace(const int32_t handle, VideoPortColorSpace &col
     } else {
         LOGERR("GetColorSpace: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetColorSpace(const int32_t handle, const VideoPortColorSpace colorSpace) {
-    ENTRY_LOG;
     LOGINFO("SetColorSpace: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -258,12 +231,10 @@ uint32_t VideoPort::SetColorSpace(const int32_t handle, const VideoPortColorSpac
     } else {
         LOGERR("SetColorSpace: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetVideoPortFrameRate(const int32_t handle, uint32_t &frameRate) {
-    ENTRY_LOG;
     LOGINFO("GetVideoPortFrameRate: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -274,12 +245,10 @@ uint32_t VideoPort::GetVideoPortFrameRate(const int32_t handle, uint32_t &frameR
     } else {
         LOGERR("GetVideoPortFrameRate: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetVideoPortFrameRate(const int32_t handle, const uint32_t frameRate) {
-    ENTRY_LOG;
     LOGINFO("SetVideoPortFrameRate: handle=%d, frameRate=%u", handle, frameRate);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -290,12 +259,10 @@ uint32_t VideoPort::SetVideoPortFrameRate(const int32_t handle, const uint32_t f
     } else {
         LOGERR("SetVideoPortFrameRate: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetVideoPortHDCPStatus(const int32_t handle, VideoPortHdcpStatus &hdcpStatus) {
-    ENTRY_LOG;
     LOGINFO("GetVideoPortHDCPStatus: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -306,12 +273,10 @@ uint32_t VideoPort::GetVideoPortHDCPStatus(const int32_t handle, VideoPortHdcpSt
     } else {
         LOGERR("GetVideoPortHDCPStatus: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetHDCPProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
-    ENTRY_LOG;
     LOGINFO("GetHDCPProtocolVersionOnVideoPort: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -322,12 +287,10 @@ uint32_t VideoPort::GetHDCPProtocolVersionOnVideoPort(const int32_t handle, Vide
     } else {
         LOGERR("GetHDCPProtocolVersionOnVideoPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetHDCPReceiverProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
-    ENTRY_LOG;
     LOGINFO("GetHDCPReceiverProtocolVersionOnVideoPort: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -338,12 +301,10 @@ uint32_t VideoPort::GetHDCPReceiverProtocolVersionOnVideoPort(const int32_t hand
     } else {
         LOGERR("GetHDCPReceiverProtocolVersionOnVideoPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetHDCPCurrentProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
-    ENTRY_LOG;
     LOGINFO("GetHDCPCurrentProtocolVersionOnVideoPort: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -354,12 +315,10 @@ uint32_t VideoPort::GetHDCPCurrentProtocolVersionOnVideoPort(const int32_t handl
     } else {
         LOGERR("GetHDCPCurrentProtocolVersionOnVideoPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetVideoPortResolution(const int32_t handle, const VideoPortResolution& resolution, const bool persist, const bool forceCompatibility) {
-    ENTRY_LOG;
     LOGINFO("SetVideoPortResolution: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -370,12 +329,10 @@ uint32_t VideoPort::SetVideoPortResolution(const int32_t handle, const VideoPort
     } else {
         LOGERR("SetVideoPortResolution: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::EnableHDCPOnVideoPort(const int32_t handle, const bool hdcpEnable, const uint8_t* hdcpKey, const uint16_t hdcpKeySize) {
-    ENTRY_LOG;
     LOGINFO("EnableHDCPOnVideoPort: handle=%d, hdcpEnable=%s", handle, hdcpEnable ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -386,12 +343,10 @@ uint32_t VideoPort::EnableHDCPOnVideoPort(const int32_t handle, const bool hdcpE
     } else {
         LOGERR("EnableHDCPOnVideoPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::IsHDCPEnabledOnVideoPort(const int32_t handle, bool &hdcpEnabled) {
-    ENTRY_LOG;
     LOGINFO("IsHDCPEnabledOnVideoPort: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -402,12 +357,10 @@ uint32_t VideoPort::IsHDCPEnabledOnVideoPort(const int32_t handle, bool &hdcpEna
     } else {
         LOGERR("IsHDCPEnabledOnVideoPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetTVHDRCapabilities(const int32_t handle, int32_t &capabilities) {
-    ENTRY_LOG;
     LOGINFO("GetTVHDRCapabilities: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -418,12 +371,10 @@ uint32_t VideoPort::GetTVHDRCapabilities(const int32_t handle, int32_t &capabili
     } else {
         LOGERR("GetTVHDRCapabilities: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetTVSupportedResolutions(const int32_t handle, int32_t &resolutions) {
-    ENTRY_LOG;
     LOGINFO("GetTVSupportedResolutions: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -434,12 +385,10 @@ uint32_t VideoPort::GetTVSupportedResolutions(const int32_t handle, int32_t &res
     } else {
         LOGERR("GetTVSupportedResolutions: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetForceDisable4K(const int32_t handle, const bool disable) {
-    ENTRY_LOG;
     LOGINFO("SetForceDisable4K: handle=%d, disable=%s", handle, disable ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -450,12 +399,10 @@ uint32_t VideoPort::SetForceDisable4K(const int32_t handle, const bool disable) 
     } else {
         LOGERR("SetForceDisable4K: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetForceDisable4K(const int32_t handle, bool &disabled) {
-    ENTRY_LOG;
     LOGINFO("GetForceDisable4K: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -466,12 +413,10 @@ uint32_t VideoPort::GetForceDisable4K(const int32_t handle, bool &disabled) {
     } else {
         LOGERR("GetForceDisable4K: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::IsVideoPortOutputHDR(const int32_t handle, bool &isHDR) {
-    ENTRY_LOG;
     LOGINFO("IsVideoPortOutputHDR: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -482,12 +427,10 @@ uint32_t VideoPort::IsVideoPortOutputHDR(const int32_t handle, bool &isHDR) {
     } else {
         LOGERR("IsVideoPortOutputHDR: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::ResetVideoPortOutputToSDR() {
-    ENTRY_LOG;
     LOGINFO("ResetVideoPortOutputToSDR");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -498,12 +441,10 @@ uint32_t VideoPort::ResetVideoPortOutputToSDR() {
     } else {
         LOGERR("ResetVideoPortOutputToSDR: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetHDMIPreference(const int32_t handle, VideoPortHdcpProtocolVersion &hdcpVersion) {
-    ENTRY_LOG;
     LOGINFO("GetHDMIPreference: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -514,12 +455,10 @@ uint32_t VideoPort::GetHDMIPreference(const int32_t handle, VideoPortHdcpProtoco
     } else {
         LOGERR("GetHDMIPreference: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetHDMIPreference(const int32_t handle, const VideoPortHdcpProtocolVersion hdcpVersion) {
-    ENTRY_LOG;
     LOGINFO("SetHDMIPreference: handle=%d, hdcpVersion=%d", handle, static_cast<int>(hdcpVersion));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -530,12 +469,10 @@ uint32_t VideoPort::SetHDMIPreference(const int32_t handle, const VideoPortHdcpP
     } else {
         LOGERR("SetHDMIPreference: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetVideoEOTF(const int32_t handle, HDRStandard &hdrStandard) {
-    ENTRY_LOG;
     LOGINFO("GetVideoEOTF: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -546,12 +483,10 @@ uint32_t VideoPort::GetVideoEOTF(const int32_t handle, HDRStandard &hdrStandard)
     } else {
         LOGERR("GetVideoEOTF: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetMatrixCoefficients(const int32_t handle, DisplayMatrixCoefficients &matrixCoefficients) {
-    ENTRY_LOG;
     LOGINFO("GetMatrixCoefficients: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -562,12 +497,10 @@ uint32_t VideoPort::GetMatrixCoefficients(const int32_t handle, DisplayMatrixCoe
     } else {
         LOGERR("GetMatrixCoefficients: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::IsVideoPortDisplaySurround(const int32_t handle, bool &surround) {
-    ENTRY_LOG;
     LOGINFO("IsVideoPortDisplaySurround: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -578,12 +511,10 @@ uint32_t VideoPort::IsVideoPortDisplaySurround(const int32_t handle, bool &surro
     } else {
         LOGERR("IsVideoPortDisplaySurround: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetVideoPortDisplaySurroundMode(const int32_t handle, VideoPortSurroundMode &surroundMode) {
-    ENTRY_LOG;
     LOGINFO("GetVideoPortDisplaySurroundMode: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -594,12 +525,10 @@ uint32_t VideoPort::GetVideoPortDisplaySurroundMode(const int32_t handle, VideoP
     } else {
         LOGERR("GetVideoPortDisplaySurroundMode: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetCurrentOutputSettings(const int32_t handle, DSOutputSettings &outputSettings) {
-    ENTRY_LOG;
     LOGINFO("GetCurrentOutputSettings: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -610,12 +539,10 @@ uint32_t VideoPort::GetCurrentOutputSettings(const int32_t handle, DSOutputSetti
     } else {
         LOGERR("GetCurrentOutputSettings: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetBackgroundColor(const int32_t handle, const VideoBackgroundColor backgroundColor) {
-    ENTRY_LOG;
     LOGINFO("SetBackgroundColor: handle=%d, backgroundColor=%d", handle, static_cast<int>(backgroundColor));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -626,12 +553,10 @@ uint32_t VideoPort::SetBackgroundColor(const int32_t handle, const VideoBackgrou
     } else {
         LOGERR("SetBackgroundColor: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetForceHDRMode(const int32_t handle, const HDRStandard hdrMode) {
-    ENTRY_LOG;
     LOGINFO("SetForceHDRMode: handle=%d, hdrMode=%d", handle, static_cast<int>(hdrMode));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -642,12 +567,10 @@ uint32_t VideoPort::SetForceHDRMode(const int32_t handle, const HDRStandard hdrM
     } else {
         LOGERR("SetForceHDRMode: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetColorDepthCapabilities(const int32_t handle, uint32_t &colorDepthCapabilities) {
-    ENTRY_LOG;
     LOGINFO("GetColorDepthCapabilities: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -658,12 +581,10 @@ uint32_t VideoPort::GetColorDepthCapabilities(const int32_t handle, uint32_t &co
     } else {
         LOGERR("GetColorDepthCapabilities: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::GetPreferredColorDepth(const int32_t handle, DisplayColorDepth &colorDepth, const bool persist) {
-    ENTRY_LOG;
     LOGINFO("GetPreferredColorDepth: handle=%d, persist=%s", handle, persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -674,12 +595,10 @@ uint32_t VideoPort::GetPreferredColorDepth(const int32_t handle, DisplayColorDep
     } else {
         LOGERR("GetPreferredColorDepth: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoPort::SetPreferredColorDepth(const int32_t handle, const DisplayColorDepth colorDepth, const bool persist) {
-    ENTRY_LOG;
     LOGINFO("SetPreferredColorDepth: handle=%d, colorDepth=%d, persist=%s", handle, static_cast<int>(colorDepth), persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -690,39 +609,30 @@ uint32_t VideoPort::SetPreferredColorDepth(const int32_t handle, const DisplayCo
     } else {
         LOGERR("SetPreferredColorDepth: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 // VideoPort event handling methods - Forward DS HAL events to parent notification system
 void VideoPort::OnResolutionPreChange(const ResolutionChange resolution)
 {
-    ENTRY_LOG;
     LOGINFO("VideoPort::OnResolutionPreChange: forwarding to parent");
     _parent.OnResolutionPreChange(resolution);
-    EXIT_LOG;
 }
 
 void VideoPort::OnResolutionPostChange(const ResolutionChange resolution)
 {
-    ENTRY_LOG;
     LOGINFO("VideoPort::OnResolutionPostChange: forwarding to parent");
     _parent.OnResolutionPostChange(resolution);
-    EXIT_LOG;
 }
 
 void VideoPort::OnHDCPStatusChange(const VideoPortHdcpStatus hdcpStatus)
 {
-    ENTRY_LOG;
     LOGINFO("VideoPort::OnHDCPStatusChange: forwarding to parent");
     _parent.OnHDCPStatusChange(hdcpStatus);
-    EXIT_LOG;
 }
 
 void VideoPort::OnVideoFormatUpdate(const HDRStandard videoFormatHDR)
 {
-    ENTRY_LOG;
     LOGINFO("VideoPort::OnVideoFormatUpdate: forwarding to parent");
     _parent.OnVideoFormatUpdate(videoFormatHDR);
-    EXIT_LOG;
 }

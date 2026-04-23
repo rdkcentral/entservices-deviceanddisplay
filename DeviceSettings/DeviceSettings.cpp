@@ -65,7 +65,6 @@ namespace Plugin
         , mNotificationSink(this)
 
     {
-        ENTRY_LOG;
         #if (defined(RDK_LOGGER_ENABLED) || defined(DSMGR_LOGGER_ENABLED))
 
         const char* PdebugConfigFile = NULL;
@@ -86,19 +85,15 @@ namespace Plugin
 
 #endif
 
-        EXIT_LOG;
     }
 
     
     DeviceSettings::~DeviceSettings()
     {
-        ENTRY_LOG;
-        EXIT_LOG;
     }
     const string DeviceSettings::Initialize(PluginHost::IShell * service)
     {
         string message = "";
-        ENTRY_LOG;
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
@@ -307,7 +302,6 @@ namespace Plugin
         if (0 != message.length()) {
             Deinitialize(service);
         }
-        EXIT_LOG;
 
         // On success return empty, to indicate there is no error text.
         return (message);
@@ -315,7 +309,6 @@ namespace Plugin
 
     void DeviceSettings::Deinitialize(PluginHost::IShell* service VARIABLE_IS_NOT_USED)
     {
-        ENTRY_LOG;
         if (mService != nullptr) {
             ASSERT(mService == service);
             mService->Unregister(mNotificationSink.baseInterface<RPC::IRemoteConnection::INotification>());
@@ -402,35 +395,28 @@ namespace Plugin
             mConnectionId = 0;
             SYSLOG(Logging::Shutdown, (string(_T("DeviceSettings de-initialised"))));
         }
-        EXIT_LOG;
     }
 
     string DeviceSettings::Information() const
     {
-        ENTRY_LOG;
         // No additional info to report.
-        EXIT_LOG;
         return (string());
     }
 
     void DeviceSettings::Deactivated(RPC::IRemoteConnection* connection)
     {
-        ENTRY_LOG;
         // This can potentially be called on a socket thread, so the deactivation (which in turn kills this object) must be done
         // on a separate thread. Also make sure this call-stack can be unwound before we are totally destructed.
         if (mConnectionId == connection->Id()) {
             ASSERT(mService != nullptr);
             Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(mService, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
         }
-        EXIT_LOG;
     }
 
     void DeviceSettings::CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId)
     {
-        ENTRY_LOG;
         // Add your handling code here, or leave empty if not needed
         LOGINFO("CallbackRevoked called for interfaceId %u", interfaceId);
-        EXIT_LOG;
     }
 
 } // namespace Plugin

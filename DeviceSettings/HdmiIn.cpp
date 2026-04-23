@@ -36,14 +36,11 @@ HdmiIn::HdmiIn(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
     Platform_init();
-    EXIT_LOG;
 }
 
 void HdmiIn::Platform_init()
 {
-    ENTRY_LOG;
     CallbackBundle bundle;
     bundle.OnHDMIInHotPlugEvent = [this](HDMIInPort port, bool isConnected) {
         this->OnHDMIInHotPlugEvent(port, isConnected);
@@ -73,265 +70,210 @@ void HdmiIn::Platform_init()
         this->platform().setAllCallbacks(bundle);
         this->platform().getPersistenceValue();
     }
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInHotPlugEvent(const HDMIInPort port, const bool isConnected)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInEventHotPlugNotification(port, isConnected);
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInSignalStatusEvent(const HDMIInPort port, const HDMIInSignalStatus signalStatus)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInEventSignalStatusNotification(port, signalStatus);
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInStatusEvent(const HDMIInPort activePort, const bool isPresented)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInEventStatusNotification(activePort, isPresented);
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInVideoModeUpdateEvent(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInVideoModeUpdateNotification(port, videoPortResolution);
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInAllmStatusEvent(const HDMIInPort port, const bool allmStatus)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInAllmStatusNotification(port, allmStatus);
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInAVIContentTypeEvent(const HDMIInPort port, const HDMIInAviContentType aviContentType)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInAVIContentTypeNotification(port, aviContentType);
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInAVLatencyEvent(const int32_t audioDelay, const int32_t videoDelay)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInAVLatencyNotification(audioDelay, videoDelay);
-    EXIT_LOG;
 }
 
 void HdmiIn::OnHDMIInVRRStatusEvent(const HDMIInPort port, const HDMIInVRRType vrrType)
 {
-    ENTRY_LOG;
     _parent.OnHDMIInVRRStatusNotification(port, vrrType);
-    EXIT_LOG;
 }
 
 uint32_t HdmiIn::GetHDMIInNumberOfInputs(int32_t &count) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIInNumbefOfInputs");
     this->platform().GetHDMIInNumberOfInputs(count);
     LOGINFO("GetHDMIInNumberOfInputs: SUCCESS - count=%d", count);
 
-    EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIInStatus");
     this->platform().GetHDMIInStatus(hdmiStatus, portConnectionStatus);
     portConnectionStatus = nullptr;
     LOGINFO("GetHDMIInStatus: SUCCESS - platform call completed");
-    EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) {
-    ENTRY_LOG;
 
     LOGINFO("SelectHDMIInPort: port=%d, requestAudioMix=%s, topMostPlane=%s, videoPlaneType=%d",
         port, requestAudioMix ? "true" : "false", topMostPlane ? "true" : "false", videoPlaneType);
     this->platform().SelectHDMIInPort(port, requestAudioMix, topMostPlane, videoPlaneType);
     LOGINFO("SelectHDMIInPort: SUCCESS - platform call completed");
-    EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) {
-    ENTRY_LOG;
 
     LOGINFO("ScaleHDMIInVideo: x=%d, y=%d, w=%d, h=%d", videoPosition.x, videoPosition.y, videoPosition.width, videoPosition.height);
     this->platform().ScaleHDMIInVideo(videoPosition);
     LOGINFO("ScaleHDMIInVideo: SUCCESS - platform call completed");
-    EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::SelectHDMIZoomMode(const HDMIInVideoZoom zoomMode) {
-    ENTRY_LOG;
 
     LOGINFO("SelectHDMIZoomMode: zoomMode=%d", zoomMode);
     this->platform().SelectHDMIZoomMode(zoomMode);
     LOGINFO("SelectHDMIZoomMode: SUCCESS - platform call completed");
 
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) {
-    ENTRY_LOG;
 
     LOGINFO("GetSupportedGameFeaturesList");
     this->platform().GetSupportedGameFeaturesList(gameFeatureList);
     LOGINFO("GetSupportedGameFeaturesList: SUCCESS - platform call completed");
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMIInAVLatency(uint32_t &videoLatency, uint32_t &audioLatency) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIInAVLatency");
     this->platform().GetHDMIInAVLatency(videoLatency, audioLatency);
     LOGINFO("GetHDMIInAVLatency: SUCCESS - videoLatency=%u, audioLatency=%u", videoLatency, audioLatency);
 
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMIInAllmStatus(const HDMIInPort port, bool &allmStatus) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIInAllmStatus: port=%d", port);
     this->platform().GetHDMIInAllmStatus(port, allmStatus);
     LOGINFO("GetHDMIInAllmStatus: SUCCESS - port=%d, allmStatus=%s", port, allmStatus ? "true" : "false");
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMIInEdid2AllmSupport(const HDMIInPort port, bool &allmSupport) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIInEdid2AllmSupport: port=%d", port);
     this->platform().GetHDMIInEdid2AllmSupport(port, allmSupport);
     LOGINFO("GetHDMIInEdid2AllmSupport: SUCCESS - port=%d, allmSupport=%s", port, allmSupport ? "true" : "false");
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::SetHDMIInEdid2AllmSupport(const HDMIInPort port, bool allmSupport) {
-    ENTRY_LOG;
 
     LOGINFO("SetHDMIInEdid2AllmSupport: port=%d, allmSupport=%s", port, allmSupport ? "true" : "false");
     this->platform().SetHDMIInEdid2AllmSupport(port, allmSupport);
     LOGINFO("SetHDMIInEdid2AllmSupport: SUCCESS - platform call completed");
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) {
-    ENTRY_LOG;
 
     LOGINFO("GetEdidBytes: port=%d, edidBytesLength=%u", port, edidBytesLength);
     this->platform().GetEdidBytes(port, edidBytesLength, edidBytes);
     LOGINFO("GetEdidBytes: SUCCESS - platform call completed");
-    EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMISPDInformation(const HDMIInPort port, const uint16_t spdBytesLength, uint8_t spdBytes[]) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMISPDInformation: port=%d, spdBytesLength=%u", port, spdBytesLength);
     this->platform().GetHDMISPDInformation(port, spdBytesLength, spdBytes);
     LOGINFO("GetHDMISPDInformation: SUCCESS - platform call completed");
-    EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMIEdidVersion(const HDMIInPort port, HDMIInEdidVersion &edidVersion) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIEdidVersion: port=%d", port);
     this->platform().GetHDMIEdidVersion(port, edidVersion);
     LOGINFO("GetHDMIEdidVersion: SUCCESS - port=%d, edidVersion=%d", port, edidVersion);
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::SetHDMIEdidVersion(const HDMIInPort port, const HDMIInEdidVersion edidVersion) {
-    ENTRY_LOG;
 
     this->platform().SetHDMIEdidVersion(port, edidVersion);
     LOGINFO("SetHDMIEdidVersion: SUCCESS - port=%d, edidVersion=%d", port, edidVersion);
-    EXIT_LOG;
 
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMIVideoMode(HDMIVideoPortResolution &videoPortResolution) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIVideoMode");
     this->platform().GetHDMIVideoMode(videoPortResolution);
     LOGINFO("GetHDMIVideoMode: SUCCESS - platform call completed");
 
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetHDMIVersion(const HDMIInPort port, HDMIInCapabilityVersion &capabilityVersion) {
-    ENTRY_LOG;
 
     LOGINFO("GetHDMIVersion: port=%d", port);
     this->platform().GetHDMIVersion(port, capabilityVersion);
     LOGINFO("GetHDMIVersion: SUCCESS - port=%d, capabilityVersion=%d", port, capabilityVersion);
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetVRRSupport(const HDMIInPort port, bool &vrrSupport) {
-    ENTRY_LOG;
 
     LOGINFO("GetVRRSupport: port=%d", port);
     this->platform().GetVRRSupport(port, vrrSupport);
     LOGINFO("GetVRRSupport: SUCCESS - port=%d, vrrSupport=%s", port, vrrSupport ? "true" : "false");
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::SetVRRSupport(const HDMIInPort port, const bool vrrSupport) {
-    ENTRY_LOG;
 
     LOGINFO("SetVRRSupport: port=%d, vrrSupport=%s", port, vrrSupport ? "true" : "false");
     this->platform().SetVRRSupport(port, vrrSupport);
     LOGINFO("SetVRRSupport: SUCCESS - platform call completed");
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }
 
 uint32_t HdmiIn::GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) {
-    ENTRY_LOG;
 
     LOGINFO("GetVRRStatus: port=%d", port);
     memset(&vrrStatus, 0, sizeof(vrrStatus));
     this->platform().GetVRRStatus(port, vrrStatus);
     LOGINFO("GetVRRStatus: SUCCESS - port=%d, vrrType=%d", port, vrrStatus.vrrType);
 
-    EXIT_LOG;
     return WPEFramework::Core::ERROR_NONE;
 }

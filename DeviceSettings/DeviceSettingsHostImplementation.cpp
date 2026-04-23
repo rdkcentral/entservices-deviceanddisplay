@@ -36,15 +36,11 @@ namespace Plugin {
         _callbackLock(),
         _host(Host::Create(*this))
     {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsHostImpl Constructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     DeviceSettingsHostImpl::~DeviceSettingsHostImpl() {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsHostImpl Destructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     template<typename Func, typename... Args>
@@ -65,7 +61,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsHostImpl::Register(std::list<T*>& list, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
@@ -79,7 +74,6 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
-        EXIT_LOG;
         return status;
     }
 
@@ -87,7 +81,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsHostImpl::Unregister(std::list<T*>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
@@ -100,49 +93,41 @@ namespace Plugin {
         }
 
         _callbackLock.Unlock();
-        EXIT_LOG;
         return status;
     }
 
     Core::hresult DeviceSettingsHostImpl::Register(Exchange::IDeviceSettingsHost::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Register(_HostNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IHost %p, errorCode: %u", notification, errorCode);
         } else {
             LOGINFO("IHost %p registered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     Core::hresult DeviceSettingsHostImpl::Unregister(Exchange::IDeviceSettingsHost::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Unregister(_HostNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("IHost %p, errorcode: %u", notification, errorCode);
         } else {
             LOGINFO("IHost %p unregistered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
-    // Host::INotification interface implementations (called by DS HAL)
+// Host::INotification interface implementations (called by DS HAL)
     void DeviceSettingsHostImpl::OnSleepModeChanged(const HostSleepMode sleepMode)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnSleepModeChanged event: sleepMode=%d", static_cast<int>(sleepMode));
         dispatchHostEvent(&Exchange::IDeviceSettingsHost::INotification::OnSleepModeChanged, static_cast<Exchange::IDeviceSettingsHost::SleepMode>(sleepMode));
-        EXIT_LOG;
     }
 
-    // Host interface method implementations called by DeviceSettingsImp 
+// Host interface method implementations called by DeviceSettingsImp 
     Core::hresult DeviceSettingsHostImpl::GetPreferredSleepMode(HostSleepMode &mode)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetPreferredSleepMode(mode);
         if (result == Core::ERROR_NONE) {
@@ -150,13 +135,11 @@ namespace Plugin {
         } else {
             LOGERR("GetPreferredSleepMode failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     Core::hresult DeviceSettingsHostImpl::SetPreferredSleepMode(const HostSleepMode mode)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.SetPreferredSleepMode(mode);
         if (result == Core::ERROR_NONE) {
@@ -164,13 +147,11 @@ namespace Plugin {
         } else {
             LOGERR("SetPreferredSleepMode failed for mode: %d, error: %u", static_cast<int>(mode), result);
         }
-        EXIT_LOG;
         return result;
     }
 
     Core::hresult DeviceSettingsHostImpl::GetCPUTemperature(float &temperature)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetCPUTemperature(temperature);
         if (result == Core::ERROR_NONE) {
@@ -178,13 +159,11 @@ namespace Plugin {
         } else {
             LOGERR("GetCPUTemperature failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     Core::hresult DeviceSettingsHostImpl::GetHALVersion(uint32_t &versionNo)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetHALVersion(versionNo);
         if (result == Core::ERROR_NONE) {
@@ -192,13 +171,11 @@ namespace Plugin {
         } else {
             LOGERR("GetHALVersion failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     Core::hresult DeviceSettingsHostImpl::GetSoCID(string &socID)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetSoCID(socID);
         if (result == Core::ERROR_NONE) {
@@ -206,13 +183,11 @@ namespace Plugin {
         } else {
             LOGERR("GetSoCID failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     Core::hresult DeviceSettingsHostImpl::GetEDID(uint8_t edId[], const uint16_t edIdLength)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetEDID(edId, edIdLength);
         if (result == Core::ERROR_NONE) {
@@ -220,13 +195,11 @@ namespace Plugin {
         } else {
             LOGERR("GetEDID failed: edIdLength=%u, error=%u", edIdLength, result);
         }
-        EXIT_LOG;
         return result;
     }
 
     Core::hresult DeviceSettingsHostImpl::GetMS12ConfigType(string &ms12Config)
     {
-        ENTRY_LOG;
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetMS12ConfigType(ms12Config);
         if (result == Core::ERROR_NONE) {
@@ -234,7 +207,6 @@ namespace Plugin {
         } else {
             LOGERR("GetMS12ConfigType failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 

@@ -34,15 +34,12 @@ CompositeIn::CompositeIn(INotification& parent, std::shared_ptr<IPlatform> platf
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
     LOGINFO("CompositeIn Constructor");
     Platform_init();
-    EXIT_LOG;
 }
 
 void CompositeIn::Platform_init()
 {
-    ENTRY_LOG;
     LOGINFO("CompositeIn Init - Setting up event callbacks");
     
     // Set up callback bundle for CompositeIn events - using global CallbackBundle pattern
@@ -67,13 +64,11 @@ void CompositeIn::Platform_init()
         this->platform().getPersistenceValue();
     }
     
-    EXIT_LOG;
 }
 
 // CompositeIn interface methods - delegate to platform HAL implementation
 uint32_t CompositeIn::GetNrOfCompositeInputs(int32_t &nrCompositeInputs)
 {
-    ENTRY_LOG;
     LOGINFO("GetNrOfCompositeInputs");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -84,13 +79,11 @@ uint32_t CompositeIn::GetNrOfCompositeInputs(int32_t &nrCompositeInputs)
     } else {
         LOGERR("GetNrOfCompositeInputs: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t CompositeIn::GetCompositeInStatus(CompositeInStatus &status)
 {
-    ENTRY_LOG;
     LOGINFO("GetCompositeInStatus");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -102,13 +95,11 @@ uint32_t CompositeIn::GetCompositeInStatus(CompositeInStatus &status)
     } else {
         LOGERR("GetCompositeInStatus: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t CompositeIn::SelectCompositeInPort(const CompositeInPort port)
 {
-    ENTRY_LOG;
     LOGINFO("SelectCompositeInPort: port=%d", static_cast<int>(port));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -119,13 +110,11 @@ uint32_t CompositeIn::SelectCompositeInPort(const CompositeInPort port)
     } else {
         LOGERR("SelectCompositeInPort: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t CompositeIn::ScaleCompositeInVideo(const CompositeInVideoRectangle videoRect)
 {
-    ENTRY_LOG;
     LOGINFO("ScaleCompositeInVideo: x=%d, y=%d, width=%d, height=%d", 
             videoRect.x, videoRect.y, videoRect.width, videoRect.height);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -137,40 +126,31 @@ uint32_t CompositeIn::ScaleCompositeInVideo(const CompositeInVideoRectangle vide
     } else {
         LOGERR("ScaleCompositeInVideo: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 // Public event methods - Called by HAL callbacks to forward to INotification parent (matches other components)
 void CompositeIn::OnCompositeInHotPlug(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected)
 {
-    ENTRY_LOG;
     LOGINFO("CompositeIn OnCompositeInHotPlug event: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
     _parent.OnCompositeInHotPlug(port, isConnected);
-    EXIT_LOG;
 }
 
 void CompositeIn::OnCompositeInSignalStatus(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus)
 {
-    ENTRY_LOG;
     LOGINFO("CompositeIn OnCompositeInSignalStatus event: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
     _parent.OnCompositeInSignalStatus(port, signalStatus);
-    EXIT_LOG;
 }
 
 void CompositeIn::OnCompositeInStatus(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented)
 {
-    ENTRY_LOG;
     LOGINFO("CompositeIn OnCompositeInStatus event: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
     _parent.OnCompositeInStatus(activePort, isPresented);
-    EXIT_LOG;
 }
 
 void CompositeIn::OnCompositeInVideoModeUpdate(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution)
 {
-    ENTRY_LOG;
     LOGINFO("CompositeIn OnCompositeInVideoModeUpdate event: activePort=%d", static_cast<int>(activePort));
     _parent.OnCompositeInVideoModeUpdate(activePort, videoResolution);
-    EXIT_LOG;
 }
 

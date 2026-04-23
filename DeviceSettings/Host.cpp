@@ -34,10 +34,8 @@ Host::Host(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
     LOGINFO("Host Constructor");
     Platform_init();
-    EXIT_LOG;
 }
 
 Host Host::Create(INotification& parent) {
@@ -46,7 +44,6 @@ Host Host::Create(INotification& parent) {
 
 void Host::Platform_init()
 {
-    ENTRY_LOG;
     LOGINFO("Host Init - Setting up event callbacks");
     
     // Set up callback bundle for Host events - using global CallbackBundle pattern
@@ -62,11 +59,9 @@ void Host::Platform_init()
         this->platform().getPersistenceValue();
     }
     
-    EXIT_LOG;
 }
 
 uint32_t Host::GetPreferredSleepMode(HostSleepMode &mode) {
-    ENTRY_LOG;
     LOGINFO("GetPreferredSleepMode");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -77,12 +72,10 @@ uint32_t Host::GetPreferredSleepMode(HostSleepMode &mode) {
     } else {
         LOGERR("GetPreferredSleepMode: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Host::SetPreferredSleepMode(const HostSleepMode mode) {
-    ENTRY_LOG;
     LOGINFO("SetPreferredSleepMode: mode=%d", static_cast<int>(mode));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -93,12 +86,10 @@ uint32_t Host::SetPreferredSleepMode(const HostSleepMode mode) {
     } else {
         LOGERR("SetPreferredSleepMode: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Host::GetCPUTemperature(float &temperature) {
-    ENTRY_LOG;
     LOGINFO("GetCPUTemperature");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -109,12 +100,10 @@ uint32_t Host::GetCPUTemperature(float &temperature) {
     } else {
         LOGERR("GetCPUTemperature: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Host::GetHALVersion(uint32_t &versionNo) {
-    ENTRY_LOG;
     LOGINFO("GetHALVersion");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -125,12 +114,10 @@ uint32_t Host::GetHALVersion(uint32_t &versionNo) {
     } else {
         LOGERR("GetHALVersion: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Host::GetSoCID(string &socID) {
-    ENTRY_LOG;
     LOGINFO("GetSoCID");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -141,12 +128,10 @@ uint32_t Host::GetSoCID(string &socID) {
     } else {
         LOGERR("GetSoCID: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Host::GetEDID(uint8_t edId[], const uint16_t edIdLength) {
-    ENTRY_LOG;
     LOGINFO("GetEDID: edIdLength=%u", edIdLength);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -157,12 +142,10 @@ uint32_t Host::GetEDID(uint8_t edId[], const uint16_t edIdLength) {
     } else {
         LOGERR("GetEDID: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Host::GetMS12ConfigType(string &ms12Config) {
-    ENTRY_LOG;
     LOGINFO("GetMS12ConfigType");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -173,14 +156,11 @@ uint32_t Host::GetMS12ConfigType(string &ms12Config) {
     } else {
         LOGERR("GetMS12ConfigType: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 // Host event handlers - called by DS HAL to forward events to parent
 void Host::OnSleepModeChanged(const HostSleepMode sleepMode) {
-    ENTRY_LOG;
     LOGINFO("DS HAL OnSleepModeChanged event: sleepMode=%d", static_cast<int>(sleepMode));
     _parent.OnSleepModeChanged(sleepMode);
-    EXIT_LOG;
 }

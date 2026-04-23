@@ -48,13 +48,11 @@
 #include "list.hpp"
 #include "DeviceSettingsTypes.h"
 
-// Forward declarations for DS types
-extern "C" {
-    #include "dsTypes.h"
-    #include "dsVideoPort.h"
-    #include "dsDisplay.h"
-    #include "dsAudio.h"
-}
+// DS HAL headers with built-in C++ protection
+#include "dsTypes.h"
+#include "dsVideoPort.h"
+#include "dsDisplay.h"
+#include "dsAudio.h"
 
 // GLib forward declarations
 typedef struct _GMainLoop GMainLoop;

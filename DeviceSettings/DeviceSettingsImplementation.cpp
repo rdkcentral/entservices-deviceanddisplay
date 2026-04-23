@@ -60,7 +60,6 @@ namespace Plugin {
         , _compositeInSettings(DeviceSettingsCompositeInImpl::Create())
         , mConnectionId(0)
     {
-        ENTRY_LOG;
         DeviceSettingsImp::_instance = this;
         LOGINFO("DeviceSettingsImp Constructor - Instance Address: %p", this);
 
@@ -77,11 +76,9 @@ namespace Plugin {
         LOGINFO("Display implementation instance: %p", _displaySettings);
         LOGINFO("CompositeIn implementation instance: %p", _compositeInSettings);
 
-        EXIT_LOG;
     }
 
     DeviceSettingsImp::~DeviceSettingsImp() {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsImp Destructor - Instance Address: %p", this);
         
         // Clean up created implementation instances
@@ -121,22 +118,18 @@ namespace Plugin {
             _compositeInSettings = nullptr;
         }
         
-        EXIT_LOG;
     }
 
     Core::hresult DeviceSettingsImp::Configure(PluginHost::IShell* service)
     {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsImp Configure called with service: %p", service);
 
         if (service == nullptr) {
             LOGERR("Service parameter is null");
-            EXIT_LOG;
             return Core::ERROR_BAD_REQUEST;
         }
 
         LOGINFO("DeviceSettingsImp configured successfully");
-        EXIT_LOG;
         return Core::ERROR_NONE;
     }
 
@@ -145,7 +138,6 @@ namespace Plugin {
     // ============================================================================
     
     Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsFPD::INotification* notification) {
-        ENTRY_LOG;
         Core::hresult result;
         if (_fpdSettings != nullptr) {
             result = _fpdSettings->Register(notification);
@@ -154,7 +146,6 @@ namespace Plugin {
             LOGERR("FPD Register: FAILED - _fpdSettings is null");
             result = Core::ERROR_UNAVAILABLE;
         }
-        EXIT_LOG;
         return result;
     }
     
@@ -227,7 +218,6 @@ namespace Plugin {
     // ============================================================================
     
     Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsHDMIIn::INotification* notification) {
-        ENTRY_LOG;
         Core::hresult result;
         if (_hdmiInSettings != nullptr) {
             result = _hdmiInSettings->Register(notification);
@@ -236,7 +226,6 @@ namespace Plugin {
             LOGERR("HDMIIn Register: FAILED - _hdmiInSettings is null");
             result = Core::ERROR_UNAVAILABLE;
         }
-        EXIT_LOG;
         return result;
     }
     
@@ -1032,6 +1021,15 @@ namespace Plugin {
 
     Core::hresult DeviceSettingsImp::ScaleCompositeInVideo(const CompositeInVideoRectangle videoRect) {
         DELEGATE_TO_COMPONENT(_compositeInSettings, ScaleCompositeInVideo, videoRect)
+    }
+
+    // Static instance method implementation
+    DeviceSettingsImp* DeviceSettingsImp::instance(DeviceSettingsImp* DeviceSettingsImpl)
+    {
+        if (DeviceSettingsImpl != nullptr) {
+            _instance = DeviceSettingsImpl;
+        }
+        return _instance;
     }
 
 } // namespace Plugin

@@ -33,15 +33,12 @@ Display::Display(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
     LOGINFO("Display Constructor");
     Platform_init();
-    EXIT_LOG;
 }
 
 void Display::Platform_init()
 {
-    ENTRY_LOG;
     LOGINFO("Display Init - Setting up event callbacks");
     
     // Set up callback bundle for Display events - using global CallbackBundle pattern
@@ -63,62 +60,50 @@ void Display::Platform_init()
         this->platform().getPersistenceValue();
     }
     
-    EXIT_LOG;
 }
 
 void Display::OnDisplayRxSense(const DisplayEvent displayEvent)
 {
-    ENTRY_LOG;
     LOGINFO("Display OnDisplayRxSense event: displayEvent=%d", static_cast<int>(displayEvent));
     _parent.OnDisplayRxSense(displayEvent);
-    EXIT_LOG;
 }
 
 void Display::OnDisplayHDCPStatus()
 {
-    ENTRY_LOG;
     LOGINFO("Display OnDisplayHDCPStatus event");
     _parent.OnDisplayHDCPStatus();
-    EXIT_LOG;
 }
 
 void Display::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent)
 {
-    ENTRY_LOG;
     LOGINFO("Display OnDisplayHDMIHotPlug event: displayEvent=%d", static_cast<int>(displayEvent));
     _parent.OnDisplayHDMIHotPlug(displayEvent);
-    EXIT_LOG;
 }
 
 uint32_t Display::GetDisplayEdid(const int32_t handle, DisplayEDID &edId, IDSVideoPortResolutionIterator*& supportedResolutionList)
 {
-    ENTRY_LOG;
     uint32_t result = this->platform().GetDisplayEdid(handle, edId);
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("GetDisplayEdid succeeded: handle=%d", handle);
     } else {
         LOGERR("GetDisplayEdid failed: handle=%d, error=%u", handle, result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::GetDisplayEdidBytes(const int32_t handle, uint8_t edIdBytes[], const uint16_t edidLength)
 {
-    ENTRY_LOG;
     uint32_t result = this->platform().GetDisplayEdidBytes(handle, edIdBytes, edidLength);
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("GetDisplayEdidBytes succeeded: handle=%d, edidLength=%d", handle, edidLength);
     } else {
         LOGERR("GetDisplayEdidBytes failed: handle=%d, error=%u", handle, result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::DisplayInit()
 {
-    ENTRY_LOG;
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     // Initialize through platform interface - HAL is already initialized in constructor
     result = WPEFramework::Core::ERROR_NONE;
@@ -127,13 +112,11 @@ uint32_t Display::DisplayInit()
     } else {
         LOGERR("DisplayInit failed: error=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::DisplayTerm()
 {
-    ENTRY_LOG;
     uint32_t result = WPEFramework::Core::ERROR_NONE;
     // Termination handled by platform destructors
     if (result == WPEFramework::Core::ERROR_NONE) {
@@ -141,13 +124,11 @@ uint32_t Display::DisplayTerm()
     } else {
         LOGERR("DisplayTerm failed: error=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::GetDisplay(const int32_t type, const int32_t index, int32_t &handle)
 {
-    ENTRY_LOG;
 
     uint32_t result = this->platform().GetDisplay(type, index, handle);
 
@@ -156,73 +137,61 @@ uint32_t Display::GetDisplay(const int32_t type, const int32_t index, int32_t &h
     } else {
         LOGERR("Display::GetDisplay FAILED: type=%d, index=%d, error=%u", type, index, result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::GetDisplayAspectRatio(const int32_t handle, DisplayVideoAspectRatio &aspectRatio)
 {
-    ENTRY_LOG;
     uint32_t result = this->platform().GetDisplayAspectRatio(handle, aspectRatio);
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("GetDisplayAspectRatio succeeded: handle=%d, aspectRatio=%d", handle, static_cast<int>(aspectRatio));
     } else {
         LOGERR("GetDisplayAspectRatio failed: handle=%d, error=%u", handle, result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::SetAllmEnabled(const int32_t handle, const bool enabled)
 {
-    ENTRY_LOG;
     uint32_t result = this->platform().SetAllmEnabled(handle, enabled);
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("SetAllmEnabled succeeded: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
     } else {
         LOGERR("SetAllmEnabled failed: handle=%d, error=%u", handle, result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::SetAVIContentType(const int32_t handle, const int32_t contentType)
 {
-    ENTRY_LOG;
     uint32_t result = this->platform().SetAVIContentType(handle, contentType);
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("SetAVIContentType succeeded: handle=%d, contentType=%d", handle, contentType);
     } else {
         LOGERR("SetAVIContentType failed: handle=%d, error=%u", handle, result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t Display::SetAVIScanInformation(const int32_t handle, const int32_t scanInfo)
 {
-    ENTRY_LOG;
     uint32_t result = this->platform().SetAVIScanInformation(handle, scanInfo);
     if (result == WPEFramework::Core::ERROR_NONE) {
         LOGINFO("SetAVIScanInformation succeeded: handle=%d, scanInfo=%d", handle, scanInfo);
     } else {
         LOGERR("SetAVIScanInformation failed: handle=%d, error=%u", handle, result);
     }
-    EXIT_LOG;
     return result;
 }
 
 void Display::RegisterDisplayEventCallback()
 {
-    ENTRY_LOG;
     // Event callbacks are registered through platform initialization
     LOGINFO("RegisterDisplayEventCallback - handled by platform layer");
-    EXIT_LOG;
 }
 
 void Display::OnDisplayEvent(const int32_t handle, const DisplayEvent event, void *eventData)
 {
-    ENTRY_LOG;
     
     switch(event) {
         case DisplayEvent::DS_DISPLAY_RXSENSE_ON:
@@ -244,5 +213,4 @@ void Display::OnDisplayEvent(const int32_t handle, const DisplayEvent event, voi
             break;
     }
     
-    EXIT_LOG;
 }

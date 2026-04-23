@@ -34,15 +34,12 @@ VideoDevice::VideoDevice(INotification& parent, std::shared_ptr<IPlatform> platf
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
     LOGINFO("VideoDevice Constructor");
     Platform_init();
-    EXIT_LOG;
 }
 
 void VideoDevice::Platform_init()
 {
-    ENTRY_LOG;
     LOGINFO("VideoDevice Init - Setting up event callbacks");
     
     // Set up callback bundle for VideoDevice events - using global CallbackBundle pattern
@@ -64,11 +61,9 @@ void VideoDevice::Platform_init()
         this->platform().getPersistenceValue();
     }
     
-    EXIT_LOG;
 }
 
 uint32_t VideoDevice::GetVideoDeviceHandle(const int32_t index, int32_t &handle) {
-    ENTRY_LOG;
     LOGINFO("GetVideoDeviceHandle: index=%d", index);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -79,12 +74,10 @@ uint32_t VideoDevice::GetVideoDeviceHandle(const int32_t index, int32_t &handle)
     } else {
         LOGERR("GetVideoDeviceHandle: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::SetVideoDeviceDFC(const int32_t handle, const VideoDeviceZoom zoomSetting) {
-    ENTRY_LOG;
     LOGINFO("SetVideoDeviceDFC: handle=%d, zoomSetting=%d", handle, static_cast<int>(zoomSetting));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -95,12 +88,10 @@ uint32_t VideoDevice::SetVideoDeviceDFC(const int32_t handle, const VideoDeviceZ
     } else {
         LOGERR("SetVideoDeviceDFC: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::GetVideoDeviceDFC(const int32_t handle, VideoDeviceZoom &zoomSetting) {
-    ENTRY_LOG;
     LOGINFO("GetVideoDeviceDFC: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -111,12 +102,10 @@ uint32_t VideoDevice::GetVideoDeviceDFC(const int32_t handle, VideoDeviceZoom &z
     } else {
         LOGERR("GetVideoDeviceDFC: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::GetHDRCapabilities(const int32_t handle, int32_t &capabilities) {
-    ENTRY_LOG;
     LOGINFO("GetHDRCapabilities: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -127,12 +116,10 @@ uint32_t VideoDevice::GetHDRCapabilities(const int32_t handle, int32_t &capabili
     } else {
         LOGERR("GetHDRCapabilities: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::GetSupportedVideoCodingFormats(const int32_t handle, int32_t &supportedFormats) {
-    ENTRY_LOG;
     LOGINFO("GetSupportedVideoCodingFormats: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -143,12 +130,10 @@ uint32_t VideoDevice::GetSupportedVideoCodingFormats(const int32_t handle, int32
     } else {
         LOGERR("GetSupportedVideoCodingFormats: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::GetCodecInfo(const int32_t handle, const VideoDeviceCodec videoCodec, IDeviceSettingsVideoCodecProfileSupportIterator*& codecInfo) {
-    ENTRY_LOG;
     LOGINFO("GetCodecInfo: handle=%d, videoCodec=%d", handle, static_cast<int>(videoCodec));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -159,12 +144,10 @@ uint32_t VideoDevice::GetCodecInfo(const int32_t handle, const VideoDeviceCodec 
     } else {
         LOGERR("GetCodecInfo: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::DisableHDR(const int32_t handle, const bool disable) {
-    ENTRY_LOG;
     LOGINFO("DisableHDR: handle=%d, disable=%s", handle, disable ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -175,12 +158,10 @@ uint32_t VideoDevice::DisableHDR(const int32_t handle, const bool disable) {
     } else {
         LOGERR("DisableHDR: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::SetFRFMode(const int32_t handle, const int32_t frfmode) {
-    ENTRY_LOG;
     LOGINFO("SetFRFMode: handle=%d, frfmode=%d", handle, frfmode);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -191,12 +172,10 @@ uint32_t VideoDevice::SetFRFMode(const int32_t handle, const int32_t frfmode) {
     } else {
         LOGERR("SetFRFMode: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::GetFRFMode(const int32_t handle, int32_t &frfmode) {
-    ENTRY_LOG;
     LOGINFO("GetFRFMode: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -207,12 +186,10 @@ uint32_t VideoDevice::GetFRFMode(const int32_t handle, int32_t &frfmode) {
     } else {
         LOGERR("GetFRFMode: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::GetCurrentDisplayFrameRate(const int32_t handle, string &framerate) {
-    ENTRY_LOG;
     LOGINFO("GetCurrentDisplayFrameRate: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -223,12 +200,10 @@ uint32_t VideoDevice::GetCurrentDisplayFrameRate(const int32_t handle, string &f
     } else {
         LOGERR("GetCurrentDisplayFrameRate: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t VideoDevice::SetDisplayFrameRate(const int32_t handle, const string framerate) {
-    ENTRY_LOG;
     LOGINFO("SetDisplayFrameRate: handle=%d, framerate=%s", handle, framerate.c_str());
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -239,28 +214,21 @@ uint32_t VideoDevice::SetDisplayFrameRate(const int32_t handle, const string fra
     } else {
         LOGERR("SetDisplayFrameRate: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 // VideoDevice event handlers - called by DS HAL to forward events to parent
 void VideoDevice::OnZoomSettingsChanged(const VideoDeviceZoom zoomSetting) {
-    ENTRY_LOG;
     LOGINFO("DS HAL OnZoomSettingsChanged event: zoomSetting=%d", static_cast<int>(zoomSetting));
     _parent.OnZoomSettingsChanged(zoomSetting);
-    EXIT_LOG;
 }
 
 void VideoDevice::OnDisplayFrameratePreChange(const string frameRate) {
-    ENTRY_LOG;
     LOGINFO("DS HAL OnDisplayFrameratePreChange event: frameRate=%s", frameRate.c_str());
     _parent.OnDisplayFrameratePreChange(frameRate);
-    EXIT_LOG;
 }
 
 void VideoDevice::OnDisplayFrameratePostChange(const string frameRate) {
-    ENTRY_LOG;
     LOGINFO("DS HAL OnDisplayFrameratePostChange event: frameRate=%s", frameRate.c_str());
     _parent.OnDisplayFrameratePostChange(frameRate);
-    EXIT_LOG;
 }

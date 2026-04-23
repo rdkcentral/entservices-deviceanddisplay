@@ -61,11 +61,6 @@ static dsSleepMode_t srv_SleepMode = dsHOST_SLEEP_MODE_LIGHT;
 // Static global callback functions for Host events - following VideoPort/HDMIIn pattern
 static std::function<void(const HostSleepMode)> g_HostSleepModeChangedCallback;
 
-// Host event callback function typedefs for HAL integration
-extern "C" {
-    typedef void (*HostSleepModeChangedCallback_t)(dsSleepMode_t sleepMode);
-}
-
 // DS HAL function type definitions
 typedef dsError_t (*dsGetPreferredSleepModeFunc_t)(dsSleepMode_t *mode);
 typedef dsError_t (*dsSetPreferredSleepModeFunc_t)(dsSleepMode_t mode);

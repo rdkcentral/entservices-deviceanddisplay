@@ -33,15 +33,11 @@ namespace Plugin {
         _callbackLock(),
         _compositeIn(CompositeIn::Create<dCompositeInImpl>(*this))
     {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsCompositeInImpl Constructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     DeviceSettingsCompositeInImpl::~DeviceSettingsCompositeInImpl() {
-        ENTRY_LOG;
         LOGINFO("DeviceSettingsCompositeInImpl Destructor - Instance Address: %p", this);
-        EXIT_LOG;
     }
 
     template<typename Func, typename... Args>
@@ -62,7 +58,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsCompositeInImpl::Register(std::list<T*>& list, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
@@ -76,7 +71,6 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
-        EXIT_LOG;
         return status;
     }
 
@@ -84,7 +78,6 @@ namespace Plugin {
     Core::hresult DeviceSettingsCompositeInImpl::Unregister(std::list<T*>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
-        ENTRY_LOG;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
@@ -97,94 +90,78 @@ namespace Plugin {
         }
 
         _callbackLock.Unlock();
-        EXIT_LOG;
         return status;
     }
 
     Core::hresult DeviceSettingsCompositeInImpl::Register(Exchange::IDeviceSettingsCompositeIn::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Register(_CompositeInNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("ICompositeIn %p, errorCode: %u", notification, errorCode);
         } else {
             LOGINFO("ICompositeIn %p registered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     Core::hresult DeviceSettingsCompositeInImpl::Unregister(Exchange::IDeviceSettingsCompositeIn::INotification* notification)
     {
-        ENTRY_LOG;
         Core::hresult errorCode = Unregister(_CompositeInNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
             LOGERR("ICompositeIn %p, errorcode: %u", notification, errorCode);
         } else {
             LOGINFO("ICompositeIn %p unregistered successfully", notification);
         }
-        EXIT_LOG;
         return errorCode;
     }
 
     // CompositeIn::INotification interface implementations (called by DS HAL)
     void DeviceSettingsCompositeInImpl::OnCompositeInHotPlug(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnCompositeInHotPlug event: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
         
         // Port already converted to WPE type at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInHotPlug, port, isConnected);
-        EXIT_LOG;
     }
 
     void DeviceSettingsCompositeInImpl::OnCompositeInSignalStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnCompositeInSignalStatus event: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
         
         // Types already converted to WPE types at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInSignalStatus, port, signalStatus);
-        EXIT_LOG;
     }
 
     void DeviceSettingsCompositeInImpl::OnCompositeInStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnCompositeInStatus event: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
         
         // Port already converted to WPE type at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInStatus, activePort, isPresented);
-        EXIT_LOG;
     }
 
     void DeviceSettingsCompositeInImpl::OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution)
     {
-        ENTRY_LOG;
         LOGINFO("DS HAL OnCompositeInVideoModeUpdate event: activePort=%d", static_cast<int>(activePort));
         
         // Types already converted to WPE types at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInVideoModeUpdate, activePort, videoResolution);
-        EXIT_LOG;
     }
 
     // CompositeIn interface method implementations called by DeviceSettingsImp (delegate to _compositeIn)
     uint32_t DeviceSettingsCompositeInImpl::GetNrOfCompositeInputs(int32_t &nrCompositeInputs)
     {
-        ENTRY_LOG;
         uint32_t result = _compositeIn.GetNrOfCompositeInputs(nrCompositeInputs);
         if (result == Core::ERROR_NONE) {
             LOGINFO("GetNrOfCompositeInputs succeeded: nrCompositeInputs=%d", nrCompositeInputs);
         } else {
             LOGERR("GetNrOfCompositeInputs failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsCompositeInImpl::GetCompositeInStatus(CompositeInStatus &status)
     {
-        ENTRY_LOG;
         uint32_t result = _compositeIn.GetCompositeInStatus(status);
         if (result == Core::ERROR_NONE) {
             LOGINFO("GetCompositeInStatus succeeded: activePort=%d, isPresented=%s", 
@@ -192,26 +169,22 @@ namespace Plugin {
         } else {
             LOGERR("GetCompositeInStatus failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsCompositeInImpl::SelectCompositeInPort(const CompositeInPort port)
     {
-        ENTRY_LOG;
         uint32_t result = _compositeIn.SelectCompositeInPort(port);
         if (result == Core::ERROR_NONE) {
             LOGINFO("SelectCompositeInPort succeeded: port=%d", static_cast<int>(port));
         } else {
             LOGERR("SelectCompositeInPort failed: port=%d, error=%u", static_cast<int>(port), result);
         }
-        EXIT_LOG;
         return result;
     }
 
     uint32_t DeviceSettingsCompositeInImpl::ScaleCompositeInVideo(const CompositeInVideoRectangle videoRect)
     {
-        ENTRY_LOG;
         uint32_t result = _compositeIn.ScaleCompositeInVideo(videoRect);
         if (result == Core::ERROR_NONE) {
             LOGINFO("ScaleCompositeInVideo succeeded: x=%d, y=%d, width=%d, height=%d", 
@@ -219,7 +192,6 @@ namespace Plugin {
         } else {
             LOGERR("ScaleCompositeInVideo failed: error=%u", result);
         }
-        EXIT_LOG;
         return result;
     }
 

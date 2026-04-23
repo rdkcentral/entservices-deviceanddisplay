@@ -24,12 +24,12 @@
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
 #include "mfrMgr.h"
+#include "DeviceSettingsImplementation.h"
 
-extern "C" {
-    #include "mfrTypes.h"
-    #include "libIBus.h"
-    #include "libIBusDaemon.h"
-}
+// C headers with built-in C++ protection
+#include "mfrTypes.h"
+#include "libIBus.h"
+#include "libIBusDaemon.h"
 //Need to remove this once fix the issue while add DevisettingsTypes.h file
 #ifdef DEBUG_LOGGING
 #define ENTRY_LOG do { LOGINFO("%d: Enter %s", __LINE__, __func__); } while(0);
@@ -82,6 +82,9 @@ protected:
     bool _invalidateAsyncBootloaderPattern;
     bool _firstPowerTransitionComplete;
     mutable std::mutex _mutex;
+
+    // DeviceSettings implementation for component access
+    DeviceSettingsImp* _deviceSettings;
 
     bool _enableMultiColourLedSupport;
     bool _ledEnabledInStandby;

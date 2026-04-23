@@ -32,23 +32,18 @@ FPD::FPD(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    ENTRY_LOG;
     LOGINFO("FPD Constructor");
     Platform_init();
-    EXIT_LOG;
 }
 
 void FPD::Platform_init()
 {
-    ENTRY_LOG;
     // Initialize FPD platform
     LOGINFO("FPD Init");
-    EXIT_LOG;
 }
 
 //Depricated
 uint32_t FPD::SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) {
-    ENTRY_LOG;
     LOGINFO("SetFPDTime: timeFormat=%d, minutes=%u, seconds=%u", timeFormat, minutes, seconds);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -59,12 +54,10 @@ uint32_t FPD::SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes,
     } else {
         LOGERR("SetFPDTime: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) {
-    ENTRY_LOG;
     LOGINFO("SetFPDScroll: scrollHoldDuration=%u, horizontal=%u, vertical=%u", scrollHoldDuration, nHorizontalScrollIterations, nVerticalScrollIterations);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -75,12 +68,10 @@ uint32_t FPD::SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHo
     } else {
         LOGERR("SetFPDScroll: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess) {
-    ENTRY_LOG;
     LOGINFO("SetFPDTextBrightness: textDisplay=%d, brightNess=%u", textDisplay, brightNess);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -91,12 +82,10 @@ uint32_t FPD::SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint3
     } else {
         LOGERR("SetFPDTextBrightness: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess) {
-    ENTRY_LOG;
     LOGINFO("GetFPDTextBrightness: textDisplay=%d", textDisplay);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -107,12 +96,10 @@ uint32_t FPD::GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &b
     } else {
         LOGERR("GetFPDTextBrightness: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::EnableFPDClockDisplay(const bool enable) {
-    ENTRY_LOG;
     LOGINFO("EnableFPDClockDisplay: enable=%s", enable ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -123,12 +110,10 @@ uint32_t FPD::EnableFPDClockDisplay(const bool enable) {
     } else {
         LOGERR("EnableFPDClockDisplay: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) {
-    ENTRY_LOG;
     LOGINFO("GetFPDTimeFormat");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -139,12 +124,10 @@ uint32_t FPD::GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) {
     } else {
         LOGERR("GetFPDTimeFormat: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) {
-    ENTRY_LOG;
     LOGINFO("SetFPDTimeFormat: fpdTimeFormat=%d", fpdTimeFormat);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -155,13 +138,11 @@ uint32_t FPD::SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) {
     } else {
         LOGERR("SetFPDTimeFormat: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 //Depricated
 
 uint32_t FPD::SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) {
-    ENTRY_LOG;
 
     LOGINFO("SetFPDBlink: indicator=%d, blinkDuration=%u, blinkIterations:%u", indicator, blinkDuration, blinkIterations);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -174,12 +155,10 @@ uint32_t FPD::SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDura
         LOGERR("SetFPDBlink: FAILED - result=%u", result);
     }
 
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) {
-    ENTRY_LOG;
 
     LOGINFO("GetFPDBrightness: indicator=%d", indicator);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -192,12 +171,10 @@ uint32_t FPD::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNes
         LOGERR("GetFPDBrightness: FAILED - result=%u", result);
     }
 
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist) {
-    ENTRY_LOG;
 
     LOGINFO("SetFPDBrightness: indicator=%d, brightNess=%u, persist=%s", indicator, brightNess, persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -210,12 +187,10 @@ uint32_t FPD::SetFPDBrightness(const FPDIndicator indicator, const uint32_t brig
         LOGERR("SetFPDBrightness: FAILED - result=%u", result);
     }
 
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::GetFPDState(const FPDIndicator indicator, FPDState &state) {
-    ENTRY_LOG;
 
     LOGINFO("GetFPDState: indicator=%d", indicator);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -228,12 +203,10 @@ uint32_t FPD::GetFPDState(const FPDIndicator indicator, FPDState &state) {
         LOGERR("GetFPDState: FAILED - result=%u", result);
     }
 
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::SetFPDState(const FPDIndicator indicator, const FPDState state) {
-    ENTRY_LOG;
 
     LOGINFO("SetFPDState: indicator=%d, state=%d", indicator, state);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -246,12 +219,10 @@ uint32_t FPD::SetFPDState(const FPDIndicator indicator, const FPDState state) {
         LOGERR("SetFPDState: FAILED - result=%u", result);
     }
 
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::GetFPDColor(const FPDIndicator indicator, uint32_t &color) {
-    ENTRY_LOG;
 
     LOGINFO("GetFPDColor: indicator=%d", indicator);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -263,12 +234,10 @@ uint32_t FPD::GetFPDColor(const FPDIndicator indicator, uint32_t &color) {
     } else {
         LOGERR("GetFPDColor: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
-    ENTRY_LOG;
 
     LOGINFO("SetFPDColor: indicator=%d, colour=%d", indicator, color);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
@@ -281,12 +250,10 @@ uint32_t FPD::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
         LOGERR("SetFPDColor: FAILED - indicator=%d, colour=%d, result=%u", indicator, color, result);
     }
 
-    EXIT_LOG;
     return result;
 }
 
 uint32_t FPD::SetFPDMode(const FPDMode fpdMode) {
-    ENTRY_LOG;
     LOGINFO("SetFPDMode: fpdMode=%d", fpdMode);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -297,6 +264,5 @@ uint32_t FPD::SetFPDMode(const FPDMode fpdMode) {
     } else {
         LOGERR("SetFPDMode: FAILED - result=%u", result);
     }
-    EXIT_LOG;
     return result;
 }

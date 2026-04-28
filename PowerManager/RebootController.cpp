@@ -29,9 +29,6 @@
 #include "UtilsLogging.h"
 
 #define MAX_RFC_LEN 15
-
-#define STANDBY_REBOOT_ENABLE "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.StandbyReboot.Enable"
-#define STANDBY_REBOOT "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.StandbyReboot.StandbyAutoReboot"
 #define FORCE_REBOOT "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.StandbyReboot.ForceAutoReboot"
 
 using Timestamp = std::chrono::steady_clock::time_point;
@@ -41,7 +38,6 @@ static constexpr const int HEARTBEAT_INTERVAL_SEC = 300;
 RebootController::RebootController(const Settings& settings)
     : _workerPool(WPEFramework::Core::WorkerPool::Instance())
     , _settings(settings)
-    , _standbyRebootThreshold(86400 * 3, 300)
     , _forcedRebootThreshold(172800 * 3)
     , _rfcUpdated(false)
 {
@@ -72,41 +68,23 @@ void RebootController::heartbeatMsg()
 {
     time_t curr = 0;
     time(&curr);
-
-    LOGINFO("PowerManager plugin: HeartBeat at %s", ctime(&curr));
-
+    
     if (!_rfcUpdated) {
-        bool enabled = isStandbyRebootEnabled();
-
-        int val = fetchRFCValueInt(STANDBY_REBOOT);
-
-        if (-1 != val) {
-            _standbyRebootThreshold.SetThreshold(val);
-        }
-
-        val = fetchRFCValueInt(FORCE_REBOOT);
+        int val = fetchRFCValueInt(FORCE_REBOOT);
         if (-1 != val) {
             _forcedRebootThreshold.SetThreshold(val);
         }
 
-        LOGINFO("Reboot thresolds updated: Enabled: %d, StandbyReboot = %d, ForcedReboot = %d\n",
-            enabled, _standbyRebootThreshold.threshold(), _forcedRebootThreshold.threshold());
+        LOGINFO("Reboot thresholds updated: ForcedReboot = %d", _forcedRebootThreshold.threshold());
         _rfcUpdated = true;
     }
 
-    if (isStandbyRebootEnabled()) {
-        auto uptime = now<std::chrono::seconds>();
-        if (_standbyRebootThreshold.IsThresholdExceeded(uptime)) {
-            if (_standbyRebootThreshold.IsGraceIntervalExceeded(_settings.InactiveDuration())) {
-                LOGINFO("Going to reboot after %lld\n", uptime);
-                v_secure_system("sh /rebootNow.sh -s PwrMgr -o 'Standby Maintenance reboot'");
-            }
+    auto uptime = now<std::chrono::seconds>();
+    LOGINFO("PowerManager plugin: HeartBeat at %s uptime:%lld  ForcedReboot = %d ", ctime(&curr),uptime,  _forcedRebootThreshold.threshold());
 
-            if (_forcedRebootThreshold.IsThresholdExceeded(uptime)) {
-                LOGINFO("Going to force reboot after %lld\n", uptime);
-                v_secure_system("sh /rebootNow.sh -s PwrMgr -o 'Forced Maintenance reboot'");
-            }
-        }
+    if (_forcedRebootThreshold.IsThresholdExceeded(uptime)) {
+         LOGINFO("Going to forced reboot after %lld", uptime);
+         v_secure_system("sh /rebootNow.sh -s PwrMgr -r 'MAINTENANCE_REBOOT' -o 'Forced Maintenance reboot'");
     }
 
     scheduleHeartbeat();
@@ -139,13 +117,3 @@ int RebootController::fetchRFCValueInt(const char* key)
     return -1;
 }
 
-bool RebootController::isStandbyRebootEnabled()
-{
-    RFC_ParamData_t rfcParam;
-    const char* key = STANDBY_REBOOT_ENABLE;
-    if (WDMP_SUCCESS == getRFCParameter((char*)"PwrMgr", key, &rfcParam)) {
-        return (strncasecmp(rfcParam.value, "true", 4) == 0);
-    }
-
-    return false;
-}

@@ -19,7 +19,10 @@
 
 #include "secure_wrapper.h"
 #include "ThermalController.h"
+#include "PowerUtils.h"
 #include "rfcapi.h"
+
+using util = PowerUtils;
 
 ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))

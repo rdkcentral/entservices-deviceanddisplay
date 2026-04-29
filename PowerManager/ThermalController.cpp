@@ -19,7 +19,10 @@
 
 #include "secure_wrapper.h"
 #include "ThermalController.h"
+#include "PowerUtils.h"
 #include "rfcapi.h"
+
+using util = PowerUtils;
 
 ThermalController::ThermalController (INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
@@ -385,6 +388,8 @@ void ThermalController::pollThermalLevels()
     ThermalTemperature state;
     float current_Temp     = 0;
     float current_WifiTemp = 0;
+    PowerState currentPowerState = PowerState::POWER_STATE_UNKNOWN;
+    PowerState prevPowerState = PowerState::POWER_STATE_UNKNOWN;
 
     unsigned int pollCount = 0;
     int thermalLogInterval = 300/thermal_poll_interval;
@@ -397,7 +402,16 @@ void ThermalController::pollThermalLevels()
 
     while(!_stopThread)
     {
+        sleep(thermal_poll_interval);
         _therm_mutex->lock();
+        const uint32_t powerStateResult = _parent.getPowerState(currentPowerState, prevPowerState);
+        if ((WPEFramework::Core::ERROR_NONE == powerStateResult) && (PowerState::POWER_STATE_STANDBY_DEEP_SLEEP == currentPowerState))
+        {
+            LOGINFO("Ignoring Thermal polling in DEEPSLEEP, currentPowerState: %s", util::str(currentPowerState));
+            _therm_mutex->unlock();
+            continue;
+        }
+
         uint32_t result = platform().GetTemperature(state, current_Temp, current_WifiTemp);//m_cur_Thermal_Level
         if(WPEFramework::Core::ERROR_NONE == result)
         {
@@ -449,7 +463,6 @@ void ThermalController::pollThermalLevels()
         {
             LOGINFO("Warning - Failed to retrieve temperature from OEM");
         }
-        sleep(thermal_poll_interval);
         pollCount++;
     }
     LOGINFO(">> Stop monitoring temeperature");

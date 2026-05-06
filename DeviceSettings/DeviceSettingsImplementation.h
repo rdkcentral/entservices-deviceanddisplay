@@ -24,7 +24,7 @@
 #include <memory>
 #include <unordered_map>
 #include <chrono>
-#include <cstdint>
+#include <cstdint>  // for uint32_t
 
 #include <com/com.h>
 #include <core/core.h>
@@ -61,6 +61,7 @@ namespace Plugin {
     class DeviceSettingsFPDImpl;
     class DeviceSettingsHdmiInImp;
     class DeviceSettingsAudioImpl;
+    class DSController;
 
     class DeviceSettingsImp : public Exchange::IDeviceSettings
                              , public Exchange::IDeviceSettingsFPD
@@ -376,6 +377,9 @@ namespace Plugin {
         // IDeviceSettingsVideoPort - not implemented yet
 
     private:
+        // DSController must be initialized first as it provides system infrastructure
+        DSController* _dsController;
+        
         // Component implementation instances
         DeviceSettingsFPDImpl* _fpdSettings;
         DeviceSettingsHdmiInImp* _hdmiInSettings;

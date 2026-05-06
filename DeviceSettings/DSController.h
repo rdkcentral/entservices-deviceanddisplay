@@ -25,11 +25,16 @@
 #include <unordered_map>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <pthread.h>
+#include <cstdlib>  // for NULL
 
 #include <com/com.h>
 #include <core/core.h>
 #include <plugins/plugins.h>
+
+// IARM includes for event handling
+#include "iarmUtil.h"
 
 //#include <interfaces/IDeviceSettingsManager.h>
 #include <interfaces/IDeviceSettingsAudio.h>
@@ -49,6 +54,7 @@
 #include "DeviceSettingsTypes.h"
 
 #include "DeviceSettingsImplementation.h"
+#include "DSPwrEventListener.h"
 #include <interfaces/IDeviceSettingsVideoPort.h>
 #include <interfaces/IDeviceSettingsAudio.h>
 #include <interfaces/IDeviceSettingsDisplay.h>
@@ -57,6 +63,8 @@
 #include "dsVideoPort.h"
 #include "dsDisplay.h"
 #include "dsAudio.h"
+
+#include "DeviceSettingsTypes.h"
 
 typedef struct _GMainLoop GMainLoop;
 typedef int gboolean;
@@ -67,45 +75,34 @@ namespace WPEFramework {
 namespace Plugin {
     class DeviceSettingsImp;
     
-    class DSController : public IDisplayHDMIHotPlugNotification {
+    class DSController : public Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification {
     public:
-        DSController();
+        DSController(DeviceSettingsImp* deviceSettingsInstance);
         ~DSController();
 
+        static DSController* Create(DeviceSettingsImp* deviceSettingsInstance);
         static DSController* instance(DSController* DSController = nullptr);
 
         DSController(const DSController&)            = delete;
         DSController& operator=(const DSController&) = delete;
 
-    public:
-        class EXTERNAL LambdaJob : public Core::IDispatch {
-        protected:
-            LambdaJob(DSController* impl, std::function<void()> lambda)
-                : _impl(impl)
-                , _lambda(std::move(lambda))
-            {
+        // Build QueryInterface implementation for Core::IUnknown
+        BEGIN_INTERFACE_MAP(DSController)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification)
+        END_INTERFACE_MAP
+
+        // Implement Core::IUnknown methods
+        uint32_t AddRef() const override {
+            return Core::InterlockedIncrement(m_refCount);
+        }
+        
+        uint32_t Release() const override {
+            uint32_t l_Ref = Core::InterlockedDecrement(m_refCount);
+            if (l_Ref == 0) {
+                delete this;
             }
-
-        public:
-            LambdaJob()                            = delete;
-            LambdaJob(const LambdaJob&)            = delete;
-            LambdaJob& operator=(const LambdaJob&) = delete;
-            ~LambdaJob() {}
-
-            static Core::ProxyType<Core::IDispatch> Create(DSController* impl, std::function<void()> lambda)
-            {
-                return (Core::ProxyType<Core::IDispatch>(Core::ProxyType<LambdaJob>::Create(impl, std::move(lambda))));
-            }
-
-            virtual void Dispatch()
-            {
-                _lambda();
-            }
-
-        private:
-            DSController* _impl;
-            std::function<void()> _lambda;
-        };
+            return (l_Ref);
+        }
 
     public:
         void InitializeIARM();
@@ -118,6 +115,8 @@ namespace Plugin {
 
         void InitializeDeviceSettingsComponents();
         void DeinitializeDeviceSettingsComponents();
+        void InitializePowerEventListener(PluginHost::IShell* service);
+        void DeinitializePowerEventListener();
 
         int getEASMode() const { return _easMode; }
         
@@ -163,8 +162,11 @@ namespace Plugin {
     private:
         static DSController* _instance;
         
+        // Injected DeviceSettings instance for dependency injection
+        DeviceSettingsImp* _deviceSettingsInstance;
+        
         DeviceSettingsImp* _deviceSettings;
-        DeviceSettingsImp* _audio;
+        DSPwrEventListener* _pwrEventListener;
         
         static pthread_t _resolutionThreadID;
         static pthread_mutex_t _mutexLock;
@@ -190,6 +192,9 @@ namespace Plugin {
     private:
         mutable Core::CriticalSection _apiLock;
         mutable Core::CriticalSection _callbackLock;
+        
+        // Reference counting for Core::IUnknown
+        mutable uint32_t m_refCount;
     };
 } // namespace Plugin
 } // namespace WPEFramework

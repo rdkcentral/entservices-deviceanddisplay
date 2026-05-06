@@ -18,6 +18,7 @@
  */
 
 #include "DeviceSettingsImplementation.h"
+#include "DSController.h"
 #include "DeviceSettingsFPDImplementation.h"
 #include "DeviceSettingsHdmiInImplementation.h"
 #include "DeviceSettingsAudioImplementation.h"
@@ -50,7 +51,8 @@ namespace Plugin {
     DeviceSettingsImp* DeviceSettingsImp::_instance = nullptr;
 
     DeviceSettingsImp::DeviceSettingsImp()
-        : _fpdSettings(DeviceSettingsFPDImpl::Create())
+        : _dsController(DSController::Create(this))  // Direct dependency injection in initializer list
+        , _fpdSettings(DeviceSettingsFPDImpl::Create())
         , _hdmiInSettings(DeviceSettingsHdmiInImp::Create())
         , _audioSettings(DeviceSettingsAudioImpl::Create())
         , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
@@ -60,8 +62,10 @@ namespace Plugin {
         , _compositeInSettings(DeviceSettingsCompositeInImpl::Create())
         , mConnectionId(0)
     {
+        // Set the static instance for backward compatibility (if still needed)
         DeviceSettingsImp::_instance = this;
         LOGINFO("DeviceSettingsImp Constructor - Instance Address: %p", this);
+        LOGINFO("DSController implementation instance: %p", _dsController);
 
         // Initialize profile type
         profileType = searchRdkProfile();
@@ -118,6 +122,12 @@ namespace Plugin {
             _compositeInSettings = nullptr;
         }
         
+        // Clean up DSController last as it provides system infrastructure
+        if (_dsController != nullptr) {
+            delete _dsController;
+            _dsController = nullptr;
+        }
+        
     }
 
     Core::hresult DeviceSettingsImp::Configure(PluginHost::IShell* service)
@@ -127,6 +137,14 @@ namespace Plugin {
         if (service == nullptr) {
             LOGERR("Service parameter is null");
             return Core::ERROR_BAD_REQUEST;
+        }
+
+        // Initialize DSController power event listener with the service
+        if (_dsController != nullptr) {
+            LOGINFO("Initializing DSController power event listener");
+            _dsController->InitializePowerEventListener(service);
+        } else {
+            LOGERR("DSController is null - cannot initialize power event listener");
         }
 
         LOGINFO("DeviceSettingsImp configured successfully");

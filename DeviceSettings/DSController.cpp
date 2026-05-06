@@ -18,6 +18,7 @@
  */
 
 #include "DSController.h"
+#include "DSPwrEventListener.h"
 
 #include "UtilsLogging.h"
 #include <syscall.h>
@@ -59,9 +60,10 @@ static inline guint g_timeout_add_seconds(guint interval, gboolean (*function)(g
 static inline gboolean g_source_remove(guint tag) { return FALSE; }
 #endif
 
-// Helper function declarations
-extern bool isComponentPortPresent();
-extern bool dsGetHDMIDDCLineStatus(void);
+// DS HAL function declarations
+/*extern "C" {
+    bool dsGetHDMIDDCLineStatus(void);
+}*/
 
 using namespace std;
 
@@ -101,9 +103,18 @@ namespace Plugin {
     #define EU_PROGRESSIVE_FPS  "50"
     #define EU_INTERLACED_FPS   "25"
 
-    DSController::DSController()
-        : _mainLoop(nullptr)
+    // Static Create function implementation
+    DSController* DSController::Create(DeviceSettingsImp* deviceSettingsInstance) {
+        return new DSController(deviceSettingsInstance);
+    }
+
+    DSController::DSController(DeviceSettingsImp* deviceSettingsInstance)
+        : _deviceSettingsInstance(deviceSettingsInstance)
+        , _deviceSettings(nullptr)
+        , _pwrEventListener(nullptr)
+        , _mainLoop(nullptr)
         , _easMode(0)
+        , m_refCount(1)  // Initialize reference count
     {
         DSController::_instance = this;
         
@@ -133,6 +144,7 @@ namespace Plugin {
         }
         
         DeinitializeDeviceSettingsComponents();
+        DeinitializePowerEventListener();
         
         pthread_mutex_destroy(&_mutexLock);
         pthread_cond_destroy(&_mutexCond);
@@ -175,11 +187,10 @@ namespace Plugin {
         IARM_Bus_RegisterEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE, _EventHandler);
         IARM_Bus_RegisterCall(IARM_BUS_COMMON_API_SysModeChange, _SysModeChange);
 
-        // Initialize power event listener (refactored dsMGR code)
-        //TODO
-        //PowerController_Init();
-        //dsMgrInitPwrControllerEvt();
-        //initPwrEventListner();
+        // Initialize power event listener (migrated from dsMGR)
+        // Note: service parameter will be passed separately via InitializePowerEventListener()
+        _pwrEventListener = new DSPwrEventListener();
+        LOGINFO("DSPwrEventListener created: %p", _pwrEventListener);
         
         InitializeResolutionThread();
         
@@ -261,8 +272,8 @@ namespace Plugin {
     void DSController::InitializeDeviceSettingsComponents()
     {
         try {
-            _deviceSettings = DeviceSettingsImp::instance();
-            _audio = DeviceSettingsImp::instance();
+            // Use the injected instance instead of singleton
+            _deviceSettings = _deviceSettingsInstance;
             if (_deviceSettings) {
                 _deviceSettings->Register(static_cast<IDisplayHDMIHotPlugNotification*>(this));
             } else {
@@ -280,6 +291,30 @@ namespace Plugin {
         }
         
         _deviceSettings = nullptr;
+    }
+
+    void DSController::InitializePowerEventListener(PluginHost::IShell* service)
+    {
+        LOGINFO("InitializePowerEventListener called with service: %p", service);
+        
+        if (_pwrEventListener && service) {
+            LOGINFO("Initializing DSPwrEventListener with service");
+            _pwrEventListener->Init(service);
+        } else {
+            LOGERR("Cannot initialize DSPwrEventListener - missing listener or service");
+        }
+    }
+    
+    void DSController::DeinitializePowerEventListener()
+    {
+        LOGINFO("DeinitializePowerEventListener called");
+        
+        if (_pwrEventListener) {
+            LOGINFO("Deinitializing and deleting DSPwrEventListener");
+            _pwrEventListener->Deinit();
+            delete _pwrEventListener;
+            _pwrEventListener = nullptr;
+        }
     }
 
     void DSController::Init()
@@ -419,16 +454,19 @@ namespace Plugin {
                     LOGINFO("Setting Component/Composite Resolution..........");
                     SetResolution(compHandle, dsVIDEOPORT_TYPE_COMPONENT);
                 } else {
-                    
+                    LOGINFO("DSController: NULL Handle for component");
                     int32_t compositeHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_BB);
                     if (0 != compositeHandle) {
                         LOGINFO("Setting BB Composite Resolution..........");
                         SetResolution(compositeHandle, dsVIDEOPORT_TYPE_BB);
                     } else {
+                        LOGINFO("DSController: NULL Handle for Composite");
                         int32_t rfHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_RF);
                         if (0 != rfHandle) {
                             LOGINFO("Setting RF Resolution..........");
                             SetResolution(rfHandle, dsVIDEOPORT_TYPE_RF);
+                        } else {
+                            LOGINFO("DSController: NULL Handle for RF");
                         }
                     }
                 }
@@ -593,13 +631,13 @@ namespace Plugin {
         
         for (int i = 0; i < numPorts; i++) {
             int32_t handle = 0;
-            uint32_t result = _audio->GetAudioPort(supportedPortTypes[i], 0, handle);
+            uint32_t result = _deviceSettings->GetAudioPort(supportedPortTypes[i], 0, handle);
             if (result != Core::ERROR_NONE || handle == 0) {
                 continue;
             }
             
             AudioStereoMode currentMode;
-            result = _audio->GetStereoMode(handle, currentMode);
+            result = _deviceSettings->GetStereoMode(handle, currentMode);
             if (result != Core::ERROR_NONE) {
                 continue;
             }
@@ -661,13 +699,13 @@ namespace Plugin {
         
         for (int i = 0; i < numPorts; i++) {
             int32_t handle = 0;
-            uint32_t result = _audio->GetAudioPort(supportedPortTypes[i], 0, handle);
+            uint32_t result = _deviceSettings->GetAudioPort(supportedPortTypes[i], 0, handle);
             if (result != Core::ERROR_NONE || handle == 0) {
                 continue;
             }
             
             AudioStereoMode currentMode;
-            result = _audio->GetStereoMode(handle, currentMode);
+            result = _deviceSettings->GetStereoMode(handle, currentMode);
             if (result != Core::ERROR_NONE) {
                 continue;
             }
@@ -697,14 +735,6 @@ namespace Plugin {
             }
         }
         
-    }
-
-    // Helper methods
-    bool DSController::isComponentPortPresent()
-    {
-        int32_t handle = GetVideoPortHandle(dsVIDEOPORT_TYPE_COMPONENT);
-        bool present = (handle != 0);
-        return present;
     }
 
     void DSController::DumpHdmiEdidInfo(dsDisplayEDID_t* pedidData)
@@ -936,7 +966,7 @@ namespace Plugin {
             IARM_Bus_SYSMgr_SystemState_t stateId = sysEventData->data.systemStates.stateId;
             int state = sysEventData->data.systemStates.state;
             LOGINFO("EventHandler invoked for stateid %d of state %d", stateId, state);
-            
+
             switch (stateId) {
                 case IARM_BUS_SYSMGR_SYSSTATE_TUNEREADY:
                     LOGINFO("Tune Ready Events in DS Manager");
@@ -1088,6 +1118,22 @@ namespace Plugin {
                                        dsDISPLAY_EVENT_CONNECTED : dsDISPLAY_EVENT_DISCONNECTED;
         
         EventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG, &eventData, sizeof(eventData));
+    }
+
+    // Helper methods implementation
+    bool DSController::isComponentPortPresent()
+    {
+        int32_t compHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_COMPONENT);
+        bool present = (compHandle != 0);
+        
+        if (!present) {
+            // Also check for BB composite as fallback
+            int32_t compositeHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_BB);
+            present = (compositeHandle != 0);
+        }
+        
+        LOGINFO("isComponentPortPresent: %s", present ? "true" : "false");
+        return present;
     }
 
 } // namespace Plugin

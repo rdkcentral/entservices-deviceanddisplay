@@ -140,15 +140,15 @@ namespace Plugin {
         }
 
         //Test DeviceSettings interfaces
-        /*TestSimplifiedFPDAPIs();
+        TestSimplifiedFPDAPIs();
         TestSimplifiedHDMIInAPIs();
         TestSelectHDMIInPortAPI();
         TestCompositeInAPIs();
         TestAudioAPIs();
         TestVideoPortAPIs();
-        TestVideoDeviceAPIs();*/
-        TestDisplayAPIs();
-        //TestHostAPIs();
+        TestVideoDeviceAPIs();
+        //TestDisplayAPIs();
+        TestHostAPIs();
 
         Exchange::JUserPlugin::Register(*this, this);
 

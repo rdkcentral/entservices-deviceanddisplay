@@ -35,7 +35,7 @@
 
 #include <interfaces/IDeviceSettingsFPD.h>
 
-#include "dsMgr.h"
+// #include "dsMgr.h" // Removed - dsMgr functionality moved to DSController
 #include "dsUtl.h"
 #include "dsError.h"
 #include "dsDisplay.h"

@@ -185,7 +185,12 @@ public:
         public:
             virtual ~INotification() = default;
 
-            virtual uint32_t getPowerState(PowerState& currentState, PowerState& prevState) const = 0;
+            virtual uint32_t getPowerState(PowerState& currentState, PowerState& prevState) const
+            {
+                currentState = PowerState::ON;
+                prevState = PowerState::ON;
+                return Core::ERROR_UNAVAILABLE;
+            }
             virtual void onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,const ThermalTemperature new_Thermal_Level, const float current_Temp) = 0;
             virtual void onDeepSleepForThermalChange() = 0;
     };

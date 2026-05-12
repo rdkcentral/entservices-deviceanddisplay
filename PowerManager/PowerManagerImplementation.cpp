@@ -925,6 +925,15 @@ namespace Plugin {
         LOGINFO("<<");
     }
 
+    uint32_t PowerManagerImplementation::getPowerState(PowerState& currentState, PowerState& prevState) const
+    {
+        _apiLock.Lock();
+        uint32_t errorCode = _powerController.GetPowerState(currentState, prevState);
+        _apiLock.Unlock();
+
+        return errorCode;
+    }
+
     void PowerManagerImplementation::onThermalTemperatureChanged(const ThermalTemperature cur_Thermal_Level,
         const ThermalTemperature new_Thermal_Level, const float current_Temp)
     {

@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <errno.h>    // for errno
 #include <fstream>    // for ifstream
+#include <iostream>
 #include <functional> // for function
 #include <memory>
 
@@ -290,6 +291,7 @@ void DeepSleepController::enterDeepSleepNow()
 
     while (retryCount && failed) {
         uint32_t errorCode = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, _nwStandbyMode);
+         LOGINFO("errorCode from SetDeepSleep  API :  %u", errorCode);
 
         failed = WPEFramework::Core::ERROR_NONE != errorCode;
 

@@ -5,6 +5,8 @@
 #include "DeepSleep.h"
 #include "PowerUtils.h"
 #include "UtilsLogging.h"
+#include <fstream>    // for ifstream
+#include <iostream>
 
 class DeepSleepImpl : public hal::deepsleep::IPlatform {
     using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
@@ -119,8 +121,25 @@ public:
 	LOGINFO("Update the Deepsleep marker ");
         system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");	
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);
+         LOGINFO("status from SetDeepSleep  API :  %u", status);
+
+        // 1. Create an input file stream object and open the file
+         std::ifstream inputFile("/opt/deepsleepErrorCode");
+
+        // 2. Check if the file opened successfully
+         if (!inputFile) {
+             LOGINFO("Error: Could not open the file : %u", status);
+         }
+         else
+         {
+	     int number;
+             inputFile >> number;
+	     status = (DeepSleep_Return_Status_t)number;
+             LOGINFO("status read from file:  %u", status);
+         }
 
         uint32_t retCode = conv(status);
+             LOGINFO("conv retCode  file:  %u", retCode);
 
         if (WPEFramework::Core::ERROR_NONE == retCode) {
             LOGINFO("Device wake-up from Deepsleep Mode! GPIOWakeup: %d, networkStandby: %d",

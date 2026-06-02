@@ -1112,6 +1112,8 @@ namespace WPEFramework {
             bool retAPIStatus = false;
             string queryParams;
 
+			LOGINFOMETHOD();
+
             if (parameters.HasLabel("params")) {
                 queryParams = parameters["params"].String();
                 removeCharsFromString(queryParams, "[\"]");
@@ -1205,7 +1207,8 @@ namespace WPEFramework {
                 cmd += queryParams;
             }
 
-            std::string res = "";
+            LOGINFO("Querying DeviceDetails for [%s]", cmd.c_str());
+			std::string res = "";
             FILE* pipe = v_secure_popen("r", "/lib/rdk/getDeviceDetails.sh %s %s", GET_STB_DETAILS_SCRIPT_READ_COMMAND, cmd.c_str());
             if(pipe){
               char buff[1024] = { '\0' };
@@ -1215,6 +1218,19 @@ namespace WPEFramework {
               }
               v_secure_pclose(pipe);
             }
+			else {
+                LOGERR("v_secure_popen failed for getDeviceDetails.sh read [%s]: %s", cmd.c_str(), strerror(errno));
+            }
+
+            if (pipe != nullptr) {
+                if (!res.empty()) {
+                    LOGINFO("DeviceDetails response received for [%s]", cmd.c_str());
+                }
+                else {
+                    LOGERR("No DeviceDetails response for [%s]", cmd.c_str());
+                }
+            }
+
             if (res.size() > 0) {
                 std::string model_number;
 		std::string device_type;

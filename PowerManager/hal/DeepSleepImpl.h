@@ -118,7 +118,7 @@ public:
 	LOGINFO("Update the Deepsleep marker ");
         system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");	
 
-        system("sh /lib/rdk/ds-processes-load.sh");
+        system("sh /lib/rdk/ds-processes-load.sh &");
 
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);
 

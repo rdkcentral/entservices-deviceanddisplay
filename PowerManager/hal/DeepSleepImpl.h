@@ -142,6 +142,11 @@ public:
 
         if (WPEFramework::Core::ERROR_NONE == retCode) {
             LOGINFO("Device resumed from Deep sleep Mode, status :%s", str(status));
+
+            int killRet = system("pkill -f ds-processes-load.sh >/dev/null 2>&1");
+            if (killRet != 0) {
+                LOGINFO("No ds-processes-load.sh process found or kill command returned: %d", killRet);
+            }
         } else {
             LOGERR("Failed to resume from deep sleep mode: %s", str(status));
         }

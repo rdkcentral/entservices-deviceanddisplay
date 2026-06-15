@@ -119,7 +119,7 @@ public:
         system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");	
 
         system("sh /lib/rdk/ds-processes-load.sh &");
-
+        /*
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);
 
         uint32_t retCode = conv(status);
@@ -132,6 +132,8 @@ public:
         }
 
         return retCode;
+        */
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     virtual uint32_t DeepSleepWakeup(void) override

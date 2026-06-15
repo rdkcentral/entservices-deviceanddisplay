@@ -122,6 +122,8 @@ public:
         
         sleep(60);
 
+        system("for p in $(pgrep -f ds-processes-load.sh 2>/dev/null); do pkill -TERM -P $p >/dev/null 2>&1; pkill -KILL -P $p >/dev/null 2>&1; kill -9 $p >/dev/null 2>&1; done");
+
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);
 
         uint32_t retCode = conv(status);

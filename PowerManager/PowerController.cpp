@@ -25,6 +25,7 @@
 #include <core/Time.h>       // for Time
 #include <core/WorkerPool.h> // for IWorkerPool, WorkerPool
 
+#include "Module.h"
 #include "LambdaJob.h"      // for LambdaJob
 #include "UtilsLogging.h"   // for LOGINFO, LOGERR
 #include "secure_wrapper.h" // for v_secure_system
@@ -51,6 +52,7 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     , _rebootController(_settings)
 #endif
 {
+    SYSLOG(WPEFramework::Logging::Startup, (_T("%s >>"), __FUNCTION__));
     ASSERT(nullptr != _platform);
     bool isRamPersistenceAvailable = (0 == access(m_ramSettingsFile.c_str(), F_OK));
 
@@ -84,9 +86,12 @@ PowerController::PowerController(DeepSleepController& deepSleep, std::unique_ptr
     // It will either be deserialized from file or initialized to default values
     int wakeupSrcConfig = WakeupSrcType::WAKEUP_SRC_WIFI | WakeupSrcType::WAKEUP_SRC_LAN;
     int wakeupSrcValue = _settings.nwStandbyMode() ? wakeupSrcConfig : 0;
+    SYSLOG(WPEFramework::Logging::Startup, (_T("%s before SetWakeupSourceConfig"), __FUNCTION__));
     this->platform().SetWakeupSrcConfig(0, wakeupSrcConfig, wakeupSrcValue);
 
+    SYSLOG(WPEFramework::Logging::Startup, (_T("%s before init"), __FUNCTION__));
     init();
+    SYSLOG(WPEFramework::Logging::Startup, (_T("%s <<"), __FUNCTION__));
 }
 
 void PowerController::init()

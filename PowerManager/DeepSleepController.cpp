@@ -317,7 +317,7 @@ void DeepSleepController::enterDeepSleepNow()
     }
     LOGINFO("DeepSleep success; performing wakeup action");
     if (userWakeup) {
-        LOGINFO("DeeSleep wakeupReason: user action");
+        LOGINFO("DeepSleep wakeupReason: user action");
         _parent.onDeepSleepUserWakeup(userWakeup);
     } else {
         deepSleepTimerWakeup();

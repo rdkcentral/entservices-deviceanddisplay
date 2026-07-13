@@ -59,7 +59,7 @@ uint32_t DeepSleepWakeupSettings::getTZDiffInSec() const
     tzValue value         = tzCST06;
 
     /* Get the Time Zone Pay Load from SysMgr */
-    IARM_Bus_SYSMgr_GetSystemStates_Param_t param;
+    IARM_Bus_SYSMgr_GetSystemStates_Param_t param = {0};
     iResult = IARM_Bus_Call(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_API_GetSystemStates, (void*)&param, sizeof(param));
     if (iResult == IARM_RESULT_SUCCESS) {
         if (param.time_zone_available.error) {
@@ -273,7 +273,7 @@ void DeepSleepController::enterDeepSleepDelayed()
 {
     _deepSleepDelayJob.Release();
 
-    LOGINFO("Deep Sleep Timer Expires :Enter to Deep sleep Mode..stop Receiver with sleep 10 before DS");
+    LOGINFO("Deep Sleep timer expired: entering deep sleep mode");
     enterDeepSleepNow();
 }
 
@@ -282,14 +282,14 @@ void DeepSleepController::enterDeepSleepNow()
     LOGINFO("Enter to Deep sleep Mode..stop Receiver with sleep 1 before DS");
     sleep(1);
 
+    uint32_t errorCode = WPEFramework::Core::ERROR_NONE;
     bool failed     = true;
     int retryCount  = 5;
     bool userWakeup = 0;
-    LOGINFO("Device entering Deep sleep with nwStandbyMode: %s",
-            (_nwStandbyMode ? "Enabled" : "Disabled"));
+    LOGINFO("Device entering Deep sleep with nwStandbyMode: %s", (_nwStandbyMode ? "Enabled" : "Disabled"));
 
     while (retryCount && failed) {
-        uint32_t errorCode = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, _nwStandbyMode);
+        errorCode = platform().SetDeepSleep(_deepSleepWakeupTimeoutSec, userWakeup, _nwStandbyMode);
 
         failed = WPEFramework::Core::ERROR_NONE != errorCode;
 
@@ -297,13 +297,11 @@ void DeepSleepController::enterDeepSleepNow()
             _deepSleepState = DeepSleepState::Failed;
             retryCount--;
 
-            if (errorCode == WPEFramework::Core::ERROR_ABORTED) {
+            if ((errorCode == WPEFramework::Core::ERROR_ABORTED) && (retryCount > 0)) {
                 LOGINFO("Failed to enter deep sleep mode: %u, retry after 5s", errorCode);
                 sleep(5);
-            }
-            else
-            {
-                LOGINFO("No retry needed for other error code except ERROR_ABORTED: %u,", errorCode);
+            } else {
+                LOGINFO("No retry for deep sleep error code: %u", errorCode);
                 break;
             }
         } else {
@@ -313,11 +311,11 @@ void DeepSleepController::enterDeepSleepNow()
     }
 
     if (failed) {
-        LOGERR("Failed to enter deep sleep mode after 5 attempts");
+        LOGERR("Failed to enter deep sleep mode error code: %u", errorCode);
         _parent.onDeepSleepFailed();
         return;
     }
-    LOGINFO("DeeSleep success so perform wakup action");
+    LOGINFO("DeepSleep success; performing wakeup action");
     if (userWakeup) {
         LOGINFO("DeeSleep wakeupReason: user action");
         _parent.onDeepSleepUserWakeup(userWakeup);
@@ -355,8 +353,10 @@ void DeepSleepController::performActivate(uint32_t timeOut, bool nwStandbyMode)
         _deepsleepStartTime = MonotonicClock::now();
 
         // Perform the deep sleep operation
+        _nwStandbyMode             = nwStandbyMode;
         _deepSleepWakeupTimeoutSec = timeOut;
 
+        _deepSleepDelaySec = 0; // reset before reading override; prevents stale value persisting across activations
         uint32_t delayTimeOut = 0;
         if (read_integer_conf("/tmp/deepSleepDelayTimer", delayTimeOut) && delayTimeOut) {
             _deepSleepDelaySec = delayTimeOut;

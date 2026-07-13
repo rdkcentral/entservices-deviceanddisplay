@@ -120,8 +120,8 @@ public:
         int32_t ret = -1;
         LOGINFO("Update the Deepsleep marker ");
         ret = v_secure_system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");
-        if(ret != 0) {
-            LOGERR("Failed to update the Deepsleep marker");
+        if (ret != 0) {
+            LOGERR("Failed to update the Deepsleep marker (v_secure_system ret=%d)", ret);
         }
         
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);

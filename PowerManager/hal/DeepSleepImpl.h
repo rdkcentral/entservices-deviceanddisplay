@@ -5,6 +5,7 @@
 #include "DeepSleep.h"
 #include "PowerUtils.h"
 #include "UtilsLogging.h"
+#include "secure_wrapper.h" // for v_secure_system
 
 class DeepSleepImpl : public hal::deepsleep::IPlatform {
     using WakeupReason = WPEFramework::Exchange::IPowerManager::WakeupReason;
@@ -103,10 +104,11 @@ public:
         case DEEPSLEEPMGR_ALREADY_INITIALIZED:
         case DEEPSLEEPMGR_NOT_INITIALIZED:
         case DEEPSLEEPMGR_INIT_FAILURE:
-        case DEEPSLEEPMGR_SET_FAILURE:
         case DEEPSLEEPMGR_WAKEUP_FAILURE:
         case DEEPSLEEPMGR_TERM_FAILURE:
             return WPEFramework::Core::ERROR_GENERAL;
+        case DEEPSLEEPMGR_SET_FAILURE:
+            return WPEFramework::Core::ERROR_ABORTED;
         default:
             LOGERR("Unknown status: %d", status);
             return WPEFramework::Core::ERROR_GENERAL;
@@ -115,8 +117,13 @@ public:
 
     virtual uint32_t SetDeepSleep(uint32_t deepSleepTime, bool& isGPIOWakeup, bool networkStandby) override
     {
-	LOGINFO("Update the Deepsleep marker ");
-        system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");	
+        int32_t ret = -1;
+        LOGINFO("Update the Deepsleep marker ");
+        ret = v_secure_system("sh /lib/rdk/alertSystem.sh deepSleepMgrMain SYST_INFO_devicetoDS");
+        if(ret != 0) {
+            LOGERR("Failed to update the Deepsleep marker");
+        }
+        
         DeepSleep_Return_Status_t status = PLAT_DS_SetDeepSleep(deepSleepTime, &isGPIOWakeup, networkStandby);
 
         uint32_t retCode = conv(status);
@@ -178,3 +185,4 @@ public:
         return retCode;
     }
 };
+

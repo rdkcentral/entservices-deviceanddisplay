@@ -4,15 +4,16 @@ name: main-workflow
 
 on:
   push:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
+    branches: [ main, develop, 'sprint/**', 'release/**', 'support/**' ]
   pull_request:
-    branches: [ main, develop, 'sprint/**', 'release/**' ]
+    branches: [ main, develop, 'sprint/**', 'release/**', 'support/**' ]
 
 jobs:
   trigger-L1:
     uses: ./.github/workflows/L1-tests.yml
     with:
       caller_source: local
+      testframework_ref: test_nav
     secrets:
       RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
 
@@ -20,6 +21,7 @@ jobs:
     uses: ./.github/workflows/L2-tests.yml
     with:
       caller_source: local
+      testframework_ref: test_nav
     secrets:
       RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
 
@@ -27,5 +29,6 @@ jobs:
     uses: ./.github/workflows/L2-tests-oop.yml
     with:
       caller_source: local
+      testframework_ref: test_nav
     secrets:
       RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}

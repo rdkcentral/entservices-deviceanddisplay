@@ -2478,11 +2478,13 @@ namespace WPEFramework {
             } else {
                 rConf["env"] = "dev";
             }
-
+            LOGINFO("SystemServices::getXconfParams()-> calling collectDeviceInfo(\"estb_mac\") \n");
             std::string estbMac = collectDeviceInfo("estb_mac");
             removeCharsFromString(estbMac, "\n\r");
             rConf["eStbMac"] = estbMac;
+            LOGINFO("SystemServices::getXconfParams()-> calling collectDeviceInfo(): estbMac = %s \n", estbMac.c_str() );
             rConf["model"] = getModel();
+            LOGINFO("SystemServices::getXconfParams()-> calling collectDeviceInfo(): model = %s \n", getModel().c_str() );
             rConf["firmwareVersion"] = stbVersion;
             response["xconfParams"] = rConf;
             returnResponse(true);

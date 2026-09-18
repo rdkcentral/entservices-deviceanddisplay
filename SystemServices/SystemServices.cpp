@@ -2873,7 +2873,7 @@ namespace WPEFramework {
         {
             bool resp = true;
             bool isUniversal = false, isOlson = true;
-
+            LOGINFO("SystemServices::setTimeZoneDST called\n");
             if (parameters.HasLabel("timeZone")) {
                 std::string dir = dirnameOf(TZ_FILE);
                 std::string timeZone = "";
@@ -2896,12 +2896,13 @@ namespace WPEFramework {
                             LOGERR("Invalid timezone format received : %s . Timezone should be in either Universal or  Olson format  Ex : America/New_York . \n", timeZone.c_str());
                         }
                     }
-                    
+                    LOGINFO("TimeZone received : %s . isUniversal : %s isOlson : %s\n", timeZone.c_str(), isUniversal ? "true" : "false", isOlson ? "true" : "false");
                     if( (isUniversal == true) || (isOlson == true)) {
                         std::string path =ZONEINFO_DIR;
                         path += "/";
                         std::string country = timeZone.substr(0,pos);
                         std::string city = path+timeZone;
+                        LOGINFO("path : %s country : %s city : %s \n", path.c_str(), country.c_str(), city.c_str());
                         if( dirExists(path+country)  && Utils::fileExists(city.c_str()) )
                         {
                             if (!dirExists(dir)) {
@@ -2913,6 +2914,7 @@ namespace WPEFramework {
                                 //Do nothing//
                             }
                             std::string oldTimeZoneDST = getTimeZoneDSTHelper();
+                            LOGINFO("Old TimeZone : %s New TimeZone : %s \n", oldTimeZoneDST.c_str(), timeZone.c_str());
                             if (oldTimeZoneDST != timeZone) {
                                 FILE *f = fopen(TZ_FILE, "w");
                                 if (f) {
@@ -2925,7 +2927,10 @@ namespace WPEFramework {
                                     fflush(f);
                                     fsync(fileno(f));
                                     fclose(f);
+                                    LOGWARN("TimeZone set to %s\n", timeZone.c_str());
 #ifdef ENABLE_LINK_LOCALTIME
+#Error
+                                    LOGWARN("Linux localtime linked to %s\n", city.c_str());
                                     // Now create the linux link back to the zone info file to our writeable localtime
                                     if (Utils::fileExists(LOCALTIME_FILE)) {
                                         remove (LOCALTIME_FILE);

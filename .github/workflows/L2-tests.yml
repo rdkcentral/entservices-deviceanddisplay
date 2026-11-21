@@ -7,6 +7,11 @@ on:
         description: "Specifies the source type (e.g., local or test framework) for the workflow."
         required: true
         type: string
+      testframework_ref:
+        description: "Branch or tag to use when checking out entservices-testframework."
+        required: false
+        type: string
+        default: "develop"
     secrets:
       RDKCM_RDKE:
         required: true
@@ -100,14 +105,14 @@ jobs:
         with:
           repository: rdkcentral/entservices-deviceanddisplay
           path: entservices-deviceanddisplay
-          ref: develop
+          ref: support/8.4.4.0
 
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: ${{ inputs.testframework_ref }}
           token: ${{ secrets.RDKCM_RDKE }}
 
       - name: Checkout googletest
